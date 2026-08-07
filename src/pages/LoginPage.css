@@ -1,0 +1,30 @@
+.login {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.login__box {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.login__brand {
+  display: flex;
+  justify-content: center;
+}
+
+.login__subtitle {
+  margin: -6px 0 4px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 12px;
+}

@@ -1,0 +1,15 @@
+node_modules
+dist
+coverage
+tsconfig.tsbuildinfo
+playwright-report
+test-results
+.vercel
+
+# .env.example fica versionado; o .env local não.
+.env
+.env.local
+.env.*.local
+
+.DS_Store
+*.log

@@ -1,0 +1,235 @@
+/*
+ * Identidade Rapidex, tema escuro único.
+ *
+ * Escuro e não claro porque o painel fica aberto o turno inteiro, muitas vezes
+ * numa tela na cozinha; e um só tema porque alternador de tema é mais código
+ * para manter sem resolver nenhum problema da operação.
+ *
+ * Densidade: fontes de 12-13px, alturas de linha curtas e espaçamentos de 4px
+ * a 8px. A tela precisa mostrar o máximo de pedidos sem rolagem.
+ */
+
+:root {
+  --rapidex-red: #e8412c;
+  --rapidex-red-dark: #c22f1d;
+
+  --bg: #14161a;
+  --bg-panel: #1b1e24;
+  --bg-raised: #22262e;
+  --bg-hover: #2a2f39;
+
+  --border: #313742;
+  --border-strong: #454d5c;
+
+  --text: #e9ecf1;
+  --text-dim: #a2abbb;
+  --text-faint: #6d7787;
+
+  --ok: #35b37e;
+  --warn: #e0a02c;
+  --danger: #e8412c;
+  --info: #4a8fe7;
+
+  --radius: 5px;
+  --font: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Mono', Consolas, monospace;
+
+  /* Cor de cada coluna/status. Usadas na borda do card e no badge. */
+  --status-pending: #e0a02c;
+  --status-accepted: #4a8fe7;
+  --status-preparing: #9b6ce0;
+  --status-ready: #2bb3c4;
+  --status-out_for_delivery: #5f7ce8;
+  --status-completed: #35b37e;
+  --status-cancelled: #7b8493;
+  --status-rejected: #7b8493;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* --- botões ------------------------------------------------------------ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  cursor: pointer;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--rapidex-red);
+  border-color: var(--rapidex-red);
+  color: #fff;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--rapidex-red-dark);
+}
+
+.btn--danger {
+  border-color: #7a2a20;
+  color: #ff9d8f;
+}
+
+.btn--danger:hover:not(:disabled) {
+  background: #331a17;
+}
+
+.btn--block {
+  width: 100%;
+}
+
+.btn--sm {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+/* --- campos ------------------------------------------------------------ */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+.input,
+.select {
+  padding: 6px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+
+.input:focus,
+.select:focus,
+.btn:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: -1px;
+}
+
+/* --- avisos ------------------------------------------------------------ */
+
+.alert {
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  border: 1px solid;
+  font-size: 12px;
+}
+
+.alert--error {
+  background: #2b1512;
+  border-color: #7a2a20;
+  color: #ffb3a7;
+}
+
+.alert--warn {
+  background: #2b2312;
+  border-color: #6b5320;
+  color: #ffd894;
+}
+
+.alert--info {
+  background: #12202b;
+  border-color: #23506b;
+  color: #a8d3f5;
+}
+
+.muted {
+  color: var(--text-dim);
+}
+
+.faint {
+  color: var(--text-faint);
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* --- barra de status da conexão ---------------------------------------- */
+
+.conn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.conn__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+
+.conn--live .conn__dot {
+  background: var(--ok);
+}
+
+.conn--connecting .conn__dot {
+  background: var(--warn);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.conn--offline .conn__dot {
+  background: var(--danger);
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.25;
+  }
+}

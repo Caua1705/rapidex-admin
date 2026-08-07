@@ -1,0 +1,250 @@
+.orders {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* --- barra de filtros --------------------------------------------------- */
+
+.toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+  flex-wrap: wrap;
+}
+
+.toolbar__search {
+  flex: 1;
+  min-width: 200px;
+  max-width: 380px;
+}
+
+.toolbar__right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.orders__alert {
+  margin: 8px 12px 0;
+}
+
+/* --- quadro ------------------------------------------------------------- */
+
+/*
+ * Colunas de largura fixa com rolagem horizontal: com 7 colunas em telas de
+ * 1366px, deixar as colunas encolherem quebraria o card em duas linhas e a
+ * leitura de longe (que é como a cozinha usa) iria embora.
+ */
+.board {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  overflow-x: auto;
+}
+
+.column {
+  flex: 0 0 226px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.column__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 9px;
+  border-bottom: 1px solid var(--border);
+}
+
+.column__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.column__dot--pending {
+  background: var(--status-pending);
+}
+.column__dot--accepted {
+  background: var(--status-accepted);
+}
+.column__dot--preparing {
+  background: var(--status-preparing);
+}
+.column__dot--ready {
+  background: var(--status-ready);
+}
+.column__dot--out_for_delivery {
+  background: var(--status-out_for_delivery);
+}
+.column__dot--completed {
+  background: var(--status-completed);
+}
+.column__dot--cancelled {
+  background: var(--status-cancelled);
+}
+
+.column__title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.column__badge {
+  margin-left: auto;
+  min-width: 22px;
+  padding: 1px 6px;
+  text-align: center;
+  border-radius: 10px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.column__cards {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.column__empty {
+  margin: 8px 4px;
+  font-size: 11px;
+}
+
+/* --- card --------------------------------------------------------------- */
+
+.order-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 7px 8px;
+  text-align: left;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.order-card:hover {
+  background: var(--bg-hover);
+}
+
+.order-card--selected {
+  border-color: var(--info);
+}
+
+/* Pedido esperando pagamento online: vermelho e impossível de não ver. */
+.order-card--unpaid {
+  border-left-color: var(--danger);
+  background: #2a1714;
+}
+
+.order-card--unpaid:hover {
+  background: #351b17;
+}
+
+.order-card__top {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.order-card__number {
+  font-size: 13px;
+}
+
+.order-card__elapsed {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.order-card__customer {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-card__tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.tag--delivery {
+  border-color: #2c4a72;
+  color: #9cc4f5;
+}
+
+.tag--pickup {
+  border-color: #3f5c3a;
+  color: #a9d8a0;
+}
+
+.order-card__unpaid-banner {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #ffb3a7;
+  background: #4a1d16;
+  border-radius: 3px;
+  padding: 2px 5px;
+}
+
+.order-card__payment {
+  font-size: 10.5px;
+}
+
+.order-card__total {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* --- rodapé ------------------------------------------------------------- */
+
+.orders__footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+}

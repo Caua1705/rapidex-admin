@@ -1,0 +1,48 @@
+.shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.shell__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+
+.shell__divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border-strong);
+}
+
+.shell__restaurant {
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+.shell__spacer {
+  flex: 1;
+}
+
+.shell__user {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* min-height: 0 é o que permite o quadro de pedidos rolar dentro do flex. */
+.shell__content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
