@@ -1,0 +1,301 @@
+/*
+ * Tokens do Rapidex Design System.
+ *
+ * Consolidado a partir de
+ * design/_ds/rapidex-design-system-c214e0d9-.../tokens/*.css. Os valores são os
+ * mesmos; o que muda é que aqui eles vivem num arquivo só, versionado com o
+ * app, e que a escala de status ganhou os dois apelidos que a máquina de
+ * estados do backend usa e o DS não nomeia (`out_for_delivery`, `rejected`).
+ *
+ * ESTE É O ÚNICO ARQUIVO DO src/ QUE PODE CONTER UMA COR LITERAL.
+ * Em qualquer outro lugar, cor é `var(--token)`. `npm run lint` cobra isso
+ * (scripts/check-design-tokens.mjs).
+ *
+ * Regras que os valores abaixo carregam (ver .claude/skills/rapidex-design-system):
+ *   - Escuro é o padrão. Claro é o MESMO conjunto de tokens semânticos com as
+ *     superfícies invertidas — nunca uma segunda paleta.
+ *   - O laranja de marca é escasso: botão primário, item ativo da navegação,
+ *     anel de foco. Nunca em texto de corpo nem em fundo de seção grande.
+ *   - A escala de status é separada do laranja, para que nenhum status compita
+ *     com o CTA. Vermelho não é status: é só ação perigosa.
+ *   - Neutros têm viés quente (marrom), não cinza-azulado de SaaS.
+ */
+
+:root {
+  /* --- primitivas: neutros quentes ------------------------------------- */
+  --neutral-0: #0b0a09;
+  --neutral-50: #121110;
+  --neutral-100: #1a1816;
+  --neutral-150: #211e1b;
+  --neutral-200: #2a2622;
+  --neutral-300: #3d3833;
+  --neutral-400: #565049;
+  --neutral-500: #756e65;
+  --neutral-600: #9a9288;
+  --neutral-700: #bfb8ad;
+  --neutral-800: #e4dfd7;
+  --neutral-900: #f7f4ef;
+
+  /* --- primitivas: marca ------------------------------------------------ */
+  --brand-50: #fff3e8;
+  --brand-100: #ffe1c7;
+  --brand-200: #ffc08a;
+  --brand-300: #ff9f52;
+  --brand-400: #ff8329;
+  --brand-500: #ff6a0a;
+  --brand-600: #e85700;
+  --brand-700: #bd4400;
+  --brand-800: #8f3300;
+  --brand-900: #5c2100;
+
+  /* --- primitivas: vermelho (perigo, NUNCA status) ---------------------- */
+  --red-300: #fca5a5;
+  --red-400: #f87171;
+  --red-500: #ef4444;
+  --red-600: #dc2626;
+  --red-700: #b91c1c;
+
+  /*
+   * --- escala de status: 7 matizes espalhados pela roda ------------------
+   *
+   * Espalhados de propósito e longe do laranja: no quadro de pedidos as sete
+   * colunas ficam lado a lado, e se dois status fossem vizinhos de matiz a
+   * cozinha leria a coluna errada de longe.
+   */
+  --status-pending-h: #f5a524;
+  --status-accepted-h: #3b82f6;
+  --status-preparing-h: #8b5cf6;
+  --status-ready-h: #14b8a6;
+  --status-delivering-h: #ec4899;
+  --status-completed-h: #22c55e;
+  --status-cancelled-h: #8a8178;
+
+  /* --- semânticas: superfícies ----------------------------------------- */
+  --bg-app: var(--neutral-0);
+  --bg-surface: var(--neutral-50);
+  --bg-surface-raised: var(--neutral-150);
+  --bg-surface-sunken: #000000;
+  --bg-overlay: rgba(11, 10, 9, 0.72);
+  /* Hover clareia: o fundo já é quase preto, escurecer não apareceria. */
+  --bg-hover: rgba(255, 255, 255, 0.04);
+  --bg-active: rgba(255, 255, 255, 0.07);
+
+  /* --- semânticas: borda ------------------------------------------------ */
+  --border-subtle: var(--neutral-150);
+  --border-default: var(--neutral-200);
+  --border-strong: var(--neutral-300);
+
+  /* --- semânticas: texto ------------------------------------------------ */
+  --text-primary: var(--neutral-900);
+  --text-secondary: var(--neutral-700);
+  --text-tertiary: var(--neutral-500);
+  --text-disabled: var(--neutral-400);
+  --text-on-brand: #1a0900;
+  --text-on-status: #0b0a09;
+
+  /* --- semânticas: accent laranja --------------------------------------- */
+  --brand: var(--brand-500);
+  --brand-hover: var(--brand-400);
+  --brand-active: var(--brand-600);
+  --brand-soft-bg: rgba(255, 106, 10, 0.14);
+  --brand-soft-fg: var(--brand-300);
+  --focus-ring: var(--brand-400);
+
+  /* --- semânticas: perigo ----------------------------------------------- */
+  --danger: var(--red-500);
+  --danger-hover: var(--red-400);
+  --danger-active: var(--red-600);
+  --danger-soft-bg: rgba(239, 68, 68, 0.14);
+  --danger-soft-fg: var(--red-400);
+
+  /* --- elevação --------------------------------------------------------- */
+  /* No escuro a elevação é degrau de luminosidade + borda de 1px: sombra
+     sobre preto é invisível. Daí --shadow-elevation:none aqui e sombra real
+     só no tema claro. */
+  --shadow-color: 0, 0, 0;
+  --shadow-elevation: none;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
+  --shadow-focus: 0 0 0 3px rgba(255, 131, 41, 0.35);
+
+  /* --- tipografia ------------------------------------------------------- */
+  --font-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  --text-xs: 12px;
+  --leading-xs: 16px;
+  --text-sm: 13px;
+  --leading-sm: 18px;
+  /* 15px e não os 14px de SaaS: o painel é lido de pé, a um braço de distância. */
+  --text-base: 15px;
+  --leading-base: 22px;
+  --text-md: 17px;
+  --leading-md: 24px;
+  --text-lg: 20px;
+  --leading-lg: 27px;
+  --text-xl: 24px;
+  --leading-xl: 30px;
+  --text-2xl: 32px;
+  --leading-2xl: 38px;
+  --text-3xl: 44px;
+  --leading-3xl: 48px;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+
+  /* --- espaçamento (base 4px) ------------------------------------------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* --- raio ------------------------------------------------------------- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 999px;
+
+  /* --- movimento -------------------------------------------------------- */
+  /*
+   * Animação existe só onde comunica mudança de estado. Estes dois tokens
+   * viram 0s inteiros sob prefers-reduced-motion (mais abaixo), então toda
+   * transição escrita com eles já respeita a preferência sem media query
+   * própria.
+   */
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+
+  color-scheme: dark;
+}
+
+/*
+ * Tema claro: as MESMAS variáveis semânticas, outras superfícies. Nada abaixo
+ * daqui inventa cor nova de marca, de status ou de perigo — só inverte o
+ * neutro e ajusta os pares "soft" para continuarem legíveis sobre branco.
+ */
+[data-theme='light'] {
+  --bg-app: var(--neutral-900);
+  --bg-surface: #ffffff;
+  --bg-surface-raised: #ffffff;
+  --bg-surface-sunken: var(--neutral-800);
+  --bg-overlay: rgba(20, 17, 14, 0.4);
+  --bg-hover: rgba(11, 10, 9, 0.04);
+  --bg-active: rgba(11, 10, 9, 0.08);
+
+  --border-subtle: #ede8e1;
+  --border-default: var(--neutral-800);
+  --border-strong: var(--neutral-700);
+
+  --text-primary: var(--neutral-0);
+  --text-secondary: var(--neutral-400);
+  --text-tertiary: var(--neutral-500);
+  --text-disabled: var(--neutral-600);
+  --text-on-brand: #fff7f0;
+  --text-on-status: #0b0a09;
+
+  --brand-soft-bg: var(--brand-50);
+  --brand-soft-fg: var(--brand-700);
+
+  --danger-soft-bg: #fdecec;
+  --danger-soft-fg: var(--red-600);
+
+  --shadow-elevation: 0 1px 2px rgba(20, 17, 14, 0.06), 0 4px 12px rgba(20, 17, 14, 0.06);
+  --shadow-sm: 0 1px 2px rgba(20, 17, 14, 0.06);
+  --shadow-md: 0 4px 16px rgba(20, 17, 14, 0.08);
+  --shadow-lg: 0 16px 40px rgba(20, 17, 14, 0.12);
+  --shadow-focus: 0 0 0 3px rgba(255, 106, 10, 0.25);
+
+  color-scheme: light;
+}
+
+/*
+ * --- status como classe ---------------------------------------------------
+ *
+ * Quem pinta um status não escolhe matiz: põe `status-<chave>` no elemento e
+ * usa var(--status) / var(--status-bg) / var(--status-fg). Assim a coluna, o
+ * badge e o ponto do card saem sempre da mesma fonte.
+ */
+.status-pending {
+  --status: var(--status-pending-h);
+  --status-bg: color-mix(in oklch, var(--status-pending-h) 16%, transparent);
+  --status-fg: var(--status-pending-h);
+}
+.status-accepted {
+  --status: var(--status-accepted-h);
+  --status-bg: color-mix(in oklch, var(--status-accepted-h) 16%, transparent);
+  --status-fg: var(--status-accepted-h);
+}
+.status-preparing {
+  --status: var(--status-preparing-h);
+  --status-bg: color-mix(in oklch, var(--status-preparing-h) 16%, transparent);
+  --status-fg: var(--status-preparing-h);
+}
+.status-ready {
+  --status: var(--status-ready-h);
+  --status-bg: color-mix(in oklch, var(--status-ready-h) 16%, transparent);
+  --status-fg: var(--status-ready-h);
+}
+.status-delivering {
+  --status: var(--status-delivering-h);
+  --status-bg: color-mix(in oklch, var(--status-delivering-h) 16%, transparent);
+  --status-fg: var(--status-delivering-h);
+}
+.status-completed {
+  --status: var(--status-completed-h);
+  --status-bg: color-mix(in oklch, var(--status-completed-h) 16%, transparent);
+  --status-fg: var(--status-completed-h);
+}
+.status-cancelled {
+  --status: var(--status-cancelled-h);
+  --status-bg: color-mix(in oklch, var(--status-cancelled-h) 16%, transparent);
+  --status-fg: var(--status-cancelled-h);
+}
+
+/*
+ * Os dois nomes que o backend usa e o DS não tem.
+ *
+ * `out_for_delivery` É o estágio que o DS chama de "delivering", e `rejected`
+ * termina o pedido do mesmo jeito que `cancelled` — as duas colunas do quadro
+ * já vivem juntas. São apelidos, não matizes novas: a escala continua com 7.
+ */
+.status-out_for_delivery {
+  --status: var(--status-delivering-h);
+  --status-bg: color-mix(in oklch, var(--status-delivering-h) 16%, transparent);
+  --status-fg: var(--status-delivering-h);
+}
+.status-rejected {
+  --status: var(--status-cancelled-h);
+  --status-bg: color-mix(in oklch, var(--status-cancelled-h) 16%, transparent);
+  --status-fg: var(--status-cancelled-h);
+}
+
+/* Números que se comparam em coluna (nº do pedido, preço, total, cronômetro). */
+.font-mono-tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/*
+ * Quem pediu menos movimento recebe menos movimento — inclusive nas animações
+ * de mudança de estado, que aqui viram troca instantânea, nunca sumiço.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0s;
+    --motion-base: 0s;
+  }
+}

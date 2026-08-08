@@ -1,32 +1,120 @@
 .shell {
   height: 100%;
   display: flex;
-  flex-direction: column;
+  background: var(--bg-app);
 }
+
+/* --- navegação lateral -------------------------------------------------- */
+
+.shell__nav {
+  width: 240px;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: 0 var(--space-3) var(--space-4);
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-subtle);
+}
+
+.shell__brand {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.shell__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--motion-fast) var(--motion-ease);
+}
+
+.shell__link:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* Segundo dos três lugares onde o laranja aparece: o item ativo da navegação. */
+.shell__link--active {
+  background: var(--brand-soft-bg);
+  color: var(--brand-soft-fg);
+  font-weight: var(--weight-semibold);
+}
+
+.shell__link:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.shell__link-icon {
+  display: flex;
+  flex: 0 0 auto;
+}
+
+/*
+ * Abaixo de 900px a lateral vira trilha de ícones de 72px em vez de drawer:
+ * trocar de tela continua sendo um clique só, que é o que importa durante o
+ * serviço. O rótulo some da tela mas continua no `title` e no leitor de tela.
+ */
+@media (max-width: 900px) {
+  .shell__nav {
+    width: 72px;
+    padding-inline: var(--space-2);
+    align-items: center;
+  }
+
+  .shell__brand {
+    padding: 0;
+  }
+
+  .shell__link {
+    justify-content: center;
+    padding: var(--space-3);
+  }
+
+  .shell__link-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
+/* --- barra do topo ------------------------------------------------------ */
 
 .shell__bar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  background: var(--bg-panel);
-  border-bottom: 1px solid var(--border);
+  gap: var(--space-3);
+  height: 64px;
   flex: 0 0 auto;
-}
-
-.shell__divider {
-  width: 1px;
-  height: 20px;
-  background: var(--border-strong);
+  padding: 0 var(--space-5);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .shell__restaurant {
-  font-weight: 600;
-  font-size: 13px;
+  font-weight: var(--weight-bold);
+  font-size: var(--text-md);
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 320px;
+  max-width: 420px;
 }
 
 .shell__spacer {
@@ -34,9 +122,18 @@
 }
 
 .shell__user {
-  font-size: 12px;
-  color: var(--text-dim);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
   white-space: nowrap;
+}
+
+/* --- conteúdo ----------------------------------------------------------- */
+
+.shell__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* min-height: 0 é o que permite o quadro de pedidos rolar dentro do flex. */
@@ -45,4 +142,11 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+/* --- botão só de ícone --------------------------------------------------- */
+
+.icon-btn {
+  padding: var(--space-2);
+  line-height: 0;
 }

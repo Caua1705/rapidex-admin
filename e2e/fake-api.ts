@@ -21,6 +21,8 @@ type Branch = Schemas['AdminBranchResponse'];
 type OrderListItem = Schemas['AdminOrderListItem'];
 type OrderDetail = Schemas['OrderDetailResponse'];
 type StreamEvent = Schemas['AdminOrderStreamEvent'];
+type Category = Schemas['AdminCategoryResponse'];
+type Product = Schemas['AdminProductResponse'];
 
 export const LOGIN_EMAIL = 'dono@pizzaria.com';
 export const LOGIN_PASSWORD = 'senha-certa';
@@ -160,6 +162,68 @@ function detailOf(item: OrderListItem, history: Schemas['StatusHistoryResponse']
   };
 }
 
+/**
+ * Cardápio inicial.
+ *
+ * "Combo Duplo" existe para provar que `is_active` e `is_available` são eixos
+ * diferentes: ele está marcado como DISPONÍVEL e mesmo assim é inativo — a tela
+ * tem que esmaecer a linha e não oferecer o interruptor de esgotado.
+ */
+function initialCategories(): Category[] {
+  return [
+    { id: 'cat-1', name: 'Lanches', slug: 'lanches', sort_order: 0, is_active: true },
+    {
+      id: 'cat-2',
+      name: 'Acompanhamentos',
+      slug: 'acompanhamentos',
+      sort_order: 1,
+      is_active: true,
+    },
+    { id: 'cat-3', name: 'Sobremesas', slug: 'sobremesas', sort_order: 2, is_active: false },
+  ];
+}
+
+function initialProducts(): Product[] {
+  return [
+    {
+      id: 'prod-1',
+      category_id: 'cat-1',
+      name: 'X-Burger Clássico',
+      price: 24.9,
+      is_active: true,
+      is_available: true,
+      sort_order: 0,
+    },
+    {
+      id: 'prod-2',
+      category_id: 'cat-1',
+      name: 'X-Salada',
+      price: 26.5,
+      is_active: true,
+      is_available: false,
+      sort_order: 1,
+    },
+    {
+      id: 'prod-3',
+      category_id: 'cat-1',
+      name: 'Combo Duplo',
+      price: 45,
+      is_active: false,
+      is_available: true,
+      sort_order: 2,
+    },
+    {
+      id: 'prod-4',
+      category_id: 'cat-2',
+      name: 'Batata frita M',
+      price: 14.9,
+      is_active: true,
+      is_available: true,
+      sort_order: 0,
+    },
+  ];
+}
+
 /** Espelho enxuto da máquina de estados do backend, só para recusar o inválido. */
 const TRANSICOES: Record<string, string[]> = {
   pending: ['accepted', 'rejected', 'cancelled'],
@@ -183,6 +247,14 @@ const ROTULOS: Record<string, string> = {
 export type FakeApi = {
   /** Estado que o "banco" tem agora. Os testes leem e escrevem à vontade. */
   orders: OrderListItem[];
+  /** Categorias na ordem em que o "banco" as tem. */
+  categories: () => Category[];
+  /** Produto pelo id, para conferir o que o painel gravou. */
+  product: (productId: string) => Product | undefined;
+  /** Corpo de cada PATCH /admin/categories/reorder que chegou. */
+  reorderCalls: () => string[][];
+  /** Cada PATCH /admin/products/{id}/availability que chegou. */
+  availabilityCalls: () => { productId: string; isAvailable: boolean }[];
   /** Empurra um pedido novo pelo SSE, como se outro cliente tivesse comprado. */
   pushNewOrder: (item: OrderListItem) => void;
   /** Muda o status por fora da tela, como faria outro atendente. */
@@ -218,6 +290,10 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     stopped: false,
     streamQueue: [] as StreamEvent[],
     eventId: 0,
+    categories: initialCategories(),
+    products: initialProducts(),
+    reorderCalls: [] as string[][],
+    availabilityCalls: [] as { productId: string; isAvailable: boolean }[],
   };
 
   function findOrder(orderId: string): OrderListItem | undefined {
@@ -355,11 +431,113 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       return json(route, 200, detailOf(item, historyOf(item)));
     }
 
+    // --- cardápio: categorias ---------------------------------------------
+
+    if (method === 'GET' && path === '/admin/categories') {
+      return json(route, 200, state.categories);
+    }
+
+    /*
+     * Antes de /admin/categories/{id}: "reorder" é rota, não id. Trocar a ordem
+     * destes dois blocos faria a reordenação virar uma edição de categoria
+     * chamada "reorder" — que é exatamente o bug que a ordem aqui previne.
+     */
+    if (method === 'PATCH' && path === '/admin/categories/reorder') {
+      const body = request.postDataJSON() as { category_ids: string[] };
+      state.reorderCalls.push(body.category_ids);
+
+      // Como o backend: renumera a partir da lista recebida, na ordem recebida.
+      state.categories = body.category_ids.flatMap((id, index) => {
+        const found = state.categories.find((category) => category.id === id);
+        return found ? [{ ...found, sort_order: index }] : [];
+      });
+      return json(route, 200, state.categories);
+    }
+
+    if (method === 'POST' && path === '/admin/categories') {
+      const body = request.postDataJSON() as { name: string; sort_order: number };
+      const created: Category = {
+        id: `cat-${state.categories.length + 1}-nova`,
+        name: body.name,
+        slug: body.name.toLowerCase().replace(/\s+/g, '-'),
+        sort_order: body.sort_order,
+        is_active: true,
+      };
+      state.categories.push(created);
+      return json(route, 201, created);
+    }
+
+    const categoryMatch = /^\/admin\/categories\/([^/]+)$/.exec(path);
+    if (method === 'PATCH' && categoryMatch?.[1]) {
+      const found = state.categories.find((category) => category.id === categoryMatch[1]);
+      if (!found) return json(route, 404, { detail: 'Categoria não encontrada.' });
+      Object.assign(found, request.postDataJSON());
+      return json(route, 200, found);
+    }
+
+    // --- cardápio: produtos ------------------------------------------------
+
+    if (method === 'GET' && path === '/admin/products') {
+      const query = new URL(request.url()).searchParams;
+      const categoryId = query.get('category_id');
+      const search = (query.get('search') ?? '').toLowerCase();
+      const matching = state.products.filter(
+        (item) =>
+          (!categoryId || item.category_id === categoryId) &&
+          (!search || item.name.toLowerCase().includes(search)),
+      );
+      return json(route, 200, {
+        items: matching,
+        total: matching.length,
+        limit: Number(query.get('limit') ?? 50),
+        offset: Number(query.get('offset') ?? 0),
+      });
+    }
+
+    // Antes de /admin/products/{id}, pelo mesmo motivo do reorder.
+    const availabilityMatch = /^\/admin\/products\/([^/]+)\/availability$/.exec(path);
+    if (method === 'PATCH' && availabilityMatch?.[1]) {
+      const found = state.products.find((item) => item.id === availabilityMatch[1]);
+      if (!found) return json(route, 404, { detail: 'Produto não encontrado.' });
+      const body = request.postDataJSON() as { is_available: boolean };
+      state.availabilityCalls.push({
+        productId: found.id,
+        isAvailable: body.is_available,
+      });
+      found.is_available = body.is_available;
+      return json(route, 200, found);
+    }
+
+    const productMatch = /^\/admin\/products\/([^/]+)$/.exec(path);
+    if (productMatch?.[1]) {
+      const found = state.products.find((item) => item.id === productMatch[1]);
+      if (!found) return json(route, 404, { detail: 'Produto não encontrado.' });
+
+      if (method === 'GET') {
+        return json(route, 200, { ...found, option_groups: [] });
+      }
+      if (method === 'PATCH') {
+        Object.assign(found, request.postDataJSON());
+        return json(route, 200, found);
+      }
+    }
+
+    if (method === 'POST' && path === '/admin/products') {
+      const body = request.postDataJSON() as Omit<Product, 'id'>;
+      const created: Product = { ...body, id: `prod-${state.products.length + 1}-novo` };
+      state.products.push(created);
+      return json(route, 201, created);
+    }
+
     return json(route, 404, { detail: `Rota não simulada no E2E: ${method} ${path}` });
   });
 
   return {
     orders: state.orders,
+    categories: () => state.categories,
+    product: (productId) => state.products.find((item) => item.id === productId),
+    reorderCalls: () => state.reorderCalls,
+    availabilityCalls: () => state.availabilityCalls,
     makeOrder: order,
     pushNewOrder(item) {
       state.orders.unshift(item);

@@ -3,14 +3,15 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { RequireAuth } from './auth/RequireAuth';
 import { SessionProvider } from './auth/SessionProvider';
 import { AppShell } from './layout/AppShell';
+import { MenuPage } from './menu/MenuPage';
 import { OrdersPage } from './orders/OrdersPage';
 import { LoginPage } from './pages/LoginPage';
 
 /**
- * Só duas rotas nesta entrega: login e pedidos.
+ * Login, pedidos e cardápio.
  *
- * Cardápio, configurações, clientes e relatórios entram como irmãos de
- * /pedidos dentro do <RequireAuth>, sem mexer em mais nada.
+ * Configurações, clientes e relatórios entram como irmãos de /cardapio dentro
+ * do <RequireAuth>, sem mexer em mais nada.
  */
 export function App() {
   return (
@@ -24,6 +25,16 @@ export function App() {
               <RequireAuth>
                 <AppShell>
                   <OrdersPage />
+                </AppShell>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/cardapio"
+            element={
+              <RequireAuth>
+                <AppShell>
+                  <MenuPage />
                 </AppShell>
               </RequireAuth>
             }

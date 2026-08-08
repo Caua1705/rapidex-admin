@@ -18,8 +18,13 @@ export function StatusColumn({
 }) {
   return (
     <section className="column" data-column={column.key}>
-      <header className="column__header">
-        <span className={`column__dot column__dot--${column.statuses[0]}`} />
+      {/*
+        `status-<chave>` vem de tokens.css e define --status/--status-bg/
+        --status-fg para o ponto e o badge de uma vez. A cor da coluna nunca é
+        escolhida aqui.
+      */}
+      <header className={`column__header status-${column.statuses[0]}`}>
+        <span className="column__dot" />
         <h2 className="column__title">{column.title}</h2>
         {/*
           O contador vem de /admin/orders/status-counts e conta o FILTRO

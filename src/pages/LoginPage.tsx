@@ -3,6 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { messageFromUnknownError } from '../api/errors';
 import { useSession } from '../auth/session-context';
+import { ThemeToggle } from '../theme/ThemeToggle';
 import { RapidexLogo } from '../ui/RapidexLogo';
 import './LoginPage.css';
 
@@ -38,9 +39,13 @@ export function LoginPage() {
 
   return (
     <div className="login">
+      <div className="login__theme">
+        <ThemeToggle />
+      </div>
+
       <form className="login__box" onSubmit={handleSubmit}>
         <div className="login__brand">
-          <RapidexLogo size={30} />
+          <RapidexLogo size={32} />
         </div>
         <p className="login__subtitle">Painel do lojista</p>
 
@@ -77,7 +82,11 @@ export function LoginPage() {
           />
         </label>
 
-        <button type="submit" className="btn btn--primary btn--block" disabled={submitting}>
+        <button
+          type="submit"
+          className="btn btn--primary btn--block login__submit"
+          disabled={submitting}
+        >
           {submitting ? 'Entrando…' : 'Entrar'}
         </button>
       </form>

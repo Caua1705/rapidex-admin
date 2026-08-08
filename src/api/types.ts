@@ -23,3 +23,17 @@ export type OrderStatusCountsResponse = Schemas['AdminOrderStatusCountsResponse'
 export type OrderStreamEvent = Schemas['AdminOrderStreamEvent'];
 export type StreamTicket = Schemas['AdminStreamTicketResponse'];
 export type Branch = Schemas['AdminBranchResponse'];
+
+// --- cardápio -----------------------------------------------------------
+
+export type Category = Schemas['AdminCategoryResponse'];
+export type CategoryCreate = Schemas['AdminCategoryCreate'];
+export type CategoryUpdate = Schemas['AdminCategoryUpdate'];
+
+export type Product = Schemas['AdminProductResponse'];
+export type ProductCreate = Schemas['AdminProductCreate'];
+export type ProductUpdate = Schemas['AdminProductUpdate'];
+export type ProductDetail = Schemas['AdminProductDetailResponse'];
+export type ProductListResponse = Schemas['AdminProductListResponse'];
+/** O grupo que vem no detalhe do produto — não o do cardápio público. */
+export type ProductOptionGroup = Schemas['AdminOptionGroupResponse'];

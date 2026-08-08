@@ -3,18 +3,29 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: var(--space-6);
+  background: var(--bg-app);
+  position: relative;
+}
+
+/* O alternador de tema fica fora do cartão: ele é da janela, não do formulário. */
+.login__theme {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
 }
 
 .login__box {
-  width: 320px;
+  width: 340px;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 24px;
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  gap: var(--space-3);
+  padding: var(--space-8);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevation);
 }
 
 .login__brand {
@@ -23,8 +34,12 @@
 }
 
 .login__subtitle {
-  margin: -6px 0 4px;
+  margin: 0 0 var(--space-2);
   text-align: center;
-  color: var(--text-dim);
-  font-size: 12px;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+
+.login__submit {
+  margin-top: var(--space-2);
 }

@@ -1,19 +1,21 @@
 .modal__backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  /* Véu sólido semi-opaco, sem blur: o painel é denso e funcional. */
+  background: var(--bg-overlay);
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 40px 16px;
+  padding: var(--space-10) var(--space-4);
   z-index: 50;
   overflow: auto;
 }
 
 .modal {
-  background: var(--bg-panel);
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   width: 100%;
   max-width: 720px;
   display: flex;
@@ -25,26 +27,27 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .modal__title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
 }
 
 .modal__body {
-  padding: 14px;
+  padding: var(--space-5);
   overflow: auto;
 }
 
 .modal__footer {
-  padding: 10px 14px;
-  border-top: 1px solid var(--border);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--border-subtle);
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
 }

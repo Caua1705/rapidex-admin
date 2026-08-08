@@ -1,9 +1,9 @@
 # Rapidex — Painel do Lojista
 
 Painel web onde o restaurante acompanha e toca os pedidos do dia. Esta entrega
-cobre **login** e a **tela de pedidos** (quadro por status, detalhe, mudança de
-status e tempo real por SSE). Cardápio, configurações, clientes, relatórios e
-impressão ficam para depois.
+cobre **login**, a **tela de pedidos** (quadro por status, detalhe, mudança de
+status e tempo real por SSE) e o **cardápio** (categorias, itens, esgotado e
+ordem). Configurações, clientes, relatórios e impressão ficam para depois.
 
 O painel não é white-label: a identidade na tela é a do **Rapidex**. O nome do
 restaurante aparece só para o lojista saber em qual sessão está.
@@ -25,18 +25,19 @@ JWT — o painel nunca manda `restaurant_id` em lugar nenhum.
 
 ### Scripts
 
-| Comando                | O que faz                                               |
-| ---------------------- | ------------------------------------------------------- |
-| `npm run dev`          | Servidor de desenvolvimento                             |
-| `npm run build`        | Confere os tipos e gera `dist/`                         |
-| `npm run preview`      | Serve o `dist/` como em produção                        |
-| `npm run lint`         | ESLint                                                  |
-| `npm run format`       | Prettier (escreve); `format:check` só confere           |
-| `npm run typecheck`    | TypeScript sem gerar arquivo                            |
-| `npm test`             | Testes unitários (Vitest)                               |
-| `npm run e2e`          | Teste de ponta a ponta (Playwright)                     |
-| `npm run e2e:install`  | Baixa o Chromium do Playwright (uma vez por máquina)    |
-| `npm run api:generate` | **Regera o cliente da API** a partir do `/openapi.json` |
+| Comando                | O que faz                                                  |
+| ---------------------- | ---------------------------------------------------------- |
+| `npm run dev`          | Servidor de desenvolvimento                                |
+| `npm run build`        | Confere os tipos e gera `dist/`                            |
+| `npm run preview`      | Serve o `dist/` como em produção                           |
+| `npm run lint`         | ESLint (com as regras do design system) + aderência de cor |
+| `npm run lint:tokens`  | Só a aderência de cor nos `.css`                           |
+| `npm run format`       | Prettier (escreve); `format:check` só confere              |
+| `npm run typecheck`    | TypeScript sem gerar arquivo                               |
+| `npm test`             | Testes unitários (Vitest)                                  |
+| `npm run e2e`          | Teste de ponta a ponta (Playwright)                        |
+| `npm run e2e:install`  | Baixa o Chromium do Playwright (uma vez por máquina)       |
+| `npm run api:generate` | **Regera o cliente da API** a partir do `/openapi.json`    |
 
 ---
 
@@ -62,7 +63,8 @@ navegador. E como ela vai para dentro do JavaScript entregue ao usuário,
 
 Pasta por **assunto da tela**, não por tipo de arquivo. Não existe `components/`,
 `hooks/`, `utils/` genéricos: mexer nos pedidos é mexer em `src/orders/`, e
-pronto. Quando entrar o cardápio, entra `src/menu/` do lado, sem tocar em nada.
+pronto. O cardápio entrou exatamente assim, em `src/menu/`, sem tocar em nada de
+`src/orders/`.
 
 ```
 src/
@@ -73,6 +75,7 @@ src/
     errors.ts   erro da API -> frase em português para a tela
     auth.ts     login e /me
     orders.ts   pedidos, contadores, detalhe, status, ticket do SSE, filiais
+    menu.ts     categorias e produtos do cardápio
   auth/         Sessão: provider, guarda de rota, localStorage
   orders/       A TELA DE PEDIDOS inteira (o coração do painel)
     OrdersPage.tsx        junta tudo
@@ -87,17 +90,50 @@ src/
     board-columns.ts      quais colunas existem e o que cai em cada uma
     order-filters.ts      filtros e "este pedido cabe no filtro?"
     format.ts             dinheiro, hora, rótulos em português
-  layout/       Barra do topo das telas autenticadas
+  menu/         A TELA DE CARDÁPIO inteira
+    MenuPage.tsx          junta tudo
+    CategoryRail.tsx      barra de categorias + subir/descer
+    ProductRow.tsx        a linha do item (preço, esgotado, ativo)
+    CategoryDialog.tsx    criar/editar categoria
+    ProductDialog.tsx     criar/editar item
+    useMenu.ts            estado da tela (categorias, produtos, ações otimistas)
+    menu-model.ts         ativo x disponível, ordem, preço — as regras testáveis
+    icons.tsx             ícones de linha do design system
+  theme/        Tema claro/escuro: provider, alternador, persistência
+  layout/       Navegação lateral + barra do topo das telas autenticadas
   pages/        Telas que não são de um assunto só (login)
-  ui/           Peças genéricas mínimas (Modal, logo)
-  styles/       CSS global e as variáveis de cor
-e2e/            Playwright: backend falso + caminho crítico
+  ui/           Peças genéricas mínimas (Modal, Switch, logo)
+  styles/       tokens.css (ÚNICO lugar com cor literal) + global.css
+e2e/            Playwright: backend falso + caminho crítico + cardápio
+scripts/        check-design-tokens.mjs — barra cor fora dos tokens
+.claude/skills/rapidex-design-system/
+                SKILL.md — as regras visuais, para ler antes de cada tela nova
 ```
 
 Regra que segurou o tamanho dos arquivos: **lógica que dá para testar sem
 navegador mora em `.ts` puro** (`order-status.ts`, `order-filters.ts`,
-`format.ts`, `board-columns.ts`, `stream-events.ts`). Os `.tsx` só desenham. Por
-isso o teste unitário cobre a parte que erra de verdade sem precisar montar tela.
+`format.ts`, `board-columns.ts`, `stream-events.ts`, `menu-model.ts`). Os `.tsx`
+só desenham. Por isso o teste unitário cobre a parte que erra de verdade sem
+precisar montar tela.
+
+---
+
+## Design system
+
+As telas seguem o design system exportado em `design/_ds/`. O que ele virou aqui:
+
+- **`src/styles/tokens.css`** — os tokens consolidados (superfície, borda, texto,
+  laranja de marca, perigo e a escala de 7 status, separada do laranja). **É o
+  único arquivo do `src/` que pode conter uma cor literal.**
+- **Tema claro e escuro pelos mesmos tokens semânticos.** O claro é
+  `[data-theme="light"]` no `<html>`, escrito pelo `src/theme/`; o `index.html`
+  aplica o tema antes do primeiro pixel para não haver flash no F5.
+- **`npm run lint` cobra a aderência**: as regras de
+  `design/_ds/.../_adherence.oxlintrc.json` são carregadas direto pelo
+  `eslint.config.js` (nada de cópia à mão), e `scripts/check-design-tokens.mjs`
+  varre os `.css` atrás de cor solta.
+- **`.claude/skills/rapidex-design-system/SKILL.md`** — as regras em prosa
+  (cor, densidade, movimento, conteúdo, checklist). Leia antes de cada tela nova.
 
 ---
 

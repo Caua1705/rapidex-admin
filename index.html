@@ -5,7 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark light" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!--
+      Manrope (UI) e IBM Plex Mono (números tabulares) são as fontes do design
+      system. Vêm por <link> e não por @import no CSS porque @import serializa o
+      download atrás da folha de estilo; os fallbacks de sistema em
+      `--font-sans` seguram o painel enquanto elas não chegam.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"
+    />
+
     <title>Rapidex — Painel do lojista</title>
+
+    <script>
+      /*
+       * Tema antes do primeiro pixel.
+       *
+       * Se isto esperasse o React, quem escolheu o tema claro veria um quadro
+       * preto a cada F5 — e num painel que fica aberto o dia todo esse flash é
+       * a primeira coisa que se nota. Mesma chave que src/theme/theme.ts.
+       */
+      (function () {
+        try {
+          if (localStorage.getItem('rapidex-admin.theme') === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (_) {
+          /* localStorage bloqueado: fica no escuro, que é o padrão. */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

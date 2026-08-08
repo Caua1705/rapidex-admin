@@ -39,6 +39,8 @@ export function OrderCard({
       onClick={onOpen}
       className={[
         'order-card',
+        // Pinta a borda esquerda com a matiz do status, pelos tokens.
+        `status-${order.status}`,
         awaitingPayment ? 'order-card--unpaid' : '',
         isSelected ? 'order-card--selected' : '',
       ]
@@ -68,8 +70,10 @@ export function OrderCard({
         enquanto isso. Precisa ser visível de longe, não um ícone discreto.
       */}
       {awaitingPayment ? (
+        // Sem emoji: o vermelho e a borda já gritam, e emoji some na
+        // renderização de algumas telas de balcão.
         <div className="order-card__unpaid-banner">
-          ⚠ {labelFor(PAYMENT_STATUS_LABELS, order.payment_status)} — não preparar
+          {labelFor(PAYMENT_STATUS_LABELS, order.payment_status)} — não preparar
         </div>
       ) : (
         <div className="order-card__payment faint">

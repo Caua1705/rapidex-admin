@@ -4,3 +4,10 @@ playwright-report
 test-results
 node_modules
 package-lock.json
+
+# Exportação do design system: é artefato de outra ferramenta, e reformatá-lo
+# faria cada reexportação virar um diff gigante de espaços em branco.
+#
+# `src/api/generated` NÃO entra aqui de propósito: o `npm run api:generate` roda
+# o Prettier nele justamente para o diff do contrato ficar legível.
+design

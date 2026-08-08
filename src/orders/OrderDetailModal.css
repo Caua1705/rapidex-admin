@@ -1,37 +1,38 @@
 .detail {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-4);
 }
 
 .detail__block {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-1);
 }
 
 .detail__heading {
-  margin: 0 0 2px;
-  font-size: 11px;
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--text-dim);
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 3px;
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: var(--space-1);
 }
 
 .detail__row {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .detail__row--total {
-  border-top: 1px solid var(--border);
-  margin-top: 3px;
-  padding-top: 4px;
-  font-weight: 600;
-  font-size: 14px;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: var(--space-1);
+  padding-top: var(--space-2);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-md);
 }
 
 .detail__items {
@@ -40,36 +41,38 @@
 }
 
 .detail__items td {
-  padding: 3px 0;
+  padding: var(--space-1) 0;
   vertical-align: top;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .detail__qty {
-  width: 34px;
-  color: var(--text-dim);
+  width: 36px;
+  color: var(--text-secondary);
 }
 
 .detail__price {
-  width: 90px;
+  width: 96px;
   text-align: right;
 }
 
+/* Observação do cliente: âmbar, a mesma matiz de "pendente" — é o que ainda
+   exige atenção de quem prepara. */
 .detail__observation {
-  font-size: 11px;
-  color: var(--warn);
+  font-size: var(--text-xs);
+  color: var(--status-pending-h);
 }
 
 .detail__notes {
   margin: 0;
-  padding: 6px 8px;
-  background: var(--bg-raised);
-  border-radius: 4px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-surface-sunken);
+  border-radius: var(--radius-sm);
 }
 
 .detail__note {
-  font-size: 11px;
-  margin: 4px 0 0;
+  font-size: var(--text-xs);
+  margin: var(--space-1) 0 0;
 }
 
 .detail__history {
@@ -78,6 +81,6 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  font-size: 12px;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
 }
