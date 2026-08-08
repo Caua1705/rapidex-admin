@@ -1,0 +1,8 @@
+html{background:var(--bg-app);color-scheme:dark}
+[data-theme="light"]{color-scheme:light}
+body{margin:0;background:var(--bg-app);color:var(--text-primary);font-family:var(--font-sans);font-size:var(--text-base);line-height:var(--leading-base);-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:var(--brand-300);text-decoration:none}
+[data-theme="light"] a{color:var(--brand-600)}
+a:hover{color:var(--brand-hover);text-decoration:underline}
+::selection{background:var(--brand-soft-bg);color:var(--text-primary)}

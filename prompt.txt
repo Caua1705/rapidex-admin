@@ -1,0 +1,22 @@
+Os arquivos do design system já estão no repo, em design/. Não importa nada por MCP — lê do disco.
+
+Referências:
+
+design/Cardapio.dc.html — mockup da tela
+design/_ds/.../tokens/*.css e styles.css — os tokens
+design/_ds/.../readme.md e _ds_manifest.json — as regras do sistema
+design/_ds/.../_adherence.oxlintrc.json — regras de lint que barram cor fora dos tokens
+design/assets/logo-mark.png — a logo
+
+Implementa a fundação visual + a tela de Cardápio.
+
+Fundação: consolida os tokens em src/styles/tokens.css (superfícies, borda, texto, accent laranja, danger, e a escala de 7 status separada do accent). Claro e escuro pelos mesmos tokens, toggle com ícone de lua/sol, persistido. Integra o _adherence.oxlintrc.json no lint do projeto. Escreve .claude/skills/rapidex-design-system/SKILL.md a partir do readme e do manifest, pra ser lido em toda tela nova. Migra o login e o kanban pros tokens sem mudar comportamento — se os tokens não derem conta do kanban que já funciona, eles estão errados.
+
+Cardápio, consumindo /admin/categories e /admin/products:
+
+reordenação de categoria usa PATCH /admin/categories/reorder e exige a lista completa
+o toggle de esgotado usa PATCH /admin/products/{id}/availability
+is_active e is_available são coisas diferentes: produto inativo esmaece a linha e não mostra toggle de disponível
+não existe excluir, é desativar
+
+Animação só onde comunica mudança de estado, respeitando prefers-reduced-motion. Nenhuma cor solta fora do tokens.css.

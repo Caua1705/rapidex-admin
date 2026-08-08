@@ -1,0 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+:root{
+--font-sans:'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;
+--font-mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+--text-xs:12px;--leading-xs:16px;
+--text-sm:13px;--leading-sm:18px;
+--text-base:15px;--leading-base:22px;
+--text-md:17px;--leading-md:24px;
+--text-lg:20px;--leading-lg:27px;
+--text-xl:24px;--leading-xl:30px;
+--text-2xl:32px;--leading-2xl:38px;
+--text-3xl:44px;--leading-3xl:48px;
+--weight-regular:400;--weight-medium:500;--weight-semibold:600;--weight-bold:700;--weight-extrabold:800;
+}
+.font-mono-tabular{font-family:var(--font-mono);font-variant-numeric:tabular-nums lining-nums;font-feature-settings:"tnum" 1}
