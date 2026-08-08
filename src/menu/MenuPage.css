@@ -8,7 +8,7 @@
 /* --- barra de categorias ------------------------------------------------- */
 
 .rail {
-  width: 220px;
+  width: 200px;
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
@@ -22,7 +22,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: var(--space-4) var(--space-4) var(--space-2);
+  padding: var(--space-3) var(--space-3) var(--space-2);
 }
 
 .rail__title {
@@ -43,14 +43,14 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .rail__item {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-1) var(--space-2);
+  padding: 0 var(--space-2);
   border-radius: var(--radius-md);
 }
 
@@ -130,7 +130,7 @@
 }
 
 .rail__name {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: var(--weight-medium);
   color: var(--text-primary);
   white-space: nowrap;
@@ -149,22 +149,28 @@
 
 /* --- painel da categoria ------------------------------------------------- */
 
+/*
+ * O respiro lateral mora no painel, e as faixas de dentro (cabeçalho, busca,
+ * cartão, rodapé) são todas `.container`. Assim as quatro têm exatamente a
+ * mesma geometria e as bordas de uma alinham com as bordas da outra — sem
+ * cada faixa carregar o próprio padding e desalinhar por 20px.
+ */
 .menu__panel {
   flex: 1;
   min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  padding-inline: var(--space-5);
 }
 
 .menu__header {
-  height: 64px;
+  height: 52px;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: 0 var(--space-6);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -177,7 +183,7 @@
 
 .menu__title {
   margin: 0;
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: var(--weight-extrabold);
   color: var(--text-primary);
   white-space: nowrap;
@@ -186,19 +192,19 @@
 }
 
 .menu__alert {
-  margin: var(--space-3) var(--space-6) 0;
+  margin-top: var(--space-3);
 }
 
 .menu__search {
   position: relative;
-  padding: var(--space-4) var(--space-6) 0;
+  padding: var(--space-3) 0 var(--space-2);
   flex: 0 0 auto;
 }
 
 .menu__search-icon {
   position: absolute;
-  left: calc(var(--space-6) + var(--space-3));
-  top: calc(var(--space-4) + 11px);
+  left: var(--space-3);
+  top: calc(var(--space-3) + 9px);
   display: flex;
   color: var(--text-tertiary);
   pointer-events: none;
@@ -211,14 +217,29 @@
  */
 .menu__search .menu__search-input {
   width: 100%;
+  padding-block: var(--space-1);
   padding-left: var(--space-10);
 }
 
+/* O rolador é a faixa inteira; quem se limita a 1400px é o cartão de dentro. */
 .menu__list {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--space-2) var(--space-6) var(--space-6);
+  padding-block: 0 var(--space-4);
+}
+
+/*
+ * Hierarquia de superfície: a lista é um cartão elevado com borda sobre o
+ * fundo da página. Sem ele, as linhas flutuavam direto no `--bg-app` e não
+ * havia nada dizendo onde a área de trabalho começa e termina.
+ */
+.menu__card {
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-elevation);
+  overflow: hidden;
 }
 
 .menu__items {
@@ -228,7 +249,7 @@
 }
 
 .menu__empty {
-  padding: var(--space-8) var(--space-1);
+  padding: var(--space-8) var(--space-4);
   font-size: var(--text-base);
 }
 
@@ -237,22 +258,39 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-6);
+  padding-block: var(--space-1);
   border-top: 1px solid var(--border-subtle);
   font-size: var(--text-xs);
 }
 
 /* --- linha do item ------------------------------------------------------- */
 
+/*
+ * Grade de colunas fixas: imagem · nome+descrição · preço · estado · ação.
+ *
+ * Só a coluna do nome é fluida. As outras têm largura fixa, então o preço fica
+ * na mesma abscissa em todas as linhas por mais larga que a tela fique — que é
+ * o que um flex com `space-between` não dá, e por isso o preço acabava no canto
+ * oposto ao nome, longe demais para os dois serem lidos juntos.
+ */
 .item {
-  display: flex;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 104px 132px 28px;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-1);
+  padding: var(--space-1) var(--space-3);
   border-bottom: 1px solid var(--border-subtle);
   /* Esmaecer é o que comunica "saiu do cardápio"; a transição faz a mudança
      de estado ser vista, e não descoberta na próxima olhada. */
   transition: opacity var(--motion-base) var(--motion-ease);
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.item:hover {
+  background: var(--bg-hover);
 }
 
 /*
@@ -265,12 +303,13 @@
 }
 
 .item__thumb {
-  width: 40px;
-  height: 40px;
-  flex: 0 0 auto;
-  border-radius: var(--radius-md);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
   object-fit: cover;
-  background: var(--bg-surface-raised);
+  /* Um degrau ABAIXO do cartão: no cartão elevado, o marcador de foto
+     precisa afundar para aparecer. */
+  background: var(--bg-surface);
   border: 1px solid var(--border-default);
 }
 
@@ -279,8 +318,10 @@
 }
 
 .item__main {
-  flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .item__title {
@@ -292,6 +333,7 @@
 
 .item__name {
   font-size: var(--text-base);
+  line-height: 18px;
   font-weight: var(--weight-semibold);
   color: var(--text-primary);
   white-space: nowrap;
@@ -300,8 +342,8 @@
 }
 
 .item__description {
-  margin: 2px 0 0;
   font-size: var(--text-xs);
+  line-height: 14px;
   color: var(--text-tertiary);
   white-space: nowrap;
   overflow: hidden;
@@ -309,29 +351,24 @@
 }
 
 .item__price {
-  width: 96px;
-  flex: 0 0 auto;
   text-align: right;
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
   white-space: nowrap;
 }
 
-.item__availability {
-  width: 76px;
-  flex: 0 0 auto;
+.item__status {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
+  justify-content: flex-end;
+  gap: var(--space-2);
 }
 
-.item__availability--empty {
-  display: block;
-}
-
-.item__availability-label {
+/* Estado e interruptor lado a lado, não empilhados: empilhar dobrava a altura
+   de toda linha por causa da coluna mais estreita da grade. */
+.item__state {
   font-size: var(--text-xs);
+  line-height: 14px;
   font-weight: var(--weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -340,8 +377,14 @@
   transition: color var(--motion-base) var(--motion-ease);
 }
 
-.item__availability-label--out {
+.item__state--out {
   color: var(--status-cancelled-h);
+}
+
+/* Menor que o `.btn--sm` padrão: aqui ele é quem definiria a altura da linha. */
+.item__edit {
+  padding: var(--space-1);
+  justify-self: end;
 }
 
 /* --- formulários dos diálogos -------------------------------------------- */
@@ -435,21 +478,29 @@
     width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--border-subtle);
-    max-height: 40vh;
+    max-height: 34vh;
   }
 
-  .menu__header,
-  .menu__search,
-  .menu__list,
-  .menu__footer {
-    padding-inline: var(--space-4);
+  .menu__panel {
+    padding-inline: var(--space-3);
   }
 
-  .menu__search-icon {
-    left: calc(var(--space-4) + var(--space-3));
+  /*
+   * No toque a densidade cede: a coluna de preço sai da grade e desce para
+   * junto do nome, e a linha ganha altura de alvo de dedo.
+   */
+  .item {
+    grid-template-columns: 28px minmax(0, 1fr) 112px 28px;
+    padding-block: var(--space-2);
   }
 
   .item__price {
-    width: 80px;
+    display: none;
+  }
+
+  .item__main::after {
+    content: attr(data-price);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
   }
 }

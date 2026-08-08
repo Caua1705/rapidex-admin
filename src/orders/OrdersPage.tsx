@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useSession } from '../auth/session-context';
 import { BOARD_COLUMNS, columnCount, groupOrdersIntoColumns } from './board-columns';
@@ -11,13 +11,19 @@ import { useOrdersBoard } from './useOrdersBoard';
 import './OrdersPage.css';
 
 export function OrdersPage() {
-  const { branches } = useSession();
+  const { activeBranchId } = useSession();
   const board = useOrdersBoard();
   const sound = useNewOrderSound();
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
-  const { applyStreamEvent, reload } = board;
+  const { applyStreamEvent, reload, updateFilters } = board;
   const { play } = sound;
+
+  // A filial escolhida no cabeçalho é o filtro da tela. `updateFilters` ignora
+  // patch que não muda nada, então isto não recarrega o quadro à toa.
+  useEffect(() => {
+    updateFilters({ branchId: activeBranchId });
+  }, [activeBranchId, updateFilters]);
 
   const handleOrderEvent = useCallback(
     (event: Parameters<typeof applyStreamEvent>[0]) => {
@@ -44,7 +50,6 @@ export function OrdersPage() {
     <div className="orders">
       <OrdersToolbar
         filters={board.filters}
-        branches={branches}
         streamStatus={streamStatus}
         isLoading={board.isLoading}
         soundBlocked={sound.isBlocked}

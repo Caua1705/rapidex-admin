@@ -4,6 +4,7 @@ import { NavLink } from 'react-router-dom';
 import { useSession } from '../auth/session-context';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { RapidexLogo } from '../ui/RapidexLogo';
+import { BranchSelector } from './BranchSelector';
 import './AppShell.css';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -21,13 +22,13 @@ const ROLE_LABELS: Record<string, string> = {
  * troca.
  */
 export function AppShell({ children }: { children: ReactNode }) {
-  const { user, restaurantLabel, signOut } = useSession();
+  const { user, signOut } = useSession();
 
   return (
     <div className="shell">
       <nav className="shell__nav" aria-label="Seções do painel">
         <div className="shell__brand">
-          <RapidexLogo size={28} />
+          <RapidexLogo size={26} />
         </div>
 
         <NavItem to="/pedidos" label="Pedidos" icon={<OrdersIcon />} />
@@ -36,9 +37,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="shell__main">
         <header className="shell__bar">
-          <span className="shell__restaurant" title="Estabelecimento da sessão">
-            {restaurantLabel}
-          </span>
+          {/* O nome do estabelecimento agora sai daqui: o seletor já o mostra,
+              e dois lugares dizendo a mesma coisa ocupavam a barra à toa. */}
+          <BranchSelector />
 
           <div className="shell__spacer" />
 

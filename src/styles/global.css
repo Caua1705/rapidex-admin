@@ -199,6 +199,21 @@ textarea {
   color: var(--status-accepted-h);
 }
 
+/* --- enquadramento ------------------------------------------------------- */
+
+/*
+ * A faixa de conteúdo. Centraliza e para de crescer em `--layout-max`.
+ *
+ * Vai em cada faixa horizontal da tela (cabeçalho, busca, lista, rodapé) em vez
+ * de num wrapper único, para que as bordas e os fundos de cada faixa continuem
+ * indo de ponta a ponta enquanto só o CONTEÚDO fica alinhado na coluna central.
+ */
+.container {
+  width: 100%;
+  max-width: var(--layout-max);
+  margin-inline: auto;
+}
+
 /* --- utilitários -------------------------------------------------------- */
 
 .muted {

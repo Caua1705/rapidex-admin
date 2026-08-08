@@ -155,8 +155,21 @@ export function useOrdersBoard() {
     [commitOrders, scheduleCountsRefresh],
   );
 
+  /**
+   * Aplica um patch nos filtros — e devolve o objeto ANTERIOR quando nada
+   * mudou de fato.
+   *
+   * Sem essa conferência, todo patch criaria um objeto novo, o efeito acima
+   * veria `filters` diferente e recarregaria a lista. Isso acontece de verdade
+   * em dois lugares: o debounce da busca disparando com o mesmo texto, e a
+   * filial do cabeçalho sendo aplicada na montagem.
+   */
   const updateFilters = useCallback((patch: Partial<OrdersFilterState>) => {
-    setFilters((current) => ({ ...current, ...patch }));
+    setFilters((current) => {
+      const keys = Object.keys(patch) as (keyof OrdersFilterState)[];
+      const changed = keys.some((key) => patch[key] !== undefined && patch[key] !== current[key]);
+      return changed ? { ...current, ...patch } : current;
+    });
   }, []);
 
   return {

@@ -12,7 +12,7 @@
   display: flex;
   align-items: flex-end;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-5);
+  padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--border-subtle);
   background: var(--bg-surface);
   flex-wrap: wrap;
@@ -32,7 +32,7 @@
 }
 
 .orders__alert {
-  margin: var(--space-3) var(--space-5) 0;
+  margin: var(--space-3) var(--space-4) 0;
 }
 
 /* --- quadro ------------------------------------------------------------- */
@@ -47,12 +47,22 @@
   min-height: 0;
   display: flex;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-5);
+  padding: var(--space-3) var(--space-4);
   overflow-x: auto;
 }
 
+/*
+ * `1 0 246px`: cresce para ocupar a sobra numa tela larga, nunca encolhe.
+ *
+ * O teto de `--column-max` é o que impede a coluna de virar uma faixa de 400px
+ * com um card estreito no meio quando a tela é grande — e o "não encolhe"
+ * preserva o motivo de a largura ser fixa: com 7 colunas em 1366px, deixar a
+ * coluna espremer quebraria o card em duas linhas e acabaria com a leitura de
+ * longe, que é como a cozinha usa. Abaixo disso, o quadro rola na horizontal.
+ */
 .column {
-  flex: 0 0 246px;
+  flex: 1 0 246px;
+  max-width: var(--column-max);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -239,7 +249,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-5);
+  padding: var(--space-1) var(--space-4);
   border-top: 1px solid var(--border-subtle);
   background: var(--bg-surface);
   font-size: var(--text-xs);

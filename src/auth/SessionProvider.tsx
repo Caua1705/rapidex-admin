@@ -13,11 +13,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // para decidir, todo F5 piscaria a tela de login antes de mostrar o painel.
   const [user, setUser] = useState<AdminUser | null>(() => readSession()?.user ?? null);
   const [branches, setBranches] = useState<Branch[]>([]);
+  // Vazio = todas as filiais que o token alcança. O backend já limita o escopo,
+  // então "todas" nunca vaza filial de outro restaurante.
+  const [activeBranchId, setActiveBranchId] = useState('');
 
   const signOut = useCallback(() => {
     clearSession();
     setUser(null);
     setBranches([]);
+    setActiveBranchId('');
   }, []);
 
   // 401 em qualquer chamada da API cai aqui. Como o <RequireAuth> observa
@@ -63,10 +67,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       user,
       branches,
       restaurantLabel: restaurantLabelFromBranches(branches),
+      activeBranchId,
+      selectBranch: setActiveBranchId,
       signIn,
       signOut,
     }),
-    [user, branches, signIn, signOut],
+    [user, branches, activeBranchId, signIn, signOut],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

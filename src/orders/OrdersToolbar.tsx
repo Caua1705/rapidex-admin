@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 
-import type { Branch } from '../api/types';
 import { datesForPeriod, type OrdersFilterState, type PeriodPreset } from './order-filters';
 import type { StreamStatus } from './useOrderStream';
 
@@ -10,10 +9,14 @@ const STREAM_LABELS: Record<StreamStatus, string> = {
   offline: 'Sem conexão',
 };
 
-/** Filtros + situação do tempo real. Uma linha só, para não roubar altura. */
+/**
+ * Filtros + situação do tempo real. Uma linha só, para não roubar altura.
+ *
+ * A filial NÃO está aqui: ela é escopo de sessão e mora no seletor do
+ * cabeçalho. Dois controles para a mesma coisa é como eles passam a discordar.
+ */
 export function OrdersToolbar({
   filters,
-  branches,
   streamStatus,
   isLoading,
   soundBlocked,
@@ -24,7 +27,6 @@ export function OrdersToolbar({
   onReload,
 }: {
   filters: OrdersFilterState;
-  branches: Branch[];
   streamStatus: StreamStatus;
   isLoading: boolean;
   soundBlocked: boolean;
@@ -53,26 +55,6 @@ export function OrdersToolbar({
 
   return (
     <div className="toolbar">
-      <label className="field">
-        <span className="field__label">Filial</span>
-        <select
-          className="select"
-          value={filters.branchId}
-          onChange={(event) => onChange({ branchId: event.target.value })}
-        >
-          {/*
-            Quem está preso a uma filial recebe só ela de GET /admin/branches,
-            então "todas" nunca mostra pedido fora do escopo do token.
-          */}
-          <option value="">Todas as filiais</option>
-          {branches.map((branch) => (
-            <option key={branch.id} value={branch.id}>
-              {branch.display_name?.trim() || branch.name}
-            </option>
-          ))}
-        </select>
-      </label>
-
       <label className="field">
         <span className="field__label">Período</span>
         <select

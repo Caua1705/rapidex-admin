@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { CategoryDialog } from './CategoryDialog';
 import { CategoryRail } from './CategoryRail';
-import { EditIcon, PlusIcon, SearchIcon } from './icons';
+import { EditIcon, PlusIcon, SearchIcon } from '../ui/icons';
 import { formatPriceInput, isCategoryActive } from './menu-model';
 import { ProductDialog } from './ProductDialog';
 import { ProductRow } from './ProductRow';
@@ -42,7 +42,7 @@ export function MenuPage() {
       />
 
       <section className="menu__panel">
-        <header className="menu__header">
+        <header className="menu__header container">
           <div className="menu__heading">
             <h1 className="menu__title">{selectedCategory?.name ?? 'Cardápio'}</h1>
             {selectedCategory && !isCategoryActive(selectedCategory) ? (
@@ -79,12 +79,12 @@ export function MenuPage() {
         </header>
 
         {menu.errorMessage ? (
-          <p className="alert alert--error menu__alert" role="alert">
+          <p className="alert alert--error menu__alert container" role="alert">
             {menu.errorMessage}
           </p>
         ) : null}
 
-        <div className="menu__search">
+        <div className="menu__search container">
           <span className="menu__search-icon" aria-hidden="true">
             <SearchIcon />
           </span>
@@ -100,42 +100,46 @@ export function MenuPage() {
         </div>
 
         <div className="menu__list">
-          {menu.isLoadingCategories ? (
-            <p className="menu__empty faint">Carregando o cardápio…</p>
-          ) : menu.categories.length === 0 ? (
-            <p className="menu__empty faint">
-              Nenhuma categoria ainda. Crie a primeira para começar o cardápio.
-            </p>
-          ) : menu.products.length === 0 ? (
-            <p className="menu__empty faint">
-              {menu.isLoadingProducts ? 'Carregando…' : 'Nenhum item encontrado.'}
-            </p>
-          ) : (
-            <ul className="menu__items">
-              {menu.products.map((product) => (
-                <ProductRow
-                  key={product.id}
-                  product={product}
-                  isSaving={menu.pendingAvailability.includes(product.id)}
-                  onToggleAvailability={() => void menu.toggleAvailability(product)}
-                  onEdit={() =>
-                    setProductDraft({
-                      id: product.id,
-                      categoryId: product.category_id,
-                      name: product.name,
-                      price: formatPriceInput(product.price),
-                      description: product.description ?? '',
-                      isActive: product.is_active !== false,
-                      isAvailable: product.is_available !== false,
-                    })
-                  }
-                />
-              ))}
-            </ul>
-          )}
+          {/* A lista é um cartão em superfície elevada sobre o fundo da página:
+              é o que separa "a área de trabalho" do resto da tela. */}
+          <div className="menu__card container">
+            {menu.isLoadingCategories ? (
+              <p className="menu__empty faint">Carregando o cardápio…</p>
+            ) : menu.categories.length === 0 ? (
+              <p className="menu__empty faint">
+                Nenhuma categoria ainda. Crie a primeira para começar o cardápio.
+              </p>
+            ) : menu.products.length === 0 ? (
+              <p className="menu__empty faint">
+                {menu.isLoadingProducts ? 'Carregando…' : 'Nenhum item encontrado.'}
+              </p>
+            ) : (
+              <ul className="menu__items">
+                {menu.products.map((product) => (
+                  <ProductRow
+                    key={product.id}
+                    product={product}
+                    isSaving={menu.pendingAvailability.includes(product.id)}
+                    onToggleAvailability={() => void menu.toggleAvailability(product)}
+                    onEdit={() =>
+                      setProductDraft({
+                        id: product.id,
+                        categoryId: product.category_id,
+                        name: product.name,
+                        price: formatPriceInput(product.price),
+                        description: product.description ?? '',
+                        isActive: product.is_active !== false,
+                        isAvailable: product.is_available !== false,
+                      })
+                    }
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
-        <footer className="menu__footer faint">
+        <footer className="menu__footer faint container">
           <span>
             {menu.products.length} de {menu.totalInCategory}{' '}
             {menu.totalInCategory === 1 ? 'item' : 'itens'} nesta categoria

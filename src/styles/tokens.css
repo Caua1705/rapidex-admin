@@ -160,6 +160,18 @@
   --space-16: 64px;
   --space-20: 80px;
 
+  /* --- enquadramento ----------------------------------------------------- */
+  /*
+   * Teto de largura do conteúdo.
+   *
+   * Sem ele, numa tela de 27" a linha do cardápio vira um metro de vazio entre
+   * o nome do item e o preço — e o olho perde a associação entre os dois. O
+   * quadro de pedidos é a exceção proposital: ele rola na horizontal e usa a
+   * tela toda; quem segura a largura lá é `--column-max`.
+   */
+  --layout-max: 1400px;
+  --column-max: 320px;
+
   /* --- raio ------------------------------------------------------------- */
   --radius-sm: 6px;
   --radius-md: 10px;
