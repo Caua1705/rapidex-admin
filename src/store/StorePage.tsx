@@ -6,12 +6,13 @@ import { DeliveryTab } from './DeliveryTab';
 import { GeneralTab } from './GeneralTab';
 import { HoursTab } from './HoursTab';
 import { PaymentMethodsTab } from './PaymentMethodsTab';
+import { PrintingTab } from './PrintingTab';
 import { StoreStatusCard } from './StoreStatusCard';
 import { useBranchDetail } from './useBranchDetail';
 import { useStoreSettings } from './useStoreSettings';
 import './StorePage.css';
 
-type TabKey = 'geral' | 'filial' | 'horarios' | 'entrega' | 'pagamento';
+type TabKey = 'geral' | 'filial' | 'horarios' | 'entrega' | 'pagamento' | 'impressao';
 
 /**
  * As abas, e o que cada uma edita.
@@ -27,6 +28,7 @@ const TABS: readonly { key: TabKey; label: string; scope: 'restaurant' | 'branch
   { key: 'horarios', label: 'Horários', scope: 'branch' },
   { key: 'entrega', label: 'Entrega', scope: 'branch' },
   { key: 'pagamento', label: 'Formas de pagamento', scope: 'branch' },
+  { key: 'impressao', label: 'Impressão', scope: 'branch' },
 ];
 
 export function StorePage() {
@@ -100,8 +102,10 @@ export function StorePage() {
           <HoursTab branchId={activeBranchId} />
         ) : tab.key === 'entrega' ? (
           <DeliveryTab branchDetail={branchDetail} />
-        ) : (
+        ) : tab.key === 'pagamento' ? (
           <PaymentMethodsTab branchId={activeBranchId} />
+        ) : (
+          <PrintingTab branchId={activeBranchId} />
         )}
       </div>
     </div>
@@ -129,8 +133,8 @@ function BranchRequired({
     <div className="store__empty" data-testid="store-branch-required">
       <p className="store__empty-title">Escolha uma filial</p>
       <p className="faint">
-        Endereço, horários, entrega e formas de pagamento são de uma filial só. Com “Todas as
-        filiais” no topo não há o que editar aqui.
+        Endereço, horários, entrega, formas de pagamento e setores de impressão são de uma filial
+        só. Com “Todas as filiais” no topo não há o que editar aqui.
       </p>
 
       <div className="store__empty-actions">

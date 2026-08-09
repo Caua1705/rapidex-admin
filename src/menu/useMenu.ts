@@ -11,6 +11,7 @@ import {
   updateCategory,
   updateProduct,
 } from '../api/menu';
+import { applyPrintSectorToCategory } from '../api/print-sectors';
 import type { Category, Product } from '../api/types';
 import { categoryIdsForReorder, moveCategory, sortCategories, sortProducts } from './menu-model';
 
@@ -31,6 +32,8 @@ export type ProductDraft = {
   description: string;
   isActive: boolean;
   isAvailable: boolean;
+  /** Setor de impressão. `null` é "Não imprimir" — uma escolha, não um vazio. */
+  printSectorId: string | null;
 };
 
 /**
@@ -261,6 +264,7 @@ export function useMenu() {
             price,
             is_active: draft.isActive,
             is_available: draft.isAvailable,
+            print_sector_id: draft.printSectorId,
           });
         } else {
           await createProduct({
@@ -270,6 +274,7 @@ export function useMenu() {
             price,
             is_active: draft.isActive,
             is_available: draft.isAvailable,
+            print_sector_id: draft.printSectorId,
             sort_order: products.length,
           });
         }
@@ -282,6 +287,33 @@ export function useMenu() {
       }
     },
     [loadProducts, products.length, search, selectedCategoryId],
+  );
+
+  /**
+   * Aplica um setor de impressão a TODOS os produtos da categoria aberta.
+   *
+   * É a razão de a funcionalidade existir: sem isto, configurar uma categoria
+   * de 80 itens é clicar em 80 itens, um por um, e o que falha é o item 47 que
+   * ninguém percebeu que ficou de fora.
+   *
+   * Sobrescreve inclusive quem já tinha outro setor — é o que conserta uma
+   * categoria configurada errada. Quem chama mostra a contagem e confirma antes.
+   */
+  const applySectorToCategory = useCallback(
+    async (categoryId: string, printSectorId: string | null): Promise<number | null> => {
+      try {
+        const updated = await applyPrintSectorToCategory(categoryId, printSectorId);
+        // Relê a categoria em vez de aplicar o setor na lista em memória: o
+        // backend é quem sabe quantos e quais produtos mudaram de fato.
+        await loadProducts(selectedCategoryId, search);
+        setErrorMessage(null);
+        return updated;
+      } catch (error) {
+        setErrorMessage(messageFromUnknownError(error));
+        return null;
+      }
+    },
+    [loadProducts, search, selectedCategoryId],
   );
 
   const selectedCategory =
@@ -308,5 +340,6 @@ export function useMenu() {
     selectCategory,
     setSearchDraft,
     toggleAvailability,
+    applySectorToCategory,
   };
 }

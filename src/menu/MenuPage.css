@@ -197,6 +197,14 @@
   min-width: 0;
 }
 
+/* As ações de CATEGORIA, juntas no canto: aplicar setor e novo item. */
+.menu__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+}
+
 .menu__title {
   margin: 0;
   font-size: var(--text-lg);
@@ -372,6 +380,40 @@
   white-space: nowrap;
 }
 
+/*
+ * A coluna de setor entra entre o preço e o estado, e só quando há uma filial
+ * escolhida — o setor é dela. O modificador vai na LISTA, e não na linha, para
+ * que todas as linhas tenham a mesma grade: uma coluna que aparece por item
+ * desalinharia o preço de uma linha para a outra.
+ */
+.menu__items--with-sector .item {
+  grid-template-columns: 28px minmax(0, 1fr) 104px 128px 132px 28px;
+}
+
+.item__sector {
+  font-size: var(--text-xs);
+  line-height: 14px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/*
+ * "Não imprimir" é uma escolha, não um vazio — por isso ele aparece esmaecido
+ * em vez de a célula ficar em branco. Célula vazia lê como "não carregou", e é
+ * exatamente a dúvida que esta coluna existe para tirar.
+ */
+.item__sector--none {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* Aponta para setor de outra filial: dado inconsistente, não estado normal. */
+.item__sector--unknown {
+  color: var(--danger-soft-fg);
+}
+
 .item__status {
   display: flex;
   align-items: center;
@@ -513,6 +555,19 @@
   }
 
   .item__state {
+    display: none;
+  }
+
+  /*
+   * No toque o setor sai da grade junto com o rótulo do estado: numa tela
+   * estreita ele espremeria o nome do item, que é o que se procura primeiro.
+   * A conferência de setor é tarefa de mesa, feita no desktop.
+   */
+  .menu__items--with-sector .item {
+    grid-template-columns: 28px minmax(0, 1fr) 84px 44px 28px;
+  }
+
+  .item__sector {
     display: none;
   }
 }

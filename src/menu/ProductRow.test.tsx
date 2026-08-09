@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { Product } from '../api/types';
+import type { PrintSector, Product } from '../api/types';
 import { ProductRow } from './ProductRow';
 
 function product(overrides: Partial<Product> = {}): Product {
@@ -18,10 +18,21 @@ function product(overrides: Partial<Product> = {}): Product {
   };
 }
 
-function renderRow(overrides: Partial<Product> = {}, onToggle = vi.fn()) {
+const SETORES: PrintSector[] = [
+  { id: 's-chapa', branch_id: 'b-1', name: 'Chapa', is_active: true, sort_order: 0 },
+  { id: 's-bar', branch_id: 'b-1', name: 'Bar', is_active: false, sort_order: 1 },
+];
+
+function renderRow(
+  overrides: Partial<Product> = {},
+  onToggle = vi.fn(),
+  { showSector = true, sectors = SETORES }: { showSector?: boolean; sectors?: PrintSector[] } = {},
+) {
   render(
     <ProductRow
       product={product(overrides)}
+      sectors={sectors}
+      showSector={showSector}
       isSaving={false}
       onToggleAvailability={onToggle}
       onEdit={() => {}}
@@ -89,5 +100,43 @@ describe('ProductRow', () => {
     expect(
       screen.queryByRole('button', { name: /excluir|remover|apagar/i }),
     ).not.toBeInTheDocument();
+  });
+
+  /*
+   * A coluna de setor existe para o lojista conferir a categoria inteira de
+   * relance e ver se esqueceu algum item — sem abrir item por item.
+   */
+  describe('coluna de setor de impressão', () => {
+    it('mostra o nome do setor do item', () => {
+      renderRow({ print_sector_id: 's-chapa' });
+      expect(screen.getByTestId('product-sector-prod-1')).toHaveTextContent('Chapa');
+    });
+
+    // "Não imprimir" é uma escolha, não um vazio: célula em branco leria como
+    // "não carregou", que é justamente a dúvida que a coluna tira.
+    it('item sem setor diz "Não imprimir" em vez de ficar em branco', () => {
+      renderRow({ print_sector_id: null });
+      expect(screen.getByTestId('product-sector-prod-1')).toHaveTextContent('Não imprimir');
+    });
+
+    it('setor desativado continua identificado, e marcado como tal', () => {
+      renderRow({ print_sector_id: 's-bar' });
+      expect(screen.getByTestId('product-sector-prod-1')).toHaveTextContent('Bar (desativado)');
+    });
+
+    // Produto é do restaurante e setor é da filial: um id gravado por outra
+    // loja não está nesta lista, e chamar isso de "Não imprimir" seria mentir.
+    it('setor de outra filial aparece como inconsistência, não como "Não imprimir"', () => {
+      renderRow({ print_sector_id: 's-de-outra-filial' });
+
+      const celula = screen.getByTestId('product-sector-prod-1');
+      expect(celula).not.toHaveTextContent('Não imprimir');
+      expect(celula.className).toContain('item__sector--unknown');
+    });
+
+    it('sem filial escolhida, a coluna não aparece', () => {
+      renderRow({ print_sector_id: 's-chapa' }, vi.fn(), { showSector: false });
+      expect(screen.queryByTestId('product-sector-prod-1')).not.toBeInTheDocument();
+    });
   });
 });

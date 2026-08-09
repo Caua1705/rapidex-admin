@@ -8,7 +8,13 @@
  * backend renomear um campo, o erro aparece no `npm run typecheck`.
  */
 import type { components } from './generated/openapi';
-import type { OrderDetailWithOptions, OrderItemWithOptions } from './contract-pending';
+import type {
+  OrderDetailWithOptions,
+  OrderItemWithOptions,
+  ProductCreateWithPrintSector,
+  ProductUpdateWithPrintSector,
+  ProductWithPrintSector,
+} from './contract-pending';
 
 type Schemas = components['schemas'];
 
@@ -56,10 +62,20 @@ export type Category = Schemas['AdminCategoryResponse'];
 export type CategoryCreate = Schemas['AdminCategoryCreate'];
 export type CategoryUpdate = Schemas['AdminCategoryUpdate'];
 
-export type Product = Schemas['AdminProductResponse'];
-export type ProductCreate = Schemas['AdminProductCreate'];
-export type ProductUpdate = Schemas['AdminProductUpdate'];
+/*
+ * O produto vem do overlay pelo mesmo motivo do detalhe do pedido: o
+ * `print_sector_id` ainda não está no contrato publicado. Ver
+ * `contract-pending.ts`, bloco 4 — e note que ali o setor é o único caso em que
+ * a rota ainda NÃO existe do lado do backend.
+ */
+export type Product = ProductWithPrintSector;
+export type ProductCreate = ProductCreateWithPrintSector;
+export type ProductUpdate = ProductUpdateWithPrintSector;
 export type ProductDetail = Schemas['AdminProductDetailResponse'];
 export type ProductListResponse = Schemas['AdminProductListResponse'];
 /** O grupo que vem no detalhe do produto — não o do cardápio público. */
 export type ProductOptionGroup = Schemas['AdminOptionGroupResponse'];
+
+// --- setores de impressão -----------------------------------------------
+
+export type { PrintSector, PrintSectorCreate, PrintSectorUpdate } from './contract-pending';

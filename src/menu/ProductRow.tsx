@@ -1,5 +1,6 @@
-import type { Product } from '../api/types';
+import type { PrintSector, Product } from '../api/types';
 import { formatCurrency } from '../orders/format';
+import { sectorLabelFor } from '../print-sectors/print-sectors';
 import { Switch } from '../ui/Switch';
 import { EditIcon } from '../ui/icons';
 import { isProductActive, isProductAvailable, showsAvailabilityToggle } from './menu-model';
@@ -22,17 +23,24 @@ import { isProductActive, isProductAvailable, showsAvailabilityToggle } from './
  */
 export function ProductRow({
   product,
+  sectors,
+  showSector,
   isSaving,
   onToggleAvailability,
   onEdit,
 }: {
   product: Product;
+  /** Setores da filial aberta no cabeçalho — é o que dá nome ao id do produto. */
+  sectors: readonly PrintSector[];
+  /** Falso com "Todas as filiais": sem filial não há setor a mostrar. */
+  showSector: boolean;
   isSaving: boolean;
   onToggleAvailability: () => void;
   onEdit: () => void;
 }) {
   const active = isProductActive(product);
   const available = isProductAvailable(product);
+  const sector = sectorLabelFor(product.print_sector_id, sectors);
 
   return (
     <li
@@ -70,6 +78,30 @@ export function ProductRow({
       </span>
 
       <span className="item__price mono">{formatCurrency(product.price)}</span>
+
+      {/*
+        A coluna existe para o lojista CONFERIR de bate-pronto se esqueceu
+        algum item — é a pergunta "está tudo configurado?" respondida sem abrir
+        item por item. Por isso "Não imprimir" aparece esmaecido e não em
+        branco: célula vazia lê como "não carregou", e não como uma escolha.
+      */}
+      {showSector ? (
+        <span
+          className={[
+            'item__sector',
+            sector.empty ? 'item__sector--none' : '',
+            sector.known ? '' : 'item__sector--unknown',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          data-testid={`product-sector-${product.id}`}
+          title={
+            sector.known ? undefined : 'Este item aponta para um setor que não é desta filial.'
+          }
+        >
+          {sector.label}
+        </span>
+      ) : null}
 
       {/*
         A célula existe sempre, com ou sem interruptor: é a grade que mantém o

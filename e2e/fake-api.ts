@@ -14,7 +14,11 @@
 import type { Page, Route } from '@playwright/test';
 
 import type { components } from '../src/api/generated/openapi';
-import type { OrderDetailWithOptions } from '../src/api/contract-pending';
+import type {
+  OrderDetailWithOptions,
+  PrintSector,
+  ProductWithPrintSector,
+} from '../src/api/contract-pending';
 
 type Schemas = components['schemas'];
 type AdminUser = Schemas['AdminUserResponse'];
@@ -28,7 +32,8 @@ type OrderListItem = Schemas['AdminOrderListItem'];
 type OrderDetail = OrderDetailWithOptions;
 type StreamEvent = Schemas['AdminOrderStreamEvent'];
 type Category = Schemas['AdminCategoryResponse'];
-type Product = Schemas['AdminProductResponse'];
+/** O produto com `print_sector_id`, pelo mesmo overlay que o painel usa. */
+type Product = ProductWithPrintSector;
 type RestaurantSettings = Schemas['AdminRestaurantSettingsResponse'];
 type BusinessHour = Schemas['BusinessHourResponse'];
 type BusinessHourInput = Schemas['BusinessHourInput'];
@@ -265,6 +270,9 @@ function initialProducts(): Product[] {
       is_active: true,
       is_available: true,
       sort_order: 0,
+      // O único da categoria já configurado: os outros dois estão em "Não
+      // imprimir", que é o que a coluna de setor existe para o lojista notar.
+      print_sector_id: 'sec-chapa',
     },
     {
       id: 'prod-2',
@@ -355,6 +363,19 @@ function initialPaymentMethods(branchId: string): PaymentMethod[] {
   ];
 }
 
+/**
+ * Setores de impressão da filial.
+ *
+ * "Bar" nasce desativado para provar as duas metades da regra: ele não pode ser
+ * OFERECIDO num produto, mas o nome dele continua aparecendo em quem já o tem.
+ */
+function initialPrintSectors(branchId: string): PrintSector[] {
+  return [
+    { id: 'sec-chapa', branch_id: branchId, name: 'Chapa', is_active: true, sort_order: 0 },
+    { id: 'sec-bar', branch_id: branchId, name: 'Bar', is_active: false, sort_order: 1 },
+  ];
+}
+
 /** Espelho enxuto da máquina de estados do backend, só para recusar o inválido. */
 const TRANSICOES: Record<string, string[]> = {
   pending: ['accepted', 'rejected', 'cancelled'],
@@ -409,6 +430,12 @@ export type FakeApi = {
   hoursPuts: () => { branchId: string; periods: BusinessHourInput[] }[];
   /** Formas de pagamento que o "banco" tem agora. */
   paymentMethods: () => PaymentMethod[];
+  /** Setores de impressão que o "banco" tem agora. */
+  printSectors: () => PrintSector[];
+  /** Cada PATCH de setor aplicado a uma categoria inteira. */
+  categorySectorCalls: () => { categoryId: string; printSectorId: string | null }[];
+  /** Todos os produtos, para conferir o que o lote gravou. */
+  products: () => Product[];
   /** Empurra um pedido novo pelo SSE, como se outro cliente tivesse comprado. */
   pushNewOrder: (item: OrderListItem) => void;
   /** Muda o status por fora da tela, como faria outro atendente. */
@@ -467,6 +494,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     } as Record<string, BusinessHour[]>,
     hoursPuts: [] as { branchId: string; periods: BusinessHourInput[] }[],
     paymentMethods: initialPaymentMethods(BRANCH_ID),
+    printSectors: initialPrintSectors(BRANCH_ID),
+    /** Cada PATCH de setor na categoria inteira, para conferir o lote. */
+    categorySectorCalls: [] as { categoryId: string; printSectorId: string | null }[],
   };
 
   function findOrder(orderId: string): OrderListItem | undefined {
@@ -789,6 +819,42 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       }
     }
 
+    // --- setores de impressão ----------------------------------------------
+
+    const sectorsMatch = /^\/admin\/branches\/([^/]+)\/print-sectors$/.exec(path);
+    if (sectorsMatch?.[1]) {
+      const branchId = sectorsMatch[1];
+      if (method === 'GET') {
+        // Traz os desativados também: a aba de administração mostra todos, e é
+        // a tela que filtra o que pode ser ESCOLHIDO num produto.
+        return json(
+          route,
+          200,
+          state.printSectors.filter((entry) => entry.branch_id === branchId),
+        );
+      }
+      if (method === 'POST') {
+        const body = request.postDataJSON() as { name: string; sort_order?: number };
+        const created: PrintSector = {
+          id: `sec-${state.printSectors.length + 1}-novo`,
+          branch_id: branchId,
+          name: body.name,
+          is_active: true,
+          sort_order: body.sort_order ?? 0,
+        };
+        state.printSectors.push(created);
+        return json(route, 201, created);
+      }
+    }
+
+    const sectorMatch = /^\/admin\/print-sectors\/([^/]+)$/.exec(path);
+    if (method === 'PATCH' && sectorMatch?.[1]) {
+      const found = state.printSectors.find((entry) => entry.id === sectorMatch[1]);
+      if (!found) return json(route, 404, { detail: 'Setor não encontrado.' });
+      Object.assign(found, request.postDataJSON());
+      return json(route, 200, found);
+    }
+
     // --- minha loja: a filial ----------------------------------------------
 
     // Depois de prep-time, business-hours e payment-methods: todos começam com
@@ -841,6 +907,27 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       };
       state.categories.push(created);
       return json(route, 201, created);
+    }
+
+    /*
+     * Aplicar o setor à categoria inteira. Antes de /admin/categories/{id},
+     * pelo mesmo motivo do reorder: "print-sector" é rota, não id de categoria.
+     */
+    const categorySectorMatch = /^\/admin\/categories\/([^/]+)\/print-sector$/.exec(path);
+    if (method === 'PATCH' && categorySectorMatch?.[1]) {
+      const categoryId = categorySectorMatch[1];
+      const body = request.postDataJSON() as { print_sector_id: string | null };
+      state.categorySectorCalls.push({ categoryId, printSectorId: body.print_sector_id });
+
+      // Como o backend: sobrescreve TODOS os produtos da categoria, inclusive
+      // os que já tinham outro setor.
+      let updated = 0;
+      state.products.forEach((item) => {
+        if (item.category_id !== categoryId) return;
+        item.print_sector_id = body.print_sector_id;
+        updated += 1;
+      });
+      return json(route, 200, { updated_count: updated });
     }
 
     const categoryMatch = /^\/admin\/categories\/([^/]+)$/.exec(path);
@@ -920,6 +1007,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     branchPatches: () => state.branchPatches,
     hoursPuts: () => state.hoursPuts,
     paymentMethods: () => state.paymentMethods,
+    printSectors: () => state.printSectors,
+    categorySectorCalls: () => state.categorySectorCalls,
+    products: () => state.products,
     clearPrepTimeBase(branchId) {
       state.prepTime[branchId] = null;
     },

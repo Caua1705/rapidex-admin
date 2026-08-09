@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 
 import { fetchProductDetail } from '../api/menu';
-import type { Category, ProductOptionGroup } from '../api/types';
+import type { Category, PrintSector, ProductOptionGroup } from '../api/types';
 import { formatCurrency } from '../orders/format';
+import { activeSectors, NO_SECTOR_LABEL } from '../print-sectors/print-sectors';
 import { Modal } from '../ui/Modal';
 import { Switch } from '../ui/Switch';
 import { parsePriceInput } from './menu-model';
@@ -24,11 +25,17 @@ import type { ProductDraft } from './useMenu';
 export function ProductDialog({
   initial,
   categories,
+  sectors,
+  branchChosen,
   onClose,
   onSave,
 }: {
   initial: ProductDraft;
   categories: Category[];
+  /** Setores da filial aberta no cabeçalho. Só os ativos são escolhíveis. */
+  sectors: readonly PrintSector[];
+  /** Falso com "Todas as filiais": não há de qual filial oferecer setor. */
+  branchChosen: boolean;
   onClose: () => void;
   onSave: (draft: ProductDraft, price: number) => Promise<boolean>;
 }) {
@@ -144,6 +151,39 @@ export function ProductDialog({
             value={draft.description}
             onChange={(event) => setDraft({ ...draft, description: event.target.value })}
           />
+        </label>
+
+        {/*
+          Setor de impressão. "Não imprimir" é a primeira opção e o padrão de
+          item novo: nem tudo passa pela produção, e um item sem setor não é um
+          cadastro incompleto.
+
+          O <select> guarda '' para representar o null do backend — value de
+          <option> não carrega null. A conversão acontece aqui, num lugar só.
+        */}
+        <label className="field">
+          <span className="field__label">Setor de impressão</span>
+          <select
+            className="select"
+            value={draft.printSectorId ?? ''}
+            disabled={!branchChosen}
+            onChange={(event) => setDraft({ ...draft, printSectorId: event.target.value || null })}
+            data-testid="product-print-sector"
+          >
+            <option value="">{NO_SECTOR_LABEL}</option>
+            {activeSectors(sectors).map((sector) => (
+              <option key={sector.id} value={sector.id}>
+                {sector.name}
+              </option>
+            ))}
+          </select>
+          <span className="form__hint">
+            {!branchChosen
+              ? 'Setor é por filial: escolha uma no topo para poder definir onde este item imprime.'
+              : sectors.length === 0
+                ? 'Esta filial ainda não tem setor cadastrado. Crie em Minha loja › Impressão.'
+                : 'Onde o pedido com este item sai impresso.'}
+          </span>
         </label>
 
         <div className="form__row">

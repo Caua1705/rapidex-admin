@@ -12,6 +12,14 @@ As rotas: `/pedidos`, `/cardapio`, `/minha-loja` e `/cozinha`. A Cozinha é a
 única tela autenticada FORA do `AppShell` — ela usa a tela inteira, sem
 navegação lateral, porque é lida de longe.
 
+> **Setores de impressão dependem de backend que ainda não existe.** A aba
+> Impressão, o campo de setor no produto e a aplicação em lote na categoria
+> estão construídos e testados, mas em 2026-08-09 o backend não tem tabela de
+> setor, não tem `print_sector_id` em `products` e não tem nenhuma das rotas.
+> Enquanto não subirem, essas telas chamam e recebem 404 — o que aparece é o
+> erro da API, e isso é o esperado, não defeito do painel. A forma combinada
+> está no bloco 4 de `src/api/contract-pending.ts`.
+
 O painel não é white-label: a identidade na tela é a do **Rapidex**. O nome do
 restaurante aparece só para o lojista saber em qual sessão está.
 
@@ -86,6 +94,8 @@ src/
     menu.ts     categorias e produtos do cardápio
     store.ts    configurações do restaurante, filial, horários, entrega e
                 formas de pagamento
+    print-sectors.ts
+                setores de impressão (usados por Minha loja E pelo Cardápio)
     contract-pending.ts
                 TEMPORÁRIO: as rotas que o backend já entregou e o
                 /openapi.json ainda não descreve. Leia o cabeçalho dele.
@@ -114,9 +124,13 @@ src/
     CategoryRail.tsx      barra de categorias + subir/descer
     ProductRow.tsx        a linha do item (preço, esgotado, ativo)
     CategoryDialog.tsx    criar/editar categoria
-    ProductDialog.tsx     criar/editar item
+    ProductDialog.tsx     criar/editar item (inclui o setor de impressão)
+    ApplySectorDialog.tsx aplica um setor à categoria inteira, de uma vez
     useMenu.ts            estado da tela (categorias, produtos, ações otimistas)
     menu-model.ts         ativo x disponível, ordem, preço — as regras testáveis
+  print-sectors/ Setores de impressão, compartilhados por duas telas
+    print-sectors.ts      ordem, ativos, rótulo, nome repetido — as regras
+    usePrintSectors.ts    CRUD dos setores da filial aberta no cabeçalho
   store/        A TELA MINHA LOJA (configurações do restaurante e da filial)
     StorePage.tsx         abrir/fechar no topo + as cinco abas
     StoreStatusCard.tsx   abrir e fechar a loja, fora das abas
@@ -127,6 +141,7 @@ src/
     HoursTab.tsx          a grade dos 7 dias
     DeliveryTab.tsx       taxa por raio + prévia do frete
     PaymentMethodsTab.tsx formas por fluxo (online / na entrega)
+    PrintingTab.tsx       setores de impressão: criar, renomear, desativar
     business-hours.ts     o PUT manda SEMPRE os 7 dias — a regra cara da tela
     delivery-config.ts    base ou por-km nulos = endereço não atendível
     settings-model.ts     números dos formulários (vazio ≠ inválido)
@@ -142,7 +157,7 @@ src/
   ui/           Peças genéricas mínimas (Modal, Switch, logo, ícones)
   styles/       tokens.css (ÚNICO lugar com cor literal) + global.css
 e2e/            Playwright: backend falso + caminho crítico, cardápio,
-                minha loja e cozinha
+                minha loja, cozinha e setores de impressão
 scripts/        check-design-tokens.mjs — barra cor fora dos tokens
 .claude/skills/rapidex-design-system/
                 SKILL.md — as regras visuais, para ler antes de cada tela nova
