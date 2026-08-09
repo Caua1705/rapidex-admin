@@ -1,0 +1,388 @@
+/*
+ * Minha loja. Toda cor sai de tokens.css — aqui é var(--token) ou não entra.
+ *
+ * A tela é um formulário longo, então ela usa `.container`: sem o teto de
+ * 1400px, um campo de "taxa base" viraria uma caixa de um metro numa tela de
+ * 27", e o rótulo ficaria longe do valor que ele nomeia.
+ */
+
+.store {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-5) var(--space-5) var(--space-10);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.store__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.store__title {
+  margin: 0;
+  font-size: var(--text-lg);
+  line-height: var(--leading-lg);
+  font-weight: var(--weight-bold);
+}
+
+.store__loading {
+  padding: var(--space-6) 0;
+}
+
+/* --- abrir / fechar a loja ---------------------------------------------- */
+
+/*
+ * O cartão fica ao lado do título e ocupa a sobra da linha: é a informação que
+ * o lojista procura ao abrir a tela, e ela não pode disputar espaço com as abas
+ * logo abaixo.
+ */
+.store-status {
+  flex: 1;
+  min-width: 280px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface-raised);
+}
+
+/*
+ * Verde de `completed` e cinza de `cancelled` marcam aqui um estado
+ * afirmativo/parado fora do pedido — a mesma exceção herdada do mockup que
+ * pinta "disponível/esgotado" no cardápio. Não é status de pedido.
+ */
+.store-status__dot {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-full);
+  background: var(--status-cancelled-h);
+}
+
+.store-status--open .store-status__dot {
+  background: var(--status-completed-h);
+}
+
+.store-status__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.store-status__label {
+  font-size: var(--text-md);
+  line-height: var(--leading-md);
+  font-weight: var(--weight-bold);
+}
+
+/* --- abas ---------------------------------------------------------------- */
+
+.store__tabs {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.store__tab {
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--motion-fast) var(--motion-ease);
+}
+
+.store__tab:hover {
+  color: var(--text-primary);
+}
+
+/* Aba ativa é navegação: é um dos três lugares onde o laranja aparece. */
+.store__tab--active {
+  color: var(--brand-soft-fg);
+  border-bottom-color: var(--brand);
+  font-weight: var(--weight-semibold);
+}
+
+.store__tab:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.store__panel {
+  padding-top: var(--space-2);
+}
+
+/* --- estado de "escolha uma filial" -------------------------------------- */
+
+.store__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+  padding: var(--space-8);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface-raised);
+  max-width: 640px;
+}
+
+.store__empty-title {
+  margin: 0;
+  font-size: var(--text-md);
+  line-height: var(--leading-md);
+  font-weight: var(--weight-bold);
+}
+
+.store__empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+/* --- formulário ---------------------------------------------------------- */
+
+.store-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.store-form__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface-raised);
+}
+
+.store-form__section-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.store-form__heading {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+  font-weight: var(--weight-bold);
+}
+
+/*
+ * Grade de colunas fixas, e não flex com space-between: numa tela larga o
+ * space-between jogaria cada campo para uma abscissa diferente e o olho
+ * perderia a coluna.
+ */
+.store-form__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3) var(--space-4);
+  align-items: start;
+}
+
+.store-form__wide {
+  grid-column: 1 / -1;
+}
+
+.store-form__hint {
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+}
+
+.store-form__warn {
+  margin: 0;
+}
+
+.store-form__problems {
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-5);
+}
+
+.store-form__check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.store-form__check input {
+  accent-color: var(--brand);
+  width: 16px;
+  height: 16px;
+}
+
+.store-form__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.store-form__error {
+  margin: 0;
+}
+
+.store-form__buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.store-form__saved {
+  font-size: var(--text-sm);
+}
+
+.store-form__add {
+  align-self: flex-start;
+}
+
+/* --- grade de horários ---------------------------------------------------- */
+
+.hours {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * Colunas fixas para os sete dias: o horário de segunda fica exatamente em cima
+ * do de terça, e o olho compara a semana inteira de uma vez. O nome do dia é a
+ * única coluna fluida.
+ */
+.hours__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 72px auto auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-1);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.hours__row:last-child {
+  border-bottom: none;
+}
+
+.hours__day {
+  font-weight: var(--weight-medium);
+}
+
+.hours__state {
+  font-size: var(--text-sm);
+}
+
+.hours__time {
+  padding: var(--space-1) var(--space-2);
+  width: 116px;
+}
+
+.hours__sep {
+  font-size: var(--text-sm);
+}
+
+/* --- prévia do frete ------------------------------------------------------ */
+
+.delivery-preview {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  max-width: 320px;
+}
+
+.delivery-preview__row {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  gap: var(--space-3);
+  padding-block: var(--space-1);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.delivery-preview__row:last-child {
+  border-bottom: none;
+}
+
+.delivery-preview__fee {
+  font-weight: var(--weight-semibold);
+}
+
+/* --- formas de pagamento -------------------------------------------------- */
+
+.methods {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.methods__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 160px 110px auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-1);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.methods__row:last-child {
+  border-bottom: none;
+}
+
+/* Desabilitada esmaece, mas continua legível: some da lista ninguém reativa. */
+.methods__row--off {
+  opacity: 0.55;
+}
+
+.methods__label {
+  font-weight: var(--weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.methods__type,
+.methods__gateway {
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- densidade cede no celular ------------------------------------------- */
+
+@media (max-width: 720px) {
+  .store {
+    padding: var(--space-4) var(--space-3) var(--space-8);
+  }
+
+  .hours__row,
+  .methods__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2);
+    padding-block: var(--space-2);
+  }
+
+  .hours__time {
+    width: 100%;
+  }
+}

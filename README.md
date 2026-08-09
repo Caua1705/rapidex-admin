@@ -2,8 +2,15 @@
 
 Painel web onde o restaurante acompanha e toca os pedidos do dia. Esta entrega
 cobre **login**, a **tela de pedidos** (quadro por status, detalhe, mudança de
-status e tempo real por SSE) e o **cardápio** (categorias, itens, esgotado e
-ordem). Configurações, clientes, relatórios e impressão ficam para depois.
+status e tempo real por SSE), o **cardápio** (categorias, itens, esgotado e
+ordem), **Minha loja** (abrir/fechar, configurações do restaurante, cadastro da
+filial, horários, entrega e formas de pagamento) e a **Cozinha** (tela cheia,
+três colunas, um botão por cartão). Clientes, relatórios e impressão ficam para
+depois.
+
+As rotas: `/pedidos`, `/cardapio`, `/minha-loja` e `/cozinha`. A Cozinha é a
+única tela autenticada FORA do `AppShell` — ela usa a tela inteira, sem
+navegação lateral, porque é lida de longe.
 
 O painel não é white-label: a identidade na tela é a do **Rapidex**. O nome do
 restaurante aparece só para o lojista saber em qual sessão está.
@@ -77,6 +84,8 @@ src/
     orders.ts   pedidos, contadores, detalhe, status, cancelamento, tempo de
                 preparo, ticket do SSE, filiais
     menu.ts     categorias e produtos do cardápio
+    store.ts    configurações do restaurante, filial, horários, entrega e
+                formas de pagamento
     contract-pending.ts
                 TEMPORÁRIO: as rotas que o backend já entregou e o
                 /openapi.json ainda não descreve. Leia o cabeçalho dele.
@@ -108,13 +117,32 @@ src/
     ProductDialog.tsx     criar/editar item
     useMenu.ts            estado da tela (categorias, produtos, ações otimistas)
     menu-model.ts         ativo x disponível, ordem, preço — as regras testáveis
+  store/        A TELA MINHA LOJA (configurações do restaurante e da filial)
+    StorePage.tsx         abrir/fechar no topo + as cinco abas
+    StoreStatusCard.tsx   abrir e fechar a loja, fora das abas
+    GeneralTab.tsx        valor mínimo, tempo estimado, taxa de serviço,
+                          entrega/retirada (SEM default_delivery_fee — veja o
+                          cabeçalho do arquivo)
+    BranchTab.tsx         nome, endereço, contato e lat/long
+    HoursTab.tsx          a grade dos 7 dias
+    DeliveryTab.tsx       taxa por raio + prévia do frete
+    PaymentMethodsTab.tsx formas por fluxo (online / na entrega)
+    business-hours.ts     o PUT manda SEMPRE os 7 dias — a regra cara da tela
+    delivery-config.ts    base ou por-km nulos = endereço não atendível
+    settings-model.ts     números dos formulários (vazio ≠ inválido)
+  kitchen/      A TELA DE COZINHA (tela cheia, sem navegação lateral)
+    KitchenPage.tsx       as três colunas + o mesmo SSE dos pedidos
+    KitchenCard.tsx       cartão grande, com itens e adicionais
+    kitchen-board.ts      só 3 estados, não pago fora, um caminho adiante
+    useKitchenOrders.ts   carrega por status e busca o detalhe de cada cartão
   theme/        Tema claro/escuro: provider, alternador, persistência
   layout/       Navegação lateral + barra do topo das telas autenticadas
     BranchSelector.tsx    filial da sessão (nome + endereço), no cabeçalho
   pages/        Telas que não são de um assunto só (login)
   ui/           Peças genéricas mínimas (Modal, Switch, logo, ícones)
   styles/       tokens.css (ÚNICO lugar com cor literal) + global.css
-e2e/            Playwright: backend falso + caminho crítico + cardápio
+e2e/            Playwright: backend falso + caminho crítico, cardápio,
+                minha loja e cozinha
 scripts/        check-design-tokens.mjs — barra cor fora dos tokens
 .claude/skills/rapidex-design-system/
                 SKILL.md — as regras visuais, para ler antes de cada tela nova

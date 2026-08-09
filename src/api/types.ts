@@ -31,6 +31,25 @@ export type OrderStreamEvent = Schemas['AdminOrderStreamEvent'];
 export type StreamTicket = Schemas['AdminStreamTicketResponse'];
 export type Branch = Schemas['AdminBranchResponse'];
 
+// --- minha loja ---------------------------------------------------------
+
+/** Configuração do RESTAURANTE inteiro, não da filial. */
+export type RestaurantSettings = Schemas['AdminRestaurantSettingsResponse'];
+export type RestaurantSettingsUpdate = Schemas['AdminRestaurantSettingsUpdate'];
+
+/** Cadastro, localização e regras de entrega da filial, no mesmo PATCH. */
+export type BranchUpdate = Schemas['AdminBranchUpdate'];
+
+export type BusinessHour = Schemas['BusinessHourResponse'];
+export type BusinessHourInput = Schemas['BusinessHourInput'];
+
+export type PaymentMethod = Schemas['AdminPaymentMethodResponse'];
+export type PaymentMethodCreate = Schemas['AdminPaymentMethodCreate'];
+export type PaymentMethodUpdate = Schemas['AdminPaymentMethodUpdate'];
+/** `online` (gateway) ou `delivery` (dinheiro entra na entrega). */
+export type PaymentFlow = PaymentMethod['payment_flow'];
+export type PaymentMethodType = PaymentMethod['method_type'];
+
 // --- cardápio -----------------------------------------------------------
 
 export type Category = Schemas['AdminCategoryResponse'];

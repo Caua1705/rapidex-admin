@@ -33,6 +33,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <NavItem to="/pedidos" label="Pedidos" icon={<OrdersIcon />} />
         <NavItem to="/cardapio" label="Cardápio" icon={<MenuIcon />} />
+        <NavItem to="/minha-loja" label="Minha loja" icon={<StoreIcon />} />
+        {/*
+          A Cozinha é uma tela cheia, sem esta lateral. O link continua aqui
+          porque é daqui que o lojista a abre no começo do turno — o que ela não
+          tem é volta pela navegação, e sim o "Sair da cozinha" no próprio canto.
+        */}
+        <NavItem to="/cozinha" label="Cozinha" icon={<KitchenIcon />} />
       </nav>
 
       <div className="shell__main">
@@ -104,6 +111,46 @@ function MenuIcon() {
       strokeLinejoin="round"
     >
       <path d="M4 19h16M4 5h16M9 5v14M15 5v14" />
+    </svg>
+  );
+}
+
+/** Toldo de loja: o traço de 2px e a grade de 24px do resto do conjunto. */
+function StoreIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9" />
+      <path d="M3 9h18l-1.4-4.2A1 1 0 0 0 18.6 4H5.4a1 1 0 0 0-1 .8L3 9Z" />
+      <path d="M9 20v-6h6v6" />
+    </svg>
+  );
+}
+
+/** Panela com a alça — a cozinha, não o cardápio. */
+function KitchenIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 10h16v5a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5v-5Z" />
+      <path d="M19 11h1.5a1.5 1.5 0 0 1 0 3H19" />
+      <path d="m7 7 1-3M12 7l1-3M17 7l1-3" />
     </svg>
   );
 }

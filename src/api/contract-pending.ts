@@ -54,18 +54,14 @@ export type PrepTimeResponse = {
 // --- 3. Adicionais escolhidos, dentro do item do pedido ------------------
 
 /**
- * ATENÇÃO: os nomes destes campos são a única parte deste arquivo que NÃO foi
- * confirmada contra o contrato nem contra a descrição do backend.
+ * Cada item traz `option_groups`, cada grupo traz `options`, e a opção tem
+ * `additional_price_snapshot`.
  *
- * O que se sabe: cada item traz `option_groups`, cada grupo traz `options`, e a
- * opção tem `additional_price_snapshot`. Os nomes do rótulo do grupo e da
- * opção seguem a convenção que o resto do contrato já usa
- * (`product_name_snapshot`), mas nada garante isso.
- *
- * Por isso o tipo aceita os dois nomes prováveis e quem lê passa por
- * `readOptionGroups` (order-options.ts), que resolve o apelido num lugar só —
- * se o backend tiver escolhido outro nome, conserta-se lá, numa linha, e não
- * numa dúzia de pontos da tela.
+ * O rótulo do grupo é `option_group_name_snapshot` — CONFIRMADO pelo backend,
+ * e não a suposição `group_name_snapshot` que este arquivo carregava antes.
+ * O `name` continua declarado como alternativa porque quem lê passa por
+ * `readOptionGroups` (order-options.ts), que resolve o nome do campo num lugar
+ * só: é lá, numa linha, que se conserta qualquer divergência futura.
  */
 export type OrderItemOptionSnapshot = {
   id?: string | null;
@@ -82,7 +78,7 @@ export type OrderItemOptionGroupSnapshot = {
   id?: string | null;
   option_group_id?: string | null;
   /** Rótulo do grupo: "Acompanhamento", "Adicional". */
-  group_name_snapshot?: string | null;
+  option_group_name_snapshot?: string | null;
   name?: string | null;
   options?: OrderItemOptionSnapshot[] | null;
 };

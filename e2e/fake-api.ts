@@ -29,6 +29,10 @@ type OrderDetail = OrderDetailWithOptions;
 type StreamEvent = Schemas['AdminOrderStreamEvent'];
 type Category = Schemas['AdminCategoryResponse'];
 type Product = Schemas['AdminProductResponse'];
+type RestaurantSettings = Schemas['AdminRestaurantSettingsResponse'];
+type BusinessHour = Schemas['BusinessHourResponse'];
+type BusinessHourInput = Schemas['BusinessHourInput'];
+type PaymentMethod = Schemas['AdminPaymentMethodResponse'];
 
 export const LOGIN_EMAIL = 'dono@pizzaria.com';
 export const LOGIN_PASSWORD = 'senha-certa';
@@ -156,14 +160,14 @@ function optionGroupsFixture() {
   return [
     {
       id: 'grp-acomp',
-      group_name_snapshot: 'Acompanhamento',
+      option_group_name_snapshot: 'Acompanhamento',
       options: [
         { id: 'opt-espaguete', option_name_snapshot: 'Espaguete', additional_price_snapshot: 0 },
       ],
     },
     {
       id: 'grp-adicional',
-      group_name_snapshot: 'Adicional',
+      option_group_name_snapshot: 'Adicional',
       options: [
         {
           id: 'opt-espaguete-extra',
@@ -292,6 +296,65 @@ function initialProducts(): Product[] {
   ];
 }
 
+/**
+ * As configurações iniciais do restaurante.
+ *
+ * `default_delivery_fee` está aqui porque o backend o devolve — e é justamente
+ * o campo que o painel NÃO pode expor: ele é editável na API e não afeta a
+ * cobrança. Deixá-lo no falso é o que permite ao teste provar que a tela não o
+ * mostra.
+ */
+function initialSettings(): RestaurantSettings {
+  return {
+    min_order_value: 20,
+    estimated_delivery_time_min: 30,
+    estimated_delivery_time_max: 50,
+    default_delivery_fee: 7.5,
+    service_fee_enabled: true,
+    service_fee_amount: 2,
+    accepts_delivery: true,
+    accepts_pickup: true,
+    is_open: true,
+  };
+}
+
+/** Segunda a sexta abertas, sábado à noite, domingo fechado. */
+function initialBusinessHours(branchId: string): BusinessHour[] {
+  return [0, 1, 2, 3, 4].map((weekday) => ({
+    id: `${branchId}-h-${weekday}`,
+    weekday,
+    opens_at: '18:00:00',
+    closes_at: '23:00:00',
+    is_closed: false,
+    sort_order: weekday,
+  }));
+}
+
+function initialPaymentMethods(branchId: string): PaymentMethod[] {
+  return [
+    {
+      id: 'pay-pix',
+      branch_id: branchId,
+      payment_flow: 'online',
+      method_type: 'pix',
+      label: 'Pix',
+      enabled: true,
+      requires_gateway: true,
+      sort_order: 0,
+    },
+    {
+      id: 'pay-dinheiro',
+      branch_id: branchId,
+      payment_flow: 'delivery',
+      method_type: 'cash',
+      label: 'Dinheiro',
+      enabled: true,
+      requires_gateway: false,
+      sort_order: 1,
+    },
+  ];
+}
+
 /** Espelho enxuto da máquina de estados do backend, só para recusar o inválido. */
 const TRANSICOES: Record<string, string[]> = {
   pending: ['accepted', 'rejected', 'cancelled'],
@@ -336,6 +399,16 @@ export type FakeApi = {
   prepTimeOf: (branchId: string) => { min: number; max: number } | null;
   /** Cada PATCH /admin/products/{id}/availability que chegou. */
   availabilityCalls: () => { productId: string; isAvailable: boolean }[];
+  /** Configurações do restaurante como o "banco" as tem agora. */
+  settings: () => RestaurantSettings;
+  /** Corpo de cada PATCH /admin/settings, para conferir o que a tela mandou. */
+  settingsPatches: () => Record<string, unknown>[];
+  /** Corpo de cada PATCH /admin/branches/{id}. */
+  branchPatches: () => { branchId: string; body: Record<string, unknown> }[];
+  /** Corpo de cada PUT de horários — é onde se confere que vão os 7 dias. */
+  hoursPuts: () => { branchId: string; periods: BusinessHourInput[] }[];
+  /** Formas de pagamento que o "banco" tem agora. */
+  paymentMethods: () => PaymentMethod[];
   /** Empurra um pedido novo pelo SSE, como se outro cliente tivesse comprado. */
   pushNewOrder: (item: OrderListItem) => void;
   /** Muda o status por fora da tela, como faria outro atendente. */
@@ -369,7 +442,8 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     history: {} as Record<string, Schemas['StatusHistoryResponse'][]>,
     sessionExpired: false,
     stopped: false,
-    streamQueue: [] as StreamEvent[],
+    /** Append-only: cada conexão SSE lê a partir do próprio cursor. */
+    streamLog: [] as StreamEvent[],
     eventId: 0,
     categories: initialCategories(),
     products: initialProducts(),
@@ -381,6 +455,18 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       [BRANCH_ID]: { min: 25, max: 35 },
     } as Record<string, { min: number; max: number } | null>,
     closedBranches: new Set<string>(),
+    // Minha loja. As filiais são cópias, e não as constantes exportadas: os
+    // PATCH da tela gravam nelas, e mutar a constante vazaria de um teste para
+    // o outro.
+    branches: [{ ...FAKE_BRANCH }, { ...FAKE_BRANCH_2 }] as Branch[],
+    settings: initialSettings(),
+    settingsPatches: [] as Record<string, unknown>[],
+    branchPatches: [] as { branchId: string; body: Record<string, unknown> }[],
+    businessHours: {
+      [BRANCH_ID]: initialBusinessHours(BRANCH_ID),
+    } as Record<string, BusinessHour[]>,
+    hoursPuts: [] as { branchId: string; periods: BusinessHourInput[] }[],
+    paymentMethods: initialPaymentMethods(BRANCH_ID),
   };
 
   function findOrder(orderId: string): OrderListItem | undefined {
@@ -405,14 +491,21 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
    * Fulfill imediato faria o EventSource receber corpo vazio, fechar e
    * reabrir em loop durante o teste inteiro. Segurando a conexão, ela se
    * comporta como um stream de verdade: só responde quando há o que mandar.
+   *
+   * O log é APPEND-ONLY e cada conexão guarda o próprio cursor, em vez de uma
+   * fila compartilhada que a primeira conexão esvazia. A diferença aparece
+   * quando existe mais de uma conexão viva — ao sair de /pedidos para /cozinha,
+   * o stream da tela anterior ainda está pendurado por um instante, e com fila
+   * compartilhada era ELE quem consumia o evento que a Cozinha esperava.
    */
   async function serveStream(route: Route) {
+    const cursor = state.streamLog.length;
     const limite = Date.now() + 15_000;
-    while (state.streamQueue.length === 0 && !state.stopped && Date.now() < limite) {
+    while (state.streamLog.length === cursor && !state.stopped && Date.now() < limite) {
       await sleep(50);
     }
 
-    const frames = state.streamQueue.splice(0).map((event) => {
+    const frames = state.streamLog.slice(cursor).map((event) => {
       state.eventId += 1;
       return `id: ${state.eventId}\nevent: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`;
     });
@@ -460,11 +553,14 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     }
 
     if (method === 'GET' && path === '/admin/orders') {
-      // Respeita o filtro de filial, que é o que o seletor do cabeçalho manda.
-      const branchId = new URL(request.url()).searchParams.get('branch_id');
-      const items = branchId
-        ? state.orders.filter((item) => item.branch_id === branchId)
-        : state.orders;
+      // Respeita o filtro de filial, que é o que o seletor do cabeçalho manda,
+      // e o de status, que é como a Cozinha carrega as três colunas dela.
+      const query = new URL(request.url()).searchParams;
+      const branchId = query.get('branch_id');
+      const status = query.get('status');
+      const items = state.orders.filter(
+        (item) => (!branchId || item.branch_id === branchId) && (!status || item.status === status),
+      );
       return json(route, 200, { items, total: items.length, limit: 100, offset: 0 });
     }
 
@@ -595,6 +691,122 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       return json(route, 200, { prep_time_min: saved.min, prep_time_max: saved.max });
     }
 
+    // --- minha loja: configurações do restaurante --------------------------
+
+    /*
+     * Antes de /admin/settings, senão "store-status" seria lido como parte do
+     * PATCH das configurações inteiras — o mesmo cuidado do reorder.
+     */
+    if (method === 'PATCH' && path === '/admin/settings/store-status') {
+      const body = request.postDataJSON() as { is_open: boolean };
+      state.settings.is_open = body.is_open;
+      return json(route, 200, state.settings);
+    }
+
+    if (path === '/admin/settings') {
+      if (method === 'GET') return json(route, 200, state.settings);
+      if (method === 'PATCH') {
+        const body = request.postDataJSON() as Record<string, unknown>;
+        state.settingsPatches.push(body);
+        Object.assign(state.settings, body);
+        return json(route, 200, state.settings);
+      }
+    }
+
+    // --- minha loja: horários ---------------------------------------------
+
+    const hoursMatch = /^\/admin\/branches\/([^/]+)\/business-hours$/.exec(path);
+    if (hoursMatch?.[1]) {
+      const branchId = hoursMatch[1];
+      if (method === 'GET') {
+        return json(route, 200, state.businessHours[branchId] ?? []);
+      }
+      if (method === 'PUT') {
+        const body = request.postDataJSON() as { periods?: BusinessHourInput[] };
+        const periods = body.periods ?? [];
+        state.hoursPuts.push({ branchId, periods });
+
+        // Como o backend: substitui a semana inteira, e dia ausente da lista
+        // simplesmente não existe mais — ou seja, fica fechado.
+        state.businessHours[branchId] = periods.map((period, index) => ({
+          id: `${branchId}-h-${period.weekday}`,
+          weekday: period.weekday,
+          opens_at: period.opens_at ?? null,
+          closes_at: period.closes_at ?? null,
+          is_closed: period.is_closed,
+          sort_order: index,
+        }));
+        return json(route, 200, state.businessHours[branchId]);
+      }
+    }
+
+    // --- minha loja: formas de pagamento ----------------------------------
+
+    const methodsMatch = /^\/admin\/branches\/([^/]+)\/payment-methods$/.exec(path);
+    if (methodsMatch?.[1]) {
+      const branchId = methodsMatch[1];
+      if (method === 'GET') {
+        return json(
+          route,
+          200,
+          state.paymentMethods.filter((entry) => entry.branch_id === branchId),
+        );
+      }
+      if (method === 'POST') {
+        const body = request.postDataJSON() as Omit<PaymentMethod, 'id' | 'branch_id'>;
+        const created: PaymentMethod = {
+          ...body,
+          id: `pay-${state.paymentMethods.length + 1}-novo`,
+          branch_id: branchId,
+        };
+        state.paymentMethods.push(created);
+        return json(route, 201, created);
+      }
+    }
+
+    const paymentMethodMatch = /^\/admin\/payment-methods\/([^/]+)$/.exec(path);
+    if (paymentMethodMatch?.[1]) {
+      const methodId = paymentMethodMatch[1];
+      const index = state.paymentMethods.findIndex((entry) => entry.id === methodId);
+      if (index < 0) return json(route, 404, { detail: 'Forma de pagamento não encontrada.' });
+
+      if (method === 'PATCH') {
+        const body = request.postDataJSON() as Record<string, unknown>;
+        // O backend NÃO aceita trocar fluxo nem tipo: se o painel mandar, é bug
+        // dele, e o falso precisa acusar em vez de aceitar em silêncio.
+        if ('payment_flow' in body || 'method_type' in body) {
+          return json(route, 422, {
+            detail: [{ loc: ['body'], msg: 'payment_flow e method_type não podem ser alterados.' }],
+          });
+        }
+        Object.assign(state.paymentMethods[index] as PaymentMethod, body);
+        return json(route, 200, state.paymentMethods[index]);
+      }
+      if (method === 'DELETE') {
+        state.paymentMethods.splice(index, 1);
+        // 204 sem corpo, como o backend.
+        return route.fulfill({ status: 204, body: '' });
+      }
+    }
+
+    // --- minha loja: a filial ----------------------------------------------
+
+    // Depois de prep-time, business-hours e payment-methods: todos começam com
+    // o mesmo prefixo e este padrão casaria com eles primeiro.
+    const branchMatch = /^\/admin\/branches\/([^/]+)$/.exec(path);
+    if (branchMatch?.[1]) {
+      const found = state.branches.find((entry) => entry.id === branchMatch[1]);
+      if (!found) return json(route, 404, { detail: 'Filial não encontrada.' });
+
+      if (method === 'GET') return json(route, 200, found);
+      if (method === 'PATCH') {
+        const body = request.postDataJSON() as Record<string, unknown>;
+        state.branchPatches.push({ branchId: found.id, body });
+        Object.assign(found, body);
+        return json(route, 200, found);
+      }
+    }
+
     // --- cardápio: categorias ---------------------------------------------
 
     if (method === 'GET' && path === '/admin/categories') {
@@ -703,6 +915,11 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     reorderCalls: () => state.reorderCalls,
     availabilityCalls: () => state.availabilityCalls,
     cancelReasons: () => state.cancelReasons,
+    settings: () => state.settings,
+    settingsPatches: () => state.settingsPatches,
+    branchPatches: () => state.branchPatches,
+    hoursPuts: () => state.hoursPuts,
+    paymentMethods: () => state.paymentMethods,
     clearPrepTimeBase(branchId) {
       state.prepTime[branchId] = null;
     },
@@ -713,7 +930,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     makeOrder: order,
     pushNewOrder(item) {
       state.orders.unshift(item);
-      state.streamQueue.push({
+      state.streamLog.push({
         type: 'order.created',
         event_key: `order.created:${item.id}`,
         occurred_at: new Date().toISOString(),

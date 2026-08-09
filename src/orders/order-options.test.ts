@@ -21,14 +21,14 @@ describe('readOptionGroups', () => {
         option_groups: [
           {
             id: 'g1',
-            group_name_snapshot: 'Acompanhamento',
+            option_group_name_snapshot: 'Acompanhamento',
             options: [
               { id: 'o1', option_name_snapshot: 'Espaguete', additional_price_snapshot: 0 },
             ],
           },
           {
             id: 'g2',
-            group_name_snapshot: 'Adicional',
+            option_group_name_snapshot: 'Adicional',
             options: [
               { id: 'o2', option_name_snapshot: 'Espaguete', additional_price_snapshot: 12 },
               { id: 'o3', option_name_snapshot: 'Bacon', additional_price_snapshot: 5 },
@@ -65,7 +65,7 @@ describe('readOptionGroups', () => {
         option_groups: [
           {
             id: 'g1',
-            group_name_snapshot: 'Adicional',
+            option_group_name_snapshot: 'Adicional',
             options: [
               { id: 'o1', option_name_snapshot: 'Bacon', additional_price_snapshot: '5.50' },
             ],
@@ -91,13 +91,13 @@ describe('readOptionGroups', () => {
         option_groups: [
           {
             id: 'g1',
-            group_name_snapshot: 'Vazio',
+            option_group_name_snapshot: 'Vazio',
             options: [{ id: 'o1', option_name_snapshot: '  ' }],
           },
-          { id: 'g2', group_name_snapshot: 'Sem lista' },
+          { id: 'g2', option_group_name_snapshot: 'Sem lista' },
           {
             id: 'g3',
-            group_name_snapshot: 'Adicional',
+            option_group_name_snapshot: 'Adicional',
             options: [{ id: 'o2', option_name_snapshot: 'Bacon' }],
           },
         ],
@@ -113,7 +113,7 @@ describe('readOptionGroups', () => {
         option_groups: [
           {
             id: 'g1',
-            group_name_snapshot: 'Acompanhamento',
+            option_group_name_snapshot: 'Acompanhamento',
             options: [
               { id: 'o1', option_name_snapshot: 'Arroz' },
               { id: 'o2', option_name_snapshot: 'Fritas', additional_price_snapshot: 0 },

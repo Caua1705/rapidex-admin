@@ -19,12 +19,18 @@ export type OrderFilters = {
   startDate?: string; // AAAA-MM-DD
   endDate?: string; // AAAA-MM-DD
   search?: string;
+  /**
+   * UM status, não uma lista — é o que a rota aceita. Quem precisa de vários
+   * (a Cozinha) faz uma chamada por status, em paralelo.
+   */
+  status?: string;
 };
 
 /** Converte os filtros da tela na query da API, omitindo o que está vazio. */
 function toQuery(filters: OrderFilters) {
   return {
     ...(filters.branchId ? { branch_id: filters.branchId } : {}),
+    ...(filters.status ? { status: filters.status } : {}),
     ...(filters.startDate ? { start_date: filters.startDate } : {}),
     ...(filters.endDate ? { end_date: filters.endDate } : {}),
     ...(filters.search?.trim() ? { search: filters.search.trim() } : {}),

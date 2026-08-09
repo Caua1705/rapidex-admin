@@ -36,10 +36,9 @@ export type ChosenOptionGroup = {
  * Resolve o nome do campo num lugar só.
  *
  * O contrato publicado ainda não descreve estes objetos (ver
- * `api/contract-pending.ts`), então o rótulo é lido do nome com sufixo
- * `_snapshot` — a convenção do resto do contrato — e cai para `name` se o
- * backend tiver escolhido o nome curto. Se um dia for um terceiro nome, é
- * ESTA função que muda, e nada mais.
+ * `api/contract-pending.ts`), então o rótulo é lido do campo com sufixo
+ * `_snapshot` confirmado pelo backend e cai para `name` como alternativa. Se um
+ * dia for outro nome, é ESTA função que muda, e nada mais.
  */
 function labelOf(entry: { name?: string | null } & Record<string, unknown>, snapshotKey: string) {
   const snapshot = entry[snapshotKey];
@@ -78,7 +77,7 @@ function readGroup(group: OrderItemOptionGroupSnapshot, index: number): ChosenOp
     key: group.id ?? group.option_group_id ?? `grupo-${index}`,
     // Grupo sem nome ainda vale a pena mostrar: as opções são a informação, e
     // o rótulo vazio some sozinho na renderização.
-    label: labelOf(group, 'group_name_snapshot'),
+    label: labelOf(group, 'option_group_name_snapshot'),
     options,
   };
 }

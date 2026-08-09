@@ -1,0 +1,289 @@
+/*
+ * Cozinha. Toda cor sai de tokens.css.
+ *
+ * Esta tela quebra a densidade do resto do painel DE PROPÓSITO: as outras são
+ * lidas a 50cm, com o mouse na mão; esta é lida a um metro ou mais, de pé, por
+ * quem está com as mãos ocupadas. Por isso o número do pedido é enorme, o item
+ * sobe para 17px e o botão ocupa a largura do cartão inteiro.
+ *
+ * Como o quadro de pedidos, ela é exceção proposital ao `.container`: usa a
+ * tela toda, que aqui é a tela inteira mesmo — não há navegação lateral.
+ */
+
+.kitchen {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-app);
+  color: var(--text-primary);
+}
+
+/* --- barra do topo ------------------------------------------------------- */
+
+.kitchen__bar {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex: 0 0 auto;
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+}
+
+.kitchen__title {
+  margin: 0;
+  font-size: var(--text-lg);
+  line-height: var(--leading-lg);
+  font-weight: var(--weight-bold);
+}
+
+.kitchen__scope {
+  font-size: var(--text-base);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kitchen__bar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.kitchen__alert {
+  margin: var(--space-3) var(--space-5) 0;
+}
+
+/* --- as três colunas ------------------------------------------------------ */
+
+.kitchen__board {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5) var(--space-5);
+  overflow-x: auto;
+}
+
+/*
+ * Um terço da tela cada, sem encolher: cartão espremido quebra o nome do prato
+ * em três linhas e acaba com a leitura de longe, que é a razão da tela existir.
+ */
+.kitchen-column {
+  flex: 1 1 0;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+
+.kitchen-column__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* A matiz vem da classe .status-<chave> que o TSX põe no mesmo elemento. */
+.kitchen-column__dot {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-full);
+  background: var(--status);
+}
+
+.kitchen-column__title {
+  margin: 0;
+  font-size: var(--text-md);
+  line-height: var(--leading-md);
+  font-weight: var(--weight-bold);
+}
+
+.kitchen-column__count {
+  margin-left: auto;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--status-bg);
+  color: var(--status-fg);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-bold);
+}
+
+.kitchen-column__cards {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.kitchen-column__empty {
+  margin: 0;
+  padding: var(--space-4) 0;
+  text-align: center;
+}
+
+/* --- o cartão ------------------------------------------------------------- */
+
+.kitchen-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border-default);
+  /* A borda esquerda leva a matiz do status: de longe, ela é o que diz em que
+     etapa o prato está sem precisar ler o cabeçalho da coluna. */
+  border-left: 4px solid var(--status);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-raised);
+}
+
+.kitchen-card__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+/* O número é como o pedido é chamado em voz alta no balcão. */
+.kitchen-card__number {
+  font-size: var(--text-2xl);
+  line-height: var(--leading-2xl);
+  font-weight: var(--weight-extrabold);
+}
+
+.kitchen-card__elapsed {
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+  color: var(--text-secondary);
+}
+
+.kitchen-card__type {
+  margin-left: auto;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.kitchen-card__loading {
+  margin: 0;
+}
+
+/* --- itens ---------------------------------------------------------------- */
+
+.kitchen-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.kitchen-items__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kitchen-items__main {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+.kitchen-items__qty {
+  font-size: var(--text-md);
+  font-weight: var(--weight-extrabold);
+  flex: 0 0 auto;
+}
+
+.kitchen-items__name {
+  font-size: var(--text-md);
+  line-height: var(--leading-md);
+  font-weight: var(--weight-semibold);
+}
+
+/*
+ * Os adicionais ficam recuados sob o item e SEPARADOS POR GRUPO — é o grupo que
+ * distingue a troca do acompanhamento da porção extra. Numa lista achatada os
+ * dois viram a mesma linha, e é justamente aqui, na cozinha, que essa confusão
+ * vira o prato errado.
+ */
+.kitchen-options {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 var(--space-6);
+  display: flex;
+  flex-direction: column;
+}
+
+.kitchen-options__group {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+  font-size: var(--text-base);
+  line-height: var(--leading-base);
+}
+
+.kitchen-options__label {
+  color: var(--text-tertiary);
+  font-weight: var(--weight-semibold);
+}
+
+.kitchen-options__values {
+  color: var(--text-secondary);
+}
+
+/*
+ * Observação do item é instrução direta para a chapa ("sem cebola"). O âmbar de
+ * pending marca aqui um "atenção" fora do pedido — a mesma exceção herdada do
+ * mockup que pinta esgotado no cardápio.
+ */
+.kitchen-items__observation {
+  margin: var(--space-1) 0 0 var(--space-6);
+  padding: var(--space-1) var(--space-2);
+  border-left: 3px solid var(--status-pending-h);
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+}
+
+.kitchen-card__notes {
+  margin: 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  font-size: var(--text-base);
+}
+
+.kitchen-card__error {
+  margin: 0;
+}
+
+/* Alvo de mão, não de mouse: largura inteira e altura generosa. */
+.kitchen-card__action {
+  width: 100%;
+  padding: var(--space-3);
+  font-size: var(--text-base);
+  margin-top: var(--space-1);
+}
+
+/* --- telas estreitas ------------------------------------------------------ */
+
+@media (max-width: 900px) {
+  .kitchen__board {
+    padding-inline: var(--space-3);
+  }
+
+  .kitchen-column {
+    min-width: 260px;
+  }
+}

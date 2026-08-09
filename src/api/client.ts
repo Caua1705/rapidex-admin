@@ -101,3 +101,16 @@ export function unwrap<T>(result: ApiResult<T>): T {
   }
   return result.data;
 }
+
+/**
+ * O mesmo, para rota que responde 204 sem corpo.
+ *
+ * `unwrap` não serve nesses casos: ele trata `data === undefined` como falha, e
+ * um DELETE bem-sucedido não devolve nada — passar por ele lançaria erro em
+ * cima de uma exclusão que deu certo.
+ */
+export function unwrapEmpty(result: ApiResult<unknown>): void {
+  if (!result.response.ok) {
+    throw buildApiError(result.response.status, result.error);
+  }
+}
