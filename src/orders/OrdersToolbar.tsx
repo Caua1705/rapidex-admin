@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { datesForPeriod, type OrdersFilterState, type PeriodPreset } from './order-filters';
+import { PrepTimeControl } from './PrepTimeControl';
 import type { StreamStatus } from './useOrderStream';
 
 const STREAM_LABELS: Record<StreamStatus, string> = {
@@ -104,6 +105,8 @@ export function OrdersToolbar({
       </label>
 
       <div className="toolbar__right">
+        <PrepTimeControl branchId={filters.branchId} />
+
         <span className={`conn conn--${streamStatus}`} data-testid="stream-status">
           <span className="conn__dot" />
           {STREAM_LABELS[streamStatus]}

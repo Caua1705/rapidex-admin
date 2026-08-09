@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { useSession } from '../auth/session-context';
 import { BOARD_COLUMNS, columnCount, groupOrdersIntoColumns } from './board-columns';
-import { OrderDetailModal } from './OrderDetailModal';
+import { OrderDetailPanel } from './OrderDetailPanel';
 import { OrdersToolbar } from './OrdersToolbar';
 import { StatusColumn } from './StatusColumn';
 import { useNewOrderSound } from './useNewOrderSound';
@@ -47,68 +47,74 @@ export function OrdersPage() {
   const loadedCount = board.orders.length;
 
   return (
+    /*
+     * Quadro à esquerda, detalhe à direita: o detalhe deixou de ser janela
+     * porque, aberto, ele escondia justamente as colunas que dizem o que fazer
+     * em seguida. Clicar em outro card troca o conteúdo do painel.
+     */
     <div className="orders">
-      <OrdersToolbar
-        filters={board.filters}
-        streamStatus={streamStatus}
-        isLoading={board.isLoading}
-        soundBlocked={sound.isBlocked}
-        isMuted={sound.isMuted}
-        onEnableSound={() => void sound.unblock()}
-        onToggleMute={sound.toggleMute}
-        onChange={board.updateFilters}
-        onReload={() => void board.reload()}
-      />
+      <div className="orders__main">
+        <OrdersToolbar
+          filters={board.filters}
+          streamStatus={streamStatus}
+          isLoading={board.isLoading}
+          soundBlocked={sound.isBlocked}
+          isMuted={sound.isMuted}
+          onEnableSound={() => void sound.unblock()}
+          onToggleMute={sound.toggleMute}
+          onChange={board.updateFilters}
+          onReload={() => void board.reload()}
+        />
 
-      {board.errorMessage ? (
-        <p className="alert alert--error orders__alert" role="alert">
-          {board.errorMessage}
-        </p>
-      ) : null}
+        {board.errorMessage ? (
+          <p className="alert alert--error orders__alert" role="alert">
+            {board.errorMessage}
+          </p>
+        ) : null}
 
-      {streamStatus === 'offline' ? (
-        <p className="alert alert--warn orders__alert">
-          Sem conexão com o servidor. Pedidos novos não vão aparecer sozinhos até a rede voltar.
-        </p>
-      ) : null}
+        {streamStatus === 'offline' ? (
+          <p className="alert alert--warn orders__alert">
+            Sem conexão com o servidor. Pedidos novos não vão aparecer sozinhos até a rede voltar.
+          </p>
+        ) : null}
 
-      <div className="board">
-        {BOARD_COLUMNS.map((column) => (
-          <StatusColumn
-            key={column.key}
-            column={column}
-            orders={grouped[column.key] ?? []}
-            count={columnCount(column, board.counts)}
-            selectedOrderId={selectedOrderId}
-            onOpenOrder={setSelectedOrderId}
-          />
-        ))}
+        <div className="board">
+          {BOARD_COLUMNS.map((column) => (
+            <StatusColumn
+              key={column.key}
+              column={column}
+              orders={grouped[column.key] ?? []}
+              count={columnCount(column, board.counts)}
+              selectedOrderId={selectedOrderId}
+              onOpenOrder={setSelectedOrderId}
+            />
+          ))}
+        </div>
+
+        <footer className="orders__footer faint">
+          <span>
+            {loadedCount} de {board.totalInFilter} pedidos do período carregados
+          </span>
+          {loadedCount < board.totalInFilter ? (
+            <button type="button" className="btn btn--sm" onClick={() => void board.loadMore()}>
+              Carregar mais
+            </button>
+          ) : null}
+        </footer>
       </div>
 
-      <footer className="orders__footer faint">
-        <span>
-          {loadedCount} de {board.totalInFilter} pedidos do período carregados
-        </span>
-        {loadedCount < board.totalInFilter ? (
-          <button type="button" className="btn btn--sm" onClick={() => void board.loadMore()}>
-            Carregar mais
-          </button>
-        ) : null}
-      </footer>
-
-      {selectedOrderId ? (
-        <OrderDetailModal
-          orderId={selectedOrderId}
-          onClose={() => {
-            setSelectedOrderId(null);
-            board.clearActionError();
-          }}
-          onChangeStatus={board.changeOrderStatus}
-          actionErrorMessage={
-            board.actionError?.orderId === selectedOrderId ? board.actionError.message : null
-          }
-        />
-      ) : null}
+      <OrderDetailPanel
+        orderId={selectedOrderId}
+        onClose={() => {
+          setSelectedOrderId(null);
+          board.clearActionError();
+        }}
+        onChangeStatus={board.changeOrderStatus}
+        onCancelOrder={board.cancelOrderWithReason}
+        actionErrorMessage={
+          board.actionError?.orderId === selectedOrderId ? board.actionError.message : null
+        }
+      />
     </div>
   );
 }

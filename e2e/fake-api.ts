@@ -14,12 +14,18 @@
 import type { Page, Route } from '@playwright/test';
 
 import type { components } from '../src/api/generated/openapi';
+import type { OrderDetailWithOptions } from '../src/api/contract-pending';
 
 type Schemas = components['schemas'];
 type AdminUser = Schemas['AdminUserResponse'];
 type Branch = Schemas['AdminBranchResponse'];
 type OrderListItem = Schemas['AdminOrderListItem'];
-type OrderDetail = Schemas['OrderDetailResponse'];
+/*
+ * O detalhe com `option_groups`: o backend já os manda e o /openapi.json ainda
+ * não os descreve. O falso segue o mesmo overlay que o painel — assim os dois
+ * divergem juntos quando o contrato sair, e não em silêncio.
+ */
+type OrderDetail = OrderDetailWithOptions;
 type StreamEvent = Schemas['AdminOrderStreamEvent'];
 type Category = Schemas['AdminCategoryResponse'];
 type Product = Schemas['AdminProductResponse'];
@@ -54,6 +60,30 @@ export const FAKE_BRANCH: Branch = {
   is_active: true,
 };
 
+/** Segunda filial: sem ela o seletor do cabeçalho não teria o que escolher. */
+export const FAKE_BRANCH_2: Branch = {
+  id: '44444444-4444-4444-4444-444444444444',
+  name: 'Zona Norte',
+  slug: 'zona-norte',
+  display_name: 'Pizzaria do Zé — Zona Norte',
+  address: 'Av. Brasil, 900',
+  neighborhood: 'Parangaba',
+  city: 'Fortaleza',
+  state: 'CE',
+  is_main: false,
+  is_active: true,
+};
+
+/**
+ * Soma dos itens do detalhe (45 + 79).
+ *
+ * O `total` do pedido na lista usa o mesmo número: card e painel mostrando
+ * valores diferentes para o MESMO pedido seria um defeito plantado no falso.
+ * Ele também é o que prova que a tela não soma os adicionais duas vezes — com
+ * `additional_price_snapshot` somado por cima daria 141.
+ */
+const TOTAL_DOS_ITENS = 124;
+
 /**
  * A data é sempre "agora": a tela abre filtrada em HOJE e o filtro de data do
  * SSE (orderMatchesFilters) compara o dia do pedido com o dia de hoje. Data
@@ -74,7 +104,7 @@ function order(overrides: Partial<OrderListItem> & { id: string; order_number: n
     status: 'pending',
     payment_method: 'cash',
     payment_status: 'on_delivery',
-    total: 50,
+    total: TOTAL_DOS_ITENS,
     created_at: minutesAgo(10),
   };
   return { ...base, ...overrides };
@@ -90,7 +120,6 @@ function initialOrders(): OrderListItem[] {
       customer_name_snapshot: 'Marcos Lima',
       payment_method: 'pix',
       payment_status: 'pending',
-      total: 89.9,
       created_at: minutesAgo(4),
     }),
     // Dinheiro na entrega: este é o que o caminho crítico move de status.
@@ -100,7 +129,6 @@ function initialOrders(): OrderListItem[] {
       customer_name_snapshot: 'Ana Paula',
       payment_method: 'cash',
       payment_status: 'on_delivery',
-      total: 62.5,
       created_at: minutesAgo(9),
     }),
     // Já na cozinha, para a tela não abrir com uma coluna só.
@@ -112,9 +140,39 @@ function initialOrders(): OrderListItem[] {
       status: 'preparing',
       payment_method: 'credit_card',
       payment_status: 'paid',
-      total: 41,
       created_at: minutesAgo(25),
     }),
+  ];
+}
+
+/**
+ * Os adicionais do item, no formato que o backend passou a mandar.
+ *
+ * Os dois grupos trazem uma opção de MESMO NOME de propósito: "espaguete" em
+ * "Acompanhamento" é a troca do que já vem no prato, e em "Adicional" é uma
+ * porção a mais. É o caso que a tela precisa saber distinguir.
+ */
+function optionGroupsFixture() {
+  return [
+    {
+      id: 'grp-acomp',
+      group_name_snapshot: 'Acompanhamento',
+      options: [
+        { id: 'opt-espaguete', option_name_snapshot: 'Espaguete', additional_price_snapshot: 0 },
+      ],
+    },
+    {
+      id: 'grp-adicional',
+      group_name_snapshot: 'Adicional',
+      options: [
+        {
+          id: 'opt-espaguete-extra',
+          option_name_snapshot: 'Espaguete',
+          additional_price_snapshot: 12,
+        },
+        { id: 'opt-bacon', option_name_snapshot: 'Bacon', additional_price_snapshot: 5 },
+      ],
+    },
   ];
 }
 
@@ -156,6 +214,16 @@ function detailOf(item: OrderListItem, history: Schemas['StatusHistoryResponse']
         quantity: 1,
         observation: 'Borda recheada',
         total: 45,
+      },
+      {
+        id: `${item.id}-item-2`,
+        product_name_snapshot: 'Filé à parmegiana',
+        // Já inclui os adicionais: os `additional_price_snapshot` abaixo são só
+        // conferência e NÃO podem ser somados de novo pela tela.
+        unit_price_snapshot: 79,
+        quantity: 1,
+        total: 79,
+        option_groups: optionGroupsFixture(),
       },
     ],
     status_history: history,
@@ -233,6 +301,11 @@ const TRANSICOES: Record<string, string[]> = {
   out_for_delivery: ['completed', 'cancelled'],
 };
 
+/** Estado final = sem destino na tabela acima. */
+function isTerminal(status: string): boolean {
+  return (TRANSICOES[status]?.length ?? 0) === 0;
+}
+
 const ROTULOS: Record<string, string> = {
   pending: 'Pendente',
   accepted: 'Aceito',
@@ -253,6 +326,14 @@ export type FakeApi = {
   product: (productId: string) => Product | undefined;
   /** Corpo de cada PATCH /admin/categories/reorder que chegou. */
   reorderCalls: () => string[][];
+  /** Motivo gravado no cancelamento, para conferir o que a tela mandou. */
+  cancelReasons: () => { orderId: string; reason: string }[];
+  /** Apaga a faixa base da filial: o próximo ajuste responde 409. */
+  clearPrepTimeBase: (branchId: string) => void;
+  /** Fecha a filial: qualquer ajuste responde 409 de loja fechada. */
+  closeBranch: (branchId: string) => void;
+  /** Faixa que o "banco" tem agora para a filial. */
+  prepTimeOf: (branchId: string) => { min: number; max: number } | null;
   /** Cada PATCH /admin/products/{id}/availability que chegou. */
   availabilityCalls: () => { productId: string; isAvailable: boolean }[];
   /** Empurra um pedido novo pelo SSE, como se outro cliente tivesse comprado. */
@@ -294,6 +375,12 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     products: initialProducts(),
     reorderCalls: [] as string[][],
     availabilityCalls: [] as { productId: string; isAvailable: boolean }[],
+    cancelReasons: [] as { orderId: string; reason: string }[],
+    // A matriz já tem faixa gravada; a segunda filial não, para o teste do 409.
+    prepTime: {
+      [BRANCH_ID]: { min: 25, max: 35 },
+    } as Record<string, { min: number; max: number } | null>,
+    closedBranches: new Set<string>(),
   };
 
   function findOrder(orderId: string): OrderListItem | undefined {
@@ -369,16 +456,16 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     }
 
     if (method === 'GET' && path === '/admin/branches') {
-      return json(route, 200, [FAKE_BRANCH]);
+      return json(route, 200, [FAKE_BRANCH, FAKE_BRANCH_2]);
     }
 
     if (method === 'GET' && path === '/admin/orders') {
-      return json(route, 200, {
-        items: state.orders,
-        total: state.orders.length,
-        limit: 100,
-        offset: 0,
-      });
+      // Respeita o filtro de filial, que é o que o seletor do cabeçalho manda.
+      const branchId = new URL(request.url()).searchParams.get('branch_id');
+      const items = branchId
+        ? state.orders.filter((item) => item.branch_id === branchId)
+        : state.orders;
+      return json(route, 200, { items, total: items.length, limit: 100, offset: 0 });
     }
 
     if (method === 'GET' && path === '/admin/orders/status-counts') {
@@ -424,11 +511,88 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       return json(route, 200, detailOf(item, historyOf(item)));
     }
 
+    /*
+     * Cancelar com motivo. Antes de /admin/orders/{id}, senão "cancel" seria
+     * lido como id de pedido.
+     */
+    const cancelMatch = /^\/admin\/orders\/([^/]+)\/cancel$/.exec(path);
+    if (method === 'PATCH' && cancelMatch?.[1]) {
+      const item = findOrder(cancelMatch[1]);
+      if (!item) return json(route, 404, { detail: 'Pedido não encontrado.' });
+
+      const body = request.postDataJSON() as { reason?: string };
+      const reason = (body.reason ?? '').trim();
+      // Mesma validação do backend: 3 a 300 caracteres, 422 fora disso.
+      if (reason.length < 3 || reason.length > 300) {
+        return json(route, 422, {
+          detail: [{ loc: ['body', 'reason'], msg: 'O motivo precisa ter de 3 a 300 caracteres.' }],
+        });
+      }
+      if (isTerminal(item.status)) {
+        return json(route, 409, {
+          detail: `"${ROTULOS[item.status]}" é um estado final e não muda mais.`,
+        });
+      }
+
+      state.cancelReasons.push({ orderId: item.id, reason });
+      item.status = 'cancelled';
+      historyOf(item).push({
+        id: `${item.id}-hist-cancelled`,
+        status: 'cancelled',
+        changed_by: FAKE_USER.name,
+        note: reason,
+        created_at: new Date().toISOString(),
+      });
+      return json(route, 200, detailOf(item, historyOf(item)));
+    }
+
     const detailMatch = /^\/admin\/orders\/([^/]+)$/.exec(path);
     if (method === 'GET' && detailMatch?.[1]) {
       const item = findOrder(detailMatch[1]);
       if (!item) return json(route, 404, { detail: 'Pedido não encontrado.' });
       return json(route, 200, detailOf(item, historyOf(item)));
+    }
+
+    // --- tempo de preparo --------------------------------------------------
+
+    const prepMatch = /^\/admin\/branches\/([^/]+)\/prep-time$/.exec(path);
+    if (method === 'PATCH' && prepMatch?.[1]) {
+      const branchId = prepMatch[1];
+
+      // Filial fechada ganha de tudo: nem o ajuste nem a gravação da base
+      // fazem sentido numa loja que não está vendendo.
+      if (state.closedBranches.has(branchId)) {
+        return json(route, 409, {
+          code: 'BRANCH_CLOSED',
+          detail: 'A filial está fechada agora. Reabra a loja para mexer no tempo de preparo.',
+        });
+      }
+
+      const body = request.postDataJSON() as {
+        delta_minutes?: number;
+        prep_time_min?: number;
+        prep_time_max?: number;
+      };
+
+      if (typeof body.prep_time_min === 'number' && typeof body.prep_time_max === 'number') {
+        state.prepTime[branchId] = { min: body.prep_time_min, max: body.prep_time_max };
+      } else {
+        const current = state.prepTime[branchId];
+        if (!current) {
+          return json(route, 409, {
+            code: 'PREP_TIME_NOT_CONFIGURED',
+            detail: 'A filial ainda não tem tempo de preparo base gravado.',
+          });
+        }
+        const delta = body.delta_minutes ?? 0;
+        state.prepTime[branchId] = {
+          min: Math.max(0, current.min + delta),
+          max: Math.max(0, current.max + delta),
+        };
+      }
+
+      const saved = state.prepTime[branchId] as { min: number; max: number };
+      return json(route, 200, { prep_time_min: saved.min, prep_time_max: saved.max });
     }
 
     // --- cardápio: categorias ---------------------------------------------
@@ -538,6 +702,14 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     product: (productId) => state.products.find((item) => item.id === productId),
     reorderCalls: () => state.reorderCalls,
     availabilityCalls: () => state.availabilityCalls,
+    cancelReasons: () => state.cancelReasons,
+    clearPrepTimeBase(branchId) {
+      state.prepTime[branchId] = null;
+    },
+    closeBranch(branchId) {
+      state.closedBranches.add(branchId);
+    },
+    prepTimeOf: (branchId) => state.prepTime[branchId] ?? null,
     makeOrder: order,
     pushNewOrder(item) {
       state.orders.unshift(item);

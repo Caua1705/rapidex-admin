@@ -42,7 +42,7 @@ export function MenuPage() {
       />
 
       <section className="menu__panel">
-        <header className="menu__header container">
+        <header className="menu__header">
           <div className="menu__heading">
             <h1 className="menu__title">{selectedCategory?.name ?? 'Cardápio'}</h1>
             {selectedCategory && !isCategoryActive(selectedCategory) ? (
@@ -79,12 +79,12 @@ export function MenuPage() {
         </header>
 
         {menu.errorMessage ? (
-          <p className="alert alert--error menu__alert container" role="alert">
+          <p className="alert alert--error menu__alert" role="alert">
             {menu.errorMessage}
           </p>
         ) : null}
 
-        <div className="menu__search container">
+        <div className="menu__search">
           <span className="menu__search-icon" aria-hidden="true">
             <SearchIcon />
           </span>
@@ -102,7 +102,7 @@ export function MenuPage() {
         <div className="menu__list">
           {/* A lista é um cartão em superfície elevada sobre o fundo da página:
               é o que separa "a área de trabalho" do resto da tela. */}
-          <div className="menu__card container">
+          <div className="menu__card">
             {menu.isLoadingCategories ? (
               <p className="menu__empty faint">Carregando o cardápio…</p>
             ) : menu.categories.length === 0 ? (
@@ -139,7 +139,7 @@ export function MenuPage() {
           </div>
         </div>
 
-        <footer className="menu__footer faint container">
+        <footer className="menu__footer faint">
           <span>
             {menu.products.length} de {menu.totalInCategory}{' '}
             {menu.totalInCategory === 1 ? 'item' : 'itens'} nesta categoria

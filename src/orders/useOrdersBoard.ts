@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { messageFromUnknownError } from '../api/errors';
-import { fetchStatusCounts, listOrders, updateOrderStatus } from '../api/orders';
+import { cancelOrder, fetchStatusCounts, listOrders, updateOrderStatus } from '../api/orders';
 import type { OrderListItem, OrderStreamEvent } from '../api/types';
 import { defaultFilters, orderMatchesFilters, type OrdersFilterState } from './order-filters';
 import { listItemFromDetail } from './order-mapping';
@@ -156,6 +156,28 @@ export function useOrdersBoard() {
   );
 
   /**
+   * Cancela com motivo, por rota própria.
+   *
+   * Mesmo tratamento do `changeOrderStatus` — o backend devolve o pedido já
+   * cancelado e o quadro aplica isso na hora, sem recarregar a lista inteira.
+   */
+  const cancelOrderWithReason = useCallback(
+    async (orderId: string, reason: string): Promise<boolean> => {
+      setActionError(null);
+      try {
+        const detail = await cancelOrder(orderId, reason);
+        commitOrders(upsertOrder(ordersRef.current, listItemFromDetail(detail)));
+        scheduleCountsRefresh();
+        return true;
+      } catch (error) {
+        setActionError({ orderId, message: messageFromUnknownError(error) });
+        return false;
+      }
+    },
+    [commitOrders, scheduleCountsRefresh],
+  );
+
+  /**
    * Aplica um patch nos filtros — e devolve o objeto ANTERIOR quando nada
    * mudou de fato.
    *
@@ -186,5 +208,6 @@ export function useOrdersBoard() {
     loadMore,
     applyStreamEvent,
     changeOrderStatus,
+    cancelOrderWithReason,
   };
 }

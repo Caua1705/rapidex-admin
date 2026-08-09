@@ -1,12 +1,29 @@
+/*
+ * A tela INTEIRA — barra de categorias junto — é o container centralizado.
+ *
+ * Deixar só o painel dentro do teto de 1400px e a barra colada à esquerda
+ * abria, numa tela de 2560px, um vão morto de 380px entre as duas: a barra num
+ * canto, o cartão flutuando longe dela. Centralizando o bloco todo, a sobra
+ * fica nas beiradas, igual dos dois lados, e a tela lê como uma página.
+ */
 .menu {
   flex: 1;
   min-height: 0;
   display: flex;
+  width: 100%;
+  max-width: var(--layout-max);
+  margin-inline: auto;
   background: var(--bg-app);
 }
 
 /* --- barra de categorias ------------------------------------------------- */
 
+/*
+ * Sem fundo próprio: dentro do bloco centralizado, uma faixa de
+ * `--bg-surface` viraria uma ilha com borda de um lado só. O que separa as
+ * categorias da lista é a régua vertical — e a hierarquia de superfície fica
+ * por conta do cartão, que é onde o trabalho acontece.
+ */
 .rail {
   width: 200px;
   flex: 0 0 auto;
@@ -14,7 +31,6 @@
   flex-direction: column;
   min-height: 0;
   border-right: 1px solid var(--border-subtle);
-  background: var(--bg-surface);
 }
 
 .rail__header {
@@ -150,10 +166,10 @@
 /* --- painel da categoria ------------------------------------------------- */
 
 /*
- * O respiro lateral mora no painel, e as faixas de dentro (cabeçalho, busca,
- * cartão, rodapé) são todas `.container`. Assim as quatro têm exatamente a
- * mesma geometria e as bordas de uma alinham com as bordas da outra — sem
- * cada faixa carregar o próprio padding e desalinhar por 20px.
+ * O respiro lateral mora aqui, no painel, e não em cada faixa. Assim
+ * cabeçalho, busca, cartão e rodapé têm exatamente a mesma largura e as bordas
+ * de um alinham com as bordas do outro — sem cada faixa carregar o próprio
+ * padding e desalinhar por 20px.
  */
 .menu__panel {
   flex: 1;
@@ -221,7 +237,6 @@
   padding-left: var(--space-10);
 }
 
-/* O rolador é a faixa inteira; quem se limita a 1400px é o cartão de dentro. */
 .menu__list {
   flex: 1;
   min-height: 0;
@@ -486,21 +501,18 @@
   }
 
   /*
-   * No toque a densidade cede: a coluna de preço sai da grade e desce para
-   * junto do nome, e a linha ganha altura de alvo de dedo.
+   * No toque a densidade cede um pouco: a linha ganha altura de alvo de dedo e
+   * o rótulo do estado sai da grade. O interruptor fica — verde ou cinza, ele
+   * continua dizendo a mesma coisa, e é ele que precisa ser acertado com o
+   * dedo. As colunas continuam alinhadas; só ficam mais estreitas.
    */
   .item {
-    grid-template-columns: 28px minmax(0, 1fr) 112px 28px;
+    grid-template-columns: 28px minmax(0, 1fr) 84px 44px 28px;
+    gap: var(--space-2);
     padding-block: var(--space-2);
   }
 
-  .item__price {
+  .item__state {
     display: none;
-  }
-
-  .item__main::after {
-    content: attr(data-price);
-    font-size: var(--text-xs);
-    color: var(--text-secondary);
   }
 }

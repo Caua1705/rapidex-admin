@@ -44,6 +44,7 @@ Todos definidos em `src/styles/tokens.css`, consolidados de `tokens/*.css` do DS
 | Espaçamento     | `--space-1…--space-20` (base 4px)                                                                                                                          |
 | Raio            | `--radius-sm` (6) `--radius-md` (10) `--radius-lg` (14) `--radius-xl` (20) `--radius-full`                                                                 |
 | Movimento       | `--motion-fast` `--motion-base` `--motion-ease`                                                                                                            |
+| Enquadramento   | `--layout-max` (1400px, via `.container`) `--column-max` (coluna do kanban)                                                                                |
 
 ### Tema
 
@@ -127,12 +128,34 @@ introduza cinza-azulado de SaaS genérico.
   `index.html`. São aproximações sinalizadas pelo DS — se a marca tiver
   tipografia própria, troque em `tokens.css`.
 
-## Layout
+## Layout e densidade de tela
 
-- Sidebar fixa de 240px no desktop; colapsa para trilha de ícones de 72px em
-  tela estreita.
-- Header de 64px fixo no topo.
-- Board kanban rola horizontalmente; colunas de largura fixa.
+- **Conteúdo dentro de `.container`** (`max-width: var(--layout-max)`, 1400px,
+  centralizado). Numa tela de 27" sem esse teto, a linha do cardápio vira um
+  metro de vazio entre o nome do item e o preço, e o olho perde a associação
+  entre os dois. O respiro lateral mora no elemento PAI; as faixas de dentro
+  (cabeçalho, busca, cartão, rodapé) são todas `.container` puro, para que
+  todas tenham a mesma geometria e suas bordas alinhem.
+- **Lista de dados é grade, nunca flex com `space-between`.** Só a coluna do
+  nome é fluida; preço, estado e ação têm largura fixa e ficam na mesma
+  abscissa em todas as linhas. Com `space-between`, cada linha ancora o olho
+  num lugar diferente conforme o comprimento do nome.
+- **Hierarquia de superfície**: fundo da página em `--bg-app`, a área de
+  trabalho num cartão `--bg-surface-raised` com borda de 1px. O que estiver
+  DENTRO do cartão e precisar afundar (placeholder de foto) desce para
+  `--bg-surface` — não sobe.
+- Sidebar de 200px no desktop (ícone + texto); colapsa para trilha de ícones de
+  64px abaixo de 900px.
+- Header de 56px fixo no topo, com o seletor de filial (nome + endereço) sempre
+  visível, mesmo com uma filial só.
+- **Linha de lista densa**: alvo de ~37px por linha (miniatura de 28px,
+  `padding-block: var(--space-1)`), para caber ~18 itens numa tela de 900px. O
+  que estoura essa altura é empilhar rótulo em cima de controle — ponha lado a
+  lado. Em `max-width: 720px` a densidade cede e a linha vira alvo de dedo.
+- Board kanban é a **exceção proposital ao container**: ele usa a tela toda e
+  rola na horizontal. As colunas são `flex: 1 0 246px` com
+  `max-width: var(--column-max)` — crescem para ocupar a sobra, nunca encolhem
+  (card espremido quebra em duas linhas e acaba com a leitura de longe).
 
 ## Movimento
 
@@ -151,7 +174,7 @@ próprio.
 
 Conjunto autoral de linha: **stroke 2px, grade 24px, cantos arredondados**,
 `stroke="currentColor"`, `fill="none"`, `aria-hidden="true"`. Ver
-`src/menu/icons.tsx`. Se a marca adotar uma biblioteca (Lucide, Phosphor),
+`src/ui/icons.tsx`. Se a marca adotar uma biblioteca (Lucide, Phosphor),
 troque mantendo os 2px para não alterar a densidade visual.
 
 **Nenhum emoji, em lugar nenhum do produto.** É ferramenta de cozinha sob

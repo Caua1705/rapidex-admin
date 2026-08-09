@@ -13,8 +13,16 @@
 import createClient from 'openapi-fetch';
 
 import type { paths } from './generated/openapi';
+import type { PendingPaths } from './contract-pending';
 import { buildApiError, networkError } from './errors';
 import { readSession } from '../auth/session-storage';
+
+/**
+ * O contrato gerado mais as rotas que o backend já entregou e o /openapi.json
+ * ainda não descreve. `contract-pending.ts` explica quais são e como apagá-lo.
+ * Quando ele sumir, este apelido volta a ser só `paths`.
+ */
+type ApiPaths = paths & PendingPaths;
 
 /**
  * Sem barra no final: openapi-fetch concatena o caminho direto, e
@@ -49,7 +57,7 @@ async function fetchOrNetworkError(input: Request): Promise<Response> {
   }
 }
 
-export const apiClient = createClient<paths>({
+export const apiClient = createClient<ApiPaths>({
   baseUrl: API_BASE_URL,
   fetch: fetchOrNetworkError,
 });

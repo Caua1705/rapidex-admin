@@ -8,6 +8,7 @@
  * backend renomear um campo, o erro aparece no `npm run typecheck`.
  */
 import type { components } from './generated/openapi';
+import type { OrderDetailWithOptions, OrderItemWithOptions } from './contract-pending';
 
 type Schemas = components['schemas'];
 
@@ -16,8 +17,14 @@ export type LoginResponse = Schemas['AdminLoginResponse'];
 
 export type OrderListItem = Schemas['AdminOrderListItem'];
 export type OrderListResponse = Schemas['AdminOrderListResponse'];
-export type OrderDetail = Schemas['OrderDetailResponse'];
-export type OrderItem = Schemas['OrderItemResponse'];
+/*
+ * O detalhe e o item vêm do overlay, não do contrato gerado: o /openapi.json
+ * publicado ainda não descreve o `option_groups` que o backend já manda. Ver
+ * `contract-pending.ts` — quando ele sair, estes dois voltam a ser
+ * `Schemas['OrderDetailResponse']` e `Schemas['OrderItemResponse']`.
+ */
+export type OrderDetail = OrderDetailWithOptions;
+export type OrderItem = OrderItemWithOptions;
 export type OrderStatusHistoryEntry = Schemas['StatusHistoryResponse'];
 export type OrderStatusCountsResponse = Schemas['AdminOrderStatusCountsResponse'];
 export type OrderStreamEvent = Schemas['AdminOrderStreamEvent'];

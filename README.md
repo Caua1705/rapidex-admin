@@ -74,21 +74,31 @@ src/
     client.ts   único fetch do app: põe o token e trata o 401 global
     errors.ts   erro da API -> frase em português para a tela
     auth.ts     login e /me
-    orders.ts   pedidos, contadores, detalhe, status, ticket do SSE, filiais
+    orders.ts   pedidos, contadores, detalhe, status, cancelamento, tempo de
+                preparo, ticket do SSE, filiais
     menu.ts     categorias e produtos do cardápio
+    contract-pending.ts
+                TEMPORÁRIO: as rotas que o backend já entregou e o
+                /openapi.json ainda não descreve. Leia o cabeçalho dele.
   auth/         Sessão: provider, guarda de rota, localStorage
   orders/       A TELA DE PEDIDOS inteira (o coração do painel)
     OrdersPage.tsx        junta tudo
     OrdersToolbar.tsx     filtros + situação do tempo real
     StatusColumn.tsx      uma coluna do quadro
     OrderCard.tsx         o card do pedido
-    OrderDetailModal.tsx  o detalhe
+    OrderDetailPanel.tsx  o detalhe, fixo à direita do quadro
+    CancelOrderDialog.tsx confirmação do cancelamento, pedindo o motivo
+    PrepTimeControl.tsx   +5/+10/−5 no tempo de preparo, na barra de cima
     useOrdersBoard.ts     estado da tela (lista, filtros, contadores, ações)
     useOrderStream.ts     consumo do SSE
     useNewOrderSound.ts   alerta sonoro
+    usePrepTime.ts        faixa de preparo da filial aberta na tela
     order-status.ts       espelho da máquina de estados do backend
     board-columns.ts      quais colunas existem e o que cai em cada uma
     order-filters.ts      filtros e "este pedido cabe no filtro?"
+    order-options.ts      adicionais do item, agrupados para a tela
+    cancel-reason.ts      o motivo obrigatório (3 a 300 caracteres)
+    prep-time.ts          lê o 409: falta base x filial fechada
     format.ts             dinheiro, hora, rótulos em português
   menu/         A TELA DE CARDÁPIO inteira
     MenuPage.tsx          junta tudo
@@ -98,11 +108,11 @@ src/
     ProductDialog.tsx     criar/editar item
     useMenu.ts            estado da tela (categorias, produtos, ações otimistas)
     menu-model.ts         ativo x disponível, ordem, preço — as regras testáveis
-    icons.tsx             ícones de linha do design system
   theme/        Tema claro/escuro: provider, alternador, persistência
   layout/       Navegação lateral + barra do topo das telas autenticadas
+    BranchSelector.tsx    filial da sessão (nome + endereço), no cabeçalho
   pages/        Telas que não são de um assunto só (login)
-  ui/           Peças genéricas mínimas (Modal, Switch, logo)
+  ui/           Peças genéricas mínimas (Modal, Switch, logo, ícones)
   styles/       tokens.css (ÚNICO lugar com cor literal) + global.css
 e2e/            Playwright: backend falso + caminho crítico + cardápio
 scripts/        check-design-tokens.mjs — barra cor fora dos tokens
@@ -132,8 +142,14 @@ As telas seguem o design system exportado em `design/_ds/`. O que ele virou aqui
   `design/_ds/.../_adherence.oxlintrc.json` são carregadas direto pelo
   `eslint.config.js` (nada de cópia à mão), e `scripts/check-design-tokens.mjs`
   varre os `.css` atrás de cor solta.
+- **Enquadramento**: o conteúdo vive dentro de `.container`
+  (`max-width: var(--layout-max)`, 1400px, centralizado) e as listas de dados
+  são grade de colunas fixas, não flex com `space-between` — numa tela larga o
+  `space-between` joga o preço para o canto oposto ao nome. O quadro de pedidos
+  é a exceção: usa a tela toda e limita cada coluna em `--column-max`.
 - **`.claude/skills/rapidex-design-system/SKILL.md`** — as regras em prosa
-  (cor, densidade, movimento, conteúdo, checklist). Leia antes de cada tela nova.
+  (cor, densidade, enquadramento, movimento, conteúdo, checklist). Leia antes
+  de cada tela nova.
 
 ---
 

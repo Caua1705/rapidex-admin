@@ -1,5 +1,6 @@
 /** Chamadas da tela de pedidos. */
 import { apiClient, unwrap } from './client';
+import type { PrepTimeResponse } from './contract-pending';
 import type {
   Branch,
   OrderDetail,
@@ -74,6 +75,62 @@ export async function updateOrderStatus(
         header: { 'Idempotency-Key': crypto.randomUUID() },
       },
       body: { status, ...(note ? { note } : {}) },
+    }),
+  );
+}
+
+/**
+ * Cancela com motivo.
+ *
+ * Rota própria, e não `PATCH /status` com `status: "cancelled"`, porque o
+ * motivo é OBRIGATÓRIO aqui: cancelamento é a única transição que apaga
+ * trabalho já feito, e sem o motivo gravado ninguém depois consegue dizer se
+ * foi o cliente que desistiu ou a cozinha que não deu conta.
+ */
+export async function cancelOrder(orderId: string, reason: string): Promise<OrderDetail> {
+  return unwrap(
+    await apiClient.PATCH('/admin/orders/{order_id}/cancel', {
+      params: {
+        path: { order_id: orderId },
+        // Mesma proteção do PATCH /status: se a resposta se perder na rede e o
+        // navegador reenviar, o backend devolve a original em vez de gravar
+        // dois cancelamentos no histórico.
+        header: { 'Idempotency-Key': crypto.randomUUID() },
+      },
+      body: { reason },
+    }),
+  );
+}
+
+/**
+ * Empurra o tempo de preparo da filial em N minutos.
+ *
+ * A resposta traz a faixa já ajustada, então a tela atualiza com ela e NÃO faz
+ * uma segunda chamada para reler — no meio do almoço, o número na barra tem
+ * que mudar no mesmo clique.
+ */
+export async function adjustPrepTime(
+  branchId: string,
+  deltaMinutes: number,
+): Promise<PrepTimeResponse> {
+  return unwrap(
+    await apiClient.PATCH('/admin/branches/{branch_id}/prep-time', {
+      params: { path: { branch_id: branchId } },
+      body: { delta_minutes: deltaMinutes },
+    }),
+  );
+}
+
+/** Grava a faixa base, quando o backend recusa o empurrão por não ter uma. */
+export async function setPrepTimeBase(
+  branchId: string,
+  prepTimeMin: number,
+  prepTimeMax: number,
+): Promise<PrepTimeResponse> {
+  return unwrap(
+    await apiClient.PATCH('/admin/branches/{branch_id}/prep-time', {
+      params: { path: { branch_id: branchId } },
+      body: { prep_time_min: prepTimeMin, prep_time_max: prepTimeMax },
     }),
   );
 }

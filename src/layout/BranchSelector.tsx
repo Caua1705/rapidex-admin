@@ -3,7 +3,7 @@ import { useSession } from '../auth/session-context';
 import { ChevronDownIcon } from '../ui/icons';
 
 /** Endereço em uma linha, pulando o que o backend não mandou. */
-export function branchAddressLine(branch: Branch): string {
+function branchAddressLine(branch: Branch): string {
   return [branch.address, branch.neighborhood, branch.city]
     .map((part) => part?.trim())
     .filter(Boolean)
