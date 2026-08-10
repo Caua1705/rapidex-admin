@@ -3,17 +3,12 @@
  * PRIMITIVAS — as peças que TODA tela usa
  * ============================================================================
  *
- * Botão, campo, etiqueta, aviso e os utilitários. Elas moram aqui, e não em
- * cada tela, porque a coisa que mais faz um painel parecer inacabado é o mesmo
- * botão com três alturas em três telas.
+ * Botão, campo, segmentado, etiqueta, aviso e os utilitários. Elas moram aqui,
+ * e não em cada tela, porque a coisa que mais faz um painel parecer inacabado
+ * é o mesmo botão com três alturas em três telas.
  *
  * REAPROVEITE ANTES DE CRIAR. Um segundo botão com padding próprio é como a
  * densidade começa a desandar.
- *
- * Este arquivo substituiu `legacy-bridge.css`, que era um apelido de cada nome
- * de token antigo para o novo. A ponte foi apagada junto com a última tela
- * migrada: enquanto ela existia, dois nomes serviam à mesma cor e ninguém
- * sabia qual era o certo.
  */
 
 /* ==========================================================================
@@ -22,7 +17,7 @@
  * Três pesos, e a diferença entre eles é a resposta a "quantas destas ações
  * cabem numa tela":
  *
- *   .btn--primary  UMA por tela. É o laranja da marca.
+ *   .btn--primary  UMA por tela. É a brasa.
  *   .btn           a ação secundária que precisa de caixa (confirmar, cancelar
  *                  dentro de um diálogo, escolher filial num estado vazio).
  *   .btn--ghost    a ação de linha, sem caixa, revelada no hover da linha.
@@ -67,14 +62,13 @@
   background: var(--ember);
   border-color: var(--ember);
   color: var(--on-ember);
-  font-weight: var(--w-semibold);
+  font-weight: var(--w-bold);
 }
 
 .btn--primary:hover:not(:disabled),
 .btn--primary:active:not(:disabled) {
   background: var(--ember-press);
   border-color: var(--ember-press);
-  /* A tinta troca junto com o fundo: nenhuma das duas passa nos dois. */
   color: var(--on-ember-press);
 }
 
@@ -143,6 +137,65 @@
 }
 
 /* ==========================================================================
+ * O SEGMENTADO — o controle assinatura desta direção
+ *
+ * Botões colados, divididos por um fio, como as teclas de um painel de forno.
+ * Ele substitui o seletor onde as opções são POUCAS E FIXAS (o período do
+ * quadro de pedidos, hoje): o estado fica visível sem abrir nada, que é o que
+ * uma barra de filtro precisa ser.
+ *
+ * QUANDO NÃO USAR: com mais de cinco opções, ou com opções que vêm do backend.
+ * Aí é `ds/Select` — um segmentado de doze teclas vira uma parede.
+ *
+ * O escolhido leva TINTA CHEIA + PESO + um trilho de brasa embaixo. Nunca só a
+ * cor: cor sozinha não passa em 1.4.1.
+ * ======================================================================= */
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-chip);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.seg__opt {
+  height: var(--control-h);
+  padding-inline: var(--sp-8);
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-3);
+  font-size: var(--ta-size);
+  font-weight: var(--w-medium);
+  white-space: nowrap;
+  transition:
+    background var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease);
+}
+
+.seg__opt:first-child {
+  border-left: 0;
+}
+
+.seg__opt:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.seg__opt[aria-pressed='true'] {
+  background: var(--ember-wash);
+  color: var(--ink);
+  font-weight: var(--w-bold);
+  box-shadow: inset 0 -2px 0 var(--ember);
+}
+
+@media (max-width: 1023px) {
+  .seg__opt {
+    height: var(--control-h-touch);
+  }
+}
+
+/* ==========================================================================
  * CAMPO
  *
  * O ritmo entre rótulo, controle e ajuda é ditado AQUI e em nenhum outro
@@ -175,9 +228,9 @@
 /*
  * A ajuda de campo tem UM nome de classe no painel inteiro. Ela já teve três
  * (`form__hint`, `store-form__hint`, `field__hint`), com margens diferentes em
- * cada tela — e é exatamente assim que o mesmo formulário passa a ler com três
- * cadências. Quem entrega o espaçamento é o `gap` do `.field`; esta regra só
- * cuida do corpo e da tinta.
+ * cada tela — e é assim que o mesmo formulário passa a ler com três cadências.
+ * Quem entrega o espaçamento é o `gap` do `.field`; esta regra só cuida do
+ * corpo e da tinta.
  */
 .field__hint,
 .ds-field__hint {
@@ -275,7 +328,10 @@
  * que a mão já sabe operar sem olhar, e reescrevê-lo seria construir um
  * calendário inteiro. O que denunciava a tela era o ÍCONE do navegador: cheio,
  * em tinta do sistema, mais escuro que qualquer coisa ao redor. Aqui ele vira
- * um affixo discreto, na tinta de apoio, que só ganha corpo no ponteiro.
+ * um afixo discreto, na tinta de apoio, que só ganha corpo no ponteiro.
+ *
+ * O valor sai em mono: hora é número que se compara de linha para linha na
+ * grade da semana.
  */
 .input::-webkit-calendar-picker-indicator {
   opacity: 0.4;
@@ -289,6 +345,7 @@
 }
 
 .input::-webkit-datetime-edit {
+  font-family: var(--font-num);
   font-variant-numeric: tabular-nums lining-nums;
 }
 
@@ -326,12 +383,16 @@
 /* ==========================================================================
  * ETIQUETA — neutra, sempre. Etiqueta colorida é categoria pintada, e cor sem
  * significado é o que este sistema não tem.
+ *
+ * Ela ganhou contorno junto com o fundo: no raio de 2px, um retângulo só de
+ * preenchimento perde a forma contra `--surface` no tema claro.
  * ======================================================================= */
 .tag {
   display: inline-flex;
   align-items: center;
   height: 18px;
   padding-inline: var(--sp-4);
+  border: 1px solid var(--line);
   border-radius: var(--r-chip);
   background: var(--field);
   color: var(--ink-2);
@@ -359,6 +420,7 @@
   gap: var(--sp-4);
   font-size: var(--ta-size);
   color: var(--ink-3);
+  white-space: nowrap;
 }
 
 .conn__dot {

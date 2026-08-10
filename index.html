@@ -7,28 +7,28 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     <!--
-      INTER, E SÓ ELA.
+      DUAS LETRAS, E CADA UMA COM UM TRABALHO.
 
-      É uma sans neutra de interface: sem personalidade própria, com métricas
-      pensadas para texto pequeno em tela e — o que decide aqui — numerais
-      tabulares de verdade. Painel de operação é uma tela cheia de número que
-      precisa alinhar em coluna: preço, tempo decorrido, nº de pedido.
+      SPACE GROTESK na interface. Grotesca com terminais cortados na diagonal e
+      aberturas fechadas — ela tem desenho próprio, ao contrário da Inter, que
+      é justamente uma neo-grotesca sem opinião. É o que dá à tela o ar de
+      placa de equipamento em vez de dashboard de qualquer coisa.
 
-      A anterior (Archivo) era arredondada e macia; ela dá à tela um tom
-      simpático que atrapalha quem está tentando ver quantos pedidos estão
-      atrasados. E a mono (JetBrains) saiu junto: preço em monoespaçada lê como
-      trecho de código no meio do cardápio, e o alinhamento que ela existia
-      para resolver o `tnum` da Inter já resolve.
+      JETBRAINS MONO no número, e SÓ em três lugares: tempo decorrido, dinheiro
+      e nº de pedido. É a letra da comanda térmica e do display do forno, e a
+      continuidade entre a tela e o papel é o que faz o balcão e a cozinha
+      falarem do mesmo pedido. Fora desses três, mono vira estética de terminal
+      e o painel deixa de ler — ver o bloco do número em styles/typography.css.
 
       Vem por <link> e não por @import no CSS porque @import serializa o
       download atrás da folha de estilo; os fallbacks de sistema em `--font-ui`
-      seguram o painel enquanto ela não chega.
+      seguram o painel enquanto elas não chegam.
     -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
     />
 
     <title>Rapidex — Painel do lojista</title>

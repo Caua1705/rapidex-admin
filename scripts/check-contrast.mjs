@@ -137,6 +137,19 @@ const PAIRS = [
   { fg: '--ink', bg: '--ember-wash', min: 4.5, use: 'texto selecionado (::selection)' },
 
   /*
+   * O CONSOLE (a lateral), que é escuro nos DOIS temas.
+   *
+   * Ele não inverte, então estes pares medem o mesmo valor duas vezes — e é de
+   * propósito: um plano que não acompanha o tema é exatamente o que costuma
+   * escapar da revisão de contraste, porque ninguém pensa nele ao trocar a
+   * paleta do claro.
+   */
+  { fg: '--console-ink', bg: '--console-bg', min: 4.5, use: 'item da navegação' },
+  { fg: '--console-ink-2', bg: '--console-bg', min: 4.5, use: 'item inativo da navegação' },
+  { fg: '--console-ink-3', bg: '--console-bg', min: 4.5, use: 'rótulo de grupo da navegação' },
+  { fg: '--ember', bg: '--console-bg', min: 3, use: 'trilho do item ativo da navegação' },
+
+  /*
    * Contorno de controle (1.4.11).
    *
    * `--line` e `--line-strong` NÃO estão aqui de propósito: eles separam

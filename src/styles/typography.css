@@ -1,6 +1,6 @@
 /*
  * ============================================================================
- * TIPOGRAFIA — os cinco níveis, e nada além deles
+ * TIPOGRAFIA — os cinco níveis, e a mono do número
  * ============================================================================
  *
  * A regra de revisão: bata o olho em qualquer texto da tela e diga qual nível
@@ -10,7 +10,7 @@
  * informação que a pessoa precisa achar primeiro, e ela fica em `.t-title`;
  * todo o resto desce:
  *
- *   Pedidos       → o título da tela é o nome da coluna; o dado é o card
+ *   Pedidos       → "Pedidos"; o dado é o ticket, e dentro dele o cronômetro
  *   Cardápio      → nome da categoria aberta
  *   Minha loja    → "Minha loja", e o valor do campo é corpo
  *   Cozinha       → exceção documentada (ver a escala --k-* em tokens.css)
@@ -39,11 +39,11 @@
 }
 
 /*
- * 3. Rótulo — nome de campo, cabeçalho de coluna, título de grupo da lateral.
+ * 3. Rótulo — nome de campo, cabeçalho de coluna, título de grupo do console.
  *
- * Maiúscula e `--ink-3` fazem parte do nível, não são opção: é o que permite
- * ao rótulo ser 11px sem competir com o valor que ele nomeia. Um rótulo em
- * caixa baixa e tinta cheia vira título de seção mal-acabado.
+ * É a ETIQUETA GRAVADA NA CHAPA: 10px, peso 700, muito espacejada, em tinta de
+ * apoio. Maiúscula e `--ink-3` fazem parte do nível, não são opção — é o que
+ * permite ao rótulo ser 10px sem competir com o valor que ele nomeia.
  */
 .t-label {
   font-size: var(--tl-size);
@@ -73,33 +73,48 @@
 
 /*
  * ============================================================================
- * NÚMERO
+ * O NÚMERO É MONO — e o sotaque da direção mora aqui
  * ============================================================================
  *
- * Não é um sexto nível: é o mesmo nível com a métrica trocada.
+ * Não é um sexto nível: é o mesmo nível com OUTRA LETRA e outra métrica.
  *
- * TODO número que se compara — dinheiro, tempo, nº de pedido, contagem — sai
- * em numeral tabular. Sem isso "R$ 9,90" e "R$ 192,90" começam em abscissas
- * diferentes e o olho reancora a cada linha da lista.
+ * A MONO PINTA EXATAMENTE TRÊS COISAS: tempo decorrido, dinheiro e nº de
+ * pedido. São os três números que se comparam de linha para linha e que ligam
+ * a tela à comanda impressa — o "#1042" da tela é o mesmo "#1042" que sai no
+ * papel de 48 colunas, e essa continuidade é o que faz o balcão e a cozinha
+ * falarem do mesmo pedido.
+ *
+ * FORA DESSES TRÊS, NÃO USE. Rótulo em mono, frase em mono ou contagem de
+ * categoria em mono transformam o painel em estética de terminal, e aí ele
+ * deixa de ler. Uma contagem que não se compara com nada é texto, não número.
  *
  * `.num` acrescenta o alinhamento à direita, que é o que faz uma COLUNA de
  * dinheiro ler como coluna. Número solto dentro de uma frase usa `.tnum`.
  *
- * Não há fonte mono no sistema. A versão anterior punha nº de pedido e preço
- * em JetBrains Mono "por continuidade com a comanda impressa"; na tela isso
- * fazia R$ 24,90 ler como um trecho de código no meio do cardápio. Inter tem
- * numeral tabular de verdade, e é ele que resolve o alinhamento.
+ * O espacejamento negativo é necessário: a JetBrains Mono é larga, e sem ele
+ * "R$ 192,90" ocupa mais que o nome do cliente logo acima.
  */
 .tnum {
+  font-family: var(--font-num);
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: 'tnum' 1;
+  letter-spacing: -0.02em;
 }
 
 .num {
+  font-family: var(--font-num);
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: 'tnum' 1;
+  letter-spacing: -0.02em;
   text-align: right;
 }
+
+/*
+ * A CONTAGEM NÃO É MONO, e não precisa de classe nenhuma: `reset.css` já liga
+ * numeral tabular no `body` inteiro. "12 itens" ao lado do nome de uma
+ * categoria é uma frase com um número dentro, não um valor que se compara com
+ * o da linha de baixo — ele alinha, e continua na letra da interface.
+ */
 
 /*
  * ============================================================================
