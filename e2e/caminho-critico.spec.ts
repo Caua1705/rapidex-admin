@@ -196,8 +196,16 @@ test('o seletor de filial do cabeçalho filtra o quadro', async ({ page }) => {
   await fazerLogin(page);
 
   const seletor = page.getByTestId('branch-selector');
-  await expect(seletor).toContainText('Pizzaria do Zé — Aldeota');
-  await expect(seletor).toContainText('Todas as filiais');
+  /*
+   * Sem filial escolhida o cabeçalho diz UMA coisa só. Antes ele mostrava o
+   * nome da matriz junto de "Todas as filiais · 2" — e o nome vinha do rótulo
+   * do restaurante, que é o nome da filial principal. Quem batia o olho lia
+   * "estou na Aldeota" quando o quadro trazia as duas lojas.
+   */
+  // O rótulo visível, e não o <select>: as <option> carregam os nomes das duas
+  // filiais por natureza, e é a linha lida de relance que precisa estar certa.
+  await expect(seletor.locator('.branch__name')).toHaveText('Todas as filiais (2)');
+  await expect(seletor.locator('.branch__detail')).toHaveCount(0);
   await expect(page.getByTestId('order-card-1002')).toBeVisible();
 
   // A barra de filtros não tem mais campo de filial: um só lugar decide isso.
@@ -278,11 +286,17 @@ test('cancelar recusado pelo backend mostra o erro sem fechar a confirmação', 
 test('ajustar o tempo de preparo usa a faixa que a resposta devolveu', async ({ page }) => {
   await fazerLogin(page);
 
-  // Sem filial escolhida não há o que ajustar — os botões ficam travados.
+  // Sem filial escolhida não há o que ajustar — os botões ficam travados, e a
+  // barra diz o motivo em vez de mostrar um travessão solto.
   await expect(page.getByTestId('prep-time-mais-5')).toBeDisabled();
+  await expect(page.getByTestId('prep-time-range')).toHaveText('escolha uma filial');
 
   await page.selectOption('.branch__select', FAKE_BRANCH.id);
   await expect(page.getByTestId('prep-time-mais-5')).toBeEnabled();
+
+  // A faixa vigente aparece na ABERTURA, lida da semana de funcionamento —
+  // antes só existia depois do primeiro ajuste.
+  await expect(page.getByTestId('prep-time-range')).toHaveText('25–35 min');
 
   await page.getByTestId('prep-time-mais-10').click();
   // 25–35 + 10, direto da resposta: nenhuma segunda chamada para reler.
@@ -325,7 +339,10 @@ test('filial fechada mostra a mensagem e não oferece contorno', async ({ page }
 
   await expect(page.getByTestId('prep-time-error')).toContainText('A filial está fechada agora');
   await expect(page.getByTestId('prep-time-base')).toHaveCount(0);
-  await expect(page.getByTestId('prep-time-range')).toHaveText('—');
+  // A faixa gravada continua na tela: a loja estar fechada agora não apaga o
+  // prazo cadastrado, e zerar o número aqui seria uma segunda informação falsa
+  // em cima de um erro que o lojista já está lendo.
+  await expect(page.getByTestId('prep-time-range')).toHaveText('25–35 min');
 });
 
 test('401 em qualquer chamada limpa a sessão e volta ao login', async ({ page }) => {

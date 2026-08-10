@@ -328,13 +328,21 @@ function initialSettings(): RestaurantSettings {
 }
 
 /** Segunda a sexta abertas, sábado à noite, domingo fechado. */
+/**
+ * A semana do falso: segunda a sexta abertas, fim de semana fechado.
+ *
+ * Os SETE dias vêm na resposta, inclusive os fechados. Antes só vinham os cinco
+ * abertos — e a barra de preparo, que lê a linha do DIA DE HOJE, mostraria "não
+ * definido" sempre que a suíte rodasse num sábado. Teste que muda de resultado
+ * conforme o dia da semana é teste que ninguém confia na segunda-feira.
+ */
 function initialBusinessHours(branchId: string): BusinessHour[] {
-  return [0, 1, 2, 3, 4].map((weekday) => ({
+  return [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({
     id: `${branchId}-h-${weekday}`,
     weekday,
-    opens_at: '18:00:00',
-    closes_at: '23:00:00',
-    is_closed: false,
+    opens_at: weekday <= 4 ? '18:00:00' : null,
+    closes_at: weekday <= 4 ? '23:00:00' : null,
+    is_closed: weekday > 4,
     sort_order: weekday,
   }));
 }
@@ -722,8 +730,22 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         };
       }
 
+      // A resposta é a LINHA DE HORÁRIO do dia, como no contrato: o prazo de
+      // preparo mora nela. Devolver só o par de números deixaria o falso mais
+      // frouxo que o backend, e o painel passaria aqui e falharia em produção.
       const saved = state.prepTime[branchId] as { min: number; max: number };
-      return json(route, 200, { prep_time_min: saved.min, prep_time_max: saved.max });
+      const hoje = (new Date().getDay() + 6) % 7;
+      const row = (state.businessHours[branchId] ?? []).find((entry) => entry.weekday === hoje);
+      return json(route, 200, {
+        id: row?.id ?? `${branchId}-h-${hoje}`,
+        weekday: hoje,
+        opens_at: row?.opens_at ?? null,
+        closes_at: row?.closes_at ?? null,
+        is_closed: row?.is_closed ?? false,
+        sort_order: row?.sort_order ?? hoje,
+        prep_time_min: saved.min,
+        prep_time_max: saved.max,
+      });
     }
 
     // --- minha loja: configurações do restaurante --------------------------
@@ -754,7 +776,22 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     if (hoursMatch?.[1]) {
       const branchId = hoursMatch[1];
       if (method === 'GET') {
-        return json(route, 200, state.businessHours[branchId] ?? []);
+        /*
+         * O prazo de preparo mora na linha do dia — é daqui que a barra de
+         * pedidos lê a faixa vigente na abertura. O falso guarda um prazo por
+         * filial e o injeta em todas as linhas: basta para a leitura por dia,
+         * e mantém `prepTimeOf` como fonte única do que foi gravado.
+         */
+        const prep = state.prepTime[branchId] ?? null;
+        return json(
+          route,
+          200,
+          (state.businessHours[branchId] ?? []).map((row) => ({
+            ...row,
+            prep_time_min: prep?.min ?? null,
+            prep_time_max: prep?.max ?? null,
+          })),
+        );
       }
       if (method === 'PUT') {
         const body = request.postDataJSON() as { periods?: BusinessHourInput[] };

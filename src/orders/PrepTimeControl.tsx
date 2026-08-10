@@ -42,12 +42,26 @@ export function PrepTimeControl({ branchId }: { branchId: string }) {
     }
   }
 
+  /*
+   * A faixa é a informação principal, e cada estado tem PALAVRA própria. Antes
+   * havia só um travessão ao lado dos botões: um controle que se oferece para
+   * somar cinco minutos sem dizer cinco minutos em cima de quê.
+   */
+  const temFaixa = prep.range !== null;
+
   return (
     <div className="prep">
       <span className="prep__label">Preparo</span>
-      <span className="prep__range mono" data-testid="prep-time-range">
-        {formatPrepRange(prep.range)}
-      </span>
+
+      {temFaixa ? (
+        <span className="prep__range mono" data-testid="prep-time-range">
+          {formatPrepRange(prep.range)}
+        </span>
+      ) : (
+        <span className="prep__range prep__range--empty" data-testid="prep-time-range">
+          {semFilial ? 'escolha uma filial' : prep.isLoading ? 'carregando…' : 'não definido'}
+        </span>
+      )}
 
       <span className="prep__buttons">
         {PREP_TIME_DELTAS.map((delta) => (

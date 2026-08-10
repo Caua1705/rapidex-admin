@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import type { BusinessHour } from '../api/types';
 import {
+  backendWeekday,
   formatDayRange,
   hasMultiplePeriods,
+  prepTimeForDay,
   validateWeek,
   weekFromResponse,
   weekPayload,
@@ -141,5 +143,73 @@ describe('formatDayRange', () => {
       'Fechado',
     );
     expect(formatDayRange(openDay(2, '11:00', ''))).toBe('Incompleto');
+  });
+});
+
+/*
+ * A conversão de dia da semana é o tipo de erro que não aparece em revisão: os
+ * dois lados usam 0..6, ninguém reclama, e a loja lê o prazo de ontem.
+ */
+describe('backendWeekday', () => {
+  it('converte o domingo do JavaScript no domingo do backend', () => {
+    // 2026-08-09 é um domingo. JS diz 0; o backend conta 0 = segunda, então 6.
+    expect(backendWeekday(new Date(2026, 7, 9))).toBe(6);
+  });
+
+  it('segunda é 0 nos dois lados, e é o único dia em que coincidem por acaso', () => {
+    expect(backendWeekday(new Date(2026, 7, 10))).toBe(0);
+  });
+
+  it('percorre a semana inteira sem pular nem repetir', () => {
+    // 2026-08-10 é segunda: sete dias seguidos têm que dar 0..6 na ordem.
+    const semana = Array.from({ length: 7 }, (_, offset) =>
+      backendWeekday(new Date(2026, 7, 10 + offset)),
+    );
+    expect(semana).toEqual([0, 1, 2, 3, 4, 5, 6]);
+  });
+
+  it('bate com os rótulos da grade', () => {
+    // Sábado, 2026-08-15.
+    const sabado = backendWeekday(new Date(2026, 7, 15));
+    expect(WEEKDAYS.find((day) => day.weekday === sabado)?.short).toBe('Sáb');
+  });
+});
+
+describe('prepTimeForDay', () => {
+  it('lê a faixa do dia pedido, e não a do primeiro dia da lista', () => {
+    const hours = [
+      hour({ weekday: 0, prep_time_min: 20, prep_time_max: 30 }),
+      hour({ weekday: 3, prep_time_min: 40, prep_time_max: 55 }),
+    ];
+
+    expect(prepTimeForDay(hours, 3)).toEqual({ prep_time_min: 40, prep_time_max: 55 });
+  });
+
+  it('dia sem linha na semana não tem faixa', () => {
+    expect(prepTimeForDay([hour({ weekday: 0, prep_time_min: 20, prep_time_max: 30 })], 4)).toBe(
+      null,
+    );
+  });
+
+  // Meia faixa não é faixa: mostrar só o mínimo faria "25 min" parecer promessa
+  // fechada, quando o que existe é metade de um cadastro.
+  it('linha com só uma das pontas não vira faixa', () => {
+    expect(prepTimeForDay([hour({ weekday: 1, prep_time_min: 25 })], 1)).toBe(null);
+    expect(prepTimeForDay([hour({ weekday: 1, prep_time_max: 40 })], 1)).toBe(null);
+    expect(prepTimeForDay([hour({ weekday: 1 })], 1)).toBe(null);
+  });
+
+  // Zero é um valor gravado, não um campo vazio — e `typeof` é o que separa os
+  // dois. Com um teste de veracidade, "0 min" viraria "não definido".
+  it('zero minutos é uma faixa gravada', () => {
+    const hours = [hour({ weekday: 2, prep_time_min: 0, prep_time_max: 0 })];
+    expect(prepTimeForDay(hours, 2)).toEqual({ prep_time_min: 0, prep_time_max: 0 });
+  });
+
+  it('dia fechado ainda informa o prazo gravado', () => {
+    // A loja fechada hoje continua tendo prazo cadastrado; quem decide o que
+    // fazer com isso é a tela, não esta leitura.
+    const hours = [hour({ weekday: 5, is_closed: true, prep_time_min: 30, prep_time_max: 45 })];
+    expect(prepTimeForDay(hours, 5)).toEqual({ prep_time_min: 30, prep_time_max: 45 });
   });
 });

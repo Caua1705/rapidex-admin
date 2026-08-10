@@ -1,18 +1,6 @@
-import type { Branch } from '../api/types';
 import { useSession } from '../auth/session-context';
 import { ChevronDownIcon } from '../ui/icons';
-
-/** Endereço em uma linha, pulando o que o backend não mandou. */
-function branchAddressLine(branch: Branch): string {
-  return [branch.address, branch.neighborhood, branch.city]
-    .map((part) => part?.trim())
-    .filter(Boolean)
-    .join(' · ');
-}
-
-function branchName(branch: Branch): string {
-  return branch.display_name?.trim() || branch.name;
-}
+import { branchHeading, branchName } from './branch-heading';
 
 /**
  * Qual filial o painel está olhando.
@@ -27,15 +15,8 @@ function branchName(branch: Branch): string {
  * empilhado por baixo dá o desenho de duas linhas que um <select> não faz.
  */
 export function BranchSelector() {
-  const { branches, restaurantLabel, activeBranchId, selectBranch } = useSession();
-
-  const active = branches.find((branch) => branch.id === activeBranchId) ?? null;
-  const name = active ? branchName(active) : restaurantLabel;
-  const detail = active
-    ? branchAddressLine(active)
-    : branches.length > 1
-      ? `Todas as filiais · ${branches.length}`
-      : (branches[0] && branchAddressLine(branches[0])) || '';
+  const { branches, activeBranchId, selectBranch } = useSession();
+  const { name, detail } = branchHeading(branches, activeBranchId);
 
   return (
     <div className="branch" data-testid="branch-selector">

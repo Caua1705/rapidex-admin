@@ -16,6 +16,24 @@
  */
 import { ApiError } from '../api/errors';
 
+/**
+ * A faixa com as duas pontas conhecidas — o que a tela consegue mostrar.
+ *
+ * Separada de `PrepTimeResponse` (que é a linha de horário inteira, com os dois
+ * campos anuláveis) porque metade de uma faixa não é exibível: quem tem só o
+ * mínimo não tem faixa, tem cadastro pela metade.
+ */
+export type PrepRange = { prep_time_min: number; prep_time_max: number };
+
+/** Estreita a resposta do backend para a faixa, ou `null` se faltar uma ponta. */
+export function toPrepRange(
+  response: { prep_time_min?: number | null; prep_time_max?: number | null } | null | undefined,
+): PrepRange | null {
+  if (typeof response?.prep_time_min !== 'number') return null;
+  if (typeof response.prep_time_max !== 'number') return null;
+  return { prep_time_min: response.prep_time_min, prep_time_max: response.prep_time_max };
+}
+
 export type PrepTimeFailure =
   /** Falta a faixa base: a tela pode oferecer o campo de min/max. */
   | 'base-missing'

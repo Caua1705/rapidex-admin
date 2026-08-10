@@ -24,6 +24,42 @@ export const WEEKDAYS: readonly { weekday: number; label: string; short: string 
   { weekday: 6, label: 'Domingo', short: 'Dom' },
 ];
 
+/**
+ * O dia de hoje na numeração do BACKEND.
+ *
+ * `Date#getDay()` conta 0 = domingo; o backend conta 0 = segunda. Sem esta
+ * conversão, toda leitura por dia sai deslocada em um — e o erro é silencioso,
+ * porque o número existe nos dois lados e nenhum dos dois reclama.
+ */
+export function backendWeekday(date: Date): number {
+  return (date.getDay() + 6) % 7;
+}
+
+/**
+ * A faixa de preparo que vale HOJE, lida da semana de funcionamento.
+ *
+ * O prazo de preparo mora na linha de horário do dia — é por isso que o PATCH
+ * de prep-time devolve um `BusinessHourResponse`. Aqui é o caminho de leitura:
+ * sem ele, a barra de pedidos só saberia a faixa DEPOIS do primeiro ajuste.
+ *
+ * Devolve `null` quando o dia não tem as duas pontas: meia faixa não é faixa, e
+ * mostrar só o mínimo faria o lojista ler "25 min" como promessa fechada.
+ */
+export function prepTimeForDay(
+  hours: readonly BusinessHour[],
+  weekday: number,
+): { prep_time_min: number; prep_time_max: number } | null {
+  const found = hours.find(
+    (hour) =>
+      hour.weekday === weekday &&
+      typeof hour.prep_time_min === 'number' &&
+      typeof hour.prep_time_max === 'number',
+  );
+  if (!found) return null;
+
+  return { prep_time_min: found.prep_time_min!, prep_time_max: found.prep_time_max! };
+}
+
 /** Uma linha da grade: o que a tela edita. */
 export type DayDraft = {
   weekday: number;
