@@ -346,9 +346,10 @@
  * e com a mesma especificidade quem ganha é quem o bundler puser por último —
  * o que já rendeu uma vez o ícone da lupa em cima do texto do campo.
  */
+/* 32px: a lupa começa em 8 e tem 16 de largura — o texto entra logo depois. */
 .menu__search .menu__search-input {
   width: 100%;
-  padding-left: var(--space-8);
+  padding-left: var(--space-7);
 }
 
 /* --- a lista -------------------------------------------------------------- */
