@@ -168,29 +168,33 @@ export function DeliveryTab({
             />
           </label>
 
-          <label className="field">
-            <span className="field__label">Taxa mínima</span>
-            <input
-              className="input mono"
-              inputMode="decimal"
-              value={draft.minFee}
-              onChange={(event) => patch({ minFee: event.target.value })}
-              data-testid="delivery-min-fee"
-            />
-            <span className="faint store-form__hint">Vazio: sem piso.</span>
-          </label>
-
-          <label className="field">
-            <span className="field__label">Taxa máxima</span>
-            <input
-              className="input mono"
-              inputMode="decimal"
-              value={draft.maxFee}
-              onChange={(event) => patch({ maxFee: event.target.value })}
-              data-testid="delivery-max-fee"
-            />
-            <span className="faint store-form__hint">Vazio: sem teto.</span>
-          </label>
+          {/* Piso e teto são uma FAIXA, como o tempo estimado em Geral: um
+              rótulo, uma ajuda, dois números. */}
+          <div className="field">
+            <span className="field__label">Faixa da taxa</span>
+            <div className="field__pair">
+              <input
+                className="input mono"
+                inputMode="decimal"
+                aria-label="Taxa mínima da entrega"
+                value={draft.minFee}
+                onChange={(event) => patch({ minFee: event.target.value })}
+                data-testid="delivery-min-fee"
+              />
+              <span className="field__pair-sep" aria-hidden="true">
+                a
+              </span>
+              <input
+                className="input mono"
+                inputMode="decimal"
+                aria-label="Taxa máxima da entrega"
+                value={draft.maxFee}
+                onChange={(event) => patch({ maxFee: event.target.value })}
+                data-testid="delivery-max-fee"
+              />
+            </div>
+            <span className="faint store-form__hint">Vazio dos dois lados: sem piso e sem teto.</span>
+          </div>
 
           <label className="field">
             <span className="field__label">Distância máxima (km)</span>

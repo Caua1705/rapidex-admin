@@ -134,48 +134,60 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
             </span>
           </label>
 
-          <label className="field">
-            <span className="field__label">Tempo estimado mínimo (min)</span>
-            <input
-              className="input mono"
-              inputMode="numeric"
-              value={draft.estimatedMin}
-              onChange={(event) => patch({ estimatedMin: event.target.value })}
-              data-testid="settings-eta-min"
-            />
-          </label>
-
-          <label className="field">
-            <span className="field__label">Tempo estimado máximo (min)</span>
-            <input
-              className="input mono"
-              inputMode="numeric"
-              value={draft.estimatedMax}
-              onChange={(event) => patch({ estimatedMax: event.target.value })}
-              data-testid="settings-eta-max"
-            />
+          {/*
+            Mínimo e máximo são UM campo: eles formam uma faixa, sempre são
+            editados juntos e o backend os valida em par. Em duas caixas
+            rotuladas separadamente, cada uma pedia o próprio rótulo de três
+            palavras e a própria linha de ajuda — três campos onde há dois
+            números.
+          */}
+          <div className="field">
+            <span className="field__label">Tempo estimado (min)</span>
+            <div className="field__pair">
+              <input
+                className="input mono"
+                inputMode="numeric"
+                aria-label="Tempo estimado mínimo, em minutos"
+                value={draft.estimatedMin}
+                onChange={(event) => patch({ estimatedMin: event.target.value })}
+                data-testid="settings-eta-min"
+              />
+              <span className="field__pair-sep" aria-hidden="true">
+                a
+              </span>
+              <input
+                className="input mono"
+                inputMode="numeric"
+                aria-label="Tempo estimado máximo, em minutos"
+                value={draft.estimatedMax}
+                onChange={(event) => patch({ estimatedMax: event.target.value })}
+                data-testid="settings-eta-max"
+              />
+            </div>
             <span className="faint store-form__hint">
               É a faixa que o cliente vê ao escolher a loja.
             </span>
-          </label>
+          </div>
         </div>
       </section>
 
       <section className="store-form__section">
         <h2 className="store-form__heading">Taxa de serviço</h2>
 
-        <label className="store-form__check">
-          <input
-            type="checkbox"
-            checked={draft.serviceFeeEnabled}
-            onChange={(event) => patch({ serviceFeeEnabled: event.target.checked })}
-            data-testid="settings-service-fee-enabled"
-          />
-          <span>Cobrar taxa de serviço</span>
-        </label>
+        {/* A caixa de marcar liga o campo ao lado: na mesma linha, a relação
+            entre os dois é o próprio desenho. */}
+        <div className="store-form__row">
+          <label className="store-form__check">
+            <input
+              type="checkbox"
+              checked={draft.serviceFeeEnabled}
+              onChange={(event) => patch({ serviceFeeEnabled: event.target.checked })}
+              data-testid="settings-service-fee-enabled"
+            />
+            <span>Cobrar taxa de serviço</span>
+          </label>
 
-        <div className="store-form__grid">
-          <label className="field">
+          <label className="field store-form__narrow">
             <span className="field__label">Valor da taxa</span>
             <input
               className="input mono"
@@ -192,25 +204,27 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
       <section className="store-form__section">
         <h2 className="store-form__heading">Como a loja atende</h2>
 
-        <label className="store-form__check">
-          <input
-            type="checkbox"
-            checked={draft.acceptsDelivery}
-            onChange={(event) => patch({ acceptsDelivery: event.target.checked })}
-            data-testid="settings-accepts-delivery"
-          />
-          <span>Aceita entrega</span>
-        </label>
+        <div className="store-form__row">
+          <label className="store-form__check">
+            <input
+              type="checkbox"
+              checked={draft.acceptsDelivery}
+              onChange={(event) => patch({ acceptsDelivery: event.target.checked })}
+              data-testid="settings-accepts-delivery"
+            />
+            <span>Aceita entrega</span>
+          </label>
 
-        <label className="store-form__check">
-          <input
-            type="checkbox"
-            checked={draft.acceptsPickup}
-            onChange={(event) => patch({ acceptsPickup: event.target.checked })}
-            data-testid="settings-accepts-pickup"
-          />
-          <span>Aceita retirada no balcão</span>
-        </label>
+          <label className="store-form__check">
+            <input
+              type="checkbox"
+              checked={draft.acceptsPickup}
+              onChange={(event) => patch({ acceptsPickup: event.target.checked })}
+              data-testid="settings-accepts-pickup"
+            />
+            <span>Aceita retirada no balcão</span>
+          </label>
+        </div>
 
         {!draft.acceptsDelivery && !draft.acceptsPickup ? (
           <p className="alert alert--warn store-form__warn">

@@ -46,13 +46,19 @@ export function StorePage() {
   return (
     <div className="store">
       <div className="store__head container">
-        <h1 className="store__title">Minha loja</h1>
+        {/*
+          O título é a PRIMEIRA coisa da linha, alinhado com as abas e com o
+          primeiro campo do formulário. Antes ele dividia a linha com um cartão
+          de status de 60px de altura e ficava centrado nele — ou seja, fora de
+          linha com tudo o que vem abaixo.
+        */}
+        <h1 className="t-title">Minha loja</h1>
 
         {/*
-          Abrir/fechar fica AQUI, acima das abas, e não dentro de "Geral": é a
-          ação mais clicada desta tela e a única com efeito imediato no que o
-          cliente vê. Escondida atrás de uma aba, ela vira dois cliques no
-          momento em que a cozinha já está afogada.
+          Abrir/fechar fica AQUI, na linha do título e fora das abas: é a ação
+          mais clicada desta tela e a única com efeito imediato no que o cliente
+          vê. Escondida atrás de uma aba, ela vira dois cliques no momento em
+          que a cozinha já está afogada.
         */}
         <StoreStatusCard
           isOpen={settings.settings?.is_open !== false}

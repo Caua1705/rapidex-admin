@@ -6,35 +6,42 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: var(--space-7) var(--space-4);
+  padding: var(--space-7) var(--space-5);
   z-index: 50;
   overflow: auto;
 }
 
+/*
+ * O diálogo é o que FLUTUA sobre a tela inteira: é o único lugar do painel que
+ * ganha o raio grande e sombra de verdade.
+ */
 .modal {
-  background: var(--bg-surface);
+  background: var(--bg-surface-2);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   width: 100%;
-  max-width: 720px;
+  max-width: 680px;
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 80px);
+  max-height: calc(100vh - var(--space-8));
 }
 
 .modal__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-4);
   padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--border-subtle);
 }
 
+/* Nível 1: dentro do diálogo, ele é o título da tela. */
 .modal__title {
-  font-size: var(--text-md);
-  font-weight: var(--weight-bold);
+  font-size: var(--type-title-size);
+  line-height: var(--type-title-line);
+  font-weight: var(--type-title-weight);
+  letter-spacing: var(--type-title-tracking);
   color: var(--text-primary);
 }
 
@@ -48,6 +55,6 @@
   border-top: 1px solid var(--border-subtle);
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--space-3);
   align-items: center;
 }

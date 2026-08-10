@@ -229,6 +229,27 @@ textarea {
 }
 
 /*
+ * Dois números que formam UM dado (uma faixa: de 30 a 50 min, de 1 a 5 km).
+ * Um rótulo só, uma ajuda só, e o "a" no meio dizendo que é intervalo.
+ */
+.field__pair {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.field__pair > .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.field__pair-sep {
+  flex: 0 0 auto;
+  font-size: var(--type-aux-size);
+  color: var(--text-tertiary);
+}
+
+/*
  * O campo AFUNDA (`--bg-sunken`), não sobe.
  *
  * Num cartão que já tem tom próprio, um campo mais claro que o cartão vira

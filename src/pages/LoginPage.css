@@ -15,16 +15,16 @@
   right: var(--space-4);
 }
 
+/* O cartão se separa do fundo pelo tom, como todo cartão do painel. */
 .login__box {
-  width: 340px;
+  width: 320px;
   max-width: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-7);
+  gap: var(--space-4);
+  padding: var(--space-6);
   background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
 }
 
 .login__brand {
@@ -36,9 +36,11 @@
   margin: 0 0 var(--space-2);
   text-align: center;
   color: var(--text-tertiary);
-  font-size: var(--text-sm);
+  font-size: var(--type-aux-size);
+  line-height: var(--type-aux-line);
 }
 
 .login__submit {
   margin-top: var(--space-2);
+  height: 32px;
 }
