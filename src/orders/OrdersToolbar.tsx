@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react';
 
+import { Select } from '../ds/Select';
 import { datesForPeriod, type OrdersFilterState, type PeriodPreset } from './order-filters';
 import { PrepTimeControl } from './PrepTimeControl';
 import type { StreamStatus } from './useOrderStream';
+
+const PERIOD_OPTIONS = [
+  { value: 'today', label: 'Hoje' },
+  { value: 'yesterday', label: 'Ontem' },
+  { value: 'last7', label: 'Últimos 7 dias' },
+  { value: 'custom', label: 'Personalizado' },
+] as const;
 
 const STREAM_LABELS: Record<StreamStatus, string> = {
   live: 'Tempo real ligado',
@@ -56,19 +64,18 @@ export function OrdersToolbar({
 
   return (
     <div className="toolbar">
-      <label className="field">
-        <span className="field__label">Período</span>
-        <select
-          className="select"
+      <div className="field toolbar__period">
+        <span className="field__label" aria-hidden="true">
+          Período
+        </span>
+        <Select
           value={filters.period}
-          onChange={(event) => handlePeriodChange(event.target.value as PeriodPreset)}
-        >
-          <option value="today">Hoje</option>
-          <option value="yesterday">Ontem</option>
-          <option value="last7">Últimos 7 dias</option>
-          <option value="custom">Personalizado</option>
-        </select>
-      </label>
+          onChange={(value) => handlePeriodChange(value as PeriodPreset)}
+          options={PERIOD_OPTIONS}
+          aria-label="Período"
+          data-testid="orders-period"
+        />
+      </div>
 
       {filters.period === 'custom' ? (
         <>

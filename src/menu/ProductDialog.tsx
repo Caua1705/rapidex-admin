@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { fetchProductDetail } from '../api/menu';
 import type { Category, PrintSector, ProductOptionGroup } from '../api/types';
+import { Select } from '../ds/Select';
 import { formatCurrency } from '../orders/format';
 import { activeSectors, NO_SECTOR_LABEL } from '../print-sectors/print-sectors';
 import { Modal } from '../ui/Modal';
@@ -127,20 +128,21 @@ export function ProductDialog({
             ) : null}
           </label>
 
-          <label className="field">
-            <span className="field__label">Categoria</span>
-            <select
-              className="select"
+          <div className="field">
+            <span className="field__label" aria-hidden="true">
+              Categoria
+            </span>
+            <Select
               value={draft.categoryId}
-              onChange={(event) => setDraft({ ...draft, categoryId: event.target.value })}
-            >
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </label>
+              onChange={(categoryId) => setDraft({ ...draft, categoryId })}
+              aria-label="Categoria"
+              data-testid="product-category"
+              options={categories.map((category) => ({
+                value: category.id,
+                label: category.name,
+              }))}
+            />
+          </div>
         </div>
 
         <label className="field">
@@ -158,25 +160,29 @@ export function ProductDialog({
           item novo: nem tudo passa pela produção, e um item sem setor não é um
           cadastro incompleto.
 
-          O <select> guarda '' para representar o null do backend — value de
-          <option> não carrega null. A conversão acontece aqui, num lugar só.
+          O seletor guarda '' para representar o null do backend — uma opção não
+          carrega null. A conversão acontece aqui, num lugar só.
         */}
-        <label className="field">
-          <span className="field__label">Setor de impressão</span>
-          <select
-            className="select"
+        <div className="field">
+          <span className="field__label" aria-hidden="true">
+            Setor de impressão
+          </span>
+          <Select
             value={draft.printSectorId ?? ''}
             disabled={!branchChosen}
-            onChange={(event) => setDraft({ ...draft, printSectorId: event.target.value || null })}
+            onChange={(printSectorId) =>
+              setDraft({ ...draft, printSectorId: printSectorId || null })
+            }
+            aria-label="Setor de impressão"
             data-testid="product-print-sector"
-          >
-            <option value="">{NO_SECTOR_LABEL}</option>
-            {activeSectors(sectors).map((sector) => (
-              <option key={sector.id} value={sector.id}>
-                {sector.name}
-              </option>
-            ))}
-          </select>
+            options={[
+              { value: '', label: NO_SECTOR_LABEL },
+              ...activeSectors(sectors).map((sector) => ({
+                value: sector.id,
+                label: sector.name,
+              })),
+            ]}
+          />
           <span className="form__hint">
             {!branchChosen
               ? 'Setor é por filial: escolha uma no topo para poder definir onde este item imprime.'
@@ -184,7 +190,7 @@ export function ProductDialog({
                 ? 'Esta filial ainda não tem setor cadastrado. Crie em Minha loja › Impressão.'
                 : 'Onde o pedido com este item sai impresso.'}
           </span>
-        </label>
+        </div>
 
         <div className="form__row">
           <Switch

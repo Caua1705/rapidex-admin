@@ -16,6 +16,7 @@ import {
   LOGIN_PASSWORD,
   type FakeApi,
 } from './fake-api';
+import { escolherFilial } from './seletor';
 
 let api: FakeApi;
 
@@ -42,10 +43,22 @@ async function fazerLogin(page: Page) {
 test('login, abrir o pedido e mudar o status', async ({ page }) => {
   await fazerLogin(page);
 
-  // O topo identifica de quem é a sessão.
+  /*
+   * O topo identifica de quem é a sessão — e o escopo em que ela abriu, que
+   * com duas filiais e nenhuma escolhida é "todas".
+   *
+   * Este assert já cobrou "Pizzaria do Zé — Aldeota" aqui, e passava por
+   * acidente: o <select> nativo mantinha o nome de TODA filial no DOM da
+   * barra, escolhida ou não, então `toContainText` achava o texto de uma
+   * opção fechada. Sem controle nativo, a barra diz só o que está na tela.
+   */
   const barraDoTopo = page.locator('.shell__bar');
-  await expect(barraDoTopo).toContainText('Pizzaria do Zé — Aldeota');
+  await expect(barraDoTopo).toContainText('Todas as filiais (2)');
   await expect(barraDoTopo).toContainText('Joana Souza');
+
+  // E ao escolher uma, é o nome dela que aparece.
+  await escolherFilial(page);
+  await expect(barraDoTopo).toContainText('Pizzaria do Zé — Aldeota');
 
   // O quadro abriu com os pedidos nas colunas certas e o badge do backend.
   await expect(page.getByTestId('badge-pending')).toHaveText('2');
@@ -257,7 +270,7 @@ test('o seletor de filial do cabeçalho filtra o quadro', async ({ page }) => {
       request.url().includes('/admin/orders?') &&
       request.url().includes(`branch_id=${FAKE_BRANCH_2.id}`),
   );
-  await page.selectOption('.branch__select', FAKE_BRANCH_2.id);
+  await escolherFilial(page, FAKE_BRANCH_2);
   await requisicao;
 
   // O endereço da filial escolhida entra no lugar de "todas".
@@ -332,7 +345,7 @@ test('ajustar o tempo de preparo usa a faixa que a resposta devolveu', async ({ 
   await expect(page.getByTestId('prep-time-mais-5')).toBeDisabled();
   await expect(page.getByTestId('prep-time-range')).toHaveText('escolha uma filial');
 
-  await page.selectOption('.branch__select', FAKE_BRANCH.id);
+  await escolherFilial(page);
   await expect(page.getByTestId('prep-time-mais-5')).toBeEnabled();
 
   // A faixa vigente aparece na ABERTURA, lida da semana de funcionamento —
@@ -352,7 +365,7 @@ test('sem faixa base gravada, a tela pede min e max uma vez', async ({ page }) =
   await fazerLogin(page);
   api.clearPrepTimeBase(FAKE_BRANCH.id);
 
-  await page.selectOption('.branch__select', FAKE_BRANCH.id);
+  await escolherFilial(page);
   await page.getByTestId('prep-time-mais-5').click();
 
   const base = page.getByTestId('prep-time-base');
@@ -375,7 +388,7 @@ test('filial fechada mostra a mensagem e não oferece contorno', async ({ page }
   await fazerLogin(page);
   api.closeBranch(FAKE_BRANCH.id);
 
-  await page.selectOption('.branch__select', FAKE_BRANCH.id);
+  await escolherFilial(page);
   await page.getByTestId('prep-time-mais-5').click();
 
   await expect(page.getByTestId('prep-time-error')).toContainText('A filial está fechada agora');

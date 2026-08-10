@@ -1,6 +1,8 @@
 import { useState } from 'react';
 
 import type { PaymentFlow, PaymentMethod, PaymentMethodType } from '../api/types';
+import { Checkbox } from '../ds/Checkbox';
+import { Select } from '../ds/Select';
 import { PAYMENT_METHOD_LABELS } from '../orders/format';
 import { Switch } from '../ui/Switch';
 import { PlusIcon } from '../ui/icons';
@@ -143,7 +145,7 @@ function MethodList({
 
           {/*
             Tipo e fluxo são texto, não campo: o contrato não aceita mudá-los
-            depois de criados, e um <select> travado só ensinaria o lojista a
+            depois de criados, e um seletor travado só ensinaria o lojista a
             tentar. O caminho para corrigir é desabilitar e criar outra.
 
             E o tipo só aparece quando diz algo que o rótulo não diz: na maioria
@@ -221,37 +223,37 @@ function NewMethodForm({
       </p>
 
       <div className="store-form__grid">
-        <label className="field">
-          <span className="field__label">Fluxo</span>
-          <select
-            className="select"
+        <div className="field">
+          <span className="field__label" aria-hidden="true">
+            Fluxo
+          </span>
+          <Select
             value={flow}
-            onChange={(event) => setFlow(event.target.value as PaymentFlow)}
+            onChange={(value) => setFlow(value as PaymentFlow)}
+            aria-label="Fluxo"
             data-testid="payment-new-flow"
-          >
-            {(Object.keys(FLOW_LABELS) as PaymentFlow[]).map((key) => (
-              <option key={key} value={key}>
-                {FLOW_LABELS[key]}
-              </option>
-            ))}
-          </select>
-        </label>
+            options={(Object.keys(FLOW_LABELS) as PaymentFlow[]).map((key) => ({
+              value: key,
+              label: FLOW_LABELS[key],
+            }))}
+          />
+        </div>
 
-        <label className="field">
-          <span className="field__label">Tipo</span>
-          <select
-            className="select"
+        <div className="field">
+          <span className="field__label" aria-hidden="true">
+            Tipo
+          </span>
+          <Select
             value={type}
-            onChange={(event) => setType(event.target.value as PaymentMethodType)}
+            onChange={(value) => setType(value as PaymentMethodType)}
+            aria-label="Tipo"
             data-testid="payment-new-type"
-          >
-            {METHOD_TYPES.map((key) => (
-              <option key={key} value={key}>
-                {PAYMENT_METHOD_LABELS[key] ?? key}
-              </option>
-            ))}
-          </select>
-        </label>
+            options={METHOD_TYPES.map((key) => ({
+              value: key,
+              label: PAYMENT_METHOD_LABELS[key] ?? key,
+            }))}
+          />
+        </div>
 
         <label className="field">
           <span className="field__label">Rótulo</span>
@@ -275,15 +277,12 @@ function NewMethodForm({
         </label>
       </div>
 
-      <label className="store-form__check">
-        <input
-          type="checkbox"
-          checked={requiresGateway}
-          onChange={(event) => setRequiresGateway(event.target.checked)}
-          data-testid="payment-new-gateway"
-        />
-        <span>Exige gateway de pagamento</span>
-      </label>
+      <Checkbox
+        checked={requiresGateway}
+        onChange={setRequiresGateway}
+        label="Exige gateway de pagamento"
+        data-testid="payment-new-gateway"
+      />
 
       <div className="store-form__buttons">
         <button type="button" className="btn" onClick={onCancel} disabled={isSaving}>

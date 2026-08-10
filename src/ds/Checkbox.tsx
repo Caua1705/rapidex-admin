@@ -45,13 +45,15 @@ export function Checkbox({
   const hintId = `${generated}-hint`;
 
   return (
-    <label
-      className={`ds-choice${disabled ? ' ds-choice--disabled' : ''}`}
-      htmlFor={controlId}
-      data-testid={testId}
-    >
+    <label className={`ds-choice${disabled ? ' ds-choice--disabled' : ''}`} htmlFor={controlId}>
+      {/*
+        O `data-testid` fica no <input>, e não no <label>: é o input que
+        responde a `.check()` e a `.isChecked()`. Num rótulo, o mesmo id
+        obrigaria todo teste a saber que existe um input escondido dentro.
+      */}
       <input
         id={controlId}
+        data-testid={testId}
         className="ds-choice__box ds-choice__box--check"
         type="checkbox"
         checked={checked}

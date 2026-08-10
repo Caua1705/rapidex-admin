@@ -358,47 +358,50 @@
 /* --- seletor de filial ---------------------------------------------------- */
 
 /*
- * Sem caixa: dentro da barra, um controle contornado disputava atenção com o
- * conteúdo da tela. O que diz que ele é clicável é o hover e o chevron.
+ * Sem caixa: dentro da barra, um controle contornado disputa atenção com o
+ * conteúdo da tela. Quem diz que é clicável é o realce de ponteiro e o chevron
+ * (ver `.ds-select__trigger--bare`).
  */
 .branch {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--sp-8);
   min-width: 0;
-  max-width: 320px;
-  min-height: var(--tap-mobile);
-  padding-inline: var(--sp-8);
+  max-width: 420px;
   margin-left: calc(var(--sp-8) * -1);
-  border-radius: var(--r-chip);
-  transition: background var(--motion-fast) var(--ease);
 }
 
-.branch:has(.branch__select):hover {
-  background: var(--hover);
+.branch--static {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-h-touch);
+  padding-inline: var(--sp-8);
 }
 
 .branch__text {
+  flex: 1;
   display: flex;
   align-items: baseline;
   gap: var(--sp-8);
   min-width: 0;
 }
 
+/*
+ * `flex: 0 0 auto` no nome e `flex: 1 1 auto; min-width: 0` no endereço: é
+ * exatamente esta assimetria que decide QUEM trunca. Sem ela os dois encolhem
+ * juntos e o nome da filial vira "M…" ao lado de um endereço inteiro.
+ */
 .branch__name {
+  flex: 0 0 auto;
   font-size: var(--tb-size);
   line-height: var(--tb-line);
-  font-weight: var(--ts-weight);
+  font-weight: var(--w-semibold);
   color: var(--ink);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* O endereço só cabe a partir do tablet: no celular ele espremia o nome. */
 .branch__detail {
   display: none;
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: var(--ta-size);
   line-height: var(--ta-line);
   color: var(--ink-3);
@@ -411,34 +414,4 @@
   .branch__detail {
     display: block;
   }
-}
-
-.branch__chevron {
-  display: flex;
-  flex: 0 0 auto;
-  color: var(--ink-3);
-}
-
-/*
- * O <select> real cobre a caixa e fica invisível.
- *
- * É A ÚNICA EXCEÇÃO do sistema à regra de não usar controle nativo, e ela é
- * proposital: no celular, o seletor de filial é justamente onde o seletor
- * nativo ganha do nosso — ele abre a roda do sistema, que é o que a mão do
- * lojista já sabe operar sem olhar. O desenho por baixo continua sendo o nosso.
- */
-.branch__select {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-  border: none;
-  background: transparent;
-}
-
-.branch:has(.branch__select:focus-visible) {
-  outline: var(--focus-width) solid var(--focus);
-  outline-offset: var(--focus-offset);
 }

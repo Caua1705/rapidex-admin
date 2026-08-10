@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import type { RestaurantSettingsUpdate } from '../api/types';
+import { Checkbox } from '../ds/Checkbox';
 import { SaveBar } from './SaveBar';
 import {
   checkEstimatedRange,
@@ -177,15 +178,12 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
         {/* A caixa de marcar liga o campo ao lado: na mesma linha, a relação
             entre os dois é o próprio desenho. */}
         <div className="store-form__row">
-          <label className="store-form__check">
-            <input
-              type="checkbox"
-              checked={draft.serviceFeeEnabled}
-              onChange={(event) => patch({ serviceFeeEnabled: event.target.checked })}
-              data-testid="settings-service-fee-enabled"
-            />
-            <span>Cobrar taxa de serviço</span>
-          </label>
+          <Checkbox
+            checked={draft.serviceFeeEnabled}
+            onChange={(serviceFeeEnabled) => patch({ serviceFeeEnabled })}
+            label="Cobrar taxa de serviço"
+            data-testid="settings-service-fee-enabled"
+          />
 
           <label className="field store-form__narrow">
             <span className="field__label">Valor da taxa</span>
@@ -205,25 +203,19 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
         <h2 className="store-form__heading">Como a loja atende</h2>
 
         <div className="store-form__row">
-          <label className="store-form__check">
-            <input
-              type="checkbox"
-              checked={draft.acceptsDelivery}
-              onChange={(event) => patch({ acceptsDelivery: event.target.checked })}
-              data-testid="settings-accepts-delivery"
-            />
-            <span>Aceita entrega</span>
-          </label>
+          <Checkbox
+            checked={draft.acceptsDelivery}
+            onChange={(acceptsDelivery) => patch({ acceptsDelivery })}
+            label="Aceita entrega"
+            data-testid="settings-accepts-delivery"
+          />
 
-          <label className="store-form__check">
-            <input
-              type="checkbox"
-              checked={draft.acceptsPickup}
-              onChange={(event) => patch({ acceptsPickup: event.target.checked })}
-              data-testid="settings-accepts-pickup"
-            />
-            <span>Aceita retirada no balcão</span>
-          </label>
+          <Checkbox
+            checked={draft.acceptsPickup}
+            onChange={(acceptsPickup) => patch({ acceptsPickup })}
+            label="Aceita retirada no balcão"
+            data-testid="settings-accepts-pickup"
+          />
         </div>
 
         {!draft.acceptsDelivery && !draft.acceptsPickup ? (

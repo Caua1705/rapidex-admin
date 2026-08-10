@@ -8,7 +8,8 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 
-import { installFakeApi, FAKE_BRANCH, LOGIN_EMAIL, LOGIN_PASSWORD, type FakeApi } from './fake-api';
+import { installFakeApi, LOGIN_EMAIL, LOGIN_PASSWORD, type FakeApi } from './fake-api';
+import { escolherFilial } from './seletor';
 
 let api: FakeApi;
 
@@ -62,7 +63,7 @@ test('o cartão conta a espera e acende quando passa do preparo da filial', asyn
   await expect(page).toHaveURL(/\/pedidos$/);
 
   // A faixa é POR FILIAL: sem uma escolhida não há régua, e nada acende.
-  await page.selectOption('.branch__select', FAKE_BRANCH.id);
+  await escolherFilial(page);
   await page.getByRole('link', { name: 'Cozinha' }).click();
 
   // ord-1003 entrou há 25 min: já está na janela de entrega, ainda não estourou.

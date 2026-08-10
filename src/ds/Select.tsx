@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 
 import { useFieldState } from './field-context';
 import { CheckIcon, ChevronDownIcon } from './icons';
@@ -51,7 +51,10 @@ export function Select({
   loading = false,
   invalid,
   id,
+  bare = false,
+  display,
   'aria-label': ariaLabel,
+  'data-testid': testId,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -62,7 +65,20 @@ export function Select({
   loading?: boolean;
   invalid?: boolean;
   id?: string;
+  /**
+   * Gatilho SEM a caixa de campo. Só para quem vive numa barra — lateral,
+   * cabeçalho —, onde um controle contornado disputa atenção com a tela. Num
+   * formulário, o seletor tem de parecer um campo, senão ninguém o acha.
+   */
+  bare?: boolean;
+  /**
+   * Substitui o texto do gatilho quando o valor escolhido precisa de mais de
+   * uma informação para ser reconhecido — o seletor de filial mostra nome e
+   * endereço, porque "Centro" e "Centro II" não se distinguem sem ele.
+   */
+  display?: ReactNode;
   'aria-label'?: string;
+  'data-testid'?: string;
 }) {
   const field = useFieldState();
   const generated = useId();
@@ -173,13 +189,14 @@ export function Select({
         id={controlId}
         ref={triggerRef}
         className={[
-          'ds-control',
+          bare ? 'ds-select__trigger--bare' : 'ds-control',
           'ds-select__trigger',
-          isInvalid ? 'ds-control--invalid' : '',
-          isDisabled ? 'ds-control--disabled' : '',
+          isInvalid && !bare ? 'ds-control--invalid' : '',
+          isDisabled && !bare ? 'ds-control--disabled' : '',
         ]
           .filter(Boolean)
           .join(' ')}
+        data-testid={testId}
         disabled={isDisabled}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -196,9 +213,11 @@ export function Select({
           }
         }}
       >
-        <span className={`ds-select__value${selected ? '' : ' ds-select__value--empty'}`}>
-          {selected?.label ?? placeholder}
-        </span>
+        {display ?? (
+          <span className={`ds-select__value${selected ? '' : ' ds-select__value--empty'}`}>
+            {selected?.label ?? placeholder}
+          </span>
+        )}
 
         {loading ? (
           <Spinner />

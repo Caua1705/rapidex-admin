@@ -15,6 +15,26 @@
   gap: var(--sp-8);
 }
 
+/*
+ * O gatilho SEM caixa, para quem vive numa barra (o seletor de filial no
+ * cabeçalho). Ali um controle contornado disputa atenção com o conteúdo da
+ * tela; o que diz que é clicável é o realce de ponteiro e o chevron.
+ */
+.ds-select__trigger--bare {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  min-height: var(--control-h-touch);
+  padding-inline: var(--sp-8);
+  border-radius: var(--r-chip);
+  color: var(--ink);
+  transition: background var(--motion-fast) var(--ease);
+}
+
+.ds-select__trigger--bare:hover {
+  background: var(--hover);
+}
+
 .ds-select__value {
   flex: 1;
   min-width: 0;
@@ -50,14 +70,18 @@
   position: absolute;
   top: calc(100% + var(--sp-4));
   left: 0;
-  right: 0;
   z-index: var(--z-popover);
   max-height: 280px;
   overflow-y: auto;
+  /* Nunca mais estreita que o gatilho, e larga o bastante para o rótulo mais
+     comprido: a lista do seletor de filial pende de um gatilho curto. */
+  min-width: 100%;
+  width: max-content;
+  max-width: 320px;
   padding: var(--sp-4);
-  background: var(--surface);
+  background: var(--surface-raised);
   border: 1px solid var(--line);
-  border-radius: var(--r-field);
+  border-radius: var(--r-card);
   box-shadow: var(--shadow-pop);
 }
 
@@ -65,8 +89,8 @@
   display: flex;
   align-items: center;
   gap: var(--sp-8);
-  /* Alvo de 2.5.8 com folga: 36px no toque. */
-  min-height: 36px;
+  /* Alvo de 2.5.8 com folga no toque; no mouse a densidade sobe. */
+  min-height: var(--control-h-touch);
   padding: var(--sp-4) var(--sp-8);
   border-radius: var(--r-chip);
   cursor: pointer;
@@ -82,6 +106,12 @@
 .ds-select__option:hover,
 .ds-select__option:focus-visible {
   background: var(--hover);
+}
+
+@media (min-width: 1024px) {
+  .ds-select__option {
+    min-height: var(--control-h);
+  }
 }
 
 .ds-select__option--selected {

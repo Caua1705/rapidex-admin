@@ -9,6 +9,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { installFakeApi, FAKE_BRANCH, LOGIN_EMAIL, LOGIN_PASSWORD, type FakeApi } from './fake-api';
+import { escolher } from './seletor';
 
 let api: FakeApi;
 
@@ -267,8 +268,8 @@ test('formas de pagamento: cria, desativa e exclui — sem trocar fluxo nem tipo
 
   // Criar é o único lugar onde fluxo e tipo são escolhíveis.
   await page.getByTestId('payment-add').click();
-  await page.getByTestId('payment-new-flow').selectOption('delivery');
-  await page.getByTestId('payment-new-type').selectOption('debit_card');
+  await escolher(page.getByTestId('payment-new-flow'), 'Na entrega');
+  await escolher(page.getByTestId('payment-new-type'), 'Débito');
   await page.getByTestId('payment-new-label').fill('Débito na maquininha');
   await page.getByTestId('payment-new-save').click();
 

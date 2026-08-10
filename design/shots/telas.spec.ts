@@ -10,6 +10,7 @@
 import { test, type Page } from '@playwright/test';
 
 import { installFakeApi, LOGIN_EMAIL, LOGIN_PASSWORD, type FakeApi } from '../../e2e/fake-api';
+import { escolherFilial } from '../../e2e/seletor';
 
 const TAG = process.env.SHOT_TAG ?? 'atual';
 
@@ -99,7 +100,7 @@ for (const viewport of VIEWPORTS) {
      * "Formas de pagamento" fora de toda conferência de alinhamento.
      */
     await page.goto('/minha-loja');
-    await page.getByTestId('branch-selector').getByRole('combobox').selectOption({ index: 1 });
+    await escolherFilial(page);
     for (const aba of ['filial', 'horarios', 'entrega', 'pagamento', 'impressao']) {
       await page.getByTestId(`store-tab-${aba}`).click();
       await page.waitForTimeout(400);

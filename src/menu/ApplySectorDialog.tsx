@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import type { PrintSector } from '../api/types';
+import { Select } from '../ds/Select';
 import { activeSectors, NO_SECTOR_LABEL } from '../print-sectors/print-sectors';
 import { Modal } from '../ui/Modal';
 
@@ -76,23 +77,21 @@ export function ApplySectorDialog({
       }
     >
       <div className="form">
-        <label className="field">
-          <span className="field__label">Setor de impressão</span>
-          <select
-            className="select"
+        <div className="field">
+          <span className="field__label" aria-hidden="true">
+            Setor de impressão
+          </span>
+          <Select
             value={choice}
-            autoFocus
-            onChange={(event) => setChoice(event.target.value)}
+            onChange={setChoice}
+            aria-label="Setor de impressão"
             data-testid="apply-sector-select"
-          >
-            <option value="">{NO_SECTOR_LABEL}</option>
-            {escolhíveis.map((sector) => (
-              <option key={sector.id} value={sector.id}>
-                {sector.name}
-              </option>
-            ))}
-          </select>
-        </label>
+            options={[
+              { value: '', label: NO_SECTOR_LABEL },
+              ...escolhíveis.map((sector) => ({ value: sector.id, label: sector.name })),
+            ]}
+          />
+        </div>
 
         {/*
           O aviso é direto e sem eufemismo, como o resto do painel: quem já tem

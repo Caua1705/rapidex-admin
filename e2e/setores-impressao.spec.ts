@@ -10,6 +10,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { installFakeApi, FAKE_BRANCH, LOGIN_EMAIL, LOGIN_PASSWORD, type FakeApi } from './fake-api';
+import { escolher, escolherFilial, opcoesDe } from './seletor';
 
 let api: FakeApi;
 
@@ -27,11 +28,6 @@ async function fazerLogin(page: Page) {
   await page.getByLabel('Senha').fill(LOGIN_PASSWORD);
   await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page).toHaveURL(/\/pedidos$/);
-}
-
-/** O painel abre em "todas as filiais"; setor exige uma escolhida. */
-async function escolherFilial(page: Page) {
-  await page.getByLabel('Filial').selectOption(FAKE_BRANCH.id);
 }
 
 async function abrirAbaImpressao(page: Page) {
@@ -147,13 +143,13 @@ test('o campo de setor no produto oferece só os ativos, com "Não imprimir"', a
   const campo = page.getByTestId('product-print-sector');
   await expect(campo).toBeVisible();
   // "Não imprimir" é uma escolha legítima e é onde o item sem setor está.
-  await expect(campo).toHaveValue('');
-  await expect(campo.locator('option')).toContainText(['Não imprimir', 'Chapa']);
+  await expect(campo).toHaveText('Não imprimir');
+
   // "Bar" está desativado: não pode ser oferecido — seria mandar comanda para
   // uma impressora que o lojista acabou de tirar do ar.
-  await expect(campo.locator('option', { hasText: 'Bar' })).toHaveCount(0);
+  expect(await opcoesDe(campo)).toEqual(['Não imprimir', 'Chapa']);
 
-  await campo.selectOption('sec-chapa');
+  await escolher(campo, 'Chapa');
   await page.getByRole('button', { name: 'Salvar' }).click();
 
   await expect(page.getByTestId('product-sector-prod-2')).toHaveText('Chapa');
@@ -179,7 +175,7 @@ test('aplicar o setor à categoria inteira resolve os 80 cliques', async ({ page
   await expect(aviso).toContainText('já tinham outro setor');
   await expect(aviso).toContainText('1 já tem setor definido');
 
-  await page.getByTestId('apply-sector-select').selectOption('sec-chapa');
+  await escolher(page.getByTestId('apply-sector-select'), 'Chapa');
   await page.getByTestId('apply-sector-confirm').click();
 
   // Uma chamada só, e não uma por produto.
