@@ -1,6 +1,7 @@
 import type { OrderDetail, OrderListItem } from '../api/types';
 import { labelFor, ORDER_TYPE_LABELS } from '../orders/format';
 import { readOptionGroups } from '../orders/order-options';
+import { stageOf } from '../orders/order-status';
 import { advanceFor } from './kitchen-board';
 import { readWait, type PrepWindow } from './wait-time';
 
@@ -45,7 +46,7 @@ export function KitchenCard({
 
   return (
     <article
-      className={`kitchen-card status-${order.status}`}
+      className={`kitchen-card is-${stageOf(order.status)}`}
       data-testid={`kitchen-card-${order.order_number}`}
       data-status={order.status}
       data-wait={wait.level}

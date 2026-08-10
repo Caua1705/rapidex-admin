@@ -1,15 +1,42 @@
+/*
+ * O INTERRUPTOR INDICA ESTADO — ele não é a ação principal da página.
+ *
+ * Ele era 38×22 e o elemento mais pesado e mais colorido de cada linha do
+ * cardápio, um por linha, numa lista onde o que se veio ler é o nome e o
+ * preço. Numa tela de sessenta itens, sessenta pílulas verdes empilhadas não
+ * distinguem nada: cor repetida em toda linha para de carregar informação.
+ *
+ * 28×16 com o botão de 12px é o menor tamanho em que o lado ligado ainda se lê
+ * de relance, e a área de clique continua sendo a do alvo mínimo por causa do
+ * `::before` invisível abaixo.
+ */
 .switch {
-  width: 38px;
-  height: 22px;
+  width: 28px;
+  height: 16px;
   flex: 0 0 auto;
   padding: 0;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   border-radius: var(--r-round);
   /* Desligado é neutro; verde só quando o item está de fato à venda. */
-  background: var(--line-strong);
+  background: var(--line);
   cursor: pointer;
   position: relative;
-  transition: background var(--motion-base) var(--ease);
+  transition:
+    background var(--motion-base) var(--ease),
+    border-color var(--motion-base) var(--ease);
+}
+
+/*
+ * A área de toque é maior que o desenho (WCAG 2.5.8): o controle encolheu, o
+ * alvo não. Sem isto, reduzir o interruptor tiraria a lista do alcance do dedo.
+ */
+.switch::before {
+  content: '';
+  position: absolute;
+  inset: 50% 50%;
+  width: var(--tap-mobile);
+  height: var(--tap-mobile);
+  transform: translate(-50%, -50%);
 }
 
 .switch[aria-checked='true'] {
@@ -29,19 +56,15 @@
 
 .switch__knob {
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
+  top: 1px;
+  left: 1px;
+  width: 12px;
+  height: 12px;
   border-radius: var(--r-round);
-  /* `--neutral-900` era da paleta antiga e morreu com ela: sem knob visível, o
-     interruptor virava uma pílula verde sem lado ligado. Some junto com este
-     componente na etapa 6, quando as telas passam a usar o `ds/Switch`. */
   background: var(--surface);
-  box-shadow: var(--shadow-pop);
   transition: transform var(--motion-base) var(--ease);
 }
 
 .switch[aria-checked='true'] .switch__knob {
-  transform: translateX(16px);
+  transform: translateX(12px);
 }

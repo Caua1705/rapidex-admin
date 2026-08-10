@@ -13,6 +13,7 @@ import {
   labelFor,
 } from './format';
 import { readOptionGroups } from './order-options';
+import { stageOf } from './order-status';
 import {
   STATUS_LABELS,
   checkTransition,
@@ -131,7 +132,7 @@ export function OrderDetailPanel({
           {detail ? (
             <>
               <span className="tnum panel__number">#{detail.order_number}</span>
-              <span className={`panel__status status-${detail.status}`}>
+              <span className={`panel__status is-${stageOf(detail.status)}`}>
                 {STATUS_LABELS[detail.status] ?? detail.status}
               </span>
               <span className="faint">{labelFor(ORDER_TYPE_LABELS, detail.order_type)}</span>

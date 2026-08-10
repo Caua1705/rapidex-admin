@@ -1,6 +1,7 @@
 import type { OrderListItem } from '../api/types';
 import type { BoardColumn } from './board-columns';
 import { OrderCard } from './OrderCard';
+import { stageOf } from './order-status';
 
 /** Uma coluna do quadro: título, badge com o contador do backend e os cards. */
 export function StatusColumn({
@@ -19,11 +20,10 @@ export function StatusColumn({
   return (
     <section className="column" data-column={column.key}>
       {/*
-        `status-<chave>` vem de tokens.css e define --st/--st-wash/
-        --st para o ponto e o badge de uma vez. A cor da coluna nunca é
-        escolhida aqui.
+        `is-<estágio>` vem de tokens.css e expõe --st e --st-wash de uma vez.
+        A cor da coluna nunca é escolhida aqui.
       */}
-      <header className={`column__header status-${column.statuses[0]}`}>
+      <header className={`column__header is-${stageOf(column.statuses[0]!)}`}>
         <span className="column__dot" />
         <h2 className="column__title">{column.title}</h2>
         {/*
@@ -36,19 +36,22 @@ export function StatusColumn({
         </span>
       </header>
 
+      {/*
+        COLUNA VAZIA NÃO ESCREVE NADA. "Nenhum pedido" era a mesma frase em
+        cinco das sete colunas ao mesmo tempo, e ela já estava dita ao lado, no
+        contador: uma coluna com 0 no cabeçalho e nenhum cartão embaixo não tem
+        segunda leitura possível. O que sobrava era ruído em toda a largura do
+        quadro, no lugar onde o próximo pedido vai aparecer.
+      */}
       <div className="column__cards">
-        {orders.length === 0 ? (
-          <p className="column__empty faint">Nenhum pedido</p>
-        ) : (
-          orders.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              isSelected={order.id === selectedOrderId}
-              onOpen={() => onOpenOrder(order.id)}
-            />
-          ))
-        )}
+        {orders.map((order) => (
+          <OrderCard
+            key={order.id}
+            order={order}
+            isSelected={order.id === selectedOrderId}
+            onOpen={() => onOpenOrder(order.id)}
+          />
+        ))}
       </div>
     </section>
   );

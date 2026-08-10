@@ -100,7 +100,7 @@
   padding: 0 var(--sp-12);
 }
 
-/* A matiz vem da classe .status-<chave> que o TSX põe no mesmo elemento. */
+/* A matiz vem da classe .is-<estágio> que o TSX põe no mesmo elemento. */
 .kitchen-column__dot {
   width: 8px;
   height: 8px;

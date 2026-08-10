@@ -85,26 +85,25 @@ export function ProductRow({
       <span className="item__price num">{formatCurrency(product.price)}</span>
 
       {/*
-        A coluna existe para o lojista CONFERIR de bate-pronto se esqueceu
-        algum item — é a pergunta "está tudo configurado?" respondida sem abrir
-        item por item. Por isso "Não imprimir" aparece esmaecido e não em
-        branco: célula vazia lê como "não carregou", e não como uma escolha.
+        A coluna existe para o lojista CONFERIR de bate-pronto onde cada item
+        imprime. Ela só escreve quando HÁ um setor.
+
+        "Não imprimir" em itálico, repetido em toda linha, era a mesma coisa que
+        o "DISPONÍVEL" verde que já saiu daqui: uma palavra em cada linha da
+        lista, sempre a mesma, ocupando a largura do que muda. A célula vazia
+        não é ambígua — o que se procura nesta coluna é o item que TEM setor, e
+        um nome escrito salta sobre um fundo de células em branco. O que não
+        pode ficar mudo é o dado inconsistente, e esse continua escrito.
       */}
       {showSector ? (
         <span
-          className={[
-            'item__sector',
-            sector.empty ? 'item__sector--none' : '',
-            sector.known ? '' : 'item__sector--unknown',
-          ]
-            .filter(Boolean)
-            .join(' ')}
+          className={`item__sector${sector.known ? '' : ' item__sector--unknown'}`}
           data-testid={`product-sector-${product.id}`}
           title={
             sector.known ? undefined : 'Este item aponta para um setor que não é desta filial.'
           }
         >
-          {sector.label}
+          {sector.empty ? '' : sector.label}
         </span>
       ) : null}
 

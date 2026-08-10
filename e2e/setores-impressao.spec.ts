@@ -116,8 +116,9 @@ test('a lista de produtos mostra o setor de cada item', async ({ page }) => {
    * o que o lojista precisa enxergar sem abrir item por item.
    */
   await expect(page.getByTestId('product-sector-prod-1')).toHaveText('Chapa');
-  await expect(page.getByTestId('product-sector-prod-2')).toHaveText('Não imprimir');
-  await expect(page.getByTestId('product-sector-prod-3')).toHaveText('Não imprimir');
+  // Sem setor a célula fica vazia: o que se procura aqui é o item que TEM um.
+  await expect(page.getByTestId('product-sector-prod-2')).toHaveText('');
+  await expect(page.getByTestId('product-sector-prod-3')).toHaveText('');
 });
 
 test('sem filial escolhida, a coluna de setor não aparece', async ({ page }) => {
@@ -208,6 +209,6 @@ test('aplicar "Não imprimir" à categoria limpa o setor de todos', async ({ pag
   // "Não imprimir" é o valor padrão do diálogo e vale como escolha.
   await page.getByTestId('apply-sector-confirm').click();
 
-  await expect(page.getByTestId('product-sector-prod-1')).toHaveText('Não imprimir');
+  await expect(page.getByTestId('product-sector-prod-1')).toHaveText('');
   expect(api.categorySectorCalls().at(-1)?.printSectorId).toBeNull();
 });

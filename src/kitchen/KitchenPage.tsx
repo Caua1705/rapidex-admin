@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { useSession } from '../auth/session-context';
 import { useOrderStream } from '../orders/useOrderStream';
+import { stageOf } from '../orders/order-status';
 import { usePrepRange } from '../orders/usePrepRange';
 import { KitchenCard } from './KitchenCard';
 import { groupForKitchen, KITCHEN_COLUMNS } from './kitchen-board';
@@ -102,7 +103,7 @@ export function KitchenPage() {
               key={column.key}
               data-testid={`kitchen-column-${column.key}`}
             >
-              <header className={`kitchen-column__head status-${column.key}`}>
+              <header className={`kitchen-column__head is-${stageOf(column.key)}`}>
                 <span className="kitchen-column__dot" aria-hidden="true" />
                 <h2 className="kitchen-column__title">{column.title}</h2>
                 <span className="kitchen-column__count tnum">{columnOrders.length}</span>

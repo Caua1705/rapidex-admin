@@ -1,18 +1,20 @@
 /**
- * Uma linha, com o total do período. Nada mais.
+ * A linha da paginação do quadro. Ela só existe quando há o que paginar.
  *
- * O QUE ELA SUBSTITUIU: sete cartões de resumo que repetiam, número por
- * número, os contadores que já estão no cabeçalho de cada coluna do quadro —
- * logo abaixo, na mesma ordem e na mesma cor. Era a mesma informação duas
- * vezes na mesma tela, e a de cima custava 90px de altura do quadro.
+ * O QUE SAIU DAQUI, EM DUAS RODADAS:
  *
- * O contador por status ficou onde o olho já está: na coluna. O que a coluna
- * NÃO responde é "quantos pedidos no dia inteiro", porque isso é a soma de
- * sete lugares — e é só isso que sobrou aqui.
+ *   1. Sete cartões de resumo que repetiam, número por número, os contadores
+ *      do cabeçalho de cada coluna — logo abaixo, na mesma ordem e na mesma
+ *      cor. Custavam 90px de altura do quadro.
+ *   2. O total do período ("3 pedidos no período"). Ele parecia uma informação
+ *      nova, e não era: é a SOMA dos sete contadores de coluna, que estão
+ *      visíveis na mesma tela, na mesma dobra. Contador que o olho consegue
+ *      somar do que já está na tela não é um dado — é uma linha a menos de
+ *      pedido. O contador ficou onde o olho já está: na coluna.
  *
- * O número vem de `GET /admin/orders/status-counts`, que conta o PERÍODO
- * inteiro do filtro. Contar os pedidos carregados diria "12" num dia de 300,
- * porque a lista é paginada.
+ * O QUE SOBROU é a única coisa que a tela não diz sozinha: que existem pedidos
+ * do período FORA da página carregada. Isso não sai de nenhum contador — a
+ * lista é paginada, e as colunas mostram o que veio.
  *
  * FATURAMENTO NÃO ENTRA: não existe rota que o devolva. O que há é
  * `/admin/reports/commission`, que é base de comissão da plataforma, por
@@ -32,33 +34,29 @@ export function PeriodLine({
   isLoading: boolean;
   onLoadMore: () => void;
 }) {
-  const faltaCarregar = loaded < total;
+  if (loaded >= total) return null;
 
   return (
     <div className="period" data-testid="period-summary">
       <span>
-        <span className="tnum period__total" data-testid="summary-total">
-          {isLoading && total === 0 ? '—' : total}
+        <span className="tnum" data-testid="summary-loaded">
+          {loaded}
         </span>{' '}
-        {total === 1 ? 'pedido no período' : 'pedidos no período'}
+        de{' '}
+        <span className="tnum period__total" data-testid="summary-total">
+          {total}
+        </span>{' '}
+        {total === 1 ? 'pedido do período na tela' : 'pedidos do período na tela'}
       </span>
 
-      {/*
-        A paginação só se anuncia quando há o que paginar. Ela morava num
-        rodapé próprio, que era uma faixa inteira da tela para dizer "3 de 3" —
-        a frase que menos muda o que o lojista faz em seguida.
-      */}
-      {faltaCarregar ? (
-        <>
-          <span aria-hidden="true">·</span>
-          <span>
-            <span className="tnum">{loaded}</span> na tela
-          </span>
-          <button type="button" className="btn btn--sm btn--ghost" onClick={onLoadMore}>
-            Carregar mais
-          </button>
-        </>
-      ) : null}
+      <button
+        type="button"
+        className="btn btn--sm btn--ghost"
+        onClick={onLoadMore}
+        disabled={isLoading}
+      >
+        {isLoading ? 'Carregando…' : 'Carregar mais'}
+      </button>
     </div>
   );
 }

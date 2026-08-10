@@ -11,6 +11,8 @@
  * mais ou a menos, nunca um pedido em estado errado.
  */
 
+import type { Stage } from '../ds/status';
+
 export const ORDER_STATUSES = [
   'pending',
   'accepted',
@@ -34,6 +36,34 @@ export const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Cancelado',
   rejected: 'Recusado',
 };
+
+/**
+ * De status do backend para ESTÁGIO VISUAL (a escala de 7 de `ds/status.ts`).
+ *
+ * A tradução mora aqui, e não no design system, porque é aqui que o contrato
+ * do backend é conhecido: `cancelled` e `rejected` são estados diferentes na
+ * máquina de estados e o mesmo fim de linha na tela. O design system não sabe
+ * o que é um `out_for_delivery`.
+ *
+ * Quem pinta um status põe `is-<estágio>` no elemento e lê `--st`/`--st-wash`.
+ * Nenhum componente escolhe matiz — acrescentar um estágio é acrescentar um
+ * token, não uma regra de CSS.
+ */
+const STAGE_OF: Record<string, Stage> = {
+  pending: 'pendente',
+  accepted: 'aceito',
+  preparing: 'preparando',
+  ready: 'pronto',
+  out_for_delivery: 'entrega',
+  completed: 'concluido',
+  cancelled: 'cancelado',
+  rejected: 'cancelado',
+};
+
+/** Status que o painel não conhece cai em "concluído": neutro, nunca alarme. */
+export function stageOf(status: string): Stage {
+  return STAGE_OF[status] ?? 'concluido';
+}
 
 /** Para onde cada status pode ir. Chave sem destinos = estado final. */
 const TRANSITIONS: Record<string, readonly OrderStatus[]> = {

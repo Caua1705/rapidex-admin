@@ -21,34 +21,45 @@
 
 /* --- barra de categorias ------------------------------------------------- */
 
+/*
+ * A BARRA TEM PLANO PRÓPRIO.
+ *
+ * Ela era texto solto sobre o fundo da página, encostada num painel de itens
+ * que também não tinha plano: dois blocos indistinguíveis um do outro, e o
+ * olho não sabia onde a lista de categorias terminava e a de itens começava.
+ * Agora são duas superfícies com o mesmo degrau de tom, separadas pelo vão —
+ * e não por uma borda, que é o que faria a tela ler como wireframe.
+ */
 .rail {
-  width: 200px;
+  width: 192px;
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding-right: var(--sp-12);
+  margin-right: var(--sp-12);
+  background: var(--surface);
+  border-radius: var(--r-field);
 }
 
 /*
- * O cabeçalho da barra fica na MESMA altura do cabeçalho do painel à direita
- * (30px + o padding da tela), então "Categorias" e o nome da categoria aberta
- * partem da mesma linha de base.
+ * O cabeçalho da barra fica na MESMA altura do cabeçalho do painel à direita,
+ * então "Categorias" e o nome da categoria aberta partem da mesma linha de
+ * base — e as duas superfícies começam na mesma ordenada.
  */
 .rail__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-8);
-  height: 30px;
+  height: var(--sp-32);
   flex: 0 0 auto;
-  padding-left: var(--sp-8);
+  padding-inline: var(--sp-8) var(--sp-4);
 }
 
 .rail__list {
   list-style: none;
   margin: 0;
-  padding: 0 0 var(--sp-16);
+  padding: 0 var(--sp-4) var(--sp-8);
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -135,8 +146,12 @@
   color: var(--ink-3);
 }
 
+/* Largura fixa: os números terminam todos na mesma abscissa e o olho compara
+   a coluna inteira descendo, sem reancorar linha a linha. */
 .rail__count {
   flex: 0 0 auto;
+  min-width: 20px;
+  text-align: right;
   font-size: var(--ta-size);
   line-height: var(--ta-line);
   color: var(--ink-3);
@@ -500,16 +515,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/*
- * "Não imprimir" é uma escolha, não um vazio — por isso ele aparece esmaecido
- * em vez de a célula ficar em branco. Célula vazia lê como "não carregou", e é
- * exatamente a dúvida que esta coluna existe para tirar.
- */
-.item__sector--none {
-  color: var(--ink-3);
-  font-style: italic;
 }
 
 /* Aponta para setor de outra filial: dado inconsistente, não estado normal. */

@@ -8,7 +8,7 @@ import {
   formatTime,
   labelFor,
 } from './format';
-import { isAwaitingOnlinePayment } from './order-status';
+import { isAwaitingOnlinePayment, stageOf } from './order-status';
 
 /**
  * O card do pedido no quadro.
@@ -40,7 +40,7 @@ export function OrderCard({
       className={[
         'order-card',
         // Pinta a borda esquerda com a matiz do status, pelos tokens.
-        `status-${order.status}`,
+        `is-${stageOf(order.status)}`,
         awaitingPayment ? 'order-card--unpaid' : '',
         isSelected ? 'order-card--selected' : '',
       ]

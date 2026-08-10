@@ -119,11 +119,15 @@ describe('ProductRow', () => {
       expect(screen.getByTestId('product-sector-prod-1')).toHaveTextContent('Chapa');
     });
 
-    // "Não imprimir" é uma escolha, não um vazio: célula em branco leria como
-    // "não carregou", que é justamente a dúvida que a coluna tira.
-    it('item sem setor diz "Não imprimir" em vez de ficar em branco', () => {
+    /*
+     * "Não imprimir" repetido em toda linha era o mesmo problema do
+     * "DISPONÍVEL" que já saiu daqui: a mesma palavra em cada linha, sempre a
+     * mesma, ocupando a largura do que muda. O que se procura nesta coluna é o
+     * item que TEM setor, e um nome escrito salta sobre células em branco.
+     */
+    it('item sem setor não escreve nada', () => {
       renderRow({ printing_sector_id: null });
-      expect(screen.getByTestId('product-sector-prod-1')).toHaveTextContent('Não imprimir');
+      expect(screen.getByTestId('product-sector-prod-1')).toHaveTextContent('');
     });
 
     it('setor desativado continua identificado, e marcado como tal', () => {

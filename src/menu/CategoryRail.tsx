@@ -89,14 +89,19 @@ export function CategoryRail({
                 {/*
                   A contagem responde "qual categoria está vazia?" sem abrir uma
                   por uma — é assim que se descobre que o cardápio subiu pela
-                  metade antes de o cliente descobrir. Ela sai de baixo do nome
-                  e vai para a direita da MESMA linha: a barra encolhe de 34px
-                  por categoria para 24px, e os números terminam todos na mesma
-                  abscissa, que é o que permite compará-los descendo o olho.
+                  metade antes de o cliente descobrir.
+
+                  SÓ O NÚMERO. "3 itens / 1 item / 0 itens" escrevia a mesma
+                  palavra em toda linha da lista, e era ela que empurrava os
+                  números para abscissas diferentes conforme fosse singular ou
+                  plural. Numa coluna de números à direita de nomes de
+                  categoria, o que "3" conta não é ambíguo — e o leitor de tela
+                  continua ouvindo a frase inteira.
                 */}
                 {count !== undefined ? (
-                  <span className="rail__count" data-testid={`category-count-${category.id}`}>
-                    <span className="tnum">{count}</span> {count === 1 ? 'item' : 'itens'}
+                  <span className="rail__count tnum" data-testid={`category-count-${category.id}`}>
+                    {count}
+                    <span className="sr-only"> {count === 1 ? 'item' : 'itens'}</span>
                   </span>
                 ) : null}
               </button>

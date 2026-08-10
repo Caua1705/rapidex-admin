@@ -208,42 +208,37 @@ test('pedido novo chega sozinho pelo SSE', async ({ page }) => {
  * FILTRO de verdade, e não só um rótulo bonito com nome e endereço.
  */
 /*
- * O período tem UM lugar só na tela.
+ * CADA CONTADOR APARECE UMA VEZ SÓ, e o lugar dele é a coluna.
  *
- * Havia sete cartões de resumo repetindo, número por número, os contadores do
- * cabeçalho de cada coluna — a mesma informação duas vezes, logo acima dela
- * mesma. O contador por status ficou na coluna, onde o olho já está; o que
- * sobrou aqui é o total do período, que é a única pergunta que a coluna não
- * responde. Os dois saem do mesmo `status-counts`, que conta o PERÍODO inteiro
- * e não só os 50 pedidos carregados.
+ * Duas coisas saíram do topo do quadro em duas rodadas: os sete cartões de
+ * resumo, que repetiam número por número os contadores do cabeçalho de cada
+ * coluna; e o total do período, que parecia uma informação nova e era a SOMA
+ * daqueles sete, visível na mesma dobra.
+ *
+ * O que sobrou lá em cima só aparece quando há paginação — e essa é a única
+ * pergunta que as colunas não respondem, porque elas contam o período inteiro
+ * e mostram só a página carregada.
  */
-test('o período aparece uma vez só: total na linha, status na coluna', async ({ page }) => {
+test('o contador de status aparece uma vez só, e é na coluna', async ({ page }) => {
   await fazerLogin(page);
 
-  const linha = page.getByTestId('period-summary');
-  await expect(linha).toBeVisible();
-
   // O falso abre com três pedidos: dois pendentes e um preparando.
-  await expect(page.getByTestId('summary-total')).toHaveText('3');
   await expect(page.getByTestId('badge-pending')).toHaveText('2');
   await expect(page.getByTestId('badge-preparing')).toHaveText('1');
 
-  // A linha do período NÃO repete o contador por status — é o que ela deixou
-  // de fazer nesta rodada.
-  await expect(linha).not.toContainText('Pendente');
-  await expect(linha).not.toContainText('Preparando');
+  // Nada no topo do quadro repete isso: com tudo carregado, a linha some.
+  await expect(page.getByTestId('period-summary')).toHaveCount(0);
 
-  // Faturamento NÃO aparece: não existe rota que o devolva, e um número
-  // inventado numa barra de resumo é o tipo de erro que vira decisão.
-  await expect(linha).not.toContainText('R$');
+  // E a coluna vazia não escreve "Nenhum pedido" — o zero do cabeçalho basta,
+  // e a frase aparecia em cinco colunas ao mesmo tempo.
+  await expect(page.getByTestId('badge-ready')).toHaveText('0');
+  await expect(page.locator('[data-column="ready"]')).not.toContainText('Nenhum pedido');
 
   // Mover um pedido reflete nos contadores, que é o que os torna confiáveis.
   await page.getByTestId('order-card-1002').click();
   await page.getByTestId('change-status-accepted').click();
   await expect(page.getByTestId('badge-accepted')).toHaveText('1');
   await expect(page.getByTestId('badge-pending')).toHaveText('1');
-  // O total do período não muda: o pedido trocou de coluna, não sumiu.
-  await expect(page.getByTestId('summary-total')).toHaveText('3');
 });
 
 test('o seletor de filial do cabeçalho filtra o quadro', async ({ page }) => {

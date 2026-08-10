@@ -61,13 +61,16 @@
 }
 
 /*
- * Lê a matiz da classe `status-<chave>` de tokens.css. É o mesmo nível 3
+ * Lê a matiz da classe `is-<estágio>` de tokens.css. É o mesmo nível 3
  * (rótulo) do cabeçalho das colunas do quadro — o mesmo dado, escrito igual.
+ *
+ * SEM CAIXA. Ele era tinta do status sobre o wash do status, par que o
+ * verificador de contraste garante em 3:1 (elemento gráfico) e não em 4.5:1
+ * (texto) — e este é texto de 11px. Sobre a superfície do painel a mesma
+ * matiz passa com folga, e o rótulo para de ser mais uma caixinha ao lado do
+ * número do pedido.
  */
 .panel__status {
-  padding: 0 var(--sp-4);
-  border-radius: var(--r-chip);
-  background: var(--st-wash);
   color: var(--st);
   font-size: var(--tl-size);
   line-height: 18px;
