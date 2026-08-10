@@ -1,57 +1,62 @@
 /*
  * O INTERRUPTOR INDICA ESTADO — ele não é a ação principal da página.
  *
- * Ele era 38×22 e o elemento mais pesado e mais colorido de cada linha do
+ * O trilho era 38×22 e o elemento mais pesado e mais colorido de cada linha do
  * cardápio, um por linha, numa lista onde o que se veio ler é o nome e o
  * preço. Numa tela de sessenta itens, sessenta pílulas verdes empilhadas não
  * distinguem nada: cor repetida em toda linha para de carregar informação.
  *
- * 28×16 com o botão de 12px é o menor tamanho em que o lado ligado ainda se lê
- * de relance, e a área de clique continua sendo a do alvo mínimo por causa do
- * `::before` invisível abaixo.
+ * O DESENHO ENCOLHEU, O ALVO NÃO. O botão em volta continua com o alvo inteiro
+ * (WCAG 2.5.8), e é o padding dele que faz a área — não o tamanho da tinta.
  */
 .switch {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-mobile);
+  height: var(--tap-mobile);
+  padding: 0;
+  border-radius: var(--r-chip);
+  background: none;
+  cursor: pointer;
+}
+
+@media (min-width: 1024px) {
+  /* No mouse a densidade sobe; o mínimo da 2.5.8 é 24. */
+  .switch {
+    width: var(--sp-32);
+    height: var(--sp-32);
+  }
+}
+
+.switch:disabled {
+  opacity: var(--disabled-opacity);
+  cursor: not-allowed;
+}
+
+.switch:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: calc(var(--focus-offset) * -1);
+}
+
+.switch__track {
+  position: relative;
+  display: block;
   width: 28px;
   height: 16px;
-  flex: 0 0 auto;
-  padding: 0;
   border: 1px solid var(--line-strong);
   border-radius: var(--r-round);
   /* Desligado é neutro; verde só quando o item está de fato à venda. */
   background: var(--line);
-  cursor: pointer;
-  position: relative;
   transition:
     background var(--motion-base) var(--ease),
     border-color var(--motion-base) var(--ease);
 }
 
-/*
- * A área de toque é maior que o desenho (WCAG 2.5.8): o controle encolheu, o
- * alvo não. Sem isto, reduzir o interruptor tiraria a lista do alcance do dedo.
- */
-.switch::before {
-  content: '';
-  position: absolute;
-  inset: 50% 50%;
-  width: var(--tap-mobile);
-  height: var(--tap-mobile);
-  transform: translate(-50%, -50%);
-}
-
-.switch[aria-checked='true'] {
+.switch[aria-checked='true'] .switch__track {
   background: var(--ok);
   border-color: var(--ok);
-}
-
-.switch:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.switch:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
 }
 
 .switch__knob {

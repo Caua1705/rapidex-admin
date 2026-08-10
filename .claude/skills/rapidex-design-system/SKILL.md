@@ -1,6 +1,6 @@
 ---
 name: rapidex-design-system
-description: Regras visuais do painel do lojista Rapidex — tokens, escala tipográfica, espaçamento, cor, densidade, movimento e conteúdo. Leia ANTES de escrever qualquer tela, componente ou CSS novo em src/, e antes de mexer em src/styles/tokens.css. Também aplicável ao revisar uma tela existente ou ao decidir uma cor, um espaçamento, um raio ou uma animação.
+description: Regras visuais do painel do lojista Rapidex — tokens, os cinco níveis de tipografia, a escala de seis degraus, os quatro planos, cor, densidade, enquadramento e movimento. Leia ANTES de escrever qualquer tela, componente ou CSS novo em src/, e antes de mexer em src/styles/tokens.css. Também aplicável ao revisar uma tela existente ou ao decidir uma cor, um espaçamento, um raio ou uma animação.
 ---
 
 # Design system do Rapidex
@@ -11,145 +11,157 @@ real, cardápio, configurações e a tela de cozinha.
 
 **O que este painel é:** uma ferramenta de operação densa e confiante — a
 família do Linear, do dashboard da Stripe, do da Vercel. Um lojista abre isto
-às 22h de sábado com a cozinha cheia. **Cada pixel gasto em decoração é um
-pixel a menos de pedido na tela.**
+às 22h de sábado com a cozinha cheia, no desktop do balcão e no celular no meio
+do salão. Ele precisa bater o olho e saber quantos pedidos, o que está
+atrasado, o que acabou. **Cada pixel gasto em decoração é um pixel a menos de
+pedido na tela.**
 
 **O que ele não é:** dashboard de SaaS genérico com cartão branco, sombra e
 muito ar. Padding generoso, cinza neutro e raio grande em tudo são "seguros" —
 e seguro é exatamente a sensação de inacabado.
 
-Fonte histórica: `design/_ds/rapidex-design-system-c214e0d9-.../`. Aquele
-material foi gerado a partir da logo, sem ver o código, e é conservador demais
-para uma ferramenta de operação. **Este arquivo manda; quando os dois
-divergirem, é ele que vale.** Intocáveis do material original: o laranja da
-marca e a escala de status de pedido.
+**"Premium" aqui significa PRECISÃO** — alinhamento, ritmo, contraste. Não
+sombra, não degradê, não animação de entrada.
+
+Intocáveis: o **laranja da marca** (`--ember`) e a **escala de sete status de
+pedido** (`--st-*`). Todo o resto deste documento pode ser rediscutido com uma
+tela na mão.
 
 ## A regra que vale mais que as outras
 
-**Toda cor vem de `src/styles/tokens.css`.** Em qualquer outro arquivo é
-`var(--token)`. Um hexadecimal, um `rgb()`, um `hsl()` ou um nome de cor
-(`white`, `red`) fora daquele arquivo é erro de lint — `npm run lint` roda
+**Todo valor de cor, corpo de fonte e raio vem de `src/styles/tokens.css`.** Em
+qualquer outro arquivo é `var(--token)`. Um hexadecimal, um `rgb()`, um `hsl()`
+ou um nome de cor fora daquele arquivo é erro de lint — `npm run lint` roda
 `scripts/check-design-tokens.mjs` nos `.css`.
 
 Se um token faltar para a tela que você está fazendo, **o token está errado,
-não a tela**: acrescente-o em `tokens.css` (nos dois temas) em vez de escrever
-o valor solto.
+não a tela**: acrescente-o em `tokens.css` (nos dois temas), com o par de
+contraste medido em `scripts/check-contrast.mjs`, em vez de escrever o valor
+solto.
 
 ---
 
 # 1. Tipografia: cinco níveis, e só cinco
 
-Todo texto do painel é um destes cinco. A prova: **bata o olho em qualquer
-texto da tela e diga qual nível ele usa.** Se não der para dizer, o texto está
-errado — não falta um nível.
+**Inter, e só ela.** Sans neutra de interface, sem personalidade própria, com
+numeral tabular de verdade. Não há fonte mono no sistema: preço em monoespaçada
+lê como trecho de código no meio do cardápio, e o alinhamento que ela existia
+para resolver o `tnum` da Inter já resolve.
 
-| #   | Nível            | Classe       | Corpo/entrelinha | Peso | Caixa     | Cor      | Onde                                             |
-| --- | ---------------- | ------------ | ---------------- | ---- | --------- | -------- | ------------------------------------------------ |
-| 1   | Título de página | `.t-title`   | 20 / 26          | 700  | normal    | primary  | **um por tela**, no alto à esquerda              |
-| 2   | Título de seção  | `.t-section` | 14 / 20          | 700  | normal    | primary  | cabeçalho de cartão, de coluna, de aba, de grupo |
-| 3   | Rótulo           | `.t-label`   | 11 / 14          | 600  | MAIÚSCULA | tertiary | nome de campo, cabeçalho de coluna, grupo da nav |
-| 4   | Corpo            | `.t-body`    | 13 / 18          | 400  | normal    | primary  | o conteúdo                                       |
-| 5   | Auxiliar         | `.t-aux`     | 12 / 16          | 400  | normal    | tertiary | ajuda, meta, rodapé, contagem, hora              |
+| #   | Nível            | Classe       | Corpo/entrelinha | Peso | Caixa     | Tinta     | Onde                                             |
+| --- | ---------------- | ------------ | ---------------- | ---- | --------- | --------- | ------------------------------------------------ |
+| 1   | Título de página | `.t-title`   | 20 / 26          | 650  | normal    | `--ink`   | **um por tela**, no alto à esquerda              |
+| 2   | Título de seção  | `.t-section` | 14 / 20          | 600  | normal    | `--ink`   | cartão, coluna, aba, grupo, diálogo              |
+| 3   | Rótulo           | `.t-label`   | 11 / 14          | 600  | MAIÚSCULA | `--ink-3` | nome de campo, cabeçalho de coluna, grupo da nav |
+| 4   | Corpo            | `.t-body`    | 13 / 18          | 400  | normal    | `--ink`   | o conteúdo                                       |
+| 5   | Auxiliar         | `.t-aux`     | 12 / 16          | 400  | normal    | `--ink-3` | ajuda, meta, hora, contagem, rodapé              |
 
-O contraste entre níveis vem de **peso + caixa + cor**, não de três pontos de
-corpo. Título de página e título de seção são o mesmo peso e cores iguais; o
-que os separa é o tamanho e o fato de haver **um só** do primeiro.
+**A prova: bata o olho em qualquer texto da tela e diga qual nível ele usa.** Se
+não der para dizer, o texto está errado — não falta um nível.
 
-- **13px de corpo, não 15.** A versão anterior deste documento pedia 15px "por
-  ser lido a um braço de distância". Errado para o painel: ele é operado com o
-  mouse na mão, a 50cm, e 15px é o que empurrava metade da lista para fora da
-  tela. Quem é lido a dois metros é a Cozinha, e ela tem escala própria.
+- O contraste entre níveis vem de **corpo + peso + caixa + tinta juntos**, nunca
+  de um só. Corpo (13) e auxiliar (12) diferem em 1px porque quem os separa de
+  verdade é a tinta.
+- Maiúscula e `--ink-3` fazem parte do nível 3, não são opção: é o que permite
+  ao rótulo ser 11px sem competir com o valor que ele nomeia.
+- Cada classe declara corpo, entrelinha, peso, espacejamento **e tinta** juntos.
+  Meia definição — corpo aqui, cor lá no componente — é como um nível vira
+  quatro variantes em quatro telas.
+- Os tokens (`--tt-*`, `--ts-*`, `--tl-*`, `--tb-*`, `--ta-*`) existem para
+  compor um nível dentro de outra regra. Fora disso, use a classe.
 - **Nunca escolha tamanho e peso caso a caso.** É exatamente isso que dá a
   sensação de inacabado: quatro tamanhos de "título" em quatro telas.
-- Os tokens (`--type-<nível>-size|line|weight|tracking`) existem para compor um
-  nível dentro de outra regra — uma célula que é rótulo mas herda a cor do
-  status, por exemplo. Fora disso, use a classe.
-- **Nada acima de `--text-xl` no painel.** `--text-lg`, `--text-2xl` e
-  `--text-3xl` existem para uma tela só: a Cozinha (ver §7).
 
-## Número é outra coisa
+## Número é o mesmo nível com outra métrica
 
-**Todo número que se compara em coluna** — nº do pedido, preço, total,
-cronômetro, contagem — usa a mono tabular e **alinha à direita**:
+**Todo número que se compara** — dinheiro, tempo decorrido, nº de pedido,
+contagem — sai em numeral tabular:
 
-- `.num` — mono tabular **e** `text-align: right`. É o padrão para dinheiro e
-  para nº de pedido numa lista ou numa tabela.
-- `.mono` — só a mono tabular, para número que não vive em coluna (o "25 min"
-  dentro de um cartão).
+- `.num` — tabular **e** alinhado à direita. É o padrão para uma COLUNA de
+  dinheiro numa lista ou numa tabela.
+- `.tnum` — só tabular, para número que vive dentro de uma frase ou de um
+  cartão.
 
-Sem isto, "R$ 9,90" e "R$ 192,90" começam em abscissas diferentes e o olho
-reancora a cada linha. Texto de UI comum usa a sans (Manrope).
+Sem isso, "R$ 9,90" e "R$ 192,90" começam em abscissas diferentes e o olho
+reancora a cada linha.
+
+## A Cozinha é a exceção, e é a única
+
+`src/kitchen/` quebra a escala de propósito: é um monitor pendurado na parede,
+lido a dois metros por quem está com as mãos ocupadas, sem navegação lateral e
+sem barra do topo. Ela tem três corpos próprios (`--k-num`, `--k-item`,
+`--k-meta`), declarados como exceção em `tokens.css`.
+
+**Isso não autoriza escala grande em nenhuma outra tela.** Se uma tela do painel
+"precisa" de 20px de corpo, o problema é outro.
 
 ---
 
-# 2. Espaçamento: oito degraus e nenhum valor solto
+# 2. Espaçamento: seis degraus e nenhum valor solto
 
-| Token       | Valor | Trabalho                                                 |
-| ----------- | ----- | -------------------------------------------------------- |
-| `--space-1` | 2px   | folga de cabelo: rótulo empilhado sobre o valor          |
-| `--space-2` | 4px   | dentro de um controle: ícone ↔ texto; rótulo ↔ campo     |
-| `--space-3` | 8px   | entre controles irmãos; padding de linha densa           |
-| `--space-4` | 12px  | padding de cartão; entre campos da mesma linha           |
-| `--space-5` | 16px  | entre blocos de uma seção; respiro lateral da tela       |
-| `--space-6` | 24px  | entre seções                                             |
-| `--space-7` | 32px  | topo de tela, estado vazio                               |
-| `--space-8` | 48px  | estado vazio grande — o único degrau generoso que sobrou |
+| Token     | Valor | Trabalho                                              |
+| --------- | ----- | ----------------------------------------------------- |
+| `--sp-4`  | 4px   | dentro de um controle: ícone ↔ texto, rótulo ↔ campo  |
+| `--sp-8`  | 8px   | entre controles irmãos; padding de linha densa        |
+| `--sp-12` | 12px  | padding de cartão; entre campos de uma mesma linha    |
+| `--sp-16` | 16px  | entre blocos de uma seção; respiro lateral da tela    |
+| `--sp-24` | 24px  | entre seções                                          |
+| `--sp-32` | 32px  | topo de tela e estado vazio — o único degrau generoso |
 
 **Escolha o degrau abaixo do que o instinto pede.** O instinto foi treinado em
 página de marketing; aqui embaixo tem fila de pedido.
 
-Regras que caem disso:
-
-- **Nenhum número solto em `padding`, `margin` ou `gap`.** A única exceção são
-  larguras de coluna de grade (`104px`, `28px`), que são medida de conteúdo, e
-  alturas de controle declaradas em `global.css`.
-- **Campo, rótulo e ajuda têm espaçamento idêntico em toda tela**: `.field` já
-  entrega isso (`gap: --space-2`). Não recomponha um campo à mão.
-- Faixa horizontal da tela (barra, cabeçalho, rodapé) usa
-  `padding: --space-3 --space-5`. O respiro lateral mora no elemento PAI, e as
-  faixas de dentro são `.container` puro, para que as bordas de todas alinhem.
+- **Nenhum número solto em `padding`, `margin` ou `gap`.** As únicas exceções são
+  larguras de coluna de grade (que são medida de conteúdo) e as alturas de
+  controle declaradas em `tokens.css`.
+- **Não existe `--sp-2`, `--sp-20` nem `--sp-40`**, e a falta deles é
+  proposital: eram exatamente por onde cada bloco escolhia o próprio ritmo.
+- **Campo, rótulo e ajuda têm espaçamento idêntico em toda tela**: `.field` (ou
+  `.ds-field`) já entrega isso. Não recomponha um campo à mão, e **não invente
+  um segundo nome de classe para a ajuda** — é `.field__hint`, em todo lugar.
 
 ---
 
-# 3. Superfície: separada por tom, não por borda
+# 3. Superfície: quatro planos, separados por tom
 
-A escada, de baixo para cima:
+| Token              | Papel                                                               |
+| ------------------ | ------------------------------------------------------------------- |
+| `--bg`             | o chão: área de trabalho, lateral e barra do topo                   |
+| `--surface`        | onde o trabalho acontece: cartão, coluna, lista                     |
+| `--surface-raised` | o que sobe um degrau: cartão dentro de coluna, menu, diálogo, folha |
+| `--line`           | a régua, quando o tom não basta                                     |
 
-| Token            | Papel                                                    |
-| ---------------- | -------------------------------------------------------- |
-| `--bg-sunken`    | o que afunda dentro do cartão: campo, miniatura, tag     |
-| `--bg-app`       | o chão da área de trabalho                               |
-| `--bg-chrome`    | a moldura que não é conteúdo: lateral e barra do topo    |
-| `--bg-surface`   | onde o trabalho acontece: cartão, coluna, linha de lista |
-| `--bg-surface-2` | o que flutua por cima: menu, diálogo, popover            |
+Mais `--field`, o plano do que se PREENCHE, que afunda.
 
-- **Um cartão que tem tom próprio não leva borda.** Contornar tudo é o que faz
-  a tela parecer wireframe. Borda existe para o que o tom não resolve: contorno
-  de campo e régua entre linhas de uma lista (`--border-subtle`).
+- **A moldura é o chão.** Lateral e barra do topo saem em `--bg`, o mesmo tom da
+  área de trabalho; quem as separa é um fio de 1px. Assim `--surface` fica
+  reservado ao conteúdo, e um cartão nunca disputa plano com a navegação.
+- **Um bloco que tem tom próprio não leva borda.** Contornar tudo é o que faz a
+  tela parecer wireframe. Se um bloco precisou de borda para se ver, ele está no
+  plano errado.
+- **A exceção declarada é o campo de texto.** Fora de um cartão ele some no
+  fundo, então ele — e só ele — leva contorno sempre, em `--line-control`, que é
+  o único da paleta que passa dos 3:1 da WCAG 1.4.11.
 - **Sem gradiente, sem blur, sem glassmorphism.** Overlay é véu sólido
-  semi-opaco (`--bg-overlay`).
-- **Sombra só no que flutua** — menu, diálogo, folha lateral. Cartão parado na
-  página não tem sombra em tema nenhum.
-- **Sem ilustração, imagem de fundo ou textura.** O único elemento pictórico é
-  o logo (`public/logo-mark.png`). Foto de prato é conteúdo do lojista:
-  placeholder quadrado discreto até haver foto real.
-- **Raio apertado**: `--radius-sm` (4px) no que é controle, `--radius-md` (6px)
-  no que é superfície, `--radius-lg` (10px) só no que flutua sobre a tela
-  inteira. `--radius-full` só em ponto, badge e switch.
-- **Hover em item interativo** clareia no escuro e escurece no claro — os dois
-  saem de `--bg-hover`, então a regra é uma só.
-- **Pressionado**: `scale(.98)`, sem cor extra.
+  semi-opaco (`--scrim`).
+- **Sombra só no que flutua** — menu, diálogo, folha lateral, barra de salvar.
+  Cartão parado na página não tem sombra em tema nenhum.
+- **Sem ilustração, imagem de fundo ou textura.** O único elemento pictórico é o
+  logo. Foto de prato é conteúdo do lojista: placeholder discreto até haver foto.
+- **Raio apertado**: `--r-chip` (4px) no que é controle, `--r-field` (6px) no que
+  é superfície, `--r-card` (8px) no que flutua. `--r-round` só em ponto, etiqueta
+  e interruptor.
 
 ### Tema
 
-Escuro é o padrão. Claro é **o mesmo conjunto semântico** com as superfícies
-invertidas, sob `[data-theme="light"]` no `<html>` — nunca uma segunda paleta.
-No claro a escada inverte de luminosidade (a moldura fica mais escura que a
-área de trabalho) mas o papel de cada token continua o mesmo.
+**Escuro é o tema principal.** Claro é **o mesmo conjunto semântico** com as
+superfícies invertidas, sob `[data-theme]` no `<html>` — nunca uma segunda
+paleta. A escada de tom no escuro é mais aberta que no claro de propósito: no
+claro o branco do cartão se destaca sozinho; no escuro, dois cinzas a 4% de
+distância viram um borrão e o cartão desaparece.
 
 Ao escrever CSS, **nunca** escreva uma regra específica de tema. Se precisou de
-`[data-theme="light"] .minha-classe`, o token semântico que você usou é o
-errado.
+`[data-theme="dark"] .minha-classe`, o token que você usou é o errado.
 
 ---
 
@@ -161,71 +173,142 @@ Se a resposta for "fica bonito" ou "diferencia visualmente", a cor sai.
 1. **O laranja da marca aparece em três lugares e mais nenhum:** botão primário
    (`.btn--primary`), indicador do item ativo da navegação, anel de foco. Nunca
    em texto de corpo, em ícone neutro, em fundo de seção ou em ênfase.
-   Da mesma família do foco, e pelo mesmo motivo ("é aqui que você mexeu"), vêm
-   os dois únicos usos derivados: o texto selecionado (`::selection`) e o
-   realce de um segundo na linha que o lojista acabou de mover. Nenhum dos dois
-   é permanente na tela — se ficasse, seria ênfase, e ênfase é o que esta regra
-   proíbe.
+   Da mesma família do foco vem o único uso derivado: o texto selecionado
+   (`::selection`) e o realce de um segundo na linha que acabou de se mover.
+   **O laranja nunca é TEXTO sobre `--ember-wash`**: não existe um laranja que
+   passe em AA nos dois temas sem deixar de ser o laranja da marca. Onde a marca
+   marcaria um item ativo, use tinta cheia + um degrau de tom + um trilho de 2px.
 2. **A escala de status pinta status de pedido e mais nada.** Não use uma matiz
    de status para categorizar o que não é estado de pedido (tipo de entrega,
-   forma de pagamento): confunde com a coluna do quadro da mesma cor.
-3. **Verde = "no ar / à venda".** Só o interruptor de disponibilidade, o de
-   loja aberta e o ponto de conexão viva. Nunca como rótulo escrito ao lado do
-   interruptor: se o controle já diz, a palavra colorida é ruído.
-4. **Âmbar = "esperando / atenção".** Cronômetro que entrou na janela,
+   forma de pagamento). Quem traduz status do backend para estágio visual é
+   `stageOf()` em `orders/order-status.ts`; o elemento leva `is-<estágio>` e lê
+   `--st` / `--st-wash`. Nenhum componente escolhe matiz.
+3. **`--ok` = "no ar / à venda / confirmado".** Interruptor ligado, loja aberta,
+   ponto de conexão viva. Nunca como palavra escrita ao lado do controle que já
+   diz a mesma coisa.
+4. **`--alert` = "esperando / atenção".** Cronômetro que entrou na janela,
    observação do item na cozinha, aviso.
-5. **Vermelho nunca é status.** É só perigo e alarme: cancelar, desativar,
-   pagamento recusado, pedido estourado.
-6. **O resto é neutro.** Etiqueta, ícone, contagem, meta: `--text-secondary` ou
-   `--text-tertiary`.
+5. **`--danger` = perigo.** Cancelar, excluir, pagamento recusado, pedido
+   estourado. (O estágio `cancelado` da escala de status usa a mesma matiz: fim
+   de linha e perigo são a mesma leitura.)
+6. **O resto é neutro.** Etiqueta, ícone, contagem, meta: `--ink-2` ou `--ink-3`.
 
-Estado positivo geralmente não precisa de palavra nenhuma. "DISPONÍVEL" em
-verde ao lado de um interruptor verde ligado, em toda linha da lista, é a mesma
-informação três vezes — o interruptor fica, o rótulo sai, e sobra texto só nos
-estados que **não** são o normal ("Esgotado", "Inativo").
-
-Os neutros têm **viés quente** (o preto é `#0A0908`, com sombra de marrom). Não
-introduza cinza-azulado de SaaS genérico.
+Os neutros têm **viés quente**. Não introduza cinza-azulado de SaaS genérico.
 
 ---
 
-# 5. Densidade e layout
+# 5. Estados: hover, foco e desabilitado saem dos tokens
 
-- **Sidebar de `--sidebar-width` (220px)**, agrupada por rótulo pequeno e fino
-  (`.t-label`), **sem linha divisória** entre grupos — o vão já separa. Abaixo
-  de 900px vira trilha de ícones de `--sidebar-rail` (56px), sem drawer: no
-  meio do turno, um menu que precisa ser aberto é um clique a mais por troca.
-- **Barra do topo de `--topbar-height` (48px)**, com o seletor de filial sempre
+Todo elemento operável tem os três, e nenhum componente escolhe o seu próprio:
+
+- **Hover**: `--hover` (e `--active` na pressão). Os dois são derivados da
+  TINTA, então funcionam nos dois temas com uma regra só — no claro escurecem,
+  no escuro clareiam, porque `--ink` já inverteu.
+- **Foco**: anel de `--focus-width` em `--focus`, declarado uma vez em
+  `reset.css` para `:focus-visible`. Componente que zera o `outline` sem repor
+  outro é o jeito mais comum de um sistema perder a navegação por teclado —
+  `design/shots/acabamento.spec.ts` varre isso em todas as rotas.
+- **Desabilitado**: `--disabled-opacity` e `cursor: not-allowed`. Nunca esconder
+  o controle: o que some ninguém reativa.
+
+---
+
+# 6. Nenhum controle nativo
+
+O `<select>` do sistema operacional é o sinal mais forte de "não terminado" que
+existe: ele não aceita a tipografia, nem o raio, nem o tom das superfícies.
+
+- **Seletor**: `ds/Select`. Gatilho estilizado, lista com superfície própria,
+  opção escolhida com check (cor sozinha não passa em 1.4.1), teclado inteiro
+  (setas, Home/End, Enter, Esc, Tab) e fechamento por clique fora. Duas
+  propriedades para os casos fora do formulário: `bare` (gatilho sem caixa, para
+  quem vive numa barra) e `display` (conteúdo próprio no gatilho).
+- **Caixa de marcar e rádio**: `ds/Checkbox` e `ds/Radio`. O `<input>` continua
+  nativo — teclado e leitor de tela vêm dele — mas com `appearance: none` ele
+  não desenha nada, e o `accent-color` do sistema some.
+- **Barra de rolagem**: fina, do tom da linha, revelada no ponteiro
+  (`reset.css`).
+- **Hora e data** continuam sendo campo nativo, e é a única concessão: o seletor
+  do sistema é o que a mão já sabe operar. O ícone do navegador é rebaixado a
+  afixo discreto em `primitives.css`.
+
+Nos testes, `selectOption()` não serve para nada — use `e2e/seletor.ts`.
+
+---
+
+# 7. Enquadramento
+
+**A coluna de conteúdo começa logo depois da lateral.** O teto de largura é
+medido A PARTIR do fim dela (`--page-max`), nunca centrado no viewport:
+`margin-inline: auto` num container de largura máxima abre, em 1900px, 300px de
+faixa vertical vazia entre a lateral e a primeira letra — o defeito que mais faz
+um painel parecer quebrado.
+
+- **`--page-pad` é o respiro lateral de TODA tela**, e o mesmo no topo. Um valor
+  por tela faz o título pular de lugar a cada troca de seção.
+- **Uma tela, um teto.** Título, abas e conteúdo dividem a mesma largura máxima.
+  Uma régua de aba que corre 340px além da borda dos cartões lê como dois blocos
+  desalinhados.
+- **Lateral de `--sidebar-w` (208px)**, agrupada por rótulo (nível 3), sem linha
+  divisória entre grupos — o vão já separa. Abaixo de 1024px vira trilha de
+  ícones (`--sidebar-rail`); abaixo de 640px sai da tela e vira barra inferior.
+- **Barra do topo de `--topbar-h` (48px)**, com o seletor de filial sempre
   visível, mesmo com uma filial só.
+- **Exceções propositais ao teto**: o quadro de pedidos e a Cozinha, que rolam na
+  horizontal e usam a tela toda.
+- Verifique em **1440, 1900 e 2560** — `design/shots/enquadramento.spec.ts` mede
+  a distância entre a lateral e o conteúdo e falha acima de 100px.
+
+## Truncar
+
+Truncar é legítimo quando falta espaço; o defeito é truncar quando **sobra**.
+Quando dois textos dividem uma linha, decida no flex QUEM cede: o que
+identifica é `flex: 0 0 auto`, o que desempata é `flex: 1 1 auto` com
+`min-width: 0`. Sem isso os dois encolhem juntos e o nome da filial vira "M…"
+ao lado de um endereço inteiro.
+
+---
+
+# 8. Densidade e conteúdo de lista
+
 - **Lista de dados é grade, nunca flex com `space-between`.** Só a coluna do
   nome é fluida; preço, estado e ação têm largura fixa e ficam na mesma
-  abscissa em todas as linhas. Com `space-between`, cada linha ancora o olho
-  num lugar diferente conforme o comprimento do nome.
-- **Linha de lista densa**: alvo de ~32px (miniatura de 24px,
-  `padding-block: --space-2`). O que estoura essa altura é empilhar rótulo em
-  cima de controle — ponha lado a lado. Em `max-width: 720px` a densidade cede
-  e a linha vira alvo de dedo.
-- **Ação secundária aparece no hover da linha**, sem caixa (`.btn--ghost`), e
-  **continua visível quando recebe foco de teclado** (`:focus-within`). Uma
-  coluna de botões contornados compete com o dado que a pessoa veio ler.
+  abscissa em todas as linhas. Com `space-between`, cada linha ancora o olho num
+  lugar diferente conforme o comprimento do nome.
+- **Linha de lista densa**: alvo de ~32px. O que estoura essa altura é empilhar
+  rótulo em cima de controle — ponha lado a lado. Em `max-width: 720px` a
+  densidade cede e a linha vira alvo de dedo.
+- **Ação secundária é ícone SEM CAIXA**, revelada no hover da linha, e
+  **continua visível no foco de teclado** (`:focus-within`). No toque ela é
+  permanente — não existe hover para revelá-la. Uma coluna de botões
+  contornados compete com o dado que a pessoa veio ler.
+- **O interruptor indica estado; ele não é a ação da página.** Trilho de 28×16,
+  desenho pequeno e alvo de toque inteiro. Um por linha no tamanho anterior
+  fazia dele o elemento mais pesado da lista.
 - **Nada de informação duas vezes na mesma tela.** Se o contador está no
-  cabeçalho da coluna, ele não está também num cartão de resumo em cima —
-  escolha o lugar onde o olho já está.
-- **Conteúdo dentro de `.container`** (1400px). Exceções propositais: o quadro
-  de pedidos e a Cozinha, que rolam na horizontal e usam a tela toda.
+  cabeçalho da coluna, ele não está também num resumo em cima — e um total que é
+  a SOMA de contadores visíveis na mesma dobra também é a mesma informação.
+- **Nada idêntico em toda linha de uma lista.** "DISPONÍVEL" ao lado de um
+  interruptor ligado, "Não imprimir" em toda linha da coluna de setor, "3 itens
+  / 1 item" ao lado de cada categoria: a palavra que se repete não distingue
+  nada, só ocupa a largura do que muda. Escreva só o estado que **não** é o
+  normal.
+- **Coluna/lista vazia não escreve nada** quando o contador ao lado já diz zero.
+  "Nenhum pedido" em cinco colunas ao mesmo tempo é ruído em toda a largura da
+  tela, no lugar onde o próximo pedido vai aparecer. O "Carregando…" fica: aí a
+  lista vazia ainda não é uma afirmação.
 - Board kanban: colunas `flex: 1 0 232px` com `max-width: var(--column-max)` —
-  crescem para ocupar a sobra, nunca encolhem (card espremido quebra em duas
-  linhas e acaba com a leitura de longe).
+  crescem para ocupar a sobra, nunca encolhem.
 
 ---
 
-# 6. Movimento
+# 9. Movimento
 
 **Animação só onde comunica mudança de estado.** Nada de entrada decorativa,
-parallax ou transição de página. Os casos legítimos hoje: o botão do switch
-deslizando ao esgotar/repor, a linha esmaecendo ao desativar, o realce da
-categoria que trocou de posição, o pulso do ponto de conexão reconectando, o
-piscar do cronômetro que estourou.
+parallax ou transição de página. Os casos legítimos hoje: o botão do
+interruptor deslizando, a linha esmaecendo ao desativar, o realce da categoria
+que trocou de posição, o pulso do ponto de conexão, o piscar do cronômetro que
+estourou, a entrada do painel de detalhe e da barra de salvar.
 
 Escreva as durações com `var(--motion-fast)` / `var(--motion-base)`: sob
 `prefers-reduced-motion: reduce` esses tokens já viram `0s`, e a tela troca de
@@ -235,36 +318,24 @@ próprio.
 
 ---
 
-# 7. A Cozinha é a exceção, e é a única
+# 10. Rota que não existe é página "em implementação"
 
-`src/kitchen/` quebra a densidade do resto de propósito: é um monitor pendurado
-na parede, lido a dois metros por quem está com as mãos ocupadas, sem
-navegação lateral e sem barra do topo. Lá o nº do pedido vai a `--text-3xl`, o
-item a `--text-2xl` e o botão ocupa o cartão inteiro.
-
-**Isso não autoriza escala grande em nenhuma outra tela.** Se uma tela do
-painel "precisa" de 20px de corpo, o problema é outro.
-
----
-
-# 8. Rota que não existe é página "em implementação"
-
-A navegação mostra o produto inteiro, inclusive o que ainda não foi construído
-— esconder um item não faz o lojista deixar de procurá-lo. O item aparece com
-peso reduzido e a etiqueta "em breve", **é clicável**, e leva a uma página com
+A navegação mostra o produto inteiro, inclusive o que ainda não foi construído —
+esconder um item não faz o lojista deixar de procurá-lo. O item aparece com peso
+reduzido e a etiqueta "em breve", **é clicável**, e leva a uma página com
 **título e uma frase do que vai fazer. Nada mais.** Sem botão falso, sem dado
-inventado, sem barra de progresso, sem "80% pronto".
+inventado, sem barra de progresso.
 
-Nunca invente rota de API nem tela com dado fabricado para preencher espaço.
+**Nunca invente rota de API nem tela com dado fabricado para preencher espaço.**
 
 ---
 
-# 9. Ícones e conteúdo
+# 11. Ícones e texto
 
 Conjunto autoral de linha: **stroke 2px, grade 24px, cantos arredondados**,
 `stroke="currentColor"`, `fill="none"`, `aria-hidden="true"`. Ver
-`src/ui/icons.tsx`. Ícone é `--text-tertiary` e **não tem caixa** — só o hover
-ou o foco desenham fundo.
+`src/ui/icons.tsx`. Ícone é `--ink-3` e **não tem caixa** — só o hover ou o foco
+desenham fundo.
 
 **Nenhum emoji, em lugar nenhum do produto.**
 
@@ -278,47 +349,77 @@ ou o foco desenham fundo.
   desfeita."
 - **Rótulos de status são substantivos/particípios curtos**: Pendente, Aceito,
   Preparando, Pronto, Saiu para entrega, Concluído, Cancelado.
+- **Placeholder de campo vazio diz POR QUE não há valor**, quando há um motivo:
+  "Depende da filial" é verdade; "Escolher…" num campo que não tem o que
+  oferecer é mentira.
 
 ---
 
-# 10. Componentes deste repo
+# 12. Componentes deste repo
 
-`src/ui/` (`Modal`, `Switch`, `RapidexLogo`) e as classes utilitárias de
-`src/styles/global.css`:
+`src/ds/` (Select, Checkbox, Radio, Input, Field, Switch, StatusChip, Card,
+DataTable, Sheet, Tabs, OrderTicket, MaturationBar), `src/ui/` (Modal, Switch,
+RapidexLogo) e as classes de `src/styles/primitives.css`:
 
-| Classe                                                                             | O quê                                              |
-| ---------------------------------------------------------------------------------- | -------------------------------------------------- |
-| `.t-title` `.t-section` `.t-label` `.t-body` `.t-aux`                              | os cinco níveis de tipografia                      |
-| `.btn` `.btn--primary` `.btn--danger` `.btn--ghost` `.btn--sm` `.icon-btn`         | botões (28px; `--sm` 24px)                         |
-| `.field` `.field__label` `.field__hint` `.input` `.select` `.textarea` `.checkbox` | formulário                                         |
-| `.alert--error` `.alert--warn` `.alert--info`                                      | avisos                                             |
-| `.tag`                                                                             | etiqueta neutra                                    |
-| `.mono` `.num`                                                                     | número tabular / número tabular alinhado à direita |
-| `.muted` `.faint` `.container` `.sr-only` `.conn`                                  | utilitários                                        |
+| Classe                                                                            | O quê                                              |
+| --------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `.t-title` `.t-section` `.t-label` `.t-body` `.t-aux`                             | os cinco níveis de tipografia                      |
+| `.btn` `.btn--primary` `.btn--danger` `.btn--ghost` `.btn--sm` `.icon-btn`        | botões (`--control-h`; `--sm` menor)               |
+| `.field` `.field__label` `.field__hint` `.field__error-text` `.input` `.textarea` | formulário                                         |
+| `.alert--error` `.alert--warn` `.alert--info`                                     | avisos                                             |
+| `.tag`                                                                            | etiqueta neutra                                    |
+| `.tnum` `.num`                                                                    | número tabular / número tabular alinhado à direita |
+| `.muted` `.faint` `.sr-only` `.conn`                                              | utilitários                                        |
 
 **Reaproveite antes de criar**: um segundo botão com padding próprio é como a
-densidade começa a desandar.
+densidade começa a desandar. Não existe mais um `legacy-bridge.css` — se você
+encontrar dois nomes para a mesma coisa, um dos dois é para apagar.
 
 ---
 
 # Checklist antes de dar uma tela por pronta
 
-Estas são as perguntas da revisão; qualquer "não" é conserto, não ressalva.
+Qualquer "não" é conserto, não ressalva.
 
-- [ ] `npm run lint` limpo (inclui a aderência de cor) e `npm test` verde.
-- [ ] **Existe alguma informação exibida duas vezes na mesma tela?**
-- [ ] **Todo espaçamento vem da escala** — nenhum `padding: 20px` solto.
-- [ ] **Dá para nomear qual dos cinco níveis cada texto usa?**
-- [ ] **Alguma cor está lá por decoração e não por significado?**
+- [ ] `npm run lint` limpo (aderência de token + contraste medido nos dois temas)
+      e `npm test` verde.
+- [ ] `npx playwright test` verde (o e2e).
+- [ ] **Sobrou algum controle de formulário nativo?**
+- [ ] **Existe faixa vertical vazia com mais de 100px entre a lateral e o
+      conteúdo, em qualquer largura?**
+- [ ] **Alguma informação aparece duas vezes na mesma tela?**
+- [ ] **Alguma informação se repete, idêntica, em toda linha de uma lista?**
+- [ ] **Todo espaçamento vem da escala, ou sobrou valor solto no CSS?**
+- [ ] **Dá para nomear qual dos cinco níveis tipográficos cada texto usa?**
+- [ ] **Alguma cor está lá por decoração, e não por significado?**
+- [ ] **Todo elemento interativo tem hover e foco visíveis?**
+- [ ] **Algum texto trunca onde havia espaço de sobra?**
 - [ ] **As colunas de conteúdo alinham entre si e com o cabeçalho?**
 - [ ] **No mobile (390px), alguma coisa quebra ou fica ilegível?**
-- [ ] Dinheiro e nº de pedido em `.num` (tabular, à direita).
-- [ ] Testada nos dois temas, sem nenhuma regra CSS específica de tema.
-- [ ] Laranja só no CTA primário, na navegação ativa e no foco.
+- [ ] **O tema escuro tem o mesmo cuidado do claro?**
+- [ ] Dinheiro e nº de pedido em numeral tabular.
+- [ ] Nenhuma regra CSS específica de tema.
 - [ ] Nenhum emoji; nenhuma rota inventada.
 - [ ] Animação só onde há mudança de estado, com `prefers-reduced-motion`.
-- [ ] Foco visível com `--focus-ring` em tudo que é operável por teclado.
 
-Para conferir de verdade: `npx playwright test -c design/shots/shots.config.ts`
-fotografa cada tela em 1440px (claro e escuro) e 390px em
-`design/shots/out/<SHOT_TAG>/`.
+## As réguas automáticas
+
+Quatro delas não dependem de olhar:
+
+```
+npx playwright test -c design/shots/shots.config.ts acabamento     # nativos, foco, truncamento, alvo de toque
+npx playwright test -c design/shots/shots.config.ts enquadramento  # o vão entre lateral e conteúdo em 1440/1900/2560
+npx playwright test -c design/shots/shots.config.ts cabecalho      # quem trunca no cabeçalho
+npx playwright test -c design/shots/shots.config.ts telas          # o lote de prints, dois temas + celular
+```
+
+`shots.config.ts` reconstrói o bundle a cada execução — é a régua do resultado
+final. Enquanto se mexe no CSS, use `dev.config.ts`, que reaproveita o
+`npm run dev` já aberto e roda em segundos:
+
+```
+npm run dev -- --port 5199 --host 127.0.0.1
+npx playwright test -c design/shots/dev.config.ts
+```
+
+Os prints saem em `design/shots/out/<SHOT_TAG>/`.
