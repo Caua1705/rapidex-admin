@@ -2,16 +2,21 @@ import { useState } from 'react';
 
 import { useTheme } from '../theme/theme-context';
 import {
+  Badge,
   Breadcrumb,
+  Card,
   Checkbox,
   Field,
   FieldRow,
   Input,
+  OrderTicket,
   RadioGroup,
   RangeInput,
+  DataTable,
   SearchField,
   Select,
   Spinner,
+  StatusChip,
   Switch,
   Sheet,
   Tabs,
@@ -270,6 +275,217 @@ export function UiGalleryPage() {
               <Spinner />
               <Spinner label="Salvando…" />
             </div>
+          </Amostra>
+        </Secao>
+
+        <Secao
+          titulo="Ticket de pedido"
+          nota="O fio no topo é a barra de maturação: preenche contra a janela de preparo da loja (aqui, 100 min) e muda de cor em 50% e 85%."
+        >
+          <Amostra rotulo="No prazo">
+            <OrderTicket
+              stage="preparando"
+              number={1042}
+              elapsedLabel="18 min"
+              elapsedMinutes={18}
+              windowMinutes={100}
+              timeLabel="20:41"
+              customer="Marcos Lima"
+              total="R$ 192,90"
+              tags={['Entrega', 'Pix']}
+              onOpen={() => {}}
+            />
+          </Amostra>
+
+          <Amostra rotulo="Na janela (50%)">
+            <OrderTicket
+              stage="preparando"
+              number={1043}
+              elapsedLabel="62 min"
+              elapsedMinutes={62}
+              windowMinutes={100}
+              timeLabel="19:58"
+              customer="Ana Paula Nogueira"
+              total="R$ 147,00"
+              tags={['Entrega', 'Dinheiro']}
+              onOpen={() => {}}
+            />
+          </Amostra>
+
+          <Amostra rotulo="Estourando (85%)">
+            <OrderTicket
+              stage="preparando"
+              number={1044}
+              elapsedLabel="94 min"
+              elapsedMinutes={94}
+              windowMinutes={100}
+              timeLabel="19:26"
+              customer="Rafael Nunes"
+              total="R$ 89,90"
+              tags={['Retirada']}
+              onOpen={() => {}}
+            />
+          </Amostra>
+
+          <Amostra rotulo="Aguardando pagamento">
+            <OrderTicket
+              stage="pendente"
+              number={1045}
+              elapsedLabel="4 min"
+              elapsedMinutes={4}
+              windowMinutes={100}
+              timeLabel="21:02"
+              customer="Juliana Alves"
+              total="R$ 124,00"
+              tags={['Entrega', 'Pix']}
+              alerta="Aguardando pagamento — não preparar"
+              onOpen={() => {}}
+            />
+          </Amostra>
+
+          <Amostra rotulo="Escolhido">
+            <OrderTicket
+              stage="pronto"
+              number={1046}
+              elapsedLabel="41 min"
+              elapsedMinutes={41}
+              windowMinutes={100}
+              timeLabel="20:19"
+              customer="Pedro Henrique"
+              total="R$ 236,40"
+              tags={['Entrega']}
+              selected
+              onOpen={() => {}}
+            />
+          </Amostra>
+
+          <Amostra rotulo="Sem janela configurada">
+            <OrderTicket
+              stage="aceito"
+              number={1047}
+              elapsedLabel="7 min"
+              elapsedMinutes={7}
+              windowMinutes={null}
+              timeLabel="20:55"
+              customer="Camila Souza"
+              total="R$ 98,00"
+              tags={['Retirada', 'Crédito']}
+              onOpen={() => {}}
+            />
+          </Amostra>
+        </Secao>
+
+        <Secao titulo="Estado e contagem" nota="Cor, texto e forma — sempre os três juntos.">
+          <Amostra rotulo="Chips" larga>
+            <div className="gal__row">
+              {(
+                [
+                  'pendente',
+                  'aceito',
+                  'preparando',
+                  'pronto',
+                  'entrega',
+                  'concluido',
+                  'cancelado',
+                ] as const
+              ).map((stage) => (
+                <StatusChip key={stage} stage={stage} />
+              ))}
+            </div>
+          </Amostra>
+
+          <Amostra rotulo="Chips pequenos" larga>
+            <div className="gal__row">
+              {(['pendente', 'pronto', 'cancelado'] as const).map((stage) => (
+                <StatusChip key={stage} stage={stage} size="sm" />
+              ))}
+            </div>
+          </Amostra>
+
+          <Amostra rotulo="Contadores">
+            <div className="gal__row">
+              <Badge value={0} />
+              <Badge value={12} />
+              <Badge value={3} alerta />
+            </div>
+          </Amostra>
+        </Secao>
+
+        <Secao titulo="Cartão e lista">
+          <Amostra rotulo="Cartão" larga>
+            <Card title="Pedido" hint="O que o cliente vê antes de fechar.">
+              <FieldRow>
+                <Field label="Valor mínimo">
+                  <Input prefix="R$" value="20,00" onValueChange={() => {}} />
+                </Field>
+                <Field label="Tempo estimado">
+                  <RangeInput
+                    from={{ value: de, onValueChange: setDe, label: 'Mínimo' }}
+                    to={{ value: ate, onValueChange: setAte, label: 'Máximo' }}
+                    suffix="min"
+                  />
+                </Field>
+              </FieldRow>
+            </Card>
+          </Amostra>
+
+          <Amostra rotulo="Linha de item do cardápio" larga>
+            <Card>
+              <ul className="ds-itens">
+                {[
+                  { nome: 'Picanha à Moda (1kg)', desc: 'Serve 4 pessoas', preco: 'R$ 192,90' },
+                  { nome: 'Filé à Parmegiana (400g)', desc: 'Serve 2 pessoas', preco: 'R$ 94,70' },
+                ].map((item) => (
+                  <li className="ds-item" key={item.nome}>
+                    <span className="ds-item__foto" aria-hidden="true" />
+                    <span className="ds-item__texto">
+                      <span className="ds-item__nome">
+                        <span className="ds-item__nome-texto t-card">{item.nome}</span>
+                        <span className="ds-item__preco-inline">{item.preco}</span>
+                      </span>
+                      <span className="ds-item__desc t-hint">{item.desc}</span>
+                    </span>
+                    <span className="ds-item__preco t-money t-money--sm">{item.preco}</span>
+                    <span className="ds-item__fim">
+                      <Switch checked onChange={() => {}} label={item.nome} hideLabel />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </Amostra>
+
+          <Amostra rotulo="Tabela responsiva" larga>
+            <Card>
+              <DataTable
+                caption="Formas de pagamento da filial"
+                columns={[
+                  { key: 'forma', header: 'Forma' },
+                  { key: 'tipo', header: 'Tipo' },
+                  { key: 'estado', header: 'Estado', align: 'end' },
+                ]}
+                rows={[
+                  {
+                    id: '1',
+                    forma: 'Pix',
+                    tipo: 'Online',
+                    estado: <StatusChip stage="pronto" size="sm" />,
+                  },
+                  {
+                    id: '2',
+                    forma: 'Dinheiro',
+                    tipo: 'Na entrega',
+                    estado: <StatusChip stage="pronto" size="sm" />,
+                  },
+                  {
+                    id: '3',
+                    forma: 'Vale-refeição',
+                    tipo: 'Na entrega',
+                    estado: <StatusChip stage="concluido" size="sm" />,
+                  },
+                ]}
+              />
+            </Card>
           </Amostra>
         </Secao>
 

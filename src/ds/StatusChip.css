@@ -1,0 +1,71 @@
+.ds-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-8);
+  padding: 0 var(--sp-8);
+  border-radius: var(--r-chip);
+  background: var(--st-wash);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.ds-chip--md {
+  min-height: var(--tap);
+  font-size: var(--t-hint);
+  line-height: var(--t-hint-line);
+  font-weight: var(--t-label-weight);
+}
+
+/* O pequeno vive dentro de uma linha de lista, onde a altura é do conteúdo. */
+.ds-chip--sm {
+  min-height: 20px;
+  padding-inline: var(--sp-4);
+  font-size: var(--t-eyebrow);
+  line-height: 1;
+  font-weight: var(--t-eyebrow-weight);
+  letter-spacing: 0.02em;
+}
+
+/* A FORMA. Ele carrega a matiz do estágio e é o que sobrevive ao daltonismo. */
+.ds-chip__ponto {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-round);
+  background: var(--st);
+}
+
+.ds-chip--sm .ds-chip__ponto {
+  width: 6px;
+  height: 6px;
+}
+
+/* --- contador numérico ---------------------------------------------------- */
+
+/*
+ * O badge de contagem. Sem cor de status: ele conta, não classifica. Quando
+ * mora dentro de um cabeçalho de coluna, quem já diz o estágio é a coluna.
+ */
+.ds-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  min-height: 20px;
+  padding-inline: var(--sp-4);
+  border-radius: var(--r-round);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: var(--t-eyebrow);
+  font-weight: var(--t-eyebrow-weight);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Só o badge de PENDENTE grita, e por um motivo operacional: é a única coluna
+ * cujo número vazio é bom e cujo número alto é um problema agora.
+ */
+.ds-badge--alerta {
+  background: var(--st-pendente-wash);
+  color: var(--ink);
+}

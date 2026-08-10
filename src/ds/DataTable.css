@@ -1,0 +1,122 @@
+.ds-tabela {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ds-tabela__caption {
+  text-align: left;
+  padding-bottom: var(--sp-8);
+  font-size: var(--t-hint);
+  line-height: var(--t-hint-line);
+  color: var(--ink-3);
+}
+
+/*
+ * CELULAR: a tabela deixa de ser tabela.
+ *
+ * Cada linha vira um bloco, e o cabeçalho da coluna reaparece ao lado do valor
+ * pelo `data-col`. A alternativa — rolar na horizontal — some justamente com a
+ * primeira coluna, que é a que identifica a linha.
+ */
+.ds-tabela thead {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.ds-tabela tr {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-12) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.ds-tabela tr:last-child {
+  border-bottom: none;
+}
+
+.ds-tabela td {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  min-height: var(--tap);
+  font-size: var(--t-body);
+  line-height: var(--t-body-line);
+  color: var(--ink);
+}
+
+.ds-tabela td[data-col]::before {
+  content: attr(data-col);
+  flex: 0 0 40%;
+  font-size: var(--t-hint);
+  font-weight: var(--t-label-weight);
+  color: var(--ink-3);
+}
+
+/* A coluna de ações encosta à esquerda no celular: ela é a última do bloco. */
+.ds-tabela__fim {
+  justify-content: flex-start;
+}
+
+/* ==========================================================================
+ * TABLET E DESKTOP: volta a ser tabela
+ * ======================================================================= */
+
+@media (min-width: 640px) {
+  .ds-tabela thead {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    clip: auto;
+  }
+
+  .ds-tabela th {
+    padding: var(--sp-8) var(--sp-12);
+    text-align: left;
+    font-size: var(--t-eyebrow);
+    line-height: var(--t-eyebrow-line);
+    font-weight: var(--t-eyebrow-weight);
+    letter-spacing: var(--t-eyebrow-track);
+    text-transform: uppercase;
+    color: var(--ink-3);
+    white-space: nowrap;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .ds-tabela tr {
+    display: table-row;
+    padding: 0;
+  }
+
+  .ds-tabela td {
+    display: table-cell;
+    padding: var(--sp-8) var(--sp-12);
+    vertical-align: middle;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .ds-tabela tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .ds-tabela td[data-col]::before {
+    content: none;
+  }
+
+  .ds-tabela__fim {
+    text-align: right;
+  }
+
+  /* Numa célula-tabela, o alinhamento à direita precisa valer para o conteúdo
+     flexível também (um par de botões, por exemplo). */
+  .ds-tabela td.ds-tabela__fim > * {
+    margin-left: auto;
+  }
+}

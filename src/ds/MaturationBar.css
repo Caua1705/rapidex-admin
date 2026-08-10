@@ -1,0 +1,41 @@
+/*
+ * O fio de maturação. Ele mora no topo do ticket, encostado nas duas bordas —
+ * é a primeira coisa que existe no cartão e a única que se lê sem foco.
+ */
+.ds-maturacao {
+  display: block;
+  height: 3px;
+  width: 100%;
+  /* O trilho é a superfície afundada: o vazio também informa (falta encher). */
+  background: var(--surface-2);
+  border-radius: var(--r-card) var(--r-card) 0 0;
+  overflow: hidden;
+}
+
+.ds-maturacao__fio {
+  display: block;
+  height: 100%;
+  width: var(--preenchido, 0%);
+  background: var(--st-pronto);
+  /*
+   * A largura acompanha o relógio, então ela muda a cada minuto. A transição
+   * existe para a mudança ser vista, e não descoberta na próxima olhada; sob
+   * prefers-reduced-motion o token vai a zero e o fio salta.
+   */
+  transition:
+    width var(--motion-base) var(--ease),
+    background var(--motion-base) var(--ease);
+}
+
+/* 50% da janela: hora de olhar. */
+.ds-maturacao--atencao .ds-maturacao__fio {
+  background: var(--st-pendente);
+}
+
+/*
+ * 85%: estourando. O vermelho aqui é alarme, não estado — é a exceção que a
+ * regra do sistema prevê, e a única fora de cancelamento e erro destrutivo.
+ */
+.ds-maturacao--estourando .ds-maturacao__fio {
+  background: var(--st-cancelado);
+}
