@@ -4,8 +4,8 @@ import type { PaymentFlow, PaymentMethod, PaymentMethodType } from '../api/types
 import { Checkbox } from '../ds/Checkbox';
 import { Select } from '../ds/Select';
 import { PAYMENT_METHOD_LABELS } from '../orders/format';
-import { Switch } from '../ui/Switch';
-import { PlusIcon } from '../ui/icons';
+import { Switch } from '../ds/Switch';
+import { PlusIcon } from '../ds/icons';
 import { usePaymentMethods } from './usePaymentMethods';
 
 const FLOW_LABELS: Record<PaymentFlow, string> = {
@@ -160,6 +160,7 @@ function MethodList({
           </span>
 
           <Switch
+            hideLabel
             checked={method.enabled}
             disabled={pendingIds.includes(method.id)}
             label={`${method.label}: ${method.enabled ? 'desativar' : 'ativar'}`}

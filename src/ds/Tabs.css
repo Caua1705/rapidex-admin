@@ -55,7 +55,7 @@
   right: 0;
   bottom: 0;
   height: 2px;
-  border-radius: var(--r-round) var(--r-round) 0 0;
+  /* Sem raio: o trilho da aba é um corte reto, como o resto da direção. */
   background: var(--ember);
   transform: scaleX(0);
   transition: transform var(--motion-base) var(--ease);

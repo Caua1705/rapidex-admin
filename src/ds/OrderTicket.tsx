@@ -5,7 +5,8 @@ import type { Stage } from './status';
 import './OrderTicket.css';
 
 /**
- * O TICKET DE PEDIDO — a unidade do quadro.
+ * O TICKET DE PEDIDO — a unidade do quadro, e o ÚNICO componente de pedido do
+ * sistema.
  *
  *   <OrderTicket
  *     stage="preparando"
@@ -13,25 +14,28 @@ import './OrderTicket.css';
  *     elapsedLabel="62 min"
  *     elapsedMinutes={62}
  *     windowMinutes={100}
+ *     timeLabel="20:41"
  *     customer="Marcos Lima"
  *     total="R$ 192,90"
  *     tags={['Entrega', 'Pix']}
  *     onOpen={abrir}
  *   />
  *
- * A HIERARQUIA DELE RESOLVE O PROBLEMA PRINCIPAL DA TELA ANTIGA, onde tudo
- * tinha o mesmo peso e o tempo decorrido — a informação que decide o que fazer
- * primeiro — ficava em cinza de 10px:
+ * Ele não conhece o contrato da API: quem traduz um `OrderListItem` para estas
+ * propriedades é `orders/OrderCard`. Isso é o que permite ao `ds/` compilar
+ * sem depender do `openapi.d.ts` gerado.
  *
- *   TEMPO DECORRIDO   22px/800, a maior tinta do cartão
- *   dinheiro          16px/800, porque é o que se confere no caixa
- *   cliente           corpo
- *   nº e hora         apoio, 12px em --ink-3 — é como o pedido é CHAMADO,
- *                     não como ele é decidido
+ * A HIERARQUIA, que é o que ele resolve:
  *
- * O número do pedido é o único texto do painel em mono: ele é o mesmo "#1042"
- * que sai na comanda impressa de 48 colunas, e a continuidade entre a tela e o
- * papel é o que faz o balcão e a cozinha falarem do mesmo pedido.
+ *   BARRA DE MATURAÇÃO  o fio de brasa no topo — lê-se de longe, sem ler nada
+ *   TEMPO DECORRIDO     em mono, na matiz do estágio, a maior tinta do cartão
+ *   dinheiro            em mono, porque é o que se confere no caixa
+ *   cliente             corpo
+ *   nº e hora           apoio — é como o pedido é CHAMADO, não como é decidido
+ *
+ * Tempo, dinheiro e nº saem em MONOESPAÇADA: são os três números que se
+ * comparam descendo a fila, e o "#1042" da tela é o mesmo que sai na comanda
+ * térmica. Nada mais no ticket é mono.
  *
  * O ticket inteiro é um `<button>`: abrir o detalhe é UMA ação, e um card
  * clicável feito de <div> com onClick é a forma mais comum de uma tela perder
@@ -47,24 +51,29 @@ export function OrderTicket({
   customer,
   total,
   tags = [],
+  extraTag,
   alerta,
   selected = false,
   onOpen,
   'data-testid': testId,
+  'data-status': dataStatus,
 }: {
   stage: Stage;
   number: number;
-  /** "12 min", "1 h 20" — já formatado por quem sabe formatar. */
+  /** "12 min", "1h20" — já formatado por quem sabe formatar. */
   elapsedLabel: string;
   elapsedMinutes: number;
+  /** A janela de preparo da loja. Sem ela, a barra de maturação não aparece. */
   windowMinutes: number | null;
   /** A hora de entrada, "20:41". */
   timeLabel: string;
   customer: string;
   total: string;
   tags?: readonly string[];
+  /** Uma etiqueta que só existe em alguns pedidos (situação do pagamento). */
+  extraTag?: string;
   /**
-   * O aviso que impede o preparo — hoje, pagamento online não recebido. Em
+   * O aviso que IMPEDE o preparo — hoje, pagamento online não recebido. Em
    * âmbar de `pendente`, NUNCA em vermelho: quase todo pedido de Pix passa por
    * este estado, e um alarme que pinta o normal deixa de ser alarme.
    */
@@ -72,12 +81,14 @@ export function OrderTicket({
   selected?: boolean;
   onOpen: () => void;
   'data-testid'?: string;
+  'data-status'?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onOpen}
       data-testid={testId}
+      data-status={dataStatus}
       className={[
         'ds-ticket',
         `is-${stage}`,
@@ -96,17 +107,18 @@ export function OrderTicket({
           <span className="ds-ticket__total tnum">{total}</span>
         </span>
 
-        <span className="ds-ticket__cliente t-body">{customer}</span>
+        <span className="ds-ticket__cliente">{customer}</span>
 
         <span className="ds-ticket__meta">
           <span className="ds-ticket__numero tnum">#{number}</span>
           <span aria-hidden="true">·</span>
-          <span>{timeLabel}</span>
+          <span className="tnum">{timeLabel}</span>
           {tags.map((tag) => (
-            <span className="ds-ticket__tag" key={tag}>
+            <span className="tag" key={tag}>
               {tag}
             </span>
           ))}
+          {extraTag ? <span className="ds-ticket__pgto">{extraTag}</span> : null}
         </span>
 
         {alerta ? <span className="ds-ticket__alerta">{alerta}</span> : null}

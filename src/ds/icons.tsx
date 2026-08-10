@@ -1,17 +1,26 @@
+/**
+ * OS ÍCONES DO SISTEMA — um arquivo, e só um.
+ *
+ * Havia dois (`ds/icons.tsx` e `ui/icons.tsx`) com seis nomes repetidos entre
+ * eles: SearchIcon, PlusIcon, MoreIcon e as duas setas existiam duas vezes, com
+ * desenhos diferentes. Isso é exatamente o que a regra do sistema proíbe — se
+ * há dois nomes para a mesma coisa, um dos dois é para apagar.
+ *
+ * O TRAÇO DESTA DIREÇÃO (Brasa): grade de 24, **traço 1,75, ponta reta
+ * (`square`) e canto vivo (`miter`)**. É desenho de chapa cortada e de placa
+ * gravada, não de aplicativo — a ponta redonda que o conjunto anterior usava
+ * é o que dava a ele o ar simpático que a direção nova não quer.
+ *
+ * REGRAS QUE VALEM PARA TODO ÍCONE DAQUI:
+ *   - `stroke="currentColor"` e `fill="none"`: quem decide a cor é o texto ao
+ *     redor, nunca o ícone.
+ *   - `aria-hidden="true"`: ícone nunca é o nome de nada. Se ele é a única
+ *     coisa dentro de um botão, o botão leva `aria-label`.
+ *   - mesmo peso em todos: numa coluna de onze itens, um ícone mais gordo puxa
+ *     o olho para a seção errada.
+ */
 import type { ReactNode } from 'react';
 
-/**
- * Os ícones do design system.
- *
- *   <SearchIcon />
- *   <ChevronDownIcon size={14} />
- *
- * Conjunto autoral de linha: traço de 2px, grade de 24px, cantos arredondados,
- * `stroke="currentColor"` e `fill="none"`. Todos saem `aria-hidden` — ícone é
- * desenho, e quem carrega o significado é o texto ou o `aria-label` de quem o
- * usa. Ícone com nome acessível próprio faz o leitor de tela dizer a mesma
- * coisa duas vezes.
- */
 type IconProps = { size?: number };
 
 function Icon({ size = 16, children }: IconProps & { children: ReactNode }) {
@@ -22,66 +31,17 @@ function Icon({ size = 16, children }: IconProps & { children: ReactNode }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      strokeWidth="1.75"
+      strokeLinecap="square"
+      strokeLinejoin="miter"
       aria-hidden="true"
-      focusable="false"
     >
       {children}
     </svg>
   );
 }
 
-export function SearchIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <circle cx="11" cy="11" r="7" />
-      <path d="m21 21-4.3-4.3" />
-    </Icon>
-  );
-}
-
-export function XIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M18 6 6 18M6 6l12 12" />
-    </Icon>
-  );
-}
-
-export function CheckIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="m5 12.5 4.5 4.5L19 7" />
-    </Icon>
-  );
-}
-
-export function ChevronDownIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="m6 9 6 6 6-6" />
-    </Icon>
-  );
-}
-
-export function ChevronUpIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="m6 15 6-6 6 6" />
-    </Icon>
-  );
-}
-
-export function AlertIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M12 4 2.5 20h19L12 4Z" />
-      <path d="M12 10v4M12 17.5v.01" />
-    </Icon>
-  );
-}
+/* --- ações e controles ---------------------------------------------------- */
 
 export function PlusIcon(props: IconProps) {
   return (
@@ -91,11 +51,223 @@ export function PlusIcon(props: IconProps) {
   );
 }
 
-/** Três pontos: o que não coube na barra, e não "outras coisas quaisquer". */
+export function XIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M6 6l12 12M18 6L6 18" />
+    </Icon>
+  );
+}
+
+export function CheckIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 12.5l5 5L20 6.5" />
+    </Icon>
+  );
+}
+
+/** Três traços curtos: o menu de ações que não são a ação principal da tela. */
 export function MoreIcon(props: IconProps) {
   return (
     <Icon {...props}>
-      <path d="M12 6.01v.01M12 12v.01M12 17.99v.01" />
+      <path d="M11 6h2M11 12h2M11 18h2" />
+    </Icon>
+  );
+}
+
+export function EditIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 20h4L20 8l-4-4L4 16v4Z" />
+    </Icon>
+  );
+}
+
+export function SearchIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="m20 20-4.3-4.3" />
+    </Icon>
+  );
+}
+
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m5 9 7 7 7-7" />
+    </Icon>
+  );
+}
+
+export function ChevronUpIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m5 15 7-7 7 7" />
+    </Icon>
+  );
+}
+
+/** Triângulo de atenção. O único ícone que carrega semântica de estado. */
+export function AlertIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 4 2.5 20.5h19L12 4Z" />
+      <path d="M12 10v4M12 17.2v.01" />
+    </Icon>
+  );
+}
+
+/**
+ * O sino do alerta sonoro, com a barra do desligado.
+ *
+ * Ele mora aqui, e não solto na barra de pedidos, porque ícone desenhado
+ * dentro de uma tela é o começo de um segundo conjunto — foi assim que os dois
+ * arquivos anteriores nasceram.
+ */
+export function BellIcon({ muted = false, ...props }: IconProps & { muted?: boolean }) {
+  return (
+    <Icon {...props}>
+      <path d="M18 9a6 6 0 0 0-12 0c0 6-3 8-3 8h18s-3-2-3-8" />
+      <path d="M10.2 20.5a2 2 0 0 0 3.6 0" />
+      {muted ? <path d="M3.5 3.5l17 17" /> : null}
+    </Icon>
+  );
+}
+
+/** Seta circular do "atualizar agora". */
+export function RefreshIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M20 12a8 8 0 1 1-2.4-5.7" />
+      <path d="M20 4v4h-4" />
+    </Icon>
+  );
+}
+
+/* --- ícones da navegação --------------------------------------------------
+ *
+ * Um por seção do produto, todos na mesma grade e no mesmo traço.
+ */
+
+/** Pedidos: as linhas de uma comanda. */
+export function OrdersIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 5h16M4 10h16M4 15h16M4 20h9" />
+    </Icon>
+  );
+}
+
+/** Cardápio: a carta aberta, com as duas colunas. */
+export function MenuIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 4h16v16H4z" />
+      <path d="M12 4v16M7 8h2M15 8h2M7 12h2M15 12h2" />
+    </Icon>
+  );
+}
+
+/** Cozinha: a panela na chapa, com o vapor. */
+export function KitchenIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M3 10h18v6a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-6Z" />
+      <path d="M21 12h1.5v3H21" />
+      <path d="M7 7V4M12 7V4M17 7V4" />
+    </Icon>
+  );
+}
+
+/** Minha loja: o toldo. */
+export function StoreIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M3 9h18v11H3z" />
+      <path d="M3 9l2-5h14l2 5" />
+      <path d="M9 20v-6h6v6" />
+    </Icon>
+  );
+}
+
+/** Clientes: a ficha de cadastro. */
+export function CustomersIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M6 9h6v6H6z" />
+      <path d="M3 21v-2h12v2" />
+      <path d="M15 10h6M15 14h6M15 18h6" />
+    </Icon>
+  );
+}
+
+/** Cupom: o bilhete com o picote. */
+export function CouponIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4V7Z" />
+      <path d="M14 9v1M14 14v1" />
+    </Icon>
+  );
+}
+
+/** Cashback: a moeda que volta. */
+export function CashbackIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 4v4h4" />
+      <path d="M4.5 8.5A8 8 0 1 1 4 12" />
+      <path d="M15 10a3 3 0 1 0 0 4" />
+    </Icon>
+  );
+}
+
+/** Desempenho: as barras subindo. */
+export function PerformanceIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 4v16h16" />
+      <path d="M8 17V12M13 17V8M18 17V5" />
+    </Icon>
+  );
+}
+
+/**
+ * Usuários do painel: o crachá.
+ *
+ * Não são duas pessoas como em Clientes — quem entra aqui administra QUEM tem
+ * acesso, e dois ícones de gente na mesma coluna virariam a mesma seção.
+ */
+export function TeamIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 4h16v16H4z" />
+      <path d="M8 10h3v3H8z" />
+      <path d="M7 17a3 3 0 0 1 5 0" />
+      <path d="M14 10h3M14 14h3" />
+    </Icon>
+  );
+}
+
+/** WhatsApp: o balão de conversa. */
+export function ChatIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 20l1.2-4A8 8 0 1 1 8 18.8L4 20Z" />
+      <path d="M9 11h.01M12 11h.01M15 11h.01" />
+    </Icon>
+  );
+}
+
+/** Integrações: dois blocos ligados. */
+export function IntegrationsIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M3 3h7v7H3z" />
+      <path d="M14 14h7v7h-7z" />
+      <path d="M10 6.5h4v7.5" />
     </Icon>
   );
 }

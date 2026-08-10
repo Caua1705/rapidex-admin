@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { MoreIcon } from '../ui/icons';
+import { MoreIcon } from '../ds/icons';
 
 export type CategoryAction = {
   id: string;

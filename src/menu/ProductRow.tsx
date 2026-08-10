@@ -1,8 +1,8 @@
 import type { PrintSector, Product } from '../api/types';
 import { formatCurrency } from '../orders/format';
 import { sectorLabelFor } from '../print-sectors/print-sectors';
-import { Switch } from '../ui/Switch';
-import { EditIcon } from '../ui/icons';
+import { Switch } from '../ds/Switch';
+import { EditIcon } from '../ds/icons';
 import { isProductActive, isProductAvailable, showsAvailabilityToggle } from './menu-model';
 
 /**
@@ -118,6 +118,7 @@ export function ProductRow({
                 do componente. */}
             {available ? null : <span className="item__state">Esgotado</span>}
             <Switch
+              hideLabel
               checked={available}
               disabled={isSaving}
               onChange={onToggleAvailability}

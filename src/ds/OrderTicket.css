@@ -1,122 +1,126 @@
+/*
+ * O TICKET — chapa cortada, com o fio do estágio à esquerda.
+ *
+ * SEM SOMBRA. O ticket está parado na página, e sombra é só para o que flutua.
+ * O que o separa do fundo da faixa é o degrau de tom (`--surface` sobre
+ * `--bg`) mais o fio de 3px do estágio, que é a única coisa colorida da
+ * moldura.
+ */
 .ds-ticket {
-  display: block;
-  width: 100%;
+  flex: 0 0 236px;
+  width: 236px;
+  display: flex;
+  flex-direction: column;
   text-align: left;
+  padding: 0;
   background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--st, var(--line-strong));
   border-radius: var(--r-card);
-  box-shadow: var(--shadow-pop);
+  color: var(--ink);
   overflow: hidden;
   transition:
-    box-shadow var(--motion-fast) var(--ease),
-    transform var(--motion-fast) var(--ease);
+    background var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease);
 }
 
 .ds-ticket:hover {
-  box-shadow: var(--shadow-pop);
-}
-
-.ds-ticket:active {
-  transform: scale(0.995);
+  background: var(--hover);
+  border-color: var(--line-control);
+  /* A borda do estágio não muda no ponteiro: ela é dado, não estado do mouse. */
+  border-left-color: var(--st, var(--line-strong));
 }
 
 /*
- * Escolhido: um anel interno na cor da marca. É o segundo dos três lugares
- * onde o laranja aparece — "você está olhando este".
+ * Escolhido: um anel interno de brasa. É o segundo dos três lugares onde o
+ * laranja aparece — "você está olhando este".
  */
 .ds-ticket--selecionado {
-  box-shadow:
-    inset 0 0 0 2px var(--ember),
-    var(--shadow-pop);
+  box-shadow: inset 0 0 0 2px var(--ember);
 }
 
 .ds-ticket__corpo {
   display: flex;
   flex-direction: column;
   gap: var(--sp-4);
-  padding: var(--sp-12);
+  padding: var(--sp-8);
+  min-width: 0;
 }
 
 .ds-ticket__topo {
   display: flex;
   align-items: baseline;
-  gap: var(--sp-12);
+  justify-content: space-between;
+  gap: var(--sp-8);
 }
 
 /*
  * O TEMPO DECORRIDO é a maior tinta do cartão, e a matiz dele é a do estágio:
- * na coluna "Preparando" ele é roxo, na "Pronto" é verde. Não é decoração — é
- * a mesma informação que o cabeçalho da coluna dá, no lugar onde o olho já
+ * na faixa "Em preparo" ele é ametista, na "Prontos" é verde. Não é decoração
+ * — é o dado que responde "o que eu faço primeiro", no lugar onde o olho já
  * está quando percorre a fila.
+ *
+ * A mono vem da classe `.tnum` no elemento. Aqui só o corpo, o peso e a tinta.
  */
 .ds-ticket__tempo {
-  flex: 1;
-  min-width: 0;
   font-size: var(--ts-size);
   line-height: var(--ts-line);
   font-weight: var(--w-bold);
-  letter-spacing: var(--ts-track);
-  color: var(--st);
-  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--st, var(--ink));
+  white-space: nowrap;
 }
 
 .ds-ticket__total {
-  flex: 0 0 auto;
-  white-space: nowrap;
   font-size: var(--ts-size);
   line-height: var(--ts-line);
   font-weight: var(--w-semibold);
-  font-variant-numeric: tabular-nums lining-nums;
-}
-
-.ds-ticket__cliente {
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.ds-ticket__cliente {
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /*
- * Nº, hora e etiquetas são APOIO: 12px em --ink-3, numa linha só. É assim que
- * o pedido é chamado no balcão — não é assim que ele é decidido.
+ * A LINHA DE APOIO: nº, hora e etiquetas, tudo em 12px e em `--ink-3`. É como
+ * o pedido é chamado no balcão e conferido no caixa — não é como ele é
+ * decidido, e por isso nada aqui compete com a linha de cima.
  */
 .ds-ticket__meta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--sp-8);
+  gap: var(--sp-4);
+  min-width: 0;
   font-size: var(--ta-size);
   line-height: var(--ta-line);
   color: var(--ink-3);
 }
 
 .ds-ticket__numero {
-  font-size: var(--ta-size);
-  font-weight: var(--tl-weight);
+  font-weight: var(--w-bold);
   color: var(--ink-2);
 }
 
-.ds-ticket__tag {
-  padding: 0 var(--sp-4);
-  border-radius: var(--r-chip);
-  background: var(--field);
-  color: var(--ink-2);
-  font-size: var(--tl-size);
-  font-weight: var(--w-medium);
-  white-space: nowrap;
+/* A situação do pagamento quando ela NÃO é impedimento: texto, sem caixa. */
+.ds-ticket__pgto {
+  color: var(--ink-3);
 }
 
 /*
- * O AVISO QUE IMPEDE O PREPARO em âmbar, não em vermelho.
+ * O AVISO QUE IMPEDE O PREPARO, em âmbar de `pendente` — não em vermelho.
  *
- * Era um card inteiro pintado de rosa. Como quase todo pedido de Pix passa
- * por "aguardando pagamento", metade do quadro ficava vermelha — e o alarme
- * que pinta o estado normal deixa de ser alarme. Agora ele é uma faixa âmbar
- * dentro do cartão: continua impossível de não ver, sem transformar a fila
- * inteira num incêndio.
+ * Já foi um card inteiro pintado de vermelho. Como quase todo pedido de Pix
+ * passa por "aguardando pagamento", metade do quadro ficava em alarme — e o
+ * alarme que pinta o estado normal deixa de ser alarme. Aqui ele é uma faixa
+ * âmbar em linha própria: continua impossível de não ver, sem transformar a
+ * fila num incêndio.
  */
 .ds-ticket__alerta {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-8);
   margin-top: var(--sp-4);
   padding: var(--sp-4) var(--sp-8);
   border-radius: var(--r-chip);
@@ -124,10 +128,14 @@
   color: var(--ink);
   font-size: var(--ta-size);
   line-height: var(--ta-line);
-  font-weight: var(--w-medium);
+  font-weight: var(--w-semibold);
 }
 
-/* A borda esquerda repete o aviso na moldura: de longe, é só ela que se vê. */
-.ds-ticket--alerta .ds-ticket__corpo {
-  box-shadow: inset 3px 0 0 var(--st-pendente);
+/* De longe, a moldura repete o aviso: é só ela que se vê. */
+.ds-ticket--alerta {
+  border-left-color: var(--st-pendente);
+}
+
+.ds-ticket--alerta:hover {
+  border-left-color: var(--st-pendente);
 }

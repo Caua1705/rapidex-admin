@@ -3,8 +3,8 @@ import { useState } from 'react';
 import type { PrintSector } from '../api/types';
 import { checkSectorName } from '../print-sectors/print-sectors';
 import { usePrintSectors } from '../print-sectors/usePrintSectors';
-import { EditIcon, PlusIcon } from '../ui/icons';
-import { Switch } from '../ui/Switch';
+import { EditIcon, PlusIcon } from '../ds/icons';
+import { Switch } from '../ds/Switch';
 
 /**
  * Os setores de impressão da filial.
@@ -116,6 +116,7 @@ export function PrintingTab({ branchId }: { branchId: string }) {
                 <span className="sectors__state">{sector.is_active ? '' : 'Desativado'}</span>
 
                 <Switch
+                  hideLabel
                   checked={sector.is_active}
                   disabled={printing.pendingIds.includes(sector.id)}
                   label={`${sector.name}: ${sector.is_active ? 'desativar' : 'ativar'}`}

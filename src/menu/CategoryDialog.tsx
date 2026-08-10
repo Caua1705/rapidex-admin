@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { Modal } from '../ui/Modal';
-import { Switch } from '../ui/Switch';
+import { Switch } from '../ds/Switch';
 import type { CategoryDraft } from './useMenu';
 
 /**
@@ -69,6 +69,7 @@ export function CategoryDialog({
         {isEdit ? (
           <div className="form__row">
             <Switch
+              hideLabel
               checked={draft.isActive}
               onChange={(isActive) => setDraft({ ...draft, isActive })}
               label="Categoria ativa"

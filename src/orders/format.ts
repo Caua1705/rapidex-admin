@@ -49,16 +49,31 @@ export function formatDateTime(isoDate: string | null | undefined): string {
   return dateTimeFormatter.format(date);
 }
 
+/**
+ * Há quantos minutos o pedido entrou. `null` quando não dá para saber.
+ *
+ * Existe separado de `formatElapsed` porque a barra de maturação precisa do
+ * NÚMERO, não da frase: ela mede a razão contra a janela de preparo da loja.
+ * Reextrair minutos de "1h20" no componente seria refazer, com regex, a conta
+ * que já foi feita aqui.
+ */
+export function elapsedMinutes(
+  isoDate: string | null | undefined,
+  now: number = Date.now(),
+): number | null {
+  if (!isoDate) return null;
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return null;
+  return Math.max(0, Math.floor((now - date.getTime()) / 60_000));
+}
+
 /** "há 12 min" — o que mais importa num pedido é há quanto tempo ele espera. */
 export function formatElapsed(
   isoDate: string | null | undefined,
   now: number = Date.now(),
 ): string {
-  if (!isoDate) return '';
-  const date = new Date(isoDate);
-  if (Number.isNaN(date.getTime())) return '';
-
-  const minutes = Math.floor((now - date.getTime()) / 60_000);
+  const minutes = elapsedMinutes(isoDate, now);
+  if (minutes === null) return '';
   if (minutes < 1) return 'agora';
   if (minutes < 60) return `${minutes} min`;
 

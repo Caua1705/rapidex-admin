@@ -46,7 +46,8 @@ describe('OrderCard', () => {
     );
 
     expect(screen.getByText(/não preparar/i)).toBeInTheDocument();
-    expect(screen.getByTestId('order-card-137').className).toContain('order-card--unpaid');
+    // O ticket é um só no sistema, e o modificador de alerta é o dele.
+    expect(screen.getByTestId('order-card-137').className).toContain('ds-ticket--alerta');
   });
 
   it('não destaca pedido pago nem pedido pago na entrega', () => {

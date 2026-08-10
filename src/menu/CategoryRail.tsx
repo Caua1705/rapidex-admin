@@ -1,5 +1,5 @@
 import type { Category } from '../api/types';
-import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from '../ui/icons';
+import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from '../ds/icons';
 import { isCategoryActive } from './menu-model';
 
 /**

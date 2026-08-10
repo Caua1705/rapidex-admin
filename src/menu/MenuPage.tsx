@@ -6,7 +6,7 @@ import { ApplySectorDialog } from './ApplySectorDialog';
 import { CategoryActionsMenu } from './CategoryActionsMenu';
 import { CategoryDialog } from './CategoryDialog';
 import { CategoryRail } from './CategoryRail';
-import { EditIcon, PlusIcon, SearchIcon } from '../ui/icons';
+import { EditIcon, PlusIcon, SearchIcon } from '../ds/icons';
 import { formatPriceInput, isCategoryActive } from './menu-model';
 import { ProductDialog } from './ProductDialog';
 import { ProductRow } from './ProductRow';

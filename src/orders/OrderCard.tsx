@@ -1,8 +1,10 @@
+import { OrderTicket } from '../ds/OrderTicket';
 import type { OrderListItem } from '../api/types';
 import {
   ORDER_TYPE_LABELS,
   PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
+  elapsedMinutes,
   formatCurrency,
   formatElapsed,
   formatTime,
@@ -11,94 +13,72 @@ import {
 import { isAwaitingOnlinePayment, stageOf } from './order-status';
 
 /**
- * O card do pedido no quadro.
+ * O PEDIDO NO QUADRO — e este arquivo é só o TRADUTOR.
  *
- * Cada linha existe por um motivo operacional:
- *   nº e hora      — como o lojista chama o pedido no balcão;
- *   "há X min"     — o dado que decide o que fazer primeiro;
- *   cliente        — para conferir na entrega;
- *   tipo           — entrega e retirada têm fluxos diferentes;
- *   pagamento      — forma e situação, lado a lado, porque "Pix" sozinho não
- *                    diz se o dinheiro entrou;
- *   total          — conferência de caixa.
+ * Havia dois componentes de pedido no projeto: `ds/OrderTicket`, que morava no
+ * design system e só aparecia na galeria, e um `OrderCard` com marcação e CSS
+ * próprios, que era o que o lojista via de verdade. Os dois desenhavam a mesma
+ * coisa e já tinham divergido — hierarquia diferente, aviso de pagamento em
+ * cor diferente, borda de estágio em espessura diferente.
+ *
+ * Agora existe UM só. `ds/OrderTicket` desenha; este arquivo faz a única coisa
+ * que o design system não pode fazer, porque exigiria que ele conhecesse o
+ * contrato da API: traduzir um `OrderListItem` para as propriedades do ticket.
+ *
+ * A fronteira é essa e ela vale a pena: `stageOf`, `isAwaitingOnlinePayment` e
+ * os dicionários de rótulo são regra de PEDIDO. Se descessem para o `ds/`, o
+ * design system passaria a precisar de `npm run api:generate` para compilar.
  */
 export function OrderCard({
   order,
+  windowMinutes = null,
   isSelected,
   onOpen,
 }: {
   order: OrderListItem;
+  /**
+   * A janela de preparo da loja, em minutos — a régua da barra de maturação.
+   * Sem ela a barra não aparece: uma barra sem régua mediria o nada.
+   */
+  windowMinutes?: number | null;
   isSelected: boolean;
   onOpen: () => void;
 }) {
   const awaitingPayment = isAwaitingOnlinePayment(order.payment_status);
 
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className={[
-        'order-card',
-        // Pinta a borda esquerda com a matiz do status, pelos tokens.
-        `is-${stageOf(order.status)}`,
-        awaitingPayment ? 'order-card--unpaid' : '',
-        isSelected ? 'order-card--selected' : '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
+    <OrderTicket
+      stage={stageOf(order.status)}
+      number={order.order_number}
+      elapsedLabel={formatElapsed(order.created_at)}
+      elapsedMinutes={elapsedMinutes(order.created_at) ?? 0}
+      windowMinutes={windowMinutes}
+      timeLabel={formatTime(order.created_at)}
+      customer={order.customer_name_snapshot}
+      total={formatCurrency(order.total)}
+      tags={[
+        labelFor(ORDER_TYPE_LABELS, order.order_type),
+        labelFor(PAYMENT_METHOD_LABELS, order.payment_method),
+      ]}
+      /*
+       * O aviso que impede o preparo. A cozinha não pode começar e o backend
+       * recusa o "aceitar" enquanto o pagamento online não entra — então ele é
+       * uma linha própria dentro do ticket, e não mais uma etiqueta espremida
+       * entre as outras, onde quebrava em três linhas de letra miúda.
+       *
+       * Quando o pagamento JÁ entrou, a situação dele vira etiqueta comum: é
+       * conferência de caixa, não decisão.
+       */
+      alerta={
+        awaitingPayment
+          ? `${labelFor(PAYMENT_STATUS_LABELS, order.payment_status)} — não preparar`
+          : undefined
+      }
+      extraTag={awaitingPayment ? undefined : labelFor(PAYMENT_STATUS_LABELS, order.payment_status)}
+      selected={isSelected}
+      onOpen={onOpen}
       data-testid={`order-card-${order.order_number}`}
       data-status={order.status}
-    >
-      {/*
-        A PRIMEIRA LINHA É O TEMPO E O DINHEIRO — os dois números que se
-        comparam de card para card descendo a coluna. O tempo leva a matiz do
-        estágio e o maior peso do cartão: é ele que decide o que fazer
-        primeiro. Nenhum dos dois quebra de linha.
-
-        O nº do pedido DESCEU para a linha de apoio. Ele era o título do card,
-        em 15px, disputando a primeira linha com hora, cronômetro e total —
-        quatro dados numa faixa de 200px, e o cronômetro quebrava em duas
-        linhas. Mas o nº não decide nada: ele é como o pedido é chamado no
-        balcão depois de a decisão já ter sido tomada.
-      */}
-      <div className="order-card__top">
-        <span className="order-card__elapsed tnum">{formatElapsed(order.created_at)}</span>
-        <span className="order-card__total tnum">{formatCurrency(order.total)}</span>
-      </div>
-
-      <div className="order-card__customer">{order.customer_name_snapshot}</div>
-
-      <div className="order-card__foot">
-        <strong className="order-card__number tnum">#{order.order_number}</strong>
-        <span aria-hidden="true">·</span>
-        <span className="tnum">{formatTime(order.created_at)}</span>
-        <span className="order-card__tags">
-          <span className="tag">{labelFor(ORDER_TYPE_LABELS, order.order_type)}</span>
-          <span className="tag">{labelFor(PAYMENT_METHOD_LABELS, order.payment_method)}</span>
-        </span>
-
-        {!awaitingPayment ? (
-          <span className="order-card__payment">
-            {labelFor(PAYMENT_STATUS_LABELS, order.payment_status)}
-          </span>
-        ) : null}
-      </div>
-
-      {/*
-        O destaque mais importante da tela: pagamento online que ainda não
-        entrou. A cozinha não pode preparar — e o backend recusa o "aceitar"
-        enquanto isso.
-
-        Ele perdeu a caixa vermelha (o card inteiro já é vermelho) mas ficou
-        numa LINHA PRÓPRIA: espremido ao lado das etiquetas, ele quebrava em
-        três linhas de letra miúda e virava o texto menos legível do card, que
-        é o oposto do que ele precisa ser.
-      */}
-      {awaitingPayment ? (
-        <div className="order-card__unpaid-banner">
-          {labelFor(PAYMENT_STATUS_LABELS, order.payment_status)} — não preparar
-        </div>
-      ) : null}
-    </button>
+    />
   );
 }

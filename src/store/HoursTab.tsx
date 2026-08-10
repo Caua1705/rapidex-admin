@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Switch } from '../ui/Switch';
+import { Switch } from '../ds/Switch';
 import { validateWeek, WEEKDAYS } from './business-hours';
 import { SaveBar } from './SaveBar';
 import { useBusinessHours } from './useBusinessHours';
@@ -72,6 +72,7 @@ export function HoursTab({ branchId }: { branchId: string }) {
                 <span className="hours__day">{label}</span>
 
                 <Switch
+                  hideLabel
                   checked={!day.isClosed}
                   label={`${label}: ${day.isClosed ? 'abrir' : 'fechar'}`}
                   onChange={(next) => {

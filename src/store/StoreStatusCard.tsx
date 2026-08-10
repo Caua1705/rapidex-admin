@@ -1,4 +1,4 @@
-import { Switch } from '../ui/Switch';
+import { Switch } from '../ds/Switch';
 
 /**
  * Abrir e fechar a loja.
@@ -48,6 +48,7 @@ export function StoreStatusCard({
       </span>
 
       <Switch
+        hideLabel
         checked={isOpen}
         disabled={isLoading || isSaving}
         onChange={onToggle}

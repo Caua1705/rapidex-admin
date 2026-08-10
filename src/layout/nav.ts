@@ -12,7 +12,7 @@ import {
   PerformanceIcon,
   StoreIcon,
   TeamIcon,
-} from '../ui/icons';
+} from '../ds/icons';
 
 /**
  * A navegação inteira do produto — inclusive o que ainda não existe.

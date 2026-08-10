@@ -6,7 +6,7 @@ import { Select } from '../ds/Select';
 import { formatCurrency } from '../orders/format';
 import { activeSectors, NO_SECTOR_LABEL, sectorLabelFor } from '../print-sectors/print-sectors';
 import { Modal } from '../ui/Modal';
-import { Switch } from '../ui/Switch';
+import { Switch } from '../ds/Switch';
 import { parsePriceInput } from './menu-model';
 import type { ProductDraft } from './useMenu';
 
@@ -195,6 +195,7 @@ export function ProductDialog({
 
         <div className="form__row">
           <Switch
+            hideLabel
             checked={draft.isActive}
             onChange={(isActive) => setDraft({ ...draft, isActive })}
             label="Item ativo"
@@ -210,6 +211,7 @@ export function ProductDialog({
 
         <div className="form__row">
           <Switch
+            hideLabel
             checked={draft.isActive && draft.isAvailable}
             disabled={!draft.isActive}
             onChange={(isAvailable) => setDraft({ ...draft, isAvailable })}
