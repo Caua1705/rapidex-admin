@@ -3,8 +3,8 @@
   align-items: center;
   gap: var(--sp-8);
   color: var(--ink-2);
-  font-size: var(--t-hint);
-  line-height: var(--t-hint-line);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
 }
 
 /*

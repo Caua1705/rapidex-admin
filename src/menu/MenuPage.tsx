@@ -205,8 +205,8 @@ export function MenuPage() {
         {menu.products.length < menu.totalInCategory ? (
           <footer className="menu__footer faint">
             <span>
-              <span className="mono">{menu.products.length}</span> de{' '}
-              <span className="mono">{menu.totalInCategory}</span> itens na tela
+              <span className="tnum">{menu.products.length}</span> de{' '}
+              <span className="tnum">{menu.totalInCategory}</span> itens na tela
             </span>
             <button
               type="button"

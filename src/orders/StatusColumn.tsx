@@ -19,8 +19,8 @@ export function StatusColumn({
   return (
     <section className="column" data-column={column.key}>
       {/*
-        `status-<chave>` vem de tokens.css e define --status/--status-bg/
-        --status-fg para o ponto e o badge de uma vez. A cor da coluna nunca é
+        `status-<chave>` vem de tokens.css e define --st/--st-wash/
+        --st para o ponto e o badge de uma vez. A cor da coluna nunca é
         escolhida aqui.
       */}
       <header className={`column__header status-${column.statuses[0]}`}>

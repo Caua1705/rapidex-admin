@@ -37,7 +37,7 @@
   display: flex;
   align-items: center;
   gap: var(--sp-12);
-  padding: var(--sp-20) var(--sp-16) var(--sp-12);
+  padding: var(--sp-16) var(--sp-16) var(--sp-12);
   border-bottom: 1px solid var(--line);
 }
 
@@ -100,9 +100,9 @@
   padding: var(--sp-8) var(--sp-12);
   border-radius: var(--r-chip);
   color: var(--ink);
-  font-size: var(--t-body);
-  line-height: var(--t-body-line);
-  font-weight: var(--t-body-weight);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--tb-weight);
   text-align: left;
   text-decoration: none;
 }
@@ -114,7 +114,7 @@
 .ds-sheet__opcao[aria-current='page'] {
   background: var(--ember-wash);
   color: var(--ember-press);
-  font-weight: var(--t-label-weight);
+  font-weight: var(--w-medium);
 }
 
 .ds-sheet__opcao-icone {
@@ -129,6 +129,6 @@
 
 .ds-sheet__opcao-nota {
   margin-left: auto;
-  font-size: var(--t-hint);
+  font-size: var(--ta-size);
   color: var(--ink-3);
 }

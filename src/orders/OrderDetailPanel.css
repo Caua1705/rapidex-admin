@@ -10,20 +10,20 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: var(--bg-chrome);
+  background: var(--bg);
   /*
    * O painel ENTRA quando um pedido é aberto — é mudança de estado, não
    * enfeite: sem o deslize, 380px de conteúdo simplesmente surgem e o olho
    * perde de onde vieram. `--motion-fast` já vira 0s sob prefers-reduced-motion,
    * mas @keyframes precisa do seu próprio desligamento (abaixo).
    */
-  animation: panel-enter var(--motion-fast) var(--motion-ease);
+  animation: panel-enter var(--motion-fast) var(--ease);
 }
 
 @keyframes panel-enter {
   from {
     opacity: 0;
-    transform: translateX(var(--space-5));
+    transform: translateX(var(--sp-16));
   }
 }
 
@@ -37,27 +37,27 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
-  height: var(--topbar-height);
+  gap: var(--sp-12);
+  height: var(--topbar-h);
   flex: 0 0 auto;
-  padding: 0 var(--space-5);
+  padding: 0 var(--sp-16);
 }
 
 .panel__title {
   display: flex;
   align-items: baseline;
-  gap: var(--space-3);
+  gap: var(--sp-8);
   min-width: 0;
-  font-size: var(--type-aux-size);
+  font-size: var(--ta-size);
 }
 
 /* O nº do pedido é o título deste painel — nível 1, um por painel. */
 .panel__number {
-  font-size: var(--type-title-size);
-  line-height: var(--type-title-line);
-  font-weight: var(--type-title-weight);
-  letter-spacing: var(--type-title-tracking);
-  color: var(--text-primary);
+  font-size: var(--tt-size);
+  line-height: var(--tt-line);
+  font-weight: var(--tt-weight);
+  letter-spacing: var(--tt-track);
+  color: var(--ink);
 }
 
 /*
@@ -65,14 +65,14 @@
  * (rótulo) do cabeçalho das colunas do quadro — o mesmo dado, escrito igual.
  */
 .panel__status {
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-sm);
-  background: var(--status-bg);
-  color: var(--status-fg);
-  font-size: var(--type-label-size);
+  padding: 0 var(--sp-4);
+  border-radius: var(--r-chip);
+  background: var(--st-wash);
+  color: var(--st);
+  font-size: var(--tl-size);
   line-height: 18px;
-  font-weight: var(--type-label-weight);
-  letter-spacing: var(--type-label-tracking);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -81,17 +81,17 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 0 var(--space-5) var(--space-5);
+  padding: 0 var(--sp-16) var(--sp-16);
 }
 
 .panel__footer {
   flex: 0 0 auto;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
+  gap: var(--sp-8);
   align-items: center;
-  padding: var(--space-4) var(--space-5);
-  border-top: 1px solid var(--border-subtle);
+  padding: var(--sp-12) var(--sp-16);
+  border-top: 1px solid var(--line);
 }
 
 /*
@@ -105,48 +105,48 @@
 .detail {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--sp-16);
 }
 
 .detail__block {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--sp-4);
 }
 
 /* Nível 3 (rótulo): o mesmo cabeçalho de bloco do resto do painel. */
 .detail__heading {
-  margin: 0 0 var(--space-1);
-  font-size: var(--type-label-size);
-  line-height: var(--type-label-line);
-  font-weight: var(--type-label-weight);
-  letter-spacing: var(--type-label-tracking);
+  margin: 0 0 var(--sp-4);
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
   text-transform: uppercase;
-  color: var(--text-tertiary);
+  color: var(--ink-3);
 }
 
 .detail__row {
   display: flex;
   justify-content: space-between;
-  gap: var(--space-4);
-  font-size: var(--type-body-size);
-  line-height: var(--type-body-line);
+  gap: var(--sp-12);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
 }
 
 .detail__row--total {
-  border-top: 1px solid var(--border-subtle);
-  margin-top: var(--space-2);
-  padding-top: var(--space-3);
-  font-weight: var(--weight-bold);
+  border-top: 1px solid var(--line);
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-8);
+  font-weight: var(--w-bold);
 }
 
 .detail__notes {
   margin: 0;
-  padding: var(--space-3);
-  background: var(--bg-sunken);
-  border-radius: var(--radius-sm);
-  font-size: var(--type-body-size);
-  line-height: var(--type-body-line);
+  padding: var(--sp-8);
+  background: var(--field);
+  border-radius: var(--r-chip);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
 }
 
 .detail__history {
@@ -155,9 +155,9 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  font-size: var(--type-aux-size);
-  line-height: var(--type-aux-line);
+  gap: var(--sp-4);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
 }
 
 /* --- itens --------------------------------------------------------------- */
@@ -169,8 +169,8 @@
 }
 
 .items__row {
-  padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: var(--sp-8) 0;
+  border-bottom: 1px solid var(--line);
 }
 
 .items__row:last-child {
@@ -185,19 +185,19 @@
 .items__main {
   display: grid;
   grid-template-columns: 24px minmax(0, 1fr) auto;
-  gap: var(--space-3);
+  gap: var(--sp-8);
   align-items: baseline;
-  font-size: var(--type-body-size);
-  line-height: var(--type-body-line);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
 }
 
 .items__qty {
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .items__name {
-  color: var(--text-primary);
-  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  font-weight: var(--w-semibold);
 }
 
 .items__price {
@@ -205,11 +205,11 @@
 }
 
 .items__observation {
-  margin: var(--space-1) 0 0 calc(24px + var(--space-3));
-  font-size: var(--type-aux-size);
-  line-height: var(--type-aux-line);
+  margin: var(--sp-4) 0 0 calc(24px + var(--sp-8));
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
   /* Âmbar de "esperando/atenção": é o que ainda exige cuidado de quem prepara. */
-  color: var(--status-pending-h);
+  color: var(--alert);
 }
 
 /* --- adicionais ---------------------------------------------------------- */
@@ -224,12 +224,12 @@
  */
 .options {
   list-style: none;
-  margin: var(--space-2) 0 0 calc(24px + var(--space-3));
-  padding: 0 0 0 var(--space-4);
-  border-left: 1px solid var(--border-default);
+  margin: var(--sp-4) 0 0 calc(24px + var(--sp-8));
+  padding: 0 0 0 var(--sp-12);
+  border-left: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--sp-4);
 }
 
 .options__group {
@@ -243,12 +243,12 @@
  * significados opostos para a cozinha.
  */
 .options__label {
-  font-size: var(--type-label-size);
-  line-height: var(--type-label-line);
-  font-weight: var(--type-label-weight);
-  letter-spacing: var(--type-label-tracking);
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
   text-transform: uppercase;
-  color: var(--text-tertiary);
+  color: var(--ink-3);
 }
 
 .options__list {
@@ -260,15 +260,15 @@
 .options__option {
   display: flex;
   justify-content: space-between;
-  gap: var(--space-4);
-  font-size: var(--type-body-size);
-  line-height: var(--type-body-line);
-  color: var(--text-secondary);
+  gap: var(--sp-12);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink-2);
 }
 
 /* Só conferência: o preço do item já inclui este valor. */
 .options__price {
-  font-size: var(--type-aux-size);
+  font-size: var(--ta-size);
   white-space: nowrap;
 }
 
@@ -277,27 +277,27 @@
 .cancel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--sp-12);
 }
 
 .cancel__warning {
   margin: 0;
-  font-size: var(--type-body-size);
-  line-height: var(--type-body-line);
-  font-weight: var(--weight-semibold);
-  color: var(--danger-soft-fg);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-semibold);
+  color: var(--danger);
 }
 
 .cancel__meta {
   display: flex;
   justify-content: space-between;
-  gap: var(--space-4);
-  font-size: var(--type-aux-size);
-  line-height: var(--type-aux-line);
+  gap: var(--sp-12);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
 }
 
 .cancel__error {
-  color: var(--danger-soft-fg);
+  color: var(--danger);
 }
 
 /* --- estreito ------------------------------------------------------------ */
@@ -315,6 +315,6 @@
     bottom: 0;
     z-index: 40;
     width: min(380px, 92vw);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-pop);
   }
 }

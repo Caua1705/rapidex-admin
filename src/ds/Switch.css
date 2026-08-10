@@ -48,7 +48,7 @@
   height: 16px;
   border-radius: var(--r-round);
   background: var(--surface);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-pop);
   transition: transform var(--motion-base) var(--ease);
 }
 
@@ -70,14 +70,12 @@
   flex-direction: column;
   gap: var(--sp-4);
   min-width: 0;
-  /* Alinha o rótulo com o trilho, e não com o topo da área de toque. */
-  padding-top: 1px;
 }
 
 .ds-switch-row__label {
-  font-size: var(--t-body);
-  line-height: var(--t-body-line);
-  font-weight: var(--t-body-weight);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--tb-weight);
   color: var(--ink);
   cursor: pointer;
 }
@@ -88,8 +86,8 @@
 }
 
 .ds-switch-row__hint {
-  font-size: var(--t-hint);
-  line-height: var(--t-hint-line);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
   color: var(--ink-3);
 }
 

@@ -32,9 +32,9 @@
   padding-inline: var(--sp-4);
   scroll-snap-align: start;
   color: var(--ink-2);
-  font-size: var(--t-body);
-  line-height: var(--t-body-line);
-  font-weight: var(--t-body-weight);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--tb-weight);
   white-space: nowrap;
   transition: color var(--motion-fast) var(--ease);
 }
@@ -63,7 +63,7 @@
 
 .ds-tab--ativa {
   color: var(--ink);
-  font-weight: var(--t-label-weight);
+  font-weight: var(--w-medium);
 }
 
 .ds-tab--ativa::after {
@@ -72,8 +72,8 @@
 
 /* A contagem é apoio: ela informa, não compete com o nome da aba. */
 .ds-tab__count {
-  font-size: var(--t-hint);
-  font-weight: var(--t-hint-weight);
+  font-size: var(--ta-size);
+  font-weight: var(--ta-weight);
   color: var(--ink-3);
   font-variant-numeric: tabular-nums;
 }
@@ -84,6 +84,6 @@
 
 @media (min-width: 1024px) {
   .ds-tab {
-    min-height: var(--sp-40);
+    min-height: var(--sp-32);
   }
 }

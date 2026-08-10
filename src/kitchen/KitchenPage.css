@@ -4,7 +4,7 @@
  * ESTA TELA É A ÚNICA EXCEÇÃO À DENSIDADE DO PAINEL, e é proposital: as outras
  * são lidas a 50cm com o mouse na mão; esta é um monitor de parede, lido a dois
  * metros por quem está com as mãos ocupadas. Por isso o nº do pedido usa
- * --text-3xl, o item --text-2xl e o botão ocupa o cartão inteiro — os três
+ * --k-num, o item --k-item e o botão ocupa o cartão inteiro — os três
  * tamanhos grandes da escala existem para cá e para lugar nenhum mais.
  *
  * O que ela NÃO herda é o excesso: o ritmo vertical, os raios e os vãos saem
@@ -12,19 +12,19 @@
  *
  * OS CINCO NÍVEIS CONTINUAM VALENDO — o que muda é o corpo de cada um:
  *
- *   1 título de página  "Cozinha", em --text-xl (igual ao painel)
- *   2 título de seção   nº do pedido (--text-3xl) e nome do item (--text-2xl)
- *   3 rótulo            cabeçalho da coluna, em --text-base MAIÚSCULO
- *   4 corpo             adicional, observação, nota — --text-lg
- *   5 auxiliar          tipo do pedido, contagem — --text-base
+ *   1 título de página  "Cozinha", em --k-meta (igual ao painel)
+ *   2 título de seção   nº do pedido (--k-num) e nome do item (--k-item)
+ *   3 rótulo            cabeçalho da coluna, em --tb-size MAIÚSCULO
+ *   4 corpo             adicional, observação, nota — --ts-size
+ *   5 auxiliar          tipo do pedido, contagem — --tb-size
  */
 
 .kitchen {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg-app);
-  color: var(--text-primary);
+  background: var(--bg);
+  color: var(--ink);
 }
 
 /* --- barra do topo ------------------------------------------------------- */
@@ -32,24 +32,24 @@
 .kitchen__bar {
   display: flex;
   align-items: baseline;
-  gap: var(--space-4);
+  gap: var(--sp-12);
   flex: 0 0 auto;
-  padding: var(--space-3) var(--space-5);
-  background: var(--bg-chrome);
+  padding: var(--sp-8) var(--sp-16);
+  background: var(--bg);
 }
 
 /* Nível 1: o título da tela. */
 .kitchen__title {
   margin: 0;
-  font-size: var(--type-title-size);
-  line-height: var(--type-title-line);
-  font-weight: var(--type-title-weight);
-  letter-spacing: var(--type-title-tracking);
+  font-size: var(--tt-size);
+  line-height: var(--tt-line);
+  font-weight: var(--tt-weight);
+  letter-spacing: var(--tt-track);
 }
 
 .kitchen__scope {
-  font-size: var(--type-body-size);
-  line-height: var(--type-body-line);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -59,11 +59,11 @@
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--sp-12);
 }
 
 .kitchen__alert {
-  margin: var(--space-4) var(--space-5) 0;
+  margin: var(--sp-12) var(--sp-16) 0;
 }
 
 /* --- as três colunas ------------------------------------------------------ */
@@ -72,8 +72,8 @@
   flex: 1;
   min-height: 0;
   display: flex;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-5) var(--space-5);
+  gap: var(--sp-12);
+  padding: var(--sp-12) var(--sp-16) var(--sp-16);
   overflow-x: auto;
 }
 
@@ -87,17 +87,17 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
+  border-radius: var(--r-field);
+  background: var(--surface);
 }
 
 .kitchen-column__head {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--sp-8);
   height: 36px;
   flex: 0 0 auto;
-  padding: 0 var(--space-4);
+  padding: 0 var(--sp-12);
 }
 
 /* A matiz vem da classe .status-<chave> que o TSX põe no mesmo elemento. */
@@ -105,8 +105,8 @@
   width: 8px;
   height: 8px;
   flex: 0 0 auto;
-  border-radius: var(--radius-full);
-  background: var(--status);
+  border-radius: var(--r-round);
+  background: var(--st);
 }
 
 /*
@@ -116,34 +116,34 @@
  */
 .kitchen-column__title {
   margin: 0;
-  font-size: var(--text-base);
-  line-height: var(--leading-base);
-  font-weight: var(--weight-bold);
-  letter-spacing: var(--type-label-tracking);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-bold);
+  letter-spacing: var(--tl-track);
   text-transform: uppercase;
-  color: var(--text-secondary);
+  color: var(--ink-2);
 }
 
 .kitchen-column__count {
   margin-left: auto;
-  font-size: var(--text-base);
-  font-weight: var(--weight-bold);
-  color: var(--text-primary);
+  font-size: var(--tb-size);
+  font-weight: var(--w-bold);
+  color: var(--ink);
 }
 
 .kitchen-column__cards {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 0 var(--space-3) var(--space-3);
+  padding: 0 var(--sp-8) var(--sp-8);
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--sp-8);
 }
 
 .kitchen-column__empty {
   margin: 0;
-  padding: var(--space-5) 0;
+  padding: var(--sp-16) 0;
   text-align: center;
 }
 
@@ -152,26 +152,26 @@
 .kitchen-card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
+  gap: var(--sp-8);
+  padding: var(--sp-12);
   /* A borda esquerda leva a matiz do status: de longe, ela é o que diz em que
      etapa o prato está sem precisar ler o cabeçalho da coluna. */
-  border-left: 3px solid var(--status);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface-2);
+  border-left: 3px solid var(--st);
+  border-radius: var(--r-field);
+  background: var(--surface-raised);
 }
 
 .kitchen-card__head {
   display: flex;
   align-items: baseline;
-  gap: var(--space-3);
+  gap: var(--sp-8);
 }
 
 /* O número é como o pedido é chamado em voz alta no balcão. */
 .kitchen-card__number {
-  font-size: var(--text-3xl);
-  line-height: var(--leading-3xl);
-  font-weight: var(--weight-extrabold);
+  font-size: var(--k-num);
+  line-height: var(--k-num-line);
+  font-weight: var(--w-bold);
   letter-spacing: -0.02em;
 }
 
@@ -183,12 +183,12 @@
  * a matiz do STATUS; pintar o cartão apagaria a etapa em que o prato está.
  */
 .kitchen-card__elapsed {
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-2xl);
-  line-height: var(--leading-2xl);
-  font-weight: var(--weight-bold);
-  color: var(--text-secondary);
+  padding: 0 var(--sp-4);
+  border-radius: var(--r-chip);
+  font-size: var(--k-item);
+  line-height: var(--k-item-line);
+  font-weight: var(--w-bold);
+  color: var(--ink-2);
 }
 
 /*
@@ -197,8 +197,8 @@
  * observação do item logo abaixo.
  */
 .kitchen-card[data-wait='due'] .kitchen-card__elapsed {
-  background: var(--status-pending-h);
-  color: var(--text-on-status);
+  background: var(--alert);
+  color: var(--on-ember);
 }
 
 /*
@@ -212,15 +212,15 @@
  * — piscar sem parar vira ruído de fundo e deixa de ser aviso.
  */
 .kitchen-card[data-wait='late'] .kitchen-card__elapsed {
-  background: var(--danger-soft-bg);
-  color: var(--danger-soft-fg);
-  animation: kitchen-late var(--motion-base) var(--motion-ease) 2;
+  background: var(--danger-wash);
+  color: var(--danger);
+  animation: kitchen-late var(--motion-base) var(--ease) 2;
 }
 
 @keyframes kitchen-late {
   50% {
     background: var(--danger);
-    color: var(--text-on-status);
+    color: var(--on-ember);
   }
 }
 
@@ -232,9 +232,9 @@
 
 .kitchen-card__type {
   margin-left: auto;
-  font-size: var(--text-lg);
-  line-height: var(--leading-lg);
-  color: var(--text-secondary);
+  font-size: var(--ts-size);
+  line-height: var(--ts-line);
+  color: var(--ink-2);
 }
 
 .kitchen-card__loading {
@@ -249,18 +249,18 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--sp-8);
 }
 
 .kitchen-items__row {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--sp-4);
 }
 
 .kitchen-items__main {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--sp-8);
   align-items: baseline;
 }
 
@@ -273,16 +273,16 @@
  */
 .kitchen-items__qty {
   min-width: 2.2em;
-  font-size: var(--text-2xl);
-  line-height: var(--leading-2xl);
-  font-weight: var(--weight-extrabold);
+  font-size: var(--k-item);
+  line-height: var(--k-item-line);
+  font-weight: var(--w-bold);
   flex: 0 0 auto;
 }
 
 .kitchen-items__name {
-  font-size: var(--text-2xl);
-  line-height: var(--leading-2xl);
-  font-weight: var(--weight-bold);
+  font-size: var(--k-item);
+  line-height: var(--k-item-line);
+  font-weight: var(--w-bold);
 }
 
 /*
@@ -294,33 +294,33 @@
 .kitchen-options {
   list-style: none;
   margin: 0;
-  padding: 0 0 0 var(--space-7);
+  padding: 0 0 0 var(--sp-32);
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--sp-4);
 }
 
 /*
  * Os adicionais são instrução de montagem, não nota de rodapé: ficam em
- * --text-lg para que a hierarquia "item → complemento" continue legível de
+ * --ts-size para que a hierarquia "item → complemento" continue legível de
  * longe. Menor que isto e a cozinha lê o nome do prato e ignora o "sem cebola".
  */
 .kitchen-options__group {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--sp-4);
   flex-wrap: wrap;
-  font-size: var(--text-lg);
-  line-height: var(--leading-lg);
+  font-size: var(--ts-size);
+  line-height: var(--ts-line);
 }
 
 .kitchen-options__label {
-  color: var(--text-tertiary);
-  font-weight: var(--weight-semibold);
+  color: var(--ink-3);
+  font-weight: var(--w-semibold);
 }
 
 .kitchen-options__values {
-  color: var(--text-primary);
-  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  font-weight: var(--w-semibold);
 }
 
 /*
@@ -328,23 +328,23 @@
  * pending marca aqui um "atenção" fora do pedido.
  */
 .kitchen-items__observation {
-  margin: var(--space-2) 0 0 var(--space-7);
-  padding: var(--space-1) var(--space-3);
-  border-left: 3px solid var(--status-pending-h);
-  background: var(--bg-sunken);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-lg);
-  line-height: var(--leading-lg);
-  font-weight: var(--weight-bold);
+  margin: var(--sp-4) 0 0 var(--sp-32);
+  padding: var(--sp-4) var(--sp-8);
+  border-left: 3px solid var(--alert);
+  background: var(--field);
+  border-radius: var(--r-chip);
+  font-size: var(--ts-size);
+  line-height: var(--ts-line);
+  font-weight: var(--w-bold);
 }
 
 .kitchen-card__notes {
   margin: 0;
-  padding: var(--space-3);
-  border-radius: var(--radius-sm);
-  background: var(--bg-sunken);
-  font-size: var(--text-lg);
-  line-height: var(--leading-lg);
+  padding: var(--sp-8);
+  border-radius: var(--r-chip);
+  background: var(--field);
+  font-size: var(--ts-size);
+  line-height: var(--ts-line);
 }
 
 .kitchen-card__error {
@@ -355,9 +355,9 @@
 .kitchen-card__action {
   width: 100%;
   height: 44px;
-  font-size: var(--text-lg);
-  font-weight: var(--weight-bold);
-  margin-top: var(--space-1);
+  font-size: var(--ts-size);
+  font-weight: var(--w-bold);
+  margin-top: var(--sp-4);
 }
 
 /* --- telas estreitas ------------------------------------------------------ */
@@ -365,7 +365,7 @@
 @media (max-width: 900px) {
   .kitchen__bar,
   .kitchen__board {
-    padding-inline: var(--space-4);
+    padding-inline: var(--sp-12);
   }
 
   /*
@@ -379,22 +379,22 @@
   }
 
   .kitchen-card__number {
-    font-size: var(--text-2xl);
-    line-height: var(--leading-2xl);
+    font-size: var(--k-item);
+    line-height: var(--k-item-line);
   }
 
   .kitchen-items__qty,
   .kitchen-items__name,
   .kitchen-card__elapsed {
-    font-size: var(--text-lg);
-    line-height: var(--leading-lg);
+    font-size: var(--ts-size);
+    line-height: var(--ts-line);
   }
 
   .kitchen-options__group,
   .kitchen-items__observation,
   .kitchen-card__notes,
   .kitchen-card__type {
-    font-size: var(--text-base);
-    line-height: var(--leading-base);
+    font-size: var(--tb-size);
+    line-height: var(--tb-line);
   }
 }

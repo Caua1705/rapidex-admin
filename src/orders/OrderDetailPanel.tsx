@@ -130,7 +130,7 @@ export function OrderDetailPanel({
         <div className="panel__title">
           {detail ? (
             <>
-              <span className="mono panel__number">#{detail.order_number}</span>
+              <span className="tnum panel__number">#{detail.order_number}</span>
               <span className={`panel__status status-${detail.status}`}>
                 {STATUS_LABELS[detail.status] ?? detail.status}
               </span>
@@ -222,7 +222,7 @@ function DetailBody({ detail }: { detail: OrderDetail }) {
         <h3 className="detail__heading">Cliente</h3>
         <div className="detail__row">
           <span>{detail.customer_name_snapshot}</span>
-          <span className="mono">{detail.customer_phone_snapshot}</span>
+          <span className="tnum">{detail.customer_phone_snapshot}</span>
         </div>
       </section>
 
@@ -311,7 +311,7 @@ function DetailBody({ detail }: { detail: OrderDetail }) {
         <ul className="detail__history">
           {detail.status_history.map((entry) => (
             <li key={entry.id}>
-              <span className="faint mono">{formatDateTime(entry.created_at)}</span>{' '}
+              <span className="faint tnum">{formatDateTime(entry.created_at)}</span>{' '}
               <strong>{STATUS_LABELS[entry.status] ?? entry.status}</strong>
               {entry.changed_by ? <span className="muted"> · {entry.changed_by}</span> : null}
               {entry.note ? <span className="muted"> · {entry.note}</span> : null}
@@ -339,7 +339,7 @@ function ItemLine({ item }: { item: OrderItem }) {
   return (
     <li className="items__row">
       <div className="items__main">
-        <span className="items__qty mono">{item.quantity}×</span>
+        <span className="items__qty tnum">{item.quantity}×</span>
         <span className="items__name">{item.product_name_snapshot}</span>
         <span className="items__price num">{formatCurrency(item.total)}</span>
       </div>

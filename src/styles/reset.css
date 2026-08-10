@@ -19,9 +19,10 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-ui);
-  font-size: var(--t-body);
-  line-height: var(--t-body-line);
-  font-weight: var(--t-body-weight);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--tb-weight);
+  letter-spacing: var(--tb-track);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   /*
@@ -74,6 +75,61 @@ a {
 }
 
 /*
+ * ============================================================================
+ * BARRA DE ROLAGEM
+ * ============================================================================
+ *
+ * A barra do sistema operacional é larga, cinza-azulada e desenhada por outra
+ * pessoa. Numa lista de categorias de 200px ela come 17px de largura e é a
+ * coisa mais óbvia da tela dizendo que este painel não foi desenhado.
+ *
+ * A nossa é fina, do tom da linha, e só aparece quando o ponteiro está dentro
+ * da área que rola — parada, ela é o canal transparente e não tira largura de
+ * nada.
+ */
+/*
+ * O Firefox só oferece "fina" e as duas cores, sem estado de hover — lá a
+ * barra fica sempre no tom da linha, que já é discreto. O revelar-no-hover é
+ * do Chrome e do Safari, logo abaixo, e é onde o painel roda de verdade.
+ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/*
+ * A borda transparente com `background-clip: content-box` é o que dá à alça
+ * 6px de espessura dentro de um canal de 10px: ela não encosta na beirada da
+ * lista, e o dedo/ponteiro ainda tem os 10px inteiros para pegá-la.
+ */
+*::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: var(--r-round);
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: background-color var(--motion-fast) var(--ease);
+}
+
+*:hover::-webkit-scrollbar-thumb,
+*:focus-within::-webkit-scrollbar-thumb {
+  background-color: var(--line-strong);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--line-control);
+}
+
+/*
  * FOCO VISÍVEL EM TUDO (WCAG 2.4.7).
  *
  * Anel de 2px na cor da marca com 2px de folga, aplicado no elemento e não em
@@ -88,7 +144,7 @@ a {
 
 /* O foco não pode ficar escondido atrás da barra de salvar (WCAG 2.4.11). */
 :where(input, select, textarea, button, a, [tabindex]) {
-  scroll-margin-block: var(--sp-40);
+  scroll-margin-block: var(--sp-32);
 }
 
 ::selection {

@@ -92,7 +92,7 @@ export function HoursTab({ branchId }: { branchId: string }) {
                 <span className="hours__state">{day.isClosed ? 'Fechado' : ''}</span>
 
                 <input
-                  className="input mono hours__time"
+                  className="input tnum hours__time"
                   type="time"
                   aria-label={`${label}: abre às`}
                   value={day.opensAt}
@@ -108,7 +108,7 @@ export function HoursTab({ branchId }: { branchId: string }) {
                 <span className="faint hours__sep">às</span>
 
                 <input
-                  className="input mono hours__time"
+                  className="input tnum hours__time"
                   type="time"
                   aria-label={`${label}: fecha às`}
                   value={day.closesAt}

@@ -39,8 +39,8 @@ export function Card({
       {title ? (
         <header className="ds-card__cab">
           <div className="ds-card__titulo-bloco">
-            <Heading className="t-card">{title}</Heading>
-            {hint ? <p className="t-hint">{hint}</p> : null}
+            <Heading className="t-section">{title}</Heading>
+            {hint ? <p className="t-aux">{hint}</p> : null}
           </div>
           {actions ? <div className="ds-card__acoes">{actions}</div> : null}
         </header>

@@ -88,12 +88,30 @@ const PAIRS = [
   // --- texto sobre as superfícies ---
   { fg: '--ink', bg: '--bg', min: 4.5, use: 'corpo sobre o fundo da página' },
   { fg: '--ink', bg: '--surface', min: 4.5, use: 'corpo sobre cartão' },
-  { fg: '--ink', bg: '--surface-2', min: 4.5, use: 'corpo sobre campo' },
+  { fg: '--ink', bg: '--field', min: 4.5, use: 'corpo sobre campo' },
   { fg: '--ink-2', bg: '--bg', min: 4.5, use: 'texto secundário sobre a página' },
   { fg: '--ink-2', bg: '--surface', min: 4.5, use: 'texto secundário sobre cartão' },
   { fg: '--ink-3', bg: '--bg', min: 4.5, use: 'apoio/hint sobre a página' },
   { fg: '--ink-3', bg: '--surface', min: 4.5, use: 'apoio/hint sobre cartão' },
-  { fg: '--ink-3', bg: '--surface-2', min: 4.5, use: 'placeholder sobre campo' },
+  { fg: '--ink-3', bg: '--field', min: 4.5, use: 'placeholder sobre campo' },
+  { fg: '--ink', bg: '--surface-raised', min: 4.5, use: 'corpo em menu/diálogo' },
+  { fg: '--ink-2', bg: '--surface-raised', min: 4.5, use: 'secundário em menu/diálogo' },
+  { fg: '--ink-3', bg: '--surface-raised', min: 4.5, use: 'apoio em menu/diálogo' },
+
+  /*
+   * A semântica de estado (--ok, --alert, --danger) sobre cada plano onde ela
+   * aparece como TEXTO, e sobre o próprio wash quando ela vira faixa de aviso.
+   */
+  { fg: '--ok', bg: '--surface', min: 4.5, use: 'confirmação sobre cartão' },
+  { fg: '--ok', bg: '--bg', min: 4.5, use: 'confirmação sobre a página' },
+  { fg: '--alert', bg: '--surface', min: 4.5, use: 'atenção sobre cartão' },
+  { fg: '--alert', bg: '--alert-wash', min: 4.5, use: 'texto do aviso de atenção' },
+  { fg: '--danger', bg: '--surface', min: 4.5, use: 'perigo sobre cartão' },
+  { fg: '--danger', bg: '--bg', min: 4.5, use: 'perigo sobre a página' },
+  { fg: '--danger', bg: '--danger-wash', min: 4.5, use: 'texto do aviso de erro' },
+  { fg: '--st-aceito', bg: '--st-aceito-wash', min: 4.5, use: 'texto do aviso informativo' },
+  // O interruptor ligado é elemento gráfico, não texto (1.4.11).
+  { fg: '--ok', bg: '--surface', min: 3, use: 'interruptor ligado sobre cartão' },
 
   // --- marca ---
   { fg: '--on-ember', bg: '--ember', min: 4.5, use: 'texto do botão primário' },
@@ -105,7 +123,18 @@ const PAIRS = [
   },
   { fg: '--ember', bg: '--bg', min: 3, use: 'anel de foco sobre a página' },
   { fg: '--ember', bg: '--surface', min: 3, use: 'anel de foco sobre cartão' },
-  { fg: '--ember', bg: '--ember-wash', min: 3, use: 'item ativo da navegação' },
+  { fg: '--ember', bg: '--surface-raised', min: 3, use: 'anel de foco em menu/diálogo' },
+  /*
+   * `--ember-wash` NÃO carrega texto laranja em lugar nenhum, e é por isso que
+   * o par medido aqui é com `--ink`.
+   *
+   * O item ativo da navegação já tentou ser "laranja sobre laranja claro": no
+   * claro dava 3.11:1 e no escuro 4.17:1, os dois abaixo do mínimo para texto
+   * de 13px, e não existe um laranja que passe nos dois sem deixar de ser o
+   * laranja da marca. O item ativo virou tinta cheia + peso + um trilho de 2px
+   * na cor da marca — mais legível, e com a marca aparecendo menos.
+   */
+  { fg: '--ink', bg: '--ember-wash', min: 4.5, use: 'texto selecionado (::selection)' },
 
   /*
    * Contorno de controle (1.4.11).
@@ -117,7 +146,7 @@ const PAIRS = [
    */
   { fg: '--line-control', bg: '--surface', min: 3, use: 'borda de campo sobre cartão' },
   { fg: '--line-control', bg: '--bg', min: 3, use: 'borda de campo sobre a página' },
-  { fg: '--line-control', bg: '--surface-2', min: 3, use: 'borda de campo preenchido' },
+  { fg: '--line-control', bg: '--field', min: 3, use: 'borda de campo preenchido' },
 
   /*
    * O CHIP DE STATUS.

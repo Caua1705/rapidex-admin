@@ -3,7 +3,7 @@
   flex-direction: column;
   background: var(--surface);
   border-radius: var(--r-card);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-pop);
 }
 
 .ds-card__cab {
@@ -18,7 +18,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--sp-4);
 }
 
 .ds-card__acoes {
@@ -83,14 +83,14 @@
   height: 40px;
   border-radius: var(--r-chip);
   object-fit: cover;
-  background: var(--surface-2);
+  background: var(--field);
 }
 
 .ds-item__texto {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--sp-4);
 }
 
 .ds-item__nome {
@@ -114,14 +114,17 @@
 
 /* No celular o preço acompanha o nome; no desktop ele vira coluna própria. */
 .ds-item__preco-inline {
-  font-size: var(--t-money-sm);
-  font-weight: var(--t-money-weight);
-  letter-spacing: var(--t-money-track);
+  font-size: var(--tb-size);
+  font-weight: var(--w-semibold);
+  font-variant-numeric: tabular-nums lining-nums;
   color: var(--ink);
 }
 
 .ds-item__preco {
   display: none;
+  font-weight: var(--w-semibold);
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--ink);
 }
 
 .ds-item__fim {

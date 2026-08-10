@@ -56,10 +56,10 @@ export function OrderCard({
         cima a baixo sem o olho reancorar.
       */}
       <div className="order-card__top">
-        <strong className="order-card__number mono">#{order.order_number}</strong>
+        <strong className="order-card__number tnum">#{order.order_number}</strong>
         <span className="faint">{formatTime(order.created_at)}</span>
         <span className="order-card__elapsed">{formatElapsed(order.created_at)}</span>
-        <span className="order-card__total mono">{formatCurrency(order.total)}</span>
+        <span className="order-card__total tnum">{formatCurrency(order.total)}</span>
       </div>
 
       <div className="order-card__customer">{order.customer_name_snapshot}</div>

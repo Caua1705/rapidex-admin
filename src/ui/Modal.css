@@ -2,11 +2,11 @@
   position: fixed;
   inset: 0;
   /* Véu sólido semi-opaco, sem blur: o painel é denso e funcional. */
-  background: var(--bg-overlay);
+  background: var(--scrim);
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: var(--space-7) var(--space-5);
+  padding: var(--sp-32) var(--sp-16);
   z-index: 50;
   overflow: auto;
 }
@@ -16,45 +16,45 @@
  * ganha o raio grande e sombra de verdade.
  */
 .modal {
-  background: var(--bg-surface-2);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-pop);
   width: 100%;
   max-width: 680px;
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - var(--space-8));
+  max-height: calc(100vh - var(--sp-32));
 }
 
 .modal__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--border-subtle);
+  gap: var(--sp-12);
+  padding: var(--sp-12) var(--sp-16);
+  border-bottom: 1px solid var(--line);
 }
 
 /* Nível 1: dentro do diálogo, ele é o título da tela. */
 .modal__title {
-  font-size: var(--type-title-size);
-  line-height: var(--type-title-line);
-  font-weight: var(--type-title-weight);
-  letter-spacing: var(--type-title-tracking);
-  color: var(--text-primary);
+  font-size: var(--tt-size);
+  line-height: var(--tt-line);
+  font-weight: var(--tt-weight);
+  letter-spacing: var(--tt-track);
+  color: var(--ink);
 }
 
 .modal__body {
-  padding: var(--space-5);
+  padding: var(--sp-16);
   overflow: auto;
 }
 
 .modal__footer {
-  padding: var(--space-4) var(--space-5);
-  border-top: 1px solid var(--border-subtle);
+  padding: var(--sp-12) var(--sp-16);
+  border-top: 1px solid var(--line);
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
+  gap: var(--sp-8);
   align-items: center;
 }

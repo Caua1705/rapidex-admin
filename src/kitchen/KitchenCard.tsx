@@ -51,7 +51,7 @@ export function KitchenCard({
       data-wait={wait.level}
     >
       <header className="kitchen-card__head">
-        <strong className="kitchen-card__number mono">#{order.order_number}</strong>
+        <strong className="kitchen-card__number tnum">#{order.order_number}</strong>
 
         {/*
           O cronômetro é a informação nº 1 desta tela e por isso ele é a
@@ -60,7 +60,7 @@ export function KitchenCard({
           diz em que etapa o prato está.
         */}
         <span
-          className="kitchen-card__elapsed mono"
+          className="kitchen-card__elapsed tnum"
           data-testid={`kitchen-wait-${order.order_number}`}
           title={
             wait.level === 'late'
@@ -81,7 +81,7 @@ export function KitchenCard({
             return (
               <li className="kitchen-items__row" key={item.id}>
                 <div className="kitchen-items__main">
-                  <span className="kitchen-items__qty mono">{item.quantity}×</span>
+                  <span className="kitchen-items__qty tnum">{item.quantity}×</span>
                   <span className="kitchen-items__name">{item.product_name_snapshot}</span>
                 </div>
 

@@ -123,7 +123,7 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
           <label className="field">
             <span className="field__label">Valor mínimo do pedido</span>
             <input
-              className="input mono"
+              className="input tnum"
               inputMode="decimal"
               value={draft.minOrderValue}
               onChange={(event) => patch({ minOrderValue: event.target.value })}
@@ -145,7 +145,7 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
             <span className="field__label">Tempo estimado (min)</span>
             <div className="field__pair">
               <input
-                className="input mono"
+                className="input tnum"
                 inputMode="numeric"
                 aria-label="Tempo estimado mínimo, em minutos"
                 value={draft.estimatedMin}
@@ -156,7 +156,7 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
                 a
               </span>
               <input
-                className="input mono"
+                className="input tnum"
                 inputMode="numeric"
                 aria-label="Tempo estimado máximo, em minutos"
                 value={draft.estimatedMax}
@@ -190,7 +190,7 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
           <label className="field store-form__narrow">
             <span className="field__label">Valor da taxa</span>
             <input
-              className="input mono"
+              className="input tnum"
               inputMode="decimal"
               value={draft.serviceFeeAmount}
               disabled={!draft.serviceFeeEnabled}

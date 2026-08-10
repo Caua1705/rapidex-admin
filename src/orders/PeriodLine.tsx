@@ -37,7 +37,7 @@ export function PeriodLine({
   return (
     <div className="period" data-testid="period-summary">
       <span>
-        <span className="mono period__total" data-testid="summary-total">
+        <span className="tnum period__total" data-testid="summary-total">
           {isLoading && total === 0 ? '—' : total}
         </span>{' '}
         {total === 1 ? 'pedido no período' : 'pedidos no período'}
@@ -52,7 +52,7 @@ export function PeriodLine({
         <>
           <span aria-hidden="true">·</span>
           <span>
-            <span className="mono">{loaded}</span> na tela
+            <span className="tnum">{loaded}</span> na tela
           </span>
           <button type="button" className="btn btn--sm btn--ghost" onClick={onLoadMore}>
             Carregar mais

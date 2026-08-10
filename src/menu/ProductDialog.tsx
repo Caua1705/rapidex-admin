@@ -114,7 +114,7 @@ export function ProductDialog({
           <label className="field">
             <span className="field__label">Preço</span>
             <input
-              className="input mono"
+              className="input tnum"
               type="text"
               inputMode="decimal"
               placeholder="0,00"

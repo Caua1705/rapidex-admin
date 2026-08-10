@@ -21,9 +21,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--t-body);
-  line-height: var(--t-body-line);
-  font-weight: var(--t-body-weight);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--tb-weight);
 }
 
 /* Sem escolha, o texto é apoio: ele é sugestão, não valor. */
@@ -70,8 +70,8 @@
   padding: var(--sp-4) var(--sp-8);
   border-radius: var(--r-chip);
   cursor: pointer;
-  font-size: var(--t-body);
-  line-height: var(--t-body-line);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
   color: var(--ink);
 }
 
@@ -85,7 +85,7 @@
 }
 
 .ds-select__option--selected {
-  font-weight: var(--t-label-weight);
+  font-weight: var(--w-medium);
 }
 
 .ds-select__option--disabled {
@@ -118,6 +118,6 @@
 
 .ds-select__hint {
   flex: 0 0 auto;
-  font-size: var(--t-hint);
+  font-size: var(--ta-size);
   color: var(--ink-3);
 }

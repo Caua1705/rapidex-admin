@@ -149,7 +149,7 @@ export function DeliveryTab({
           <label className="field">
             <span className="field__label">Taxa base</span>
             <input
-              className="input mono"
+              className="input tnum"
               inputMode="decimal"
               value={draft.baseFee}
               onChange={(event) => patch({ baseFee: event.target.value })}
@@ -160,7 +160,7 @@ export function DeliveryTab({
           <label className="field">
             <span className="field__label">Valor por km</span>
             <input
-              className="input mono"
+              className="input tnum"
               inputMode="decimal"
               value={draft.perKm}
               onChange={(event) => patch({ perKm: event.target.value })}
@@ -174,7 +174,7 @@ export function DeliveryTab({
             <span className="field__label">Faixa da taxa</span>
             <div className="field__pair">
               <input
-                className="input mono"
+                className="input tnum"
                 inputMode="decimal"
                 aria-label="Taxa mínima da entrega"
                 value={draft.minFee}
@@ -185,7 +185,7 @@ export function DeliveryTab({
                 a
               </span>
               <input
-                className="input mono"
+                className="input tnum"
                 inputMode="decimal"
                 aria-label="Taxa máxima da entrega"
                 value={draft.maxFee}
@@ -201,7 +201,7 @@ export function DeliveryTab({
           <label className="field">
             <span className="field__label">Distância máxima (km)</span>
             <input
-              className="input mono"
+              className="input tnum"
               inputMode="decimal"
               value={draft.maxDistanceKm}
               onChange={(event) => patch({ maxDistanceKm: event.target.value })}
@@ -220,7 +220,7 @@ export function DeliveryTab({
             const fee = estimateDeliveryFee(draftConfig, km);
             return (
               <li className="delivery-preview__row" key={km}>
-                <span className="mono">{km} km</span>
+                <span className="tnum">{km} km</span>
                 {/* Coluna de dinheiro: tabular e à direita, como em toda a tela. */}
                 <span className={fee === null ? 'faint num' : 'num delivery-preview__fee'}>
                   {fee === null ? 'Não atendido' : formatCurrency(fee)}

@@ -1,0 +1,363 @@
+/*
+ * ============================================================================
+ * PRIMITIVAS — as peças que TODA tela usa
+ * ============================================================================
+ *
+ * Botão, campo, etiqueta, aviso e os utilitários. Elas moram aqui, e não em
+ * cada tela, porque a coisa que mais faz um painel parecer inacabado é o mesmo
+ * botão com três alturas em três telas.
+ *
+ * REAPROVEITE ANTES DE CRIAR. Um segundo botão com padding próprio é como a
+ * densidade começa a desandar.
+ *
+ * Este arquivo substituiu `legacy-bridge.css`, que era um apelido de cada nome
+ * de token antigo para o novo. A ponte foi apagada junto com a última tela
+ * migrada: enquanto ela existia, dois nomes serviam à mesma cor e ninguém
+ * sabia qual era o certo.
+ */
+
+/* ==========================================================================
+ * ENQUADRAMENTO DA PÁGINA
+ *
+ * A coluna de conteúdo começa LOGO DEPOIS da lateral e cresce até o teto — ela
+ * não é centrada no viewport. Centrar abre, num monitor de 27", 300px de nada
+ * entre a lateral e a primeira letra, e é o defeito que mais faz uma tela
+ * parecer quebrada.
+ * ======================================================================= */
+.container {
+  width: 100%;
+  max-width: var(--page-max);
+  margin-inline: 0;
+}
+
+/* ==========================================================================
+ * BOTÃO
+ *
+ * Três pesos, e a diferença entre eles é a resposta a "quantas destas ações
+ * cabem numa tela":
+ *
+ *   .btn--primary  UMA por tela. É o laranja da marca.
+ *   .btn           a ação secundária que precisa de caixa (confirmar, cancelar
+ *                  dentro de um diálogo, escolher filial num estado vazio).
+ *   .btn--ghost    a ação de linha, sem caixa, revelada no hover da linha.
+ * ======================================================================= */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+  height: var(--control-h);
+  padding-inline: var(--sp-8);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-chip);
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--tb-size);
+  line-height: 1;
+  font-weight: var(--w-medium);
+  letter-spacing: var(--tb-track);
+  white-space: nowrap;
+  transition:
+    background var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--hover);
+  border-color: var(--line-control);
+}
+
+.btn:active:not(:disabled) {
+  background: var(--active);
+}
+
+.btn:disabled {
+  opacity: var(--disabled-opacity);
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--ember);
+  border-color: var(--ember);
+  color: var(--on-ember);
+  font-weight: var(--w-semibold);
+}
+
+.btn--primary:hover:not(:disabled),
+.btn--primary:active:not(:disabled) {
+  background: var(--ember-press);
+  border-color: var(--ember-press);
+  /* A tinta troca junto com o fundo: nenhuma das duas passa nos dois. */
+  color: var(--on-ember-press);
+}
+
+.btn--danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.btn--danger:hover:not(:disabled) {
+  background: var(--danger-wash);
+  border-color: var(--danger);
+}
+
+/*
+ * SEM CAIXA. Uma coluna de botões contornados numa lista compete com o dado
+ * que a pessoa veio ler — e numa tela de 60 linhas, ganha.
+ */
+.btn--ghost,
+.btn--ghost-danger {
+  border-color: transparent;
+  color: var(--ink-3);
+  font-weight: var(--w-regular);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: var(--hover);
+  border-color: transparent;
+  color: var(--ink);
+}
+
+.btn--ghost-danger:hover:not(:disabled) {
+  background: var(--danger-wash);
+  border-color: transparent;
+  color: var(--danger);
+}
+
+.btn--sm {
+  height: var(--control-h-sm);
+  padding-inline: var(--sp-4);
+  font-size: var(--ta-size);
+}
+
+.btn--block {
+  width: 100%;
+}
+
+/* Botão que é só ícone: quadrado, e o ícone respira igual dos dois lados. */
+.icon-btn {
+  width: var(--control-h);
+  padding: 0;
+  line-height: 0;
+}
+
+.icon-btn.btn--sm {
+  width: var(--control-h-sm);
+}
+
+@media (max-width: 1023px) {
+  .btn {
+    height: var(--control-h-touch);
+  }
+
+  .icon-btn {
+    width: var(--control-h-touch);
+  }
+}
+
+/* ==========================================================================
+ * CAMPO
+ *
+ * O ritmo entre rótulo, controle e ajuda é ditado AQUI e em nenhum outro
+ * lugar: é o que faz o formulário de Entrega ler com a mesma cadência do de
+ * Impressão. Não recomponha um campo à mão.
+ *
+ * `.field` e `.ds-field` (o envelope do componente React) compartilham as
+ * mesmas regras de propósito — dois ritmos para a mesma coisa era metade da
+ * sensação de inacabado.
+ * ======================================================================= */
+.field,
+.ds-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+
+.field__label,
+.ds-field__label,
+.ds-choice-group__legend {
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.field__hint,
+.ds-field__hint {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+/* Dois campos que formam UM dado: "de 30 a 50 min", "de R$ 5 a R$ 20". */
+.field__pair {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.field__pair > .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.field__pair-sep {
+  flex: 0 0 auto;
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+}
+
+/*
+ * A CAIXA DE CONTROLE — a mesma para campo de texto, área de texto e o gatilho
+ * do seletor. Uma caixa só, com um contorno só, é o que faz um formulário com
+ * sete tipos de controle continuar lendo como uma coisa só.
+ *
+ * O contorno usa `--line-control`, o único da paleta que passa dos 3:1 contra
+ * as superfícies (WCAG 1.4.11): num controle sem preenchimento próprio, a
+ * borda é a única coisa que diz que ali se escreve. É a única exceção
+ * declarada à regra de "plano se separa por tom, não por borda".
+ */
+.input,
+.textarea {
+  height: var(--field-h);
+  padding-inline: var(--sp-8);
+  background: var(--field);
+  color: var(--ink);
+  border: 1px solid var(--line-control);
+  border-radius: var(--r-field);
+  font-size: var(--tb-size);
+  min-width: 0;
+  transition: border-color var(--motion-fast) var(--ease);
+}
+
+.input:hover:not(:disabled),
+.textarea:hover:not(:disabled) {
+  border-color: var(--ink-3);
+}
+
+.textarea {
+  height: auto;
+  padding-block: var(--sp-8);
+  resize: vertical;
+  min-height: 72px;
+  line-height: var(--tb-line);
+  font-family: var(--font-ui);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--ink-3);
+  opacity: 1;
+}
+
+.input:disabled,
+.textarea:disabled {
+  background: var(--bg);
+  border-color: var(--line);
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
+@media (max-width: 1023px) {
+  .input {
+    height: var(--field-h-touch);
+  }
+}
+
+/* ==========================================================================
+ * AVISO
+ * Faixa de texto com um fio da cor do assunto à esquerda. Sem ícone: a cor do
+ * fio e a palavra já dizem o que é, e um terceiro sinal só ocupa largura.
+ * ======================================================================= */
+.alert {
+  padding: var(--sp-8) var(--sp-12);
+  border-radius: var(--r-chip);
+  border-left: 2px solid;
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+}
+
+.alert--error {
+  background: var(--danger-wash);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.alert--warn {
+  background: var(--alert-wash);
+  border-color: var(--alert);
+  color: var(--alert);
+}
+
+.alert--info {
+  background: var(--st-aceito-wash);
+  border-color: var(--st-aceito);
+  color: var(--st-aceito);
+}
+
+/* ==========================================================================
+ * ETIQUETA — neutra, sempre. Etiqueta colorida é categoria pintada, e cor sem
+ * significado é o que este sistema não tem.
+ * ======================================================================= */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding-inline: var(--sp-4);
+  border-radius: var(--r-chip);
+  background: var(--field);
+  color: var(--ink-2);
+  font-size: var(--ta-size);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+ * UTILITÁRIOS
+ * ======================================================================= */
+.muted {
+  color: var(--ink-2);
+}
+
+.faint {
+  color: var(--ink-3);
+}
+
+/* --- ponto de conexão do stream ------------------------------------------ */
+
+.conn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+}
+
+.conn__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-round);
+  background: var(--ink-3);
+  flex: 0 0 auto;
+}
+
+/* Verde = "no ar". É o mesmo uso do interruptor de disponível. */
+.conn--live .conn__dot {
+  background: var(--ok);
+}
+
+.conn--connecting .conn__dot {
+  background: var(--alert);
+}
+
+.conn--offline {
+  color: var(--danger);
+}
+
+.conn--offline .conn__dot {
+  background: var(--danger);
+}

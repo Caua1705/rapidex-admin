@@ -6,35 +6,41 @@
  * ESTE É O ÚNICO ARQUIVO DO PROJETO QUE PODE CONTER UM VALOR LITERAL de cor,
  * de corpo de fonte ou de raio. Em qualquer outro lugar é `var(--token)`.
  * `npm run lint` cobra isso (scripts/check-design-tokens.mjs) e
- * `npm run check:contrast` mede os pares de contraste declarados aqui.
+ * `scripts/check-contrast.mjs` mede os pares declarados aqui nos dois temas.
  *
  * Precisou de um valor que não existe? Ele vira token AQUI primeiro, com o
  * contraste medido — não vira número solto no componente.
  *
- * O que estes valores decidem:
+ * O QUE ESTES VALORES DECIDEM
  *
- *   - PAINEL DE OPERAÇÃO, NÃO DASHBOARD DE ANALISTA. Quem lê está no balcão
- *     no meio do rush, ou na cozinha a dois metros da tela.
- *   - CLARO É O PADRÃO e o escuro é o mesmo conjunto semântico com as
- *     superfícies invertidas — nunca uma segunda paleta.
- *   - O LARANJA DA MARCA É AÇÃO, não decoração: botão primário e item ativo.
- *     Mais de três ocorrências numa tela é erro.
- *   - A ESCALA DE STATUS É INDEPENDENTE DA MARCA. São 7 estágios do pedido, e
- *     nenhum deles compete com o laranja do CTA.
- *   - VERMELHO SÓ EM CANCELAMENTO E ERRO DESTRUTIVO. Pagamento pendente,
- *     atraso e aviso são `--st-pendente` — se o alarme pinta o normal, ele
- *     deixa de ser alarme.
+ *   FERRAMENTA DE OPERAÇÃO DENSA. Linear, o dashboard da Stripe, o da Vercel.
+ *   Quem lê está no balcão às 22h de sábado com a cozinha cheia. Cada pixel
+ *   gasto em decoração é um pixel a menos de pedido na tela.
+ *
+ *   PRECISÃO, NÃO ORNAMENTO. O que faz a tela parecer acabada é alinhamento,
+ *   ritmo e contraste — não sombra, não degradê, não raio grande.
+ *
+ *   O PLANO SE SEPARA POR TOM. Cartão, coluna e lista se distinguem do fundo
+ *   pela luminosidade, não por um contorno. Borda é exceção (ver --line).
+ *
+ *   ESCURO É O TEMA PRINCIPAL, e o claro é o MESMO conjunto semântico com as
+ *   superfícies invertidas — nunca uma segunda paleta.
+ *
+ *   O LARANJA DA MARCA É AÇÃO: botão primário, item ativo da navegação, anel
+ *   de foco. Mais de três ocorrências numa tela é erro.
+ *
+ *   A ESCALA DE STATUS É INDEPENDENTE DA MARCA. São 7 estágios do pedido, e
+ *   nenhum deles compete com o laranja do CTA.
  */
 
 :root {
   /* ==========================================================================
-   * MARCA
-   * Só ação primária e item ativo da navegação. Se aparecer mais de 3x numa
-   * tela, está errado.
+   * 1. MARCA
+   * Só ação primária, item ativo da navegação e anel de foco.
    * ======================================================================= */
   --ember: #e8590c;
   --ember-press: #c2410c;
-  --ember-wash: #fff1e7;
+  --ember-wash: #fdece1;
 
   /*
    * As duas tintas que vão EM CIMA do laranja — e por que são duas.
@@ -49,11 +55,26 @@
   --on-ember-press: #fff3ec;
 
   /* ==========================================================================
-   * SUPERFÍCIES — neutro quente, nunca cinza-azulado
+   * 2. OS QUATRO PLANOS — neutro quente, nunca cinza-azulado
+   *
+   *   --bg               o chão: área de trabalho, lateral e barra do topo
+   *   --surface          onde o trabalho acontece: cartão, coluna, lista
+   *   --surface-raised   o que SOBE mais um degrau: o cartão dentro de uma
+   *                      coluna, e o que flutua sobre a tela (menu, diálogo,
+   *                      folha lateral, barra de salvar)
+   *   --line             a régua, quando o tom não basta
+   *
+   * O degrau entre `--bg` e `--surface` é a única coisa que desenha um cartão.
+   * Se um bloco precisou de borda para se ver, ele está no plano errado.
+   *
+   * `--field` é o plano do que se PREENCHE, e afunda: é `--bg` visto por
+   * dentro de um cartão. Fora de um cartão ele some no fundo — e é por isso
+   * que campo é o único componente do sistema que leva contorno sempre.
    * ======================================================================= */
-  --bg: #f7f5f2;
+  --bg: #f1eeea;
   --surface: #ffffff;
-  --surface-2: #fbfaf8;
+  --surface-raised: #ffffff;
+  --field: #f7f5f3;
 
   /*
    * Três linhas, três trabalhos — e só uma delas precisa passar em contraste.
@@ -63,28 +84,43 @@
    * o que identifica um controle.
    *
    * `--line-control` é o contorno do que se opera — campo, caixa de marcar,
-   * botão secundário. Esse identifica o componente, então ele é medido contra
-   * as duas superfícies e passa dos 3:1. É mais escuro do que o instinto pede;
-   * é o preço de a borda ser a única coisa que diz "aqui se escreve".
+   * botão secundário. Esse identifica o componente, então é medido contra as
+   * superfícies e passa dos 3:1.
    */
-  --line: #e6e1da;
-  --line-strong: #d5cec4;
-  --line-control: #948a80;
+  --line: #e4dfd8;
+  --line-strong: #cfc8bd;
+  --line-control: #8f867c;
 
   /* ==========================================================================
-   * TEXTO
+   * 3. TINTA — três níveis, e o papel de cada um
+   *   --ink    o dado que a pessoa veio ler
+   *   --ink-2  o que acompanha o dado (nome do cliente, descrição)
+   *   --ink-3  o que só existe para localizar: rótulo, meta, hora, contagem
    * ======================================================================= */
-  --ink: #1f1a16;
-  --ink-2: #5c534b;
-  /*
-   * O cinza de apoio saiu de #8A8078 para cá porque aquele dava 3.70:1 sobre
-   * `--surface-2` — e apoio/hint é texto de 12px, que precisa de 4.5:1. Um
-   * hint ilegível é um hint que não existe.
-   */
-  --ink-3: #6e665e;
+  --ink: #191512;
+  --ink-2: #574e46;
+  --ink-3: #6b625a;
 
   /* ==========================================================================
-   * STATUS DO PEDIDO — 7 estágios, independentes da cor da marca
+   * 4. SEMÂNTICA DE ESTADO — os três únicos usos de cor fora da marca e do
+   * status do pedido. Cada um responde a UMA pergunta, e nenhum é decorativo.
+   *
+   *   --ok      "no ar / à venda / confirmado"  → interruptor ligado, loja
+   *             aberta, ponto de conexão viva. Nunca como palavra escrita ao
+   *             lado do controle que já diz a mesma coisa.
+   *   --alert   "esperando / atenção"           → aviso, cronômetro na janela
+   *   --danger  "perigo"                        → cancelar, excluir, recusado
+   * ======================================================================= */
+  --ok: #047857;
+  --ok-wash: #e3f0eb;
+  --alert: #b45309;
+  --alert-wash: #fdf4ec;
+  --danger: #c0322b;
+  --danger-wash: #fbe9e8;
+
+  /* ==========================================================================
+   * 5. STATUS DO PEDIDO — 7 estágios, independentes da cor da marca.
+   * INTOCÁVEL: a escala é a mesma desde o primeiro dia do produto.
    * ======================================================================= */
   --st-pendente: #b45309;
   --st-aceito: #1d4ed8;
@@ -92,141 +128,194 @@
   --st-pronto: #047857;
   --st-entrega: #0e7490;
   --st-concluido: #78716c;
-  --st-cancelado: #dc2626; /* único vermelho do sistema inteiro */
+  --st-cancelado: #c0322b;
 
   /*
    * O fundo de cada chip de status.
    *
    * Hexadecimal medido, e não `color-mix`, porque o verificador de contraste
    * precisa conseguir ler o valor: uma cor que a máquina não mede é uma cor
-   * que ninguém garante. Cada par (texto = a cor do status, fundo = o wash
-   * abaixo) está na lista de scripts/check-contrast.mjs.
+   * que ninguém garante.
    */
   --st-pendente-wash: #f8eee6;
   --st-aceito-wash: #e8edfb;
   --st-preparando-wash: #f0eafb;
-  --st-pronto-wash: #e6f1ee;
-  --st-entrega-wash: #e7f1f4;
-  --st-concluido-wash: #f2f1f0;
-  --st-cancelado-wash: #fbe9e9;
+  --st-pronto-wash: #e3f0eb;
+  --st-entrega-wash: #e4f0f3;
+  --st-concluido-wash: #f0efed;
+  --st-cancelado-wash: #fbe9e8;
 
   /* ==========================================================================
-   * FOCO E VÉU
+   * 6. ESTADOS INTERATIVOS — valem para TODO elemento operável, e saem daqui.
+   *
+   * Ponteiro e pressão são derivados da TINTA, então funcionam nos dois temas
+   * com uma regra só: no claro escurecem, no escuro clareiam, porque `--ink`
+   * já inverteu. Nenhum componente escolhe o seu próprio realce.
    * ======================================================================= */
+  --hover: color-mix(in oklab, var(--ink) 6%, transparent);
+  --active: color-mix(in oklab, var(--ink) 11%, transparent);
+  --disabled-opacity: 0.45;
+
   --focus: var(--ember);
   --focus-width: 2px;
   --focus-offset: 2px;
-  --scrim: rgba(31, 26, 22, 0.45);
 
-  /*
-   * Realce de ponteiro e de pressão. Derivados da tinta, então funcionam nos
-   * dois temas com uma regra só: no claro escurecem, no escuro clareiam,
-   * porque `--ink` já inverteu.
-   */
-  --hover: color-mix(in oklab, var(--ink) 6%, transparent);
-  --active: color-mix(in oklab, var(--ink) 11%, transparent);
+  --scrim: rgba(25, 21, 18, 0.5);
 
   /* ==========================================================================
-   * TIPOGRAFIA
+   * 7. TIPOGRAFIA — CINCO NÍVEIS, e só cinco
    *
-   * Archivo em toda a interface. JetBrains Mono APENAS em número de pedido e
-   * códigos — é continuidade com a comanda impressa de 48 colunas, não
-   * decoração. Nunca em dinheiro nem em texto corrido.
+   * Inter em toda a interface: sans neutra de interface, sem personalidade
+   * própria, com numerais tabulares de verdade. Uma fonte arredondada dá à
+   * tela um tom simpático que atrapalha quem está tentando ler quantos
+   * pedidos estão atrasados.
+   *
+   *   1 --tt-*   título de página   um por rota, no alto à esquerda
+   *   2 --ts-*   título de seção    cartão, coluna, aba, grupo, diálogo
+   *   3 --tl-*   rótulo             nome de campo, cabeçalho de coluna, grupo
+   *   4 --tb-*   corpo              o conteúdo
+   *   5 --ta-*   auxiliar           ajuda, meta, hora, contagem, rodapé
+   *
+   * A prova: bata o olho em qualquer texto da tela e diga qual nível ele usa.
+   * Se não der para dizer, o texto está errado — não falta um nível.
+   *
+   * O contraste entre níveis vem de CORPO + PESO + CAIXA + TINTA junto, nunca
+   * de um só. Corpo e auxiliar diferem em 1px porque quem os separa de
+   * verdade é a tinta (--ink contra --ink-3).
    * ======================================================================= */
-  --font-ui: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --font-ui:
+    'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  /* 1. Título de página. */
+  --tt-size: 20px;
+  --tt-line: 26px;
+  --tt-weight: 650;
+  --tt-track: -0.02em;
+
+  /* 2. Título de seção. */
+  --ts-size: 14px;
+  --ts-line: 20px;
+  --ts-weight: 600;
+  --ts-track: -0.011em;
+
+  /* 3. Rótulo — sempre em maiúscula, sempre em --ink-3. */
+  --tl-size: 11px;
+  --tl-line: 14px;
+  --tl-weight: 600;
+  --tl-track: 0.055em;
+
+  /* 4. Corpo. */
+  --tb-size: 13px;
+  --tb-line: 18px;
+  --tb-weight: 400;
+  --tb-track: -0.006em;
+
+  /* 5. Auxiliar. */
+  --ta-size: 12px;
+  --ta-line: 16px;
+  --ta-weight: 400;
+  --ta-track: 0em;
+
+  /* Os pesos que a interface usa. Fora destes quatro, não há. */
+  --w-regular: 400;
+  --w-medium: 500;
+  --w-semibold: 600;
+  --w-bold: 650;
 
   /*
-   * Os SETE papéis da escala. Cada texto do painel é um deles — se você não
-   * consegue dizer qual papel um texto tem, o texto está errado.
+   * A COZINHA É A ÚNICA EXCEÇÃO À ESCALA, e por um motivo físico: é um monitor
+   * pendurado na parede, lido a dois metros por quem está com as mãos
+   * ocupadas. Estes três corpos existem para `src/kitchen/` e não são
+   * permitidos em nenhuma outra tela — no painel, um texto de 28px é sempre
+   * sintoma de outro problema.
    */
-
-  /* 1. Número operacional — o tempo decorrido, a maior tinta da tela. */
-  --t-num-sm: 19px;
-  --t-num: 22px;
-  --t-num-lg: 28px;
-  --t-num-line: 1.05;
-  --t-num-weight: 800;
-  --t-num-track: -0.04em;
-
-  /* 2. Título de tela — um por rota. */
-  --t-screen: 22px;
-  --t-screen-line: 1.15;
-  --t-screen-weight: 800;
-  --t-screen-track: -0.03em;
-
-  /* 3. Título de card. */
-  --t-card: 15.5px;
-  --t-card-line: 1.25;
-  --t-card-weight: 700;
-  --t-card-track: -0.02em;
-
-  /* 4. Dinheiro — na UI, nunca em mono. */
-  --t-money-sm: 15px;
-  --t-money: 16px;
-  --t-money-lg: 17px;
-  --t-money-line: 1.2;
-  --t-money-weight: 800;
-  --t-money-track: -0.03em;
-
-  /* 5. Corpo e label. */
-  --t-body: 14px;
-  --t-body-line: 1.45;
-  --t-body-weight: 500;
-  --t-label: 13px;
-  --t-label-line: 1.3;
-  --t-label-weight: 600;
-
-  /* 6. Apoio / hint. */
-  --t-hint: 12px;
-  --t-hint-line: 1.35;
-  --t-hint-weight: 500;
-
-  /* 7. Eyebrow / cabeçalho de coluna. */
-  --t-eyebrow: 11px;
-  --t-eyebrow-line: 1.2;
-  --t-eyebrow-weight: 700;
-  --t-eyebrow-track: 0.09em;
+  --k-num: 30px;
+  --k-num-line: 32px;
+  --k-item: 18px;
+  --k-item-line: 24px;
+  --k-meta: 15px;
+  --k-meta-line: 20px;
 
   /* ==========================================================================
-   * ESPAÇAMENTO — escala de 4px, e nada fora dela.
-   * O nome É o valor: um `--sp-13` não existe, e a falta dele é visível.
+   * 8. ESPAÇAMENTO — SEIS degraus, e nada fora deles.
+   *
+   *   4    dentro de um controle: ícone ↔ texto, rótulo ↔ campo
+   *   8    entre controles irmãos; padding de linha densa
+   *   12   padding de cartão; entre campos de uma mesma linha
+   *   16   entre blocos de uma seção; respiro lateral da tela
+   *   24   entre seções
+   *   32   topo de tela e estado vazio — o único degrau generoso que sobrou
+   *
+   * ESCOLHA O DEGRAU ABAIXO DO QUE O INSTINTO PEDE. O instinto foi treinado em
+   * página de marketing; aqui embaixo tem fila de pedido.
+   *
+   * O nome É o valor: um `--sp-20` não existe, e a falta dele é proposital —
+   * era exatamente por ele que cada bloco escolhia o próprio ritmo.
    * ======================================================================= */
   --sp-4: 4px;
   --sp-8: 8px;
   --sp-12: 12px;
   --sp-16: 16px;
-  --sp-20: 20px;
   --sp-24: 24px;
   --sp-32: 32px;
-  --sp-40: 40px;
 
   /* ==========================================================================
-   * RAIO E ELEVAÇÃO
+   * 9. RAIO E ELEVAÇÃO
+   *
+   * Três degraus apertados. Raio grande em tudo é o que faz uma ferramenta
+   * parecer um aplicativo de consumo.
+   *
+   * SOMBRA SÓ NO QUE FLUTUA sobre a tela. Cartão parado na página não tem
+   * sombra em tema nenhum — quem o separa do fundo é o tom.
    * ======================================================================= */
-  --r-chip: 6px;
-  --r-field: 8px;
-  --r-card: 10px;
+  --r-chip: 4px;
+  --r-field: 6px;
+  --r-card: 8px;
   --r-round: 999px;
 
-  --shadow-card: 0 1px 2px rgba(31, 26, 22, 0.05), 0 1px 1px rgba(31, 26, 22, 0.04);
-  --shadow-pop: 0 10px 30px rgba(31, 26, 22, 0.13), 0 2px 6px rgba(31, 26, 22, 0.06);
+  --shadow-pop: 0 12px 32px rgba(25, 21, 18, 0.14), 0 2px 6px rgba(25, 21, 18, 0.08);
 
   /* ==========================================================================
-   * ENQUADRAMENTO
+   * 10. ENQUADRAMENTO
+   *
+   * `--page-pad` é o respiro lateral de TODA tela, e o mesmo número no topo da
+   * lateral: é ele que faz o conteúdo começar logo depois da lateral em vez de
+   * flutuar no meio do vazio.
+   *
+   * `--page-max` é medido A PARTIR do fim da lateral, não do viewport — a
+   * coluna de conteúdo é alinhada à esquerda, nunca centrada na tela inteira.
+   * Centrar num monitor de 27" abre 300px de nada entre a lateral e o texto, e
+   * é o defeito que mais faz um painel parecer quebrado.
    * ======================================================================= */
-  --sidebar-w: 216px;
-  --sidebar-rail: 56px;
-  --topbar-h: 52px;
+  --sidebar-w: 208px;
+  --sidebar-rail: 52px;
+  --topbar-h: 48px;
   --bottombar-h: 56px;
-  --form-max: 1120px;
+  --page-pad: var(--sp-16);
+  --page-max: 1240px;
+  --form-max: 860px;
+  --column-max: 296px;
 
   /* Alvo mínimo de toque: 24px por WCAG 2.5.8, 44px no celular. */
   --tap: 24px;
   --tap-mobile: 44px;
 
+  /*
+   * Altura dos controles. Um botão com padding próprio é como a densidade
+   * começa a desandar — estas alturas valem para o painel inteiro.
+   *
+   * O campo é 2px mais alto que o botão porque ele tem texto DENTRO de uma
+   * caixa contornada, e não texto sobre um fundo. As duas variantes `-touch`
+   * entram abaixo de 1024px, onde o alvo é o dedo e não o ponteiro.
+   */
+  --control-h: 28px;
+  --control-h-sm: 24px;
+  --control-h-touch: 36px;
+  --field-h: 30px;
+  --field-h-touch: 40px;
+
   /* ==========================================================================
-   * MOVIMENTO
+   * 11. MOVIMENTO
    * Estes dois tokens viram 0s sob prefers-reduced-motion (no fim do arquivo),
    * então toda transição escrita com eles já respeita a preferência.
    * ======================================================================= */
@@ -235,7 +324,7 @@
   --ease: cubic-bezier(0.2, 0, 0, 1);
 
   /* ==========================================================================
-   * CAMADAS
+   * 12. CAMADAS
    * ======================================================================= */
   --z-sticky: 20;
   --z-popover: 40;
@@ -248,46 +337,60 @@
 /*
  * ============================================================================
  * TEMA ESCURO — as MESMAS variáveis semânticas, outras superfícies.
- * Nenhuma regra de componente pode ser específica de tema: se você precisou de
- * `[data-theme="dark"] .minha-classe`, o token que você usou é o errado.
+ *
+ * É o tema principal do produto. Nenhuma regra de componente pode ser
+ * específica de tema: se você precisou de `[data-theme="dark"] .minha-classe`,
+ * o token que você usou é o errado.
+ *
+ * A escada de tom aqui é MAIS aberta que no claro de propósito. No claro o
+ * branco do cartão já se destaca sozinho; no escuro, dois cinzas a 4% de
+ * distância viram um borrão só, e o cartão desaparece.
  * ============================================================================
  */
 [data-theme='dark'] {
-  --bg: #17130f;
-  --surface: #211c18;
-  --surface-2: #282119;
-  --line: #332b24;
-  --line-strong: #443a31;
-  --line-control: #7d7167;
+  --bg: #121110;
+  --surface: #1c1a18;
+  --surface-raised: #262320;
+  --field: #161413;
 
-  --ink: #f5f1ec;
-  --ink-2: #b3a99f;
-  --ink-3: #9c9188;
+  --line: #302c28;
+  --line-strong: #453f39;
+  --line-control: #7b736a;
 
-  --ember-wash: #33200f;
+  --ink: #f4f1ed;
+  --ink-2: #b0a69b;
+  --ink-3: #978d83;
+
+  --ember-wash: #3a2110;
+
+  --ok: #34d399;
+  --ok-wash: #1e3b30;
+  --alert: #f59e0b;
+  --alert-wash: #40300f;
+  --danger: #f87171;
+  --danger-wash: #452622;
 
   --st-pendente: #f59e0b;
-  --st-aceito: #60a5fa;
-  --st-preparando: #a78bfa;
+  --st-aceito: #7aa9fb;
+  --st-preparando: #b39bfb;
   --st-pronto: #34d399;
-  --st-entrega: #22d3ee;
-  --st-concluido: #a8a29e;
+  --st-entrega: #38d0e8;
+  --st-concluido: #b0a89f;
   --st-cancelado: #f87171;
 
-  --st-pendente-wash: #473316;
-  --st-aceito-wash: #2c3541;
-  --st-preparando-wash: #393041;
-  --st-pronto-wash: #243d2f;
-  --st-entrega-wash: #213d3e;
-  --st-concluido-wash: #393430;
-  --st-cancelado-wash: #482b28;
+  --st-pendente-wash: #40300f;
+  --st-aceito-wash: #22303f;
+  --st-preparando-wash: #2f2a3e;
+  --st-pronto-wash: #1e3b30;
+  --st-entrega-wash: #1b393c;
+  --st-concluido-wash: #33302c;
+  --st-cancelado-wash: #452622;
 
   --scrim: rgba(0, 0, 0, 0.62);
 
-  /* Sombra sobre quase-preto é invisível: a elevação vira degrau de tom, e a
-     sombra fica só no que realmente flutua. */
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-pop: 0 10px 30px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4);
+  /* Sombra sobre quase-preto quase não aparece: quem levanta o que flutua é o
+     degrau para `--surface-raised`, e a sombra só aprofunda a separação. */
+  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4);
 
   color-scheme: dark;
 }

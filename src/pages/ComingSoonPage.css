@@ -10,7 +10,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--space-7) var(--space-5);
+  padding: var(--sp-32) var(--sp-16);
 }
 
 .soon__block {
@@ -18,23 +18,23 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-3);
+  gap: var(--sp-8);
 }
 
 /* A etiqueta vem ANTES do título e é neutra: ela informa, não anuncia. */
 .soon__tag {
-  margin-bottom: var(--space-1);
+  margin-bottom: var(--sp-4);
 }
 
 .soon__text {
   margin: 0;
-  font-size: var(--type-body-size);
-  line-height: var(--type-body-line);
-  color: var(--text-secondary);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink-2);
 }
 
 @media (max-width: 720px) {
   .soon {
-    padding: var(--space-6) var(--space-4);
+    padding: var(--sp-24) var(--sp-12);
   }
 }

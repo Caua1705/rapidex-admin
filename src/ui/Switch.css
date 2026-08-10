@@ -3,18 +3,18 @@
   height: 22px;
   flex: 0 0 auto;
   padding: 0;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-full);
+  border: 1px solid var(--line);
+  border-radius: var(--r-round);
   /* Desligado é neutro; verde só quando o item está de fato à venda. */
-  background: var(--border-strong);
+  background: var(--line-strong);
   cursor: pointer;
   position: relative;
-  transition: background var(--motion-base) var(--motion-ease);
+  transition: background var(--motion-base) var(--ease);
 }
 
 .switch[aria-checked='true'] {
-  background: var(--status-completed-h);
-  border-color: var(--status-completed-h);
+  background: var(--ok);
+  border-color: var(--ok);
 }
 
 .switch:disabled {
@@ -23,7 +23,7 @@
 }
 
 .switch:focus-visible {
-  outline: 2px solid var(--focus-ring);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -33,13 +33,13 @@
   left: 2px;
   width: 16px;
   height: 16px;
-  border-radius: var(--radius-full);
+  border-radius: var(--r-round);
   /* `--neutral-900` era da paleta antiga e morreu com ela: sem knob visível, o
      interruptor virava uma pílula verde sem lado ligado. Some junto com este
      componente na etapa 6, quando as telas passam a usar o `ds/Switch`. */
   background: var(--surface);
-  box-shadow: var(--shadow-sm);
-  transition: transform var(--motion-base) var(--motion-ease);
+  box-shadow: var(--shadow-pop);
+  transition: transform var(--motion-base) var(--ease);
 }
 
 .switch[aria-checked='true'] .switch__knob {

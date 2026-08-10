@@ -54,7 +54,7 @@ export function PrepTimeControl({ branchId }: { branchId: string }) {
       <span className="prep__label">Preparo</span>
 
       {temFaixa ? (
-        <span className="prep__range mono" data-testid="prep-time-range">
+        <span className="prep__range tnum" data-testid="prep-time-range">
           {formatPrepRange(prep.range)}
         </span>
       ) : (
@@ -102,7 +102,7 @@ export function PrepTimeControl({ branchId }: { branchId: string }) {
             <label className="field">
               <span className="field__label">Mínimo (min)</span>
               <input
-                className="input mono"
+                className="input tnum"
                 type="number"
                 min="1"
                 inputMode="numeric"
@@ -114,7 +114,7 @@ export function PrepTimeControl({ branchId }: { branchId: string }) {
             <label className="field">
               <span className="field__label">Máximo (min)</span>
               <input
-                className="input mono"
+                className="input tnum"
                 type="number"
                 min="1"
                 inputMode="numeric"

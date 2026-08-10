@@ -68,8 +68,8 @@ export function UiGalleryPage() {
   return (
     <div className="gal">
       <header className="gal__bar">
-        <h1 className="t-screen">Design system</h1>
-        <p className="t-hint">
+        <h1 className="t-title">Design system</h1>
+        <p className="t-aux">
           Rota de desenvolvimento. Todo componente aparece aqui com todos os seus estados.
         </p>
         <button type="button" className="gal__theme" onClick={toggleTheme}>
@@ -440,12 +440,12 @@ export function UiGalleryPage() {
                     <span className="ds-item__foto" aria-hidden="true" />
                     <span className="ds-item__texto">
                       <span className="ds-item__nome">
-                        <span className="ds-item__nome-texto t-card">{item.nome}</span>
+                        <span className="ds-item__nome-texto t-section">{item.nome}</span>
                         <span className="ds-item__preco-inline">{item.preco}</span>
                       </span>
-                      <span className="ds-item__desc t-hint">{item.desc}</span>
+                      <span className="ds-item__desc t-aux">{item.desc}</span>
                     </span>
-                    <span className="ds-item__preco t-money t-money--sm">{item.preco}</span>
+                    <span className="ds-item__preco">{item.preco}</span>
                     <span className="ds-item__fim">
                       <Switch checked onChange={() => {}} label={item.nome} hideLabel />
                     </span>
@@ -579,8 +579,8 @@ function Secao({
   return (
     <section className="gal__secao">
       <div className="gal__secao-cab">
-        <h2 className="t-card">{titulo}</h2>
-        {nota ? <p className="t-hint">{nota}</p> : null}
+        <h2 className="t-section">{titulo}</h2>
+        {nota ? <p className="t-aux">{nota}</p> : null}
       </div>
       <div className="gal__grade">{children}</div>
     </section>
@@ -599,7 +599,7 @@ function Amostra({
 }) {
   return (
     <div className={`gal__amostra${larga ? ' gal__amostra--larga' : ''}`}>
-      <p className="t-eyebrow">{rotulo}</p>
+      <p className="t-label">{rotulo}</p>
       <div className="gal__palco">{children}</div>
     </div>
   );

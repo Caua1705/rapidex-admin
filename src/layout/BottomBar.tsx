@@ -78,7 +78,7 @@ export function BottomBar() {
 
           return (
             <div className="shell__mais-grupo" key={group.title}>
-              <p className="t-eyebrow">{group.title}</p>
+              <p className="t-label">{group.title}</p>
               {entradas.map((entry) => (
                 <NavLink
                   key={entry.to}

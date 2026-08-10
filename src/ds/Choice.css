@@ -33,10 +33,10 @@
 .ds-choice__box {
   flex: 0 0 auto;
   position: relative;
+  /* 18px é a altura de uma linha de corpo: o quadrado alinha com a primeira
+     linha do texto sem nenhum ajuste ótico. */
   width: 18px;
   height: 18px;
-  /* Alinha o quadrado com a primeira linha do texto, não com o bloco todo. */
-  margin-top: 2px;
   appearance: none;
   background: var(--surface);
   border: 1px solid var(--line-control);
@@ -73,7 +73,7 @@
 }
 
 .ds-choice__box:disabled {
-  background: var(--surface-2);
+  background: var(--field);
   border-color: var(--line);
 }
 
@@ -140,9 +140,9 @@
 }
 
 .ds-choice__label {
-  font-size: var(--t-body);
-  line-height: var(--t-body-line);
-  font-weight: var(--t-body-weight);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--tb-weight);
   color: var(--ink);
 }
 
@@ -151,8 +151,8 @@
 }
 
 .ds-choice__hint {
-  font-size: var(--t-hint);
-  line-height: var(--t-hint-line);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
   color: var(--ink-3);
 }
 
@@ -171,9 +171,9 @@
 .ds-choice-group__legend {
   padding: 0;
   margin-bottom: var(--sp-4);
-  font-size: var(--t-label);
-  line-height: var(--t-label-line);
-  font-weight: var(--t-label-weight);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-medium);
   color: var(--ink);
 }
 
@@ -182,8 +182,8 @@
   align-items: center;
   gap: var(--sp-4);
   margin-top: var(--sp-4);
-  font-size: var(--t-hint);
-  line-height: var(--t-hint-line);
-  font-weight: var(--t-label-weight);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-weight: var(--w-medium);
   color: var(--st-cancelado);
 }

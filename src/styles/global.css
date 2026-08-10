@@ -2,12 +2,11 @@
  * A raiz dos estilos. A ordem importa:
  *
  *   1. tokens      — a fonte única da verdade (o único lugar com literais)
- *   2. reset       — comportamento de layout e foco visível
- *   3. typography  — os sete papéis da escala
- *   4. ponte       — apelidos temporários para as telas ainda não migradas,
- *                    APAGADA na etapa 6
+ *   2. reset       — comportamento de layout, foco visível, barra de rolagem
+ *   3. typography  — os cinco níveis da escala
+ *   4. primitives  — botão, campo, aviso, etiqueta e os utilitários
  */
 @import './tokens.css';
 @import './reset.css';
 @import './typography.css';
-@import './legacy-bridge.css';
+@import './primitives.css';

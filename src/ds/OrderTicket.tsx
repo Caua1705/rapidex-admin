@@ -92,14 +92,14 @@ export function OrderTicket({
       <span className="ds-ticket__corpo">
         <span className="ds-ticket__topo">
           {/* A maior tinta do cartão: é ela que decide o que fazer primeiro. */}
-          <span className="ds-ticket__tempo t-num">{elapsedLabel}</span>
-          <span className="ds-ticket__total t-money">{total}</span>
+          <span className="ds-ticket__tempo tnum">{elapsedLabel}</span>
+          <span className="ds-ticket__total tnum">{total}</span>
         </span>
 
         <span className="ds-ticket__cliente t-body">{customer}</span>
 
         <span className="ds-ticket__meta">
-          <span className="ds-ticket__numero t-code">#{number}</span>
+          <span className="ds-ticket__numero tnum">#{number}</span>
           <span aria-hidden="true">·</span>
           <span>{timeLabel}</span>
           {tags.map((tag) => (

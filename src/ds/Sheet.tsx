@@ -68,7 +68,7 @@ export function Sheet({
         <div className="ds-sheet__cab">
           {/* A alça é desenho: quem opera é o botão de fechar e o Esc. */}
           <span className="ds-sheet__alca" aria-hidden="true" />
-          <h2 className="ds-sheet__titulo t-card">{title}</h2>
+          <h2 className="ds-sheet__titulo t-section">{title}</h2>
           <button type="button" className="ds-sheet__fechar" aria-label="Fechar" onClick={onClose}>
             <XIcon />
           </button>

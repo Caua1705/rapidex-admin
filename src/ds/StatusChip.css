@@ -11,18 +11,18 @@
 
 .ds-chip--md {
   min-height: var(--tap);
-  font-size: var(--t-hint);
-  line-height: var(--t-hint-line);
-  font-weight: var(--t-label-weight);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-weight: var(--w-medium);
 }
 
 /* O pequeno vive dentro de uma linha de lista, onde a altura é do conteúdo. */
 .ds-chip--sm {
   min-height: 20px;
   padding-inline: var(--sp-4);
-  font-size: var(--t-eyebrow);
+  font-size: var(--tl-size);
   line-height: 1;
-  font-weight: var(--t-eyebrow-weight);
+  font-weight: var(--tl-weight);
   letter-spacing: 0.02em;
 }
 
@@ -54,10 +54,10 @@
   min-height: 20px;
   padding-inline: var(--sp-4);
   border-radius: var(--r-round);
-  background: var(--surface-2);
+  background: var(--field);
   color: var(--ink-2);
-  font-size: var(--t-eyebrow);
-  font-weight: var(--t-eyebrow-weight);
+  font-size: var(--tl-size);
+  font-weight: var(--tl-weight);
   font-variant-numeric: tabular-nums;
 }
 

@@ -6,8 +6,8 @@
 .ds-tabela__caption {
   text-align: left;
   padding-bottom: var(--sp-8);
-  font-size: var(--t-hint);
-  line-height: var(--t-hint-line);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
   color: var(--ink-3);
 }
 
@@ -46,16 +46,16 @@
   align-items: center;
   gap: var(--sp-8);
   min-height: var(--tap);
-  font-size: var(--t-body);
-  line-height: var(--t-body-line);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
   color: var(--ink);
 }
 
 .ds-tabela td[data-col]::before {
   content: attr(data-col);
   flex: 0 0 40%;
-  font-size: var(--t-hint);
-  font-weight: var(--t-label-weight);
+  font-size: var(--ta-size);
+  font-weight: var(--w-medium);
   color: var(--ink-3);
 }
 
@@ -80,10 +80,10 @@
   .ds-tabela th {
     padding: var(--sp-8) var(--sp-12);
     text-align: left;
-    font-size: var(--t-eyebrow);
-    line-height: var(--t-eyebrow-line);
-    font-weight: var(--t-eyebrow-weight);
-    letter-spacing: var(--t-eyebrow-track);
+    font-size: var(--tl-size);
+    line-height: var(--tl-line);
+    font-weight: var(--tl-weight);
+    letter-spacing: var(--tl-track);
     text-transform: uppercase;
     color: var(--ink-3);
     white-space: nowrap;

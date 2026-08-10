@@ -96,7 +96,7 @@ export function CategoryRail({
                 */}
                 {count !== undefined ? (
                   <span className="rail__count" data-testid={`category-count-${category.id}`}>
-                    <span className="mono">{count}</span> {count === 1 ? 'item' : 'itens'}
+                    <span className="tnum">{count}</span> {count === 1 ? 'item' : 'itens'}
                   </span>
                 ) : null}
               </button>

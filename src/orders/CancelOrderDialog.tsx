@@ -83,7 +83,7 @@ export function CancelOrderDialog({
           ) : (
             <span className="faint">Fica gravado no histórico do pedido.</span>
           )}
-          <span className="faint mono">
+          <span className="faint tnum">
             {draft.trim().length}/{CANCEL_REASON_MAX}
           </span>
         </div>

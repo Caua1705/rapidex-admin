@@ -36,7 +36,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: var(--sp-4);
   /* Alvo de 44px com folga: é o alvo mais usado do painel no celular. */
   min-height: var(--tap-mobile);
   color: var(--ink-3);
@@ -44,18 +44,22 @@
 }
 
 .shell__tab-nome {
-  font-size: var(--t-eyebrow);
+  font-size: var(--tl-size);
   line-height: 1;
-  font-weight: var(--t-label-weight);
+  font-weight: var(--w-medium);
 }
 
 /*
  * O item ativo é dito por TRÊS coisas: a tinta cheia, o peso e o traço em cima.
  * Cor sozinha não passa em 1.4.1 — e num rodapé de quatro ícones iguais, a cor
  * sozinha é justamente o que não se distingue de relance.
+ *
+ * O laranja fica SÓ no traço, que é elemento gráfico (3:1 basta). Como texto de
+ * 11px ele reprovaria em AA sobre qualquer uma das duas superfícies.
  */
 .shell__tab--ativa {
-  color: var(--ember-press);
+  color: var(--ink);
+  font-weight: var(--w-semibold);
   position: relative;
 }
 
@@ -83,7 +87,7 @@
   padding: var(--sp-8) var(--sp-12) var(--sp-12);
 }
 
-.shell__mais-grupo .t-eyebrow {
+.shell__mais-grupo .t-label {
   padding: var(--sp-4) var(--sp-12) var(--sp-8);
 }
 
@@ -96,7 +100,8 @@
   min-height: var(--topbar-h);
   flex: 0 0 auto;
   padding-inline: var(--sp-12);
-  background: var(--surface-2);
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
 }
 
 .shell__spacer {
@@ -117,8 +122,8 @@
   padding-inline: var(--sp-8);
   border-radius: var(--r-chip);
   color: var(--ink-2);
-  font-size: var(--t-label);
-  font-weight: var(--t-label-weight);
+  font-size: var(--tb-size);
+  font-weight: var(--w-medium);
 }
 
 .shell__sair:hover {
@@ -157,7 +162,14 @@
     width: var(--sidebar-rail);
     flex: 0 0 auto;
     padding: 0 var(--sp-8) var(--sp-16);
-    background: var(--surface-2);
+    /*
+     * A MOLDURA É O CHÃO, não uma superfície. Lateral e barra do topo saem em
+     * `--bg`, o mesmo tom da área de trabalho, e quem as separa é um fio de
+     * 1px. Assim `--surface` fica reservado para o que é conteúdo — cartão,
+     * coluna, lista —, e um cartão nunca disputa plano com a navegação.
+     */
+    background: var(--bg);
+    border-right: 1px solid var(--line);
     overflow-y: auto;
     align-items: center;
   }
@@ -205,8 +217,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: var(--sp-40);
-    height: var(--sp-40);
+    width: var(--sp-32);
+    height: var(--sp-32);
     border-radius: var(--r-field);
     color: var(--ink-2);
     text-decoration: none;
@@ -218,9 +230,31 @@
     color: var(--ink);
   }
 
+  /*
+   * O ITEM ATIVO: tinta cheia, um degrau de tom e um trilho de 2px na cor da
+   * marca. Três sinais, e o laranja em nenhum deles é texto.
+   *
+   * Ele já foi "laranja sobre laranja claro". Media 3.11:1 no tema claro e
+   * 4.17:1 no escuro — os dois abaixo do mínimo para 13px —, e não existe um
+   * laranja que passe nos dois sem deixar de ser o laranja da marca. Trocado
+   * por isto, ele ficou mais legível E a marca aparece menos na tela.
+   */
   .shell__link--active {
-    background: var(--ember-wash);
-    color: var(--ember-press);
+    position: relative;
+    background: var(--active);
+    color: var(--ink);
+  }
+
+  .shell__link--active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2px;
+    height: 16px;
+    border-radius: var(--r-round);
+    background: var(--ember);
   }
 
   .shell__link--soon {
@@ -249,7 +283,7 @@
     width: var(--sidebar-w);
     align-items: stretch;
     padding-inline: var(--sp-8);
-    gap: var(--sp-20);
+    gap: var(--sp-16);
   }
 
   .shell__brand {
@@ -271,7 +305,7 @@
   .shell__group,
   .shell__group ul {
     align-items: stretch;
-    gap: 2px;
+    gap: var(--sp-4);
   }
 
   .shell__link {
@@ -282,8 +316,8 @@
     justify-content: flex-start;
     gap: var(--sp-12);
     padding-inline: var(--sp-8);
-    font-size: var(--t-body);
-    font-weight: var(--t-body-weight);
+    font-size: var(--tb-size);
+    font-weight: var(--tb-weight);
   }
 
   .shell__link-label {
@@ -298,7 +332,7 @@
   }
 
   .shell__link--active {
-    font-weight: var(--t-label-weight);
+    font-weight: var(--w-medium);
   }
 
   /*
@@ -311,13 +345,13 @@
     height: auto;
     margin-left: auto;
     clip: auto;
-    font-size: var(--t-eyebrow);
+    font-size: var(--tl-size);
     line-height: 1;
     color: var(--ink-3);
   }
 
   .shell__bar {
-    padding-inline: var(--sp-20);
+    padding-inline: var(--sp-16);
   }
 }
 
@@ -353,9 +387,9 @@
 }
 
 .branch__name {
-  font-size: var(--t-label);
-  line-height: var(--t-label-line);
-  font-weight: var(--t-card-weight);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--ts-weight);
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
@@ -365,8 +399,8 @@
 /* O endereço só cabe a partir do tablet: no celular ele espremia o nome. */
 .branch__detail {
   display: none;
-  font-size: var(--t-hint);
-  line-height: var(--t-hint-line);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
   color: var(--ink-3);
   white-space: nowrap;
   overflow: hidden;

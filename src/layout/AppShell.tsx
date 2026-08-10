@@ -47,7 +47,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               acessível da lista logo abaixo: sem isso, o leitor de tela diz
               "Operação" duas vezes seguidas ao entrar no grupo.
             */}
-            <p className="t-eyebrow shell__group-title" aria-hidden="true">
+            <p className="t-label shell__group-title" aria-hidden="true">
               {group.title}
             </p>
             <ul aria-label={group.title}>
@@ -67,7 +67,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           <div className="shell__spacer" />
 
-          <span className="shell__user t-hint">
+          <span className="shell__user t-aux">
             {user?.name}
             <span className="ink-3"> · {ROLE_LABELS[user?.role ?? ''] ?? user?.role}</span>
           </span>
