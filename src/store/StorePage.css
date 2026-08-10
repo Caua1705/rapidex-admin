@@ -228,10 +228,45 @@
   height: 16px;
 }
 
+/*
+ * A barra gruda no rodapé da ÁREA DE CONTEÚDO. `sticky` e não `fixed`: o
+ * contêiner que rola é `.store`, então o sticky já a prende no fim da parte
+ * visível sem precisar saber onde estão a lateral e o cabeçalho — e ela volta a
+ * ser uma linha comum do formulário quando a página não rola.
+ *
+ * O `margin` negativo devolve o respiro lateral do `.store` para que a faixa
+ * vá de ponta a ponta, e o padding recompõe o alinhamento do conteúdo com os
+ * campos de cima.
+ */
 .store-form__actions {
+  position: sticky;
+  bottom: calc(var(--space-10) * -1);
+  z-index: 20;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  margin: var(--space-2) calc(var(--space-5) * -1) calc(var(--space-10) * -1);
+  padding: var(--space-3) var(--space-5);
+  background: var(--bg-surface-raised);
+  border-top: 1px solid var(--border-default);
+  /*
+   * Entra junto com a primeira alteração — é mudança de estado ("há algo não
+   * salvo"), não enfeite de página.
+   */
+  animation: save-bar-enter var(--motion-fast) var(--motion-ease);
+}
+
+@keyframes save-bar-enter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .store-form__actions {
+    animation: none;
+  }
 }
 
 .store-form__error {

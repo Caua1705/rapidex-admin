@@ -39,6 +39,15 @@ async function abrirAbaImpressao(page: Page) {
   await page.getByTestId('store-tab-impressao').click();
 }
 
+/**
+ * Aplicar setor à categoria mora no menu de três pontinhos, ao lado do nome da
+ * categoria — e não mais ao lado de "Novo item". A ação sobrescreve a categoria
+ * inteira, então ela não pode ter o peso visual da ação do dia a dia.
+ */
+async function abrirMenuDaCategoria(page: Page) {
+  await page.getByTestId('category-actions-open').click();
+}
+
 // --- a aba em Minha loja --------------------------------------------------
 
 test('a aba Impressão lista os setores da filial e pede uma quando não há', async ({ page }) => {
@@ -123,6 +132,8 @@ test('sem filial escolhida, a coluna de setor não aparece', async ({ page }) =>
   // loja — e mostrar a de uma delas seria mentir.
   await expect(page.getByTestId('product-row-prod-1')).toBeVisible();
   await expect(page.getByTestId('product-sector-prod-1')).toHaveCount(0);
+
+  await abrirMenuDaCategoria(page);
   await expect(page.getByTestId('apply-sector-open')).toBeDisabled();
 });
 
@@ -154,12 +165,19 @@ test('aplicar o setor à categoria inteira resolve os 80 cliques', async ({ page
   await escolherFilial(page);
   await page.getByRole('link', { name: 'Cardápio' }).click();
 
+  await abrirMenuDaCategoria(page);
   await page.getByTestId('apply-sector-open').click();
 
-  // A contagem aparece ANTES de confirmar: é o que separa a ação certa da
-  // ação lamentada.
-  await expect(page.getByTestId('apply-sector-warning')).toContainText('3 itens');
-  await expect(page.getByTestId('apply-sector-warning')).toContainText('já tinham outro setor');
+  /*
+   * A contagem aparece ANTES de confirmar: é o que separa a ação certa da ação
+   * lamentada. E o número que importa não é o total — é quantos JÁ têm setor,
+   * porque são esses que alguém apontou à mão e vão ser sobrescritos. No falso,
+   * a categoria tem 3 itens e só o X-Burger está configurado.
+   */
+  const aviso = page.getByTestId('apply-sector-warning');
+  await expect(aviso).toContainText('3 itens');
+  await expect(aviso).toContainText('já tinham outro setor');
+  await expect(aviso).toContainText('1 já tem setor definido');
 
   await page.getByTestId('apply-sector-select').selectOption('sec-chapa');
   await page.getByTestId('apply-sector-confirm').click();
@@ -189,6 +207,7 @@ test('aplicar "Não imprimir" à categoria limpa o setor de todos', async ({ pag
 
   await expect(page.getByTestId('product-sector-prod-1')).toHaveText('Chapa');
 
+  await abrirMenuDaCategoria(page);
   await page.getByTestId('apply-sector-open').click();
   // "Não imprimir" é o valor padrão do diálogo e vale como escolha.
   await page.getByTestId('apply-sector-confirm').click();

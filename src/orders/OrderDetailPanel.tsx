@@ -110,118 +110,100 @@ export function OrderDetailPanel({
     }
   }
 
+  /*
+   * SEM PEDIDO ABERTO, O PAINEL NÃO EXISTE.
+   *
+   * Antes ele ficava montado o tempo todo, ocupando 400px de largura fixa para
+   * mostrar "Nenhum pedido aberto" — um quarto da tela gasto para dizer que não
+   * há nada ali. Quem paga a conta é o quadro: as colunas do kanban não
+   * encolhem (`flex: 1 0 246px`), então a largura que sobra vira rolagem
+   * horizontal no meio do turno.
+   *
+   * O estado vazio some junto: o quadro ocupando a tela inteira já comunica
+   * "nada aberto" sem precisar de uma frase.
+   */
+  if (orderId === null) return null;
+
   return (
     <aside className="panel" aria-label="Detalhe do pedido" data-testid="order-panel">
-      {orderId === null ? (
-        <EmptyState />
-      ) : (
-        <>
-          <header className="panel__header">
-            <div className="panel__title">
-              {detail ? (
-                <>
-                  <span className="mono panel__number">#{detail.order_number}</span>
-                  <span className={`panel__status status-${detail.status}`}>
-                    {STATUS_LABELS[detail.status] ?? detail.status}
-                  </span>
-                  <span className="faint">{labelFor(ORDER_TYPE_LABELS, detail.order_type)}</span>
-                </>
-              ) : (
-                <span className="muted">Pedido</span>
-              )}
-            </div>
-            <button type="button" className="btn btn--sm" onClick={onClose} aria-label="Fechar">
-              ✕
-            </button>
-          </header>
-
-          <div className="panel__body">
-            {loadError ? (
-              <p className="alert alert--error" role="alert">
-                {loadError}
-              </p>
-            ) : null}
-
-            {actionErrorMessage ? (
-              <p className="alert alert--error" role="alert" data-testid="status-error">
-                {actionErrorMessage}
-              </p>
-            ) : null}
-
-            {!detail && !loadError ? <p className="muted">Carregando…</p> : null}
-
-            {detail ? <DetailBody detail={detail} /> : null}
-          </div>
-
+      <header className="panel__header">
+        <div className="panel__title">
           {detail ? (
-            <footer className="panel__footer">
-              {nextStatusesFor(detail.status).map((target) => {
-                const check = checkTransition(detail, target);
-                const isCancel = target === 'cancelled';
-                return (
-                  <button
-                    key={target}
-                    type="button"
-                    className={`btn btn--sm ${
-                      isCancel || target === 'rejected' ? 'btn--danger' : 'btn--primary'
-                    }`}
-                    disabled={!check.allowed || pendingStatus !== null}
-                    // O título explica POR QUE o botão está travado. Sem isso o
-                    // lojista clica, nada acontece e ele acha que a tela travou.
-                    title={check.allowed ? undefined : check.reason}
-                    // Cancelar não sai daqui direto: o motivo é obrigatório, e
-                    // quem o pede é o diálogo.
-                    onClick={() =>
-                      isCancel ? setAskingCancel(true) : void handleChangeStatus(target)
-                    }
-                    data-testid={`change-status-${target}`}
-                  >
-                    {pendingStatus === target ? 'Enviando…' : (STATUS_LABELS[target] ?? target)}
-                  </button>
-                );
-              })}
-              {nextStatusesFor(detail.status).length === 0 ? (
-                <span className="faint">Estado final: este pedido não muda mais.</span>
-              ) : null}
-            </footer>
-          ) : null}
+            <>
+              <span className="mono panel__number">#{detail.order_number}</span>
+              <span className={`panel__status status-${detail.status}`}>
+                {STATUS_LABELS[detail.status] ?? detail.status}
+              </span>
+              <span className="faint">{labelFor(ORDER_TYPE_LABELS, detail.order_type)}</span>
+            </>
+          ) : (
+            <span className="muted">Pedido</span>
+          )}
+        </div>
+        <button type="button" className="btn btn--sm" onClick={onClose} aria-label="Fechar">
+          ✕
+        </button>
+      </header>
 
-          {askingCancel && detail ? (
-            <CancelOrderDialog
-              orderNumber={detail.order_number}
-              isSending={isCancelling}
-              errorMessage={actionErrorMessage}
-              onClose={() => setAskingCancel(false)}
-              onConfirm={(reason) => void handleCancel(reason)}
-            />
+      <div className="panel__body">
+        {loadError ? (
+          <p className="alert alert--error" role="alert">
+            {loadError}
+          </p>
+        ) : null}
+
+        {actionErrorMessage ? (
+          <p className="alert alert--error" role="alert" data-testid="status-error">
+            {actionErrorMessage}
+          </p>
+        ) : null}
+
+        {!detail && !loadError ? <p className="muted">Carregando…</p> : null}
+
+        {detail ? <DetailBody detail={detail} /> : null}
+      </div>
+
+      {detail ? (
+        <footer className="panel__footer">
+          {nextStatusesFor(detail.status).map((target) => {
+            const check = checkTransition(detail, target);
+            const isCancel = target === 'cancelled';
+            return (
+              <button
+                key={target}
+                type="button"
+                className={`btn btn--sm ${
+                  isCancel || target === 'rejected' ? 'btn--danger' : 'btn--primary'
+                }`}
+                disabled={!check.allowed || pendingStatus !== null}
+                // O título explica POR QUE o botão está travado. Sem isso o
+                // lojista clica, nada acontece e ele acha que a tela travou.
+                title={check.allowed ? undefined : check.reason}
+                // Cancelar não sai daqui direto: o motivo é obrigatório, e
+                // quem o pede é o diálogo.
+                onClick={() => (isCancel ? setAskingCancel(true) : void handleChangeStatus(target))}
+                data-testid={`change-status-${target}`}
+              >
+                {pendingStatus === target ? 'Enviando…' : (STATUS_LABELS[target] ?? target)}
+              </button>
+            );
+          })}
+          {nextStatusesFor(detail.status).length === 0 ? (
+            <span className="faint">Estado final: este pedido não muda mais.</span>
           ) : null}
-        </>
-      )}
+        </footer>
+      ) : null}
+
+      {askingCancel && detail ? (
+        <CancelOrderDialog
+          orderNumber={detail.order_number}
+          isSending={isCancelling}
+          errorMessage={actionErrorMessage}
+          onClose={() => setAskingCancel(false)}
+          onConfirm={(reason) => void handleCancel(reason)}
+        />
+      ) : null}
     </aside>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="panel__empty">
-      <svg
-        width="28"
-        height="28"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M4 6h16M4 12h16M4 18h7" />
-      </svg>
-      <p className="panel__empty-title">Nenhum pedido aberto</p>
-      <p className="faint">
-        Clique num card do quadro para ver os itens, o pagamento e o endereço.
-      </p>
-    </div>
   );
 }
 

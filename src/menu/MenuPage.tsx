@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useSession } from '../auth/session-context';
 import { usePrintSectors } from '../print-sectors/usePrintSectors';
 import { ApplySectorDialog } from './ApplySectorDialog';
+import { CategoryActionsMenu } from './CategoryActionsMenu';
 import { CategoryDialog } from './CategoryDialog';
 import { CategoryRail } from './CategoryRail';
 import { EditIcon, PlusIcon, SearchIcon } from '../ui/icons';
@@ -91,29 +92,30 @@ export function MenuPage() {
                 <EditIcon />
               </button>
             ) : null}
+
+            {/*
+              As ações em lote saem daqui de perto do nome, e não do canto ao
+              lado de "Novo item": aplicar setor sobrescreve a categoria
+              inteira, e não pode ter o mesmo peso visual da ação do dia.
+            */}
+            {selectedCategory ? (
+              <CategoryActionsMenu
+                actions={[
+                  {
+                    id: 'aplicar-setor',
+                    label: 'Aplicar setor a todos os itens',
+                    disabledReason: branchChosen
+                      ? undefined
+                      : 'Setor é por filial: escolha uma no topo para aplicar a esta categoria.',
+                    onSelect: () => setApplyingSector(true),
+                    testId: 'apply-sector-open',
+                  },
+                ]}
+              />
+            ) : null}
           </div>
 
           <div className="menu__actions">
-            {/*
-              Aplicar setor à categoria inteira. Fica ao lado de "Novo item"
-              porque é ação de CATEGORIA, e não de um produto — quem procura por
-              ela está olhando a categoria aberta, não uma linha da lista.
-            */}
-            <button
-              type="button"
-              className="btn"
-              onClick={() => setApplyingSector(true)}
-              disabled={!selectedCategory || !branchChosen}
-              title={
-                branchChosen
-                  ? undefined
-                  : 'Setor é por filial: escolha uma no topo para aplicar a esta categoria.'
-              }
-              data-testid="apply-sector-open"
-            >
-              Aplicar setor à categoria
-            </button>
-
             <button
               type="button"
               className="btn btn--primary"
@@ -236,6 +238,11 @@ export function MenuPage() {
           // O total da categoria, e não o que está carregado na tela: a ação
           // atinge a categoria inteira, inclusive o que a paginação não trouxe.
           productCount={menu.totalInCategory}
+          // Quantos já têm setor: é o que a ação vai SOBRESCREVER, e o número
+          // que diz se ela é inofensiva ou não. Sai dos produtos carregados —
+          // não existe rota que conte isso, e a lista é paginada.
+          configuredCount={menu.products.filter((product) => product.printing_sector_id).length}
+          inspectedCount={menu.products.length}
           sectors={printing.sectors}
           isSaving={isApplyingSector}
           onClose={() => setApplyingSector(false)}

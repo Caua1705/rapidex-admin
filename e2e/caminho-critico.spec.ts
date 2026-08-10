@@ -88,8 +88,10 @@ test('o detalhe é painel lateral: o quadro fica visível e o conteúdo troca', 
 
   const painel = page.getByTestId('order-panel');
 
-  // Sem seleção, o painel já está lá com o estado vazio.
-  await expect(painel).toContainText('Nenhum pedido aberto');
+  // Sem seleção o painel NÃO existe: 400px de largura fixa para dizer "nenhum
+  // pedido aberto" é um quarto da tela gasto com ausência de informação, e o
+  // quadro é quem fica sem espaço.
+  await expect(painel).toHaveCount(0);
 
   await page.getByTestId('order-card-1002').click();
   await expect(painel).toContainText('#1002');
@@ -103,9 +105,9 @@ test('o detalhe é painel lateral: o quadro fica visível e o conteúdo troca', 
   await expect(painel).toContainText('Rafael Nunes');
   await expect(painel).not.toContainText('#1002');
 
-  // Fechar volta ao estado vazio, e o quadro nunca saiu do lugar.
+  // Fechar devolve a largura ao quadro, que nunca saiu do lugar.
   await page.getByRole('button', { name: 'Fechar' }).click();
-  await expect(painel).toContainText('Nenhum pedido aberto');
+  await expect(painel).toHaveCount(0);
   await expect(page.getByTestId('order-card-1003')).toBeVisible();
 });
 

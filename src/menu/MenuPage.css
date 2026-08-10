@@ -215,6 +215,61 @@
   text-overflow: ellipsis;
 }
 
+/* --- menu de ações da categoria ------------------------------------------ */
+
+/*
+ * As ações em lote moram aqui, ao lado do nome, e não no canto junto de "Novo
+ * item": aplicar setor sobrescreve a categoria inteira, e dois botões lado a
+ * lado diriam ao olho que criar um item e reescrever oitenta custam o mesmo.
+ */
+.actions-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.actions-menu__list {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  z-index: 30;
+  min-width: 232px;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-1);
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.actions-menu__item {
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Item interativo CLAREIA no hover — o fundo já é quase preto. */
+.actions-menu__item:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.actions-menu__item:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.actions-menu__item:disabled {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
 .menu__alert {
   margin-top: var(--space-3);
 }

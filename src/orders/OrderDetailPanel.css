@@ -8,6 +8,26 @@
   min-height: 0;
   background: var(--bg-surface);
   border-left: 1px solid var(--border-subtle);
+  /*
+   * O painel ENTRA quando um pedido é aberto — é mudança de estado, não
+   * enfeite: sem o deslize, 400px de conteúdo simplesmente surgem e o olho
+   * perde de onde vieram. `--motion-fast` já vira 0s sob prefers-reduced-motion,
+   * mas @keyframes precisa do seu próprio desligamento (abaixo).
+   */
+  animation: panel-enter var(--motion-fast) var(--motion-ease);
+}
+
+@keyframes panel-enter {
+  from {
+    opacity: 0;
+    transform: translateX(var(--space-4));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
 }
 
 .panel__header {
@@ -62,31 +82,12 @@
   border-top: 1px solid var(--border-subtle);
 }
 
-/* --- estado vazio -------------------------------------------------------- */
-
-.panel__empty {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-8) var(--space-6);
-  text-align: center;
-  color: var(--text-tertiary);
-}
-
-.panel__empty-title {
-  margin: 0;
-  font-size: var(--text-base);
-  font-weight: var(--weight-semibold);
-  color: var(--text-secondary);
-}
-
-.panel__empty p {
-  margin: 0;
-  font-size: var(--text-sm);
-}
+/*
+ * Não existe estado vazio: sem pedido escolhido o painel não é montado, e o
+ * quadro fica com a tela inteira. Um painel de 400px que só diz "nenhum pedido
+ * aberto" é um quarto da largura gasto para informar que não há informação —
+ * e as colunas do kanban não encolhem para compensar.
+ */
 
 /* --- blocos do detalhe --------------------------------------------------- */
 
@@ -279,8 +280,8 @@
 
 /*
  * Abaixo de 1100px não sobra largura para o quadro E o painel lado a lado. O
- * painel vira uma folha sobre a direita da tela, e só aparece quando há pedido
- * escolhido — o quadro continua sendo a tela principal.
+ * painel vira uma folha sobre a direita da tela — e como ele só existe com
+ * pedido escolhido, não há mais o que esconder por aqui.
  */
 @media (max-width: 1100px) {
   .panel {
@@ -291,9 +292,5 @@
     z-index: 40;
     width: min(400px, 92vw);
     box-shadow: var(--shadow-lg);
-  }
-
-  .panel:has(.panel__empty) {
-    display: none;
   }
 }

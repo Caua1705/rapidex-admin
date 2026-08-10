@@ -78,6 +78,30 @@ test('Geral salva as configurações do restaurante e não expõe a taxa padrão
   expect(patch).not.toHaveProperty('default_delivery_fee');
 });
 
+/*
+ * O botão de salvar ficava no fim de um formulário que rola: quem editava um
+ * campo do meio e trocava de aba perdia a alteração sem nunca ter visto que
+ * havia algo pendente. A barra agora gruda no rodapé e aparece com a primeira
+ * mudança — mas some quando não há o que salvar, senão vira faixa permanente
+ * que o olho aprende a pular.
+ */
+test('a barra de salvar só existe quando há alteração pendente', async ({ page }) => {
+  await abrirMinhaLoja(page);
+
+  const barra = page.getByTestId('store-save-bar');
+  await expect(barra).toHaveCount(0);
+
+  await page.getByTestId('settings-min-order').fill('35,00');
+  await expect(barra).toBeVisible();
+  await expect(page.getByTestId('store-save')).toBeVisible();
+
+  // Descartar devolve a tela ao estado salvo e leva a barra junto.
+  await page.getByRole('button', { name: 'Descartar alterações' }).click();
+  await expect(page.getByTestId('settings-min-order')).toHaveValue('20,00');
+  await expect(barra).toHaveCount(0);
+  expect(api.settingsPatches()).toHaveLength(0);
+});
+
 test('faixa de tempo estimado pela metade é recusada antes de sair da tela', async ({ page }) => {
   await abrirMinhaLoja(page);
 

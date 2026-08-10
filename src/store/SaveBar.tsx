@@ -1,10 +1,24 @@
+import { useEffect, useState } from 'react';
+
+/** Quanto tempo a confirmação "Alterações salvas" fica na tela. */
+const SAVED_NOTICE_MS = 4000;
+
 /**
- * O rodapé de salvar, igual em todas as abas de Minha loja.
+ * A barra de salvar de Minha loja.
  *
- * Existe como peça única para que as quatro abas tenham o mesmo alvo no mesmo
- * lugar: o lojista aprende uma vez onde fica o botão. A confirmação "Salvo" é
- * texto e não toast — some sozinho na próxima edição, e um toast por cima do
- * formulário taparia justamente o campo que acabou de mudar.
+ * POR QUE ELA GRUDA NO RODAPÉ: as abas desta tela são formulários longos —
+ * Filial tem endereço, coordenada e contato; Horários tem sete linhas. O botão
+ * ficava no fim do documento, então quem editava um campo do meio e trocava de
+ * aba perdia a alteração sem nunca ter visto que havia algo para salvar. Grudada
+ * embaixo da área de conteúdo, ela acompanha a rolagem e o aviso chega antes da
+ * perda.
+ *
+ * POR QUE ELA SÓ APARECE ÀS VEZES: uma barra permanente com um botão sempre
+ * inerte é uma faixa que o olho aprende a pular — e aí ela não avisa mais nada
+ * no dia em que houver mesmo o que salvar. Ela existe quando há:
+ *   - alteração não salva (com Salvar e Descartar);
+ *   - erro da última tentativa — some junto seria engolir a falha;
+ *   - a confirmação recém-salva, por alguns segundos.
  */
 export function SaveBar({
   isSaving,
@@ -21,8 +35,22 @@ export function SaveBar({
   onSave: () => void;
   onReset?: () => void;
 }) {
+  const [showSaved, setShowSaved] = useState(false);
+
+  useEffect(() => {
+    if (savedAt === null) return;
+    setShowSaved(true);
+    const timer = setTimeout(() => setShowSaved(false), SAVED_NOTICE_MS);
+    return () => clearTimeout(timer);
+  }, [savedAt]);
+
+  // Enquanto há o que salvar, a confirmação da vez anterior não interessa: o
+  // estado atual é "não salvo", e as duas frases juntas se contradiriam.
+  const confirmacaoVisivel = showSaved && !isDirty;
+  if (!isDirty && !errorMessage && !confirmacaoVisivel) return null;
+
   return (
-    <div className="store-form__actions">
+    <div className="store-form__actions" data-testid="store-save-bar">
       {errorMessage ? (
         <p className="alert alert--error store-form__error" role="alert" data-testid="store-error">
           {errorMessage}
@@ -30,6 +58,12 @@ export function SaveBar({
       ) : null}
 
       <div className="store-form__buttons">
+        {confirmacaoVisivel ? (
+          <span className="faint store-form__saved" data-testid="store-saved">
+            Alterações salvas.
+          </span>
+        ) : null}
+
         {/* Só aparece com algo para desfazer: um botão sempre visível e sempre
             inerte ensina o lojista a ignorar a linha inteira. */}
         {onReset && isDirty ? (
@@ -38,21 +72,17 @@ export function SaveBar({
           </button>
         ) : null}
 
-        {savedAt && !isDirty ? (
-          <span className="faint store-form__saved" data-testid="store-saved">
-            Alterações salvas.
-          </span>
+        {isDirty ? (
+          <button
+            type="submit"
+            className="btn btn--primary"
+            disabled={isSaving}
+            onClick={onSave}
+            data-testid="store-save"
+          >
+            {isSaving ? 'Salvando…' : 'Salvar alterações'}
+          </button>
         ) : null}
-
-        <button
-          type="submit"
-          className="btn btn--primary"
-          disabled={isSaving || !isDirty}
-          onClick={onSave}
-          data-testid="store-save"
-        >
-          {isSaving ? 'Salvando…' : 'Salvar alterações'}
-        </button>
       </div>
     </div>
   );

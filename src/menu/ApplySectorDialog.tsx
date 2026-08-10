@@ -19,6 +19,8 @@ import { Modal } from '../ui/Modal';
 export function ApplySectorDialog({
   categoryName,
   productCount,
+  configuredCount,
+  inspectedCount,
   sectors,
   isSaving,
   onClose,
@@ -27,6 +29,16 @@ export function ApplySectorDialog({
   categoryName: string;
   /** Quantos itens a categoria tem, para o lojista ver o tamanho da ação. */
   productCount: number;
+  /** Destes, quantos JÁ têm setor — é o que a ação vai sobrescrever. */
+  configuredCount: number;
+  /**
+   * Sobre quantos itens a contagem acima foi feita.
+   *
+   * A lista é paginada, então nem sempre é a categoria inteira. Quando for
+   * menor que `productCount`, o texto diz isso em vez de afirmar um número que
+   * não foi contado — é a diferença entre informar e chutar.
+   */
+  inspectedCount: number;
   sectors: readonly PrintSector[];
   isSaving: boolean;
   onClose: () => void;
@@ -37,6 +49,8 @@ export function ApplySectorDialog({
 
   const escolhíveis = activeSectors(sectors);
   const alvo = choice === '' ? NO_SECTOR_LABEL : escolhíveis.find((s) => s.id === choice)?.name;
+  /** A paginação não trouxe a categoria toda: o "já configurados" é de amostra. */
+  const contagemParcial = inspectedCount < productCount;
 
   return (
     <Modal
@@ -84,10 +98,28 @@ export function ApplySectorDialog({
           O aviso é direto e sem eufemismo, como o resto do painel: quem já tem
           setor definido à mão vai ser sobrescrito, e o lojista precisa saber
           disso antes e não depois.
+
+          O NÚMERO QUE IMPORTA é o segundo. "80 itens" é o tamanho da ação;
+          "12 já configurados" é o tamanho do estrago se a ação estiver errada
+          — são os que alguém apontou à mão e vão ser sobrescritos.
         */}
         <p className="alert alert--warn" data-testid="apply-sector-warning">
           Todos os {productCount} {productCount === 1 ? 'item' : 'itens'} de “{categoryName}” passam
           a imprimir em <strong>{alvo}</strong> — inclusive os que já tinham outro setor.
+          {configuredCount > 0 ? (
+            <>
+              {' '}
+              <strong>
+                {configuredCount} {configuredCount === 1 ? 'já tem' : 'já têm'} setor definido
+              </strong>
+              {contagemParcial ? ` (contados entre os ${inspectedCount} já carregados)` : ''} e{' '}
+              {configuredCount === 1 ? 'será trocado' : 'serão trocados'}.
+            </>
+          ) : contagemParcial ? (
+            ` Nenhum dos ${inspectedCount} itens já carregados tem setor definido.`
+          ) : (
+            ' Nenhum deles tem setor definido hoje.'
+          )}
         </p>
 
         {productCount === 0 ? (

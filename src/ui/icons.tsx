@@ -34,6 +34,15 @@ export function PlusIcon(props: IconProps) {
   );
 }
 
+/** Três pontinhos: o menu de ações que não são a ação principal da tela. */
+export function MoreIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 6.01v.01M12 12v.01M12 17.99v.01" />
+    </Icon>
+  );
+}
+
 export function EditIcon(props: IconProps) {
   return (
     <Icon {...props}>
