@@ -43,13 +43,13 @@ Todo texto do painel é um destes cinco. A prova: **bata o olho em qualquer
 texto da tela e diga qual nível ele usa.** Se não der para dizer, o texto está
 errado — não falta um nível.
 
-| # | Nível             | Classe       | Corpo/entrelinha | Peso | Caixa      | Cor        | Onde                                            |
-| - | ----------------- | ------------ | ---------------- | ---- | ---------- | ---------- | ----------------------------------------------- |
-| 1 | Título de página  | `.t-title`   | 20 / 26          | 700  | normal     | primary    | **um por tela**, no alto à esquerda              |
-| 2 | Título de seção   | `.t-section` | 14 / 20          | 700  | normal     | primary    | cabeçalho de cartão, de coluna, de aba, de grupo |
-| 3 | Rótulo            | `.t-label`   | 11 / 14          | 600  | MAIÚSCULA  | tertiary   | nome de campo, cabeçalho de coluna, grupo da nav |
-| 4 | Corpo             | `.t-body`    | 13 / 18          | 400  | normal     | primary    | o conteúdo                                       |
-| 5 | Auxiliar          | `.t-aux`     | 12 / 16          | 400  | normal     | tertiary   | ajuda, meta, rodapé, contagem, hora              |
+| #   | Nível            | Classe       | Corpo/entrelinha | Peso | Caixa     | Cor      | Onde                                             |
+| --- | ---------------- | ------------ | ---------------- | ---- | --------- | -------- | ------------------------------------------------ |
+| 1   | Título de página | `.t-title`   | 20 / 26          | 700  | normal    | primary  | **um por tela**, no alto à esquerda              |
+| 2   | Título de seção  | `.t-section` | 14 / 20          | 700  | normal    | primary  | cabeçalho de cartão, de coluna, de aba, de grupo |
+| 3   | Rótulo           | `.t-label`   | 11 / 14          | 600  | MAIÚSCULA | tertiary | nome de campo, cabeçalho de coluna, grupo da nav |
+| 4   | Corpo            | `.t-body`    | 13 / 18          | 400  | normal    | primary  | o conteúdo                                       |
+| 5   | Auxiliar         | `.t-aux`     | 12 / 16          | 400  | normal    | tertiary | ajuda, meta, rodapé, contagem, hora              |
 
 O contraste entre níveis vem de **peso + caixa + cor**, não de três pontos de
 corpo. Título de página e título de seção são o mesmo peso e cores iguais; o
@@ -84,16 +84,16 @@ reancora a cada linha. Texto de UI comum usa a sans (Manrope).
 
 # 2. Espaçamento: oito degraus e nenhum valor solto
 
-| Token       | Valor | Trabalho                                                     |
-| ----------- | ----- | ------------------------------------------------------------ |
-| `--space-1` | 2px   | folga de cabelo: rótulo empilhado sobre o valor               |
-| `--space-2` | 4px   | dentro de um controle: ícone ↔ texto; rótulo ↔ campo          |
-| `--space-3` | 8px   | entre controles irmãos; padding de linha densa                |
-| `--space-4` | 12px  | padding de cartão; entre campos da mesma linha                |
-| `--space-5` | 16px  | entre blocos de uma seção; respiro lateral da tela            |
-| `--space-6` | 24px  | entre seções                                                  |
-| `--space-7` | 32px  | topo de tela, estado vazio                                    |
-| `--space-8` | 48px  | estado vazio grande — o único degrau generoso que sobrou      |
+| Token       | Valor | Trabalho                                                 |
+| ----------- | ----- | -------------------------------------------------------- |
+| `--space-1` | 2px   | folga de cabelo: rótulo empilhado sobre o valor          |
+| `--space-2` | 4px   | dentro de um controle: ícone ↔ texto; rótulo ↔ campo     |
+| `--space-3` | 8px   | entre controles irmãos; padding de linha densa           |
+| `--space-4` | 12px  | padding de cartão; entre campos da mesma linha           |
+| `--space-5` | 16px  | entre blocos de uma seção; respiro lateral da tela       |
+| `--space-6` | 24px  | entre seções                                             |
+| `--space-7` | 32px  | topo de tela, estado vazio                               |
+| `--space-8` | 48px  | estado vazio grande — o único degrau generoso que sobrou |
 
 **Escolha o degrau abaixo do que o instinto pede.** O instinto foi treinado em
 página de marketing; aqui embaixo tem fila de pedido.
@@ -115,13 +115,13 @@ Regras que caem disso:
 
 A escada, de baixo para cima:
 
-| Token             | Papel                                                  |
-| ----------------- | ------------------------------------------------------ |
-| `--bg-sunken`     | o que afunda dentro do cartão: campo, miniatura, tag    |
-| `--bg-app`        | o chão da área de trabalho                             |
-| `--bg-chrome`     | a moldura que não é conteúdo: lateral e barra do topo   |
-| `--bg-surface`    | onde o trabalho acontece: cartão, coluna, linha de lista |
-| `--bg-surface-2`  | o que flutua por cima: menu, diálogo, popover           |
+| Token            | Papel                                                    |
+| ---------------- | -------------------------------------------------------- |
+| `--bg-sunken`    | o que afunda dentro do cartão: campo, miniatura, tag     |
+| `--bg-app`       | o chão da área de trabalho                               |
+| `--bg-chrome`    | a moldura que não é conteúdo: lateral e barra do topo    |
+| `--bg-surface`   | onde o trabalho acontece: cartão, coluna, linha de lista |
+| `--bg-surface-2` | o que flutua por cima: menu, diálogo, popover            |
 
 - **Um cartão que tem tom próprio não leva borda.** Contornar tudo é o que faz
   a tela parecer wireframe. Borda existe para o que o tom não resolve: contorno
@@ -286,15 +286,15 @@ ou o foco desenham fundo.
 `src/ui/` (`Modal`, `Switch`, `RapidexLogo`) e as classes utilitárias de
 `src/styles/global.css`:
 
-| Classe                                            | O quê                                             |
-| ------------------------------------------------- | ------------------------------------------------- |
-| `.t-title` `.t-section` `.t-label` `.t-body` `.t-aux` | os cinco níveis de tipografia                 |
-| `.btn` `.btn--primary` `.btn--danger` `.btn--ghost` `.btn--sm` `.icon-btn` | botões (28px; `--sm` 24px)|
-| `.field` `.field__label` `.field__hint` `.input` `.select` `.textarea` `.checkbox` | formulário |
-| `.alert--error` `.alert--warn` `.alert--info`     | avisos                                            |
-| `.tag`                                            | etiqueta neutra                                   |
-| `.mono` `.num`                                    | número tabular / número tabular alinhado à direita |
-| `.muted` `.faint` `.container` `.sr-only` `.conn` | utilitários                                       |
+| Classe                                                                             | O quê                                              |
+| ---------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `.t-title` `.t-section` `.t-label` `.t-body` `.t-aux`                              | os cinco níveis de tipografia                      |
+| `.btn` `.btn--primary` `.btn--danger` `.btn--ghost` `.btn--sm` `.icon-btn`         | botões (28px; `--sm` 24px)                         |
+| `.field` `.field__label` `.field__hint` `.input` `.select` `.textarea` `.checkbox` | formulário                                         |
+| `.alert--error` `.alert--warn` `.alert--info`                                      | avisos                                             |
+| `.tag`                                                                             | etiqueta neutra                                    |
+| `.mono` `.num`                                                                     | número tabular / número tabular alinhado à direita |
+| `.muted` `.faint` `.container` `.sr-only` `.conn`                                  | utilitários                                        |
 
 **Reaproveite antes de criar**: um segundo botão com padding próprio é como a
 densidade começa a desandar.
