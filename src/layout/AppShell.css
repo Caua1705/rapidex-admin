@@ -362,9 +362,15 @@
  * conteúdo da tela. Quem diz que é clicável é o realce de ponteiro e o chevron
  * (ver `.ds-select__trigger--bare`).
  */
+/*
+ * `flex: 0 1 auto` com `min-width: 0`: o cabeçalho ocupa o que o texto pede e
+ * só encolhe quando a barra aperta de verdade. Com um teto fixo, o endereço
+ * era cortado em 1440px com meia barra vazia à direita — texto truncado onde
+ * havia espaço de sobra é a mesma falta de acabamento do nome cortado.
+ */
 .branch {
+  flex: 0 1 auto;
   min-width: 0;
-  max-width: 420px;
   margin-left: calc(var(--sp-8) * -1);
 }
 
