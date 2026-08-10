@@ -1,66 +1,148 @@
 /*
- * Minha loja. Toda cor sai de tokens.css — aqui é var(--token) ou não entra.
+ * ============================================================================
+ * MINHA LOJA — índice grudento à esquerda, coluna única à direita
+ * ============================================================================
  *
- * A tela é um formulário longo e tem UM teto de largura só (--form-max), que
- * vale para o título, as abas e os cartões: sem ele, um campo de "taxa base"
- * viraria uma caixa de um metro numa tela de 27".
- *
- * O ALINHAMENTO É A REGRA DESTA TELA. Título, abas e conteúdo começam todos na
- * MESMA abscissa: o título morava ao lado de um cartão de status de 60px de
- * altura e ficava centrado nele, ou seja, fora de linha com as abas logo
- * abaixo e com o primeiro campo do formulário. Agora ele é a primeira linha, e
- * o status é um controle na mesma linha, encostado à direita.
+ * As seis abas saíram. Ver o comentário de `StorePage.tsx` para o porquê; aqui
+ * está o que a decisão custa em CSS: a página ficou longa, e por isso o índice
+ * é `position: sticky` e o alvo de cada seção tem `scroll-margin-top` — sem
+ * ele, clicar numa âncora encostaria o título da seção na borda de cima da
+ * área de rolagem.
  */
 
 .store {
+  display: flex;
   flex: 1;
   min-height: 0;
+  gap: var(--sp-24);
+  padding: var(--sp-16) var(--page-pad) var(--sp-32);
   overflow-y: auto;
-  padding: var(--page-pad) var(--page-pad) var(--sp-32);
+  background: var(--bg);
+}
+
+/* ==========================================================================
+ * O ÍNDICE
+ *
+ * Ele NÃO imita a lateral: sem ícone, sem caixa, sem plano próprio. A lateral
+ * é a navegação do produto; isto é o sumário de uma tela — dois componentes
+ * com o mesmo desenho fariam o lojista achar que trocou de seção.
+ * ======================================================================= */
+.store__index {
+  flex: 0 0 148px;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-16);
+  border-left: 1px solid var(--line);
+}
+
+.store__anchor {
+  padding: var(--sp-4) var(--sp-12);
+  margin-left: -1px;
+  border-left: 2px solid transparent;
+  color: var(--ink-3);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  text-decoration: none;
+  transition: color var(--motion-fast) var(--ease);
+}
+
+.store__anchor:hover {
+  color: var(--ink);
+}
+
+/* A seção que está sendo lida: tinta cheia, peso e o trilho de brasa. */
+.store__anchor--on {
+  border-left-color: var(--ember);
+  color: var(--ink);
+  font-weight: var(--w-bold);
+}
+
+/*
+ * Âncora travada: a seção existe no mapa, mas depende da filial escolhida no
+ * topo. Ela continua CLICÁVEL — leva ao bloco que explica o que falta e
+ * oferece as filiais. Um link morto seria pior que a atenuação.
+ */
+.store__anchor--locked {
+  opacity: var(--disabled-opacity);
+}
+
+/* ==========================================================================
+ * A COLUNA
+ * ======================================================================= */
+.store__col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-24);
+  max-width: var(--form-max);
 }
 
 .store__head {
   display: flex;
   align-items: center;
-  gap: var(--sp-16);
+  gap: var(--sp-12);
   flex-wrap: wrap;
 }
 
-.store__loading {
-  padding: var(--sp-24) 0;
+.store__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+  /* O clique na âncora não pode encostar o título na borda de cima. */
+  scroll-margin-top: var(--sp-16);
 }
 
-/* --- abrir / fechar a loja ---------------------------------------------- */
+.store__section-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
 
-/*
- * Sem cartão: um controle na linha do título, encostado à direita.
- *
- * Ele continua fora das abas — é a única configuração com efeito imediato no
- * que o cliente vê, e escondida atrás de uma aba viraria dois cliques no
- * momento em que a cozinha já está afogada. O que mudou é que ele deixou de
- * ser uma caixa de 60px que empurrava o título da tela para o meio dela.
- */
+.store__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+  padding: var(--sp-16);
+  background: var(--surface);
+  border-radius: var(--r-field);
+  font-size: var(--tb-size);
+}
+
+.store__empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-8);
+}
+
+.store__loading {
+  padding: var(--sp-16);
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+}
+
+/* ==========================================================================
+ * LOJA ABERTA / FECHADA — controle na linha do título, não cartão
+ * ======================================================================= */
 .store-status {
-  margin-left: auto;
   display: flex;
   align-items: center;
   gap: var(--sp-8);
-  min-width: 0;
+  margin-left: auto;
+  padding: var(--sp-4) var(--sp-8);
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
+  background: var(--surface);
 }
 
-/*
- * Verde de `completed` e cinza de `cancelled` marcam aqui um estado
- * afirmativo/parado fora do pedido — a mesma exceção que pinta o interruptor
- * de disponível no cardápio. Não é status de pedido.
- */
 .store-status__dot {
   width: 8px;
   height: 8px;
   flex: 0 0 auto;
-  border-radius: var(--r-round);
   background: var(--ink-3);
 }
 
@@ -70,437 +152,243 @@
 
 .store-status__label {
   font-size: var(--tb-size);
-  line-height: var(--tb-line);
   font-weight: var(--w-bold);
+  color: var(--ink);
   white-space: nowrap;
 }
 
-/*
- * A frase diz a CONSEQUÊNCIA, não o estado: "Fechada" sozinho não responde a
- * pergunta que o lojista tem na cabeça, que é se ainda está entrando pedido.
- */
+/* A consequência, não o estado: "ainda entra pedido?" é a pergunta real. */
 .store-status__hint {
   font-size: var(--ta-size);
-  line-height: var(--ta-line);
   color: var(--ink-3);
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-/* --- abas ---------------------------------------------------------------- */
-
-.store__tabs {
-  display: flex;
-  gap: var(--sp-12);
-  flex-wrap: wrap;
-  border-bottom: 1px solid var(--line);
-}
-
-/*
- * A aba é texto com um traço embaixo, não um botão: caixa de aba dentro de uma
- * tela que já tem cartões faz três níveis de moldura na mesma vertical.
- */
-.store__tab {
-  padding: 0 0 var(--sp-8);
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  background: transparent;
-  color: var(--ink-3);
-  font-size: var(--tb-size);
-  line-height: var(--tb-line);
-  font-weight: var(--w-medium);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: color var(--motion-fast) var(--ease);
-}
-
-.store__tab:hover {
-  color: var(--ink);
-}
-
-/* Aba ativa é navegação: é um dos três lugares onde o laranja aparece. */
-.store__tab--active {
-  color: var(--ink);
-  border-bottom-color: var(--ember);
-  font-weight: var(--w-semibold);
-}
-
-.store__tab:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-
-/* --- estado de "escolha uma filial" -------------------------------------- */
-
-.store__empty {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-8);
-  align-items: flex-start;
-  padding: var(--sp-24);
-  border-radius: var(--r-field);
-  background: var(--surface);
-  max-width: 60ch;
-}
-
-.store__empty-title {
-  margin: 0;
-  font-size: var(--ts-size);
-  line-height: var(--ts-line);
-  font-weight: var(--ts-weight);
-  letter-spacing: var(--ts-track);
-}
-
-.store__empty-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-8);
-  margin-top: var(--sp-4);
-}
-
-/* --- formulário ---------------------------------------------------------- */
-
-/*
- * UMA COLUNA SÓ, e ela é a mesma para o título, as abas e o formulário.
- *
- * O teto existe porque um cartão de duas caixas de texto esticado por 1200px é
- * ar puro à direita de cada seção — e o rótulo fica a meio metro do próximo
- * campo. Mas ele precisa ser o MESMO do resto da tela: com o formulário em
- * 900px e as abas em 1240, a régua embaixo das abas corria 340px além da borda
- * direita de todos os cartões, e a tela lia como dois blocos desalinhados.
- */
-.store-form,
-.store__head,
-.store__tabs,
-.store__panel {
-  max-width: var(--form-max);
-}
-
+/* ==========================================================================
+ * O FORMULÁRIO — o mesmo ritmo em todas as seções
+ * ======================================================================= */
 .store-form {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-12);
+  gap: var(--sp-16);
 }
 
-/*
- * A seção é um cartão sem borda e sem sombra: quem a separa do fundo é o
- * degrau de tom. O padding caiu de 16px para 12px e o vão interno para 12px —
- * uma seção de dois campos não pode ter a altura de uma de dez.
- */
 .store-form__section {
   display: flex;
   flex-direction: column;
   gap: var(--sp-12);
-  padding: var(--sp-12);
-  border-radius: var(--r-field);
-  background: var(--surface);
 }
 
 .store-form__section-head {
   display: flex;
   align-items: baseline;
-  gap: var(--sp-12);
-  flex-wrap: wrap;
+  gap: var(--sp-8);
 }
 
 .store-form__heading {
-  margin: 0;
-  font-size: var(--ts-size);
-  line-height: var(--ts-line);
-  font-weight: var(--ts-weight);
-  letter-spacing: var(--ts-track);
-  color: var(--ink);
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
 }
 
-/*
- * Grade de colunas fixas, e não flex com space-between: numa tela larga o
- * space-between jogaria cada campo para uma abscissa diferente e o olho
- * perderia a coluna.
- */
-/*
- * `auto-fill` e não `auto-fit`: com auto-fit as trilhas vazias colapsam e uma
- * seção de dois campos os estica para 580px cada — uma caixa de meio metro
- * para escrever "20,00". Com auto-fill a trilha continua existindo, todo campo
- * da tela tem a mesma largura, e as colunas de uma aba alinham com as da
- * outra.
- */
 .store-form__grid {
   display: grid;
-  /*
-   * 176 e não 200: com 200 a coluna de `--form-max` fechava em TRÊS trilhas, e
-   * o endereço de quatro campos (bairro, cidade, estado, CEP) quebrava com o
-   * CEP sozinho numa linha nova. Em 176 fecham quatro, e o cartão de endereço
-   * vira uma linha só — que é como o endereço é lido.
-   */
-  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
-  gap: var(--sp-12) var(--sp-16);
-  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--sp-12);
+}
+
+.store-form__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-12);
 }
 
 .store-form__wide {
   grid-column: 1 / -1;
 }
 
-/*
- * Uma linha de controles relacionados que NÃO são todos campos — tipicamente
- * uma caixa de marcar que liga o campo ao lado. Alinha pelo fim para o texto
- * da caixa cair na linha de base do campo, e não no rótulo dele.
- */
-.store-form__row {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--sp-16);
-  flex-wrap: wrap;
-}
-
 .store-form__narrow {
-  width: 160px;
-  flex: 0 0 auto;
-}
-
-.store-form__warn {
-  margin: 0;
-}
-
-.store-form__problems {
-  margin: var(--sp-4) 0 0;
-  padding-left: var(--sp-24);
+  max-width: 220px;
 }
 
 /*
- * A caixa de marcar da linha de formulário alinha pelo CAMPO ao lado, e não
- * pelo rótulo dele: `.store-form__row` alinha pelo fim, e a caixa tem a mesma
- * altura de um campo para as duas linhas de base baterem.
- */
-.store-form__row .ds-choice {
-  min-height: var(--field-h);
-  padding-block: 0;
-  align-items: center;
-}
-
-/*
- * A barra de salvar FLUTUA no fim do formulário e acompanha a rolagem.
- *
- * `sticky` e não `fixed`: o contêiner que rola é `.store`, então o sticky já a
- * prende no fim da parte visível sem precisar saber onde estão a lateral e o
- * cabeçalho — e ela volta a ser uma linha comum quando a página não rola.
- *
- * Ela tem a MESMA largura do formulário, e não a da tela: alinhada com os
- * campos, ela lê como "o que fazer com isto aqui"; de ponta a ponta, lia como
- * uma barra do sistema. Por flutuar de verdade, é um dos poucos lugares do
- * painel com sombra.
+ * A BARRA DE SALVAR flutua no fim da coluna. Ela é o que justifica a sombra —
+ * cartão parado na página não tem sombra em tema nenhum.
  */
 .store-form__actions {
   position: sticky;
-  bottom: var(--sp-8);
-  z-index: 20;
+  bottom: 0;
+  z-index: var(--z-sticky);
   display: flex;
-  flex-direction: column;
-  gap: var(--sp-8);
+  align-items: center;
+  gap: var(--sp-12);
   margin-top: var(--sp-4);
   padding: var(--sp-8) var(--sp-12);
-  border-radius: var(--r-field);
   background: var(--surface-raised);
   border: 1px solid var(--line);
+  border-radius: var(--r-field);
   box-shadow: var(--shadow-pop);
-  /*
-   * Entra junto com a primeira alteração — é mudança de estado ("há algo não
-   * salvo"), não enfeite de página.
-   */
-  animation: save-bar-enter var(--motion-fast) var(--ease);
-}
-
-@keyframes save-bar-enter {
-  from {
-    opacity: 0;
-    transform: translateY(var(--sp-8));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .store-form__actions {
-    animation: none;
-  }
-}
-
-.store-form__error {
-  margin: 0;
 }
 
 .store-form__buttons {
+  margin-left: auto;
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
   gap: var(--sp-8);
 }
 
 .store-form__saved {
   font-size: var(--ta-size);
-  line-height: var(--ta-line);
+  color: var(--ok);
+}
+
+.store-form__error {
+  font-size: var(--ta-size);
+  color: var(--danger);
+}
+
+.store-form__warn {
+  font-size: var(--ta-size);
+  color: var(--alert);
+}
+
+.store-form__problems {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
 }
 
 .store-form__add {
   align-self: flex-start;
 }
 
-/* --- listas da tela (horários, pagamento, setores) ------------------------ */
-
-/*
- * As três listas usam a MESMA grade de colunas fixas e o mesmo ritmo vertical.
- * Cada uma com o seu padding era o que fazia a aba "Horários" ler mais solta
- * que a aba "Impressão" sem nenhum motivo.
- */
-/*
- * A semana tem largura de tabela, não de tela: com o nome do dia numa coluna
- * fluida de 860px, o interruptor de segunda-feira ficava a meio metro do nome
- * que ele liga, e o olho perdia a linha no caminho.
- */
+/* ==========================================================================
+ * HORÁRIOS — sete linhas idênticas, e é isso que as faz ler rápido
+ * ======================================================================= */
 .hours {
-  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
 }
 
-.hours,
+.hours__row {
+  display: grid;
+  grid-template-columns: 104px 40px 1fr;
+  align-items: center;
+  gap: var(--sp-12);
+  min-height: var(--sp-32);
+}
+
+.hours__day {
+  font-size: var(--tb-size);
+  color: var(--ink);
+}
+
+.hours__time {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.hours__time .input {
+  width: 116px;
+}
+
+.hours__sep {
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+}
+
+/* Dia fechado é o estado que NÃO é o normal: ele é o único que ganha palavra. */
+.hours__state {
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+}
+
+/* ==========================================================================
+ * FORMAS DE PAGAMENTO E SETORES — as duas são lista de linha densa
+ * ======================================================================= */
 .methods,
-.sectors,
-.delivery-preview {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.sectors {
   display: flex;
   flex-direction: column;
 }
 
-.hours__row,
 .methods__row,
-.sectors__row,
-.delivery-preview__row {
+.sectors__row {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) 132px 34px var(--control-h);
   align-items: center;
   gap: var(--sp-12);
-  min-height: 32px;
+  min-height: var(--sp-32);
   padding-block: var(--sp-4);
   border-bottom: 1px solid var(--line);
 }
 
-.hours__row:last-child,
-.methods__row:last-child,
-.sectors__row:last-child,
-.delivery-preview__row:last-child {
-  border-bottom: none;
-}
-
-/*
- * Colunas fixas para os sete dias: o horário de segunda fica exatamente em cima
- * do de terça, e o olho compara a semana inteira de uma vez. O nome do dia é a
- * única coluna fluida.
- */
-.hours__row {
-  grid-template-columns: minmax(0, 1fr) auto 72px auto auto auto;
-}
-
-.hours__day {
-  font-weight: var(--w-medium);
-}
-
-.hours__state,
-.hours__sep {
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-  color: var(--ink-3);
-}
-
-.hours__time {
-  width: 108px;
-  padding-inline: var(--sp-8);
-}
-
-/* --- prévia do frete ------------------------------------------------------ */
-
-.delivery-preview {
-  max-width: 320px;
-}
-
-.delivery-preview__row {
-  grid-template-columns: 80px minmax(0, 1fr);
-}
-
-.delivery-preview__fee {
-  font-weight: var(--w-semibold);
-}
-
-/* --- formas de pagamento -------------------------------------------------- */
-
-.methods__row {
-  grid-template-columns: minmax(0, 1fr) 140px 96px auto auto;
-}
-
-/* Desabilitada esmaece, mas continua legível: some da lista ninguém reativa. */
-.methods__row--off {
-  opacity: 0.55;
-}
-
-/* Excluir aparece com o ponteiro na linha — ou com o foco do teclado nela. */
-.methods__remove {
-  opacity: 0;
-  transition: opacity var(--motion-fast) var(--ease);
-}
-
-.methods__row:hover .methods__remove,
-.methods__row:focus-within .methods__remove {
-  opacity: 1;
+.methods__row:hover,
+.sectors__row:hover {
+  background: var(--hover);
 }
 
 .methods__label,
 .sectors__name {
-  font-weight: var(--w-medium);
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: var(--tb-size);
 }
 
 .methods__type,
-.methods__gateway,
-.sectors__state {
+.methods__gateway {
   font-size: var(--ta-size);
-  line-height: var(--ta-line);
   color: var(--ink-3);
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* --- setores de impressão ------------------------------------------------- */
-
-.sectors__row {
-  grid-template-columns: minmax(0, 1fr) auto 96px auto;
+/* Linha desativada esmaece — desativar não é erro, então não é vermelho. */
+.methods__row--off .methods__label,
+.sectors__row--off .sectors__name {
+  color: var(--ink-3);
 }
 
-/* Desativado esmaece mas continua legível: o que some ninguém reativa. */
-.sectors__row--off {
-  opacity: 0.55;
+.methods__row--off .sectors__state,
+.sectors__state {
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
 }
 
-/* Revelada no ponteiro (ou no foco de teclado), como toda ação de linha. */
+/* A ação destrutiva de linha: sem caixa, revelada no ponteiro e no foco. */
+.methods__remove,
 .sectors__rename {
   opacity: 0;
   transition: opacity var(--motion-fast) var(--ease);
 }
 
+.methods__row:hover .methods__remove,
+.methods__row:focus-within .methods__remove,
 .sectors__row:hover .sectors__rename,
 .sectors__row:focus-within .sectors__rename {
   opacity: 1;
 }
 
-/* A edição ocupa as duas primeiras colunas: o nome e o botão de renomear. */
+@media (hover: none), (max-width: 900px) {
+  .methods__remove,
+  .sectors__rename {
+    opacity: 1;
+  }
+}
+
 .sectors__edit {
-  grid-column: 1 / 3;
   display: flex;
   align-items: center;
   gap: var(--sp-8);
-  min-width: 0;
 }
 
 .sectors__edit-input {
@@ -511,61 +399,100 @@
 .sectors__new {
   display: flex;
   align-items: flex-end;
-  gap: var(--sp-12);
-  flex-wrap: wrap;
+  gap: var(--sp-8);
+  padding-top: var(--sp-12);
 }
 
 .sectors__new-field {
   flex: 1;
-  min-width: 200px;
-  max-width: 320px;
+  max-width: 260px;
 }
 
-/* --- densidade cede no celular ------------------------------------------- */
+/* ==========================================================================
+ * PRÉVIA DA ENTREGA — a conta que o lojista confere antes de salvar
+ * ======================================================================= */
+.delivery-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-12);
+  background: var(--field);
+  border-radius: var(--r-field);
+}
 
-@media (max-width: 720px) {
+.delivery-preview__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-12);
+  font-size: var(--ta-size);
+  color: var(--ink-2);
+}
+
+/* Dinheiro é mono — a mesma regra do ticket. */
+.delivery-preview__fee {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.02em;
+  font-weight: var(--w-semibold);
+  color: var(--ink);
+}
+
+/* ==========================================================================
+ * CELULAR
+ * ======================================================================= */
+@media (max-width: 900px) {
   .store {
-    padding: var(--page-pad-mobile) var(--page-pad-mobile) var(--sp-32);
-  }
-
-  /* O título fica sozinho na linha e o status desce inteiro para a seguinte. */
-  .store-status {
-    margin-left: 0;
-    width: 100%;
-  }
-
-  .store-status__hint {
-    display: none;
+    flex-direction: column;
+    gap: var(--sp-16);
+    padding-inline: var(--page-pad-mobile);
   }
 
   /*
-   * As abas QUEBRAM em duas linhas no celular; não viram faixa rolável.
-   *
-   * Com `overflow-x: auto` as seis abas cabiam numa linha só, mas as três
-   * últimas ficavam fora da tela sem nada indicando que havia mais — e o alvo
-   * de toque da aba parcialmente visível ficava debaixo da barra de rolagem.
-   * Duas linhas de aba custam 28px e mostram o caminho inteiro de uma vez.
+   * O índice vira uma fita rolável no topo. Ele NÃO some: numa página desta
+   * altura, sem índice o lojista rola às cegas procurando "Impressão".
    */
-  .store__tabs {
-    gap: var(--sp-8) var(--sp-12);
-    flex-wrap: wrap;
+  .store__index {
+    position: static;
+    flex-direction: row;
+    gap: var(--sp-4);
+    overflow-x: auto;
+    border-left: 0;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: var(--sp-4);
   }
 
-  .hours__row,
+  .store__anchor {
+    flex: 0 0 auto;
+    margin-left: 0;
+    border-left: 0;
+    border-bottom: 2px solid transparent;
+    min-height: var(--tap-mobile);
+    display: flex;
+    align-items: center;
+  }
+
+  .store__anchor--on {
+    border-left-color: transparent;
+    border-bottom-color: var(--ember);
+  }
+
+  .store__col {
+    max-width: none;
+  }
+
+  .hours__row {
+    grid-template-columns: 88px 40px 1fr;
+  }
+
   .methods__row,
   .sectors__row {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: var(--sp-8);
-    padding-block: var(--sp-8);
+    grid-template-columns: minmax(0, 1fr) 34px var(--control-h-touch);
+    min-height: var(--tap-mobile);
   }
 
-  .hours__time {
-    width: 100%;
-  }
-
-  /* No toque não há hover: a ação precisa estar sempre visível. */
-  .methods__remove,
-  .sectors__rename {
-    opacity: 1;
+  .methods__type,
+  .methods__gateway {
+    display: none;
   }
 }

@@ -119,25 +119,25 @@ test('as abas de filial pedem uma filial em vez de editar "todas"', async ({ pag
   // Geral é do restaurante inteiro: funciona sem escolher filial.
   await expect(page.getByTestId('settings-min-order')).toBeVisible();
 
-  await page.getByTestId('store-tab-filial').click();
+  await page.getByTestId('store-anchor-filial').click();
   await expect(page.getByTestId('store-branch-required')).toBeVisible();
   await expect(page.getByTestId('branch-name')).toHaveCount(0);
 
   // O mesmo vale para horários, entrega e pagamento.
   for (const aba of ['horarios', 'entrega', 'pagamento']) {
-    await page.getByTestId(`store-tab-${aba}`).click();
+    await page.getByTestId(`store-anchor-${aba}`).click();
     await expect(page.getByTestId('store-branch-required')).toBeVisible();
   }
 
   // E o estado resolve o problema em vez de só reclamar dele.
-  await page.getByTestId('store-tab-filial').click();
+  await page.getByTestId('store-anchor-filial').click();
   await escolherFilial(page);
   await expect(page.getByTestId('branch-name')).toHaveValue(FAKE_BRANCH.name);
 });
 
 test('Filial salva cadastro e avisa quando falta a coordenada', async ({ page }) => {
   await abrirMinhaLoja(page);
-  await page.getByTestId('store-tab-filial').click();
+  await page.getByTestId('store-anchor-filial').click();
   await escolherFilial(page);
 
   // A filial do falso não tem lat/long: sem elas o frete sai do lugar errado.
@@ -158,7 +158,7 @@ test('Filial salva cadastro e avisa quando falta a coordenada', async ({ page })
 
 test('latitude fora da faixa do planeta não chega ao backend', async ({ page }) => {
   await abrirMinhaLoja(page);
-  await page.getByTestId('store-tab-filial').click();
+  await page.getByTestId('store-anchor-filial').click();
   await escolherFilial(page);
 
   await page.getByTestId('branch-latitude').fill('100');
@@ -170,7 +170,7 @@ test('latitude fora da faixa do planeta não chega ao backend', async ({ page })
 
 test('Horários manda os sete dias, e não só os que foram mexidos', async ({ page }) => {
   await abrirMinhaLoja(page);
-  await page.getByTestId('store-tab-horarios').click();
+  await page.getByTestId('store-anchor-horarios').click();
   await escolherFilial(page);
 
   // Segunda a sexta abertas no falso; sábado e domingo nunca vieram.
@@ -196,7 +196,7 @@ test('Horários manda os sete dias, e não só os que foram mexidos', async ({ p
 
 test('dia aberto sem horário completo trava o salvamento', async ({ page }) => {
   await abrirMinhaLoja(page);
-  await page.getByTestId('store-tab-horarios').click();
+  await page.getByTestId('store-anchor-horarios').click();
   await escolherFilial(page);
 
   // Abre o sábado e não informa a hora.
@@ -209,7 +209,7 @@ test('dia aberto sem horário completo trava o salvamento', async ({ page }) => 
 
 test('Entrega mostra base e por-km faltando como erro de configuração', async ({ page }) => {
   await abrirMinhaLoja(page);
-  await page.getByTestId('store-tab-entrega').click();
+  await page.getByTestId('store-anchor-entrega').click();
   await escolherFilial(page);
 
   /*
@@ -245,7 +245,7 @@ test('formas de pagamento: cria, desativa e exclui — sem trocar fluxo nem tipo
   page,
 }) => {
   await abrirMinhaLoja(page);
-  await page.getByTestId('store-tab-pagamento').click();
+  await page.getByTestId('store-anchor-pagamento').click();
   await escolherFilial(page);
 
   await expect(page.getByTestId('payment-method-pay-pix')).toContainText('Pix');

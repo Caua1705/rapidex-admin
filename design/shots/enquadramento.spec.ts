@@ -25,9 +25,9 @@ const LARGURAS = [1440, 1900, 2560];
  * borda esquerda o olho lê como "aqui começa a página".
  */
 const TELAS = [
-  { slug: 'pedidos', path: '/pedidos', conteudo: '.board > *' },
+  { slug: 'pedidos', path: '/pedidos', conteudo: '.faixas > *' },
   { slug: 'cardapio', path: '/cardapio', conteudo: '.rail' },
-  { slug: 'minha-loja', path: '/minha-loja', conteudo: '.store__head' },
+  { slug: 'minha-loja', path: '/minha-loja', conteudo: '.store__index' },
   { slug: 'clientes', path: '/clientes', conteudo: 'main h1' },
 ];
 

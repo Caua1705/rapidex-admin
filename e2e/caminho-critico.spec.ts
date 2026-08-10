@@ -61,11 +61,9 @@ test('login, abrir o pedido e mudar o status', async ({ page }) => {
   await expect(barraDoTopo).toContainText('Pizzaria do Zé — Aldeota');
 
   // O quadro abriu com os pedidos nas colunas certas e o badge do backend.
-  await expect(page.getByTestId('badge-pending')).toHaveText('2');
-  await expect(page.getByTestId('badge-preparing')).toHaveText('1');
-  await expect(
-    page.locator('[data-column="pending"] [data-testid="order-card-1002"]'),
-  ).toBeVisible();
+  await expect(page.getByTestId('badge-novos')).toHaveText('2');
+  await expect(page.getByTestId('badge-preparo')).toHaveText('1');
+  await expect(page.locator('[data-lane="novos"] [data-testid="order-card-1002"]')).toBeVisible();
 
   // Abre o detalhe do pedido 1002.
   await page.getByTestId('order-card-1002').click();
@@ -84,16 +82,12 @@ test('login, abrir o pedido e mudar o status', async ({ page }) => {
   await page.getByRole('button', { name: 'Fechar' }).click();
 
   // E o card mudou de coluna sem precisar recarregar a página.
-  await expect(
-    page.locator('[data-column="accepted"] [data-testid="order-card-1002"]'),
-  ).toBeVisible();
-  await expect(page.locator('[data-column="pending"] [data-testid="order-card-1002"]')).toHaveCount(
-    0,
-  );
+  await expect(page.locator('[data-lane="preparo"] [data-testid="order-card-1002"]')).toBeVisible();
+  await expect(page.locator('[data-lane="novos"] [data-testid="order-card-1002"]')).toHaveCount(0);
 });
 
 /*
- * O detalhe deixou de ser janela: aberto, ele escondia justamente as colunas
+ * O detalhe deixou de ser janela: aberto, ele escondia justamente as faixas
  * que dizem o que fazer em seguida.
  */
 test('o detalhe é painel lateral: o quadro fica visível e o conteúdo troca', async ({ page }) => {
@@ -108,9 +102,9 @@ test('o detalhe é painel lateral: o quadro fica visível e o conteúdo troca', 
 
   await page.getByTestId('order-card-1002').click();
   await expect(painel).toContainText('#1002');
-  // O quadro continua na tela, com as colunas todas.
-  await expect(page.locator('[data-column="pending"]')).toBeVisible();
-  await expect(page.locator('[data-column="preparing"]')).toBeVisible();
+  // O quadro continua na tela, com as faixas todas.
+  await expect(page.locator('[data-lane="novos"]')).toBeVisible();
+  await expect(page.locator('[data-lane="preparo"]')).toBeVisible();
 
   // Clicar em outro card TROCA o conteúdo, sem fechar nada no meio.
   await page.getByTestId('order-card-1003').click();
@@ -156,7 +150,7 @@ test('pedido com pagamento online não confirmado fica destacado e travado', asy
   await fazerLogin(page);
 
   const cardNaoPago = page.getByTestId('order-card-1001');
-  await expect(cardNaoPago).toHaveClass(/order-card--unpaid/);
+  await expect(cardNaoPago).toHaveClass(/ds-ticket--alerta/);
   await expect(cardNaoPago).toContainText('não preparar');
 
   await cardNaoPago.click();
@@ -196,9 +190,7 @@ test('pedido novo chega sozinho pelo SSE', async ({ page }) => {
     }),
   );
 
-  await expect(
-    page.locator('[data-column="pending"] [data-testid="order-card-1010"]'),
-  ).toBeVisible();
+  await expect(page.locator('[data-lane="novos"] [data-testid="order-card-1010"]')).toBeVisible();
   await expect(page.getByText('Cliente do Stream')).toBeVisible();
 });
 
@@ -223,22 +215,22 @@ test('o contador de status aparece uma vez só, e é na coluna', async ({ page }
   await fazerLogin(page);
 
   // O falso abre com três pedidos: dois pendentes e um preparando.
-  await expect(page.getByTestId('badge-pending')).toHaveText('2');
-  await expect(page.getByTestId('badge-preparing')).toHaveText('1');
+  await expect(page.getByTestId('badge-novos')).toHaveText('2');
+  await expect(page.getByTestId('badge-preparo')).toHaveText('1');
 
   // Nada no topo do quadro repete isso: com tudo carregado, a linha some.
   await expect(page.getByTestId('period-summary')).toHaveCount(0);
 
   // E a coluna vazia não escreve "Nenhum pedido" — o zero do cabeçalho basta,
   // e a frase aparecia em cinco colunas ao mesmo tempo.
-  await expect(page.getByTestId('badge-ready')).toHaveText('0');
-  await expect(page.locator('[data-column="ready"]')).not.toContainText('Nenhum pedido');
+  await expect(page.getByTestId('badge-prontos')).toHaveText('0');
+  await expect(page.locator('[data-lane="prontos"]')).not.toContainText('Nenhum pedido');
 
   // Mover um pedido reflete nos contadores, que é o que os torna confiáveis.
   await page.getByTestId('order-card-1002').click();
   await page.getByTestId('change-status-accepted').click();
-  await expect(page.getByTestId('badge-accepted')).toHaveText('1');
-  await expect(page.getByTestId('badge-pending')).toHaveText('1');
+  await expect(page.getByTestId('badge-preparo')).toHaveText('1');
+  await expect(page.getByTestId('badge-novos')).toHaveText('1');
 });
 
 test('o seletor de filial do cabeçalho filtra o quadro', async ({ page }) => {
@@ -258,7 +250,7 @@ test('o seletor de filial do cabeçalho filtra o quadro', async ({ page }) => {
   await expect(page.getByTestId('order-card-1002')).toBeVisible();
 
   // A barra de filtros não tem mais campo de filial: um só lugar decide isso.
-  await expect(page.locator('.toolbar').getByLabel('Filial')).toHaveCount(0);
+  await expect(page.locator('.filtros').getByLabel('Filial')).toHaveCount(0);
 
   const requisicao = page.waitForRequest(
     (request) =>
@@ -308,10 +300,13 @@ test('cancelar exige motivo e grava o que foi escrito', async ({ page }) => {
     .poll(() => api.cancelReasons())
     .toEqual([{ orderId: 'ord-1002', reason: 'Cliente desistiu por telefone.' }]);
 
-  // O card foi para a coluna de encerrados e o motivo entrou no histórico.
+  // O card SAIU do quadro: cancelado é histórico, e histórico é a outra aba.
+  await expect(page.getByTestId('order-card-1002')).toHaveCount(0);
+  await page.getByTestId('orders-tab-historico').click();
   await expect(
-    page.locator('[data-column="closed"] [data-testid="order-card-1002"]'),
+    page.locator('[data-testid="board-historico"] [data-testid="order-card-1002"]'),
   ).toBeVisible();
+  await page.getByTestId('orders-tab-andamento').click();
   await expect(painel.getByText('Cliente desistiu por telefone.')).toBeVisible();
 });
 

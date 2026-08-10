@@ -99,7 +99,7 @@ export function CategoryRail({
                   continua ouvindo a frase inteira.
                 */}
                 {count !== undefined ? (
-                  <span className="rail__count tnum" data-testid={`category-count-${category.id}`}>
+                  <span className="rail__count" data-testid={`category-count-${category.id}`}>
                     {count}
                     <span className="sr-only"> {count === 1 ? 'item' : 'itens'}</span>
                   </span>

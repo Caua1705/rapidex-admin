@@ -2,6 +2,23 @@
  * A MOLDURA, escrita mobile-first: o que está fora de qualquer `@media` é o
  * celular, e cada `min-width` só ACRESCENTA. É a única ordem em que dá para
  * garantir que nada dependa de ser desligado depois.
+ *
+ * ============================================================================
+ * A NAVEGAÇÃO É UM CONSOLE, E ELE É ESCURO NOS DOIS TEMAS
+ * ============================================================================
+ *
+ * É a decisão de enquadramento desta direção. A lateral (e, no celular, a
+ * barra inferior) não é página: é equipamento. Ela fica escura de dia e de
+ * noite, e o que troca de tema é o CONTEÚDO.
+ *
+ * Sem isso, no tema claro a lateral vira mais uma faixa bege ao lado de uma
+ * área bege, e o painel perde a moldura que o faz parecer instrumento — que é
+ * exatamente a diferença entre esta direção e um dashboard genérico.
+ *
+ * Os tokens `--console-*` (bloco 9b de tokens.css) não são redefinidos no tema
+ * escuro, porque lá eles já são estes. E eles têm pares próprios em
+ * check-contrast.mjs: um plano que não inverte é o que costuma escapar da
+ * revisão de contraste, porque ninguém pensa nele ao mexer na paleta do claro.
  */
 
 .shell {
@@ -26,8 +43,10 @@
   display: flex;
   height: calc(var(--bottombar-h) + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
-  background: var(--surface);
-  border-top: 1px solid var(--line);
+  /* O console, no celular. Mesmo plano da lateral do desktop. */
+  background: var(--console-bg);
+  background-image: var(--hachura);
+  border-top: 1px solid var(--console-line);
 }
 
 .shell__tab {
@@ -39,7 +58,7 @@
   gap: var(--sp-4);
   /* Alvo de 44px com folga: é o alvo mais usado do painel no celular. */
   min-height: var(--tap-mobile);
-  color: var(--ink-3);
+  color: var(--console-ink-3);
   text-decoration: none;
 }
 
@@ -58,8 +77,8 @@
  * 11px ele reprovaria em AA sobre qualquer uma das duas superfícies.
  */
 .shell__tab--ativa {
-  color: var(--ink);
-  font-weight: var(--w-semibold);
+  color: var(--console-ink);
+  font-weight: var(--w-bold);
   position: relative;
 }
 
@@ -70,7 +89,6 @@
   left: 25%;
   right: 25%;
   height: 2px;
-  border-radius: 0 0 var(--r-round) var(--r-round);
   background: var(--ember);
 }
 
@@ -163,13 +181,16 @@
     flex: 0 0 auto;
     padding: 0 var(--sp-8) var(--sp-16);
     /*
-     * A MOLDURA É O CHÃO, não uma superfície. Lateral e barra do topo saem em
-     * `--bg`, o mesmo tom da área de trabalho, e quem as separa é um fio de
-     * 1px. Assim `--surface` fica reservado para o que é conteúdo — cartão,
-     * coluna, lista —, e um cartão nunca disputa plano com a navegação.
+     * O CONSOLE. Ver o bloco no topo deste arquivo: a lateral é escura nos
+     * dois temas porque a navegação é equipamento, não página.
+     *
+     * A hachura a 45° é a única textura do sistema. Ela está a 2% de opacidade
+     * — não se vê, se sente: é o que dá matéria à chapa sem virar desenho
+     * atrás do texto.
      */
-    background: var(--bg);
-    border-right: 1px solid var(--line);
+    background: var(--console-bg);
+    background-image: var(--hachura);
+    border-right: 1px solid var(--console-line);
     overflow-y: auto;
     align-items: center;
   }
@@ -180,6 +201,23 @@
     justify-content: center;
     height: var(--topbar-h);
     flex: 0 0 auto;
+  }
+
+  /*
+   * A marca está DENTRO do console, então ela usa a tinta do console — não a
+   * da página. Sem isto, no tema claro o nome "Rapidex" sai em tinta escura
+   * sobre a chapa escura e simplesmente some.
+   *
+   * Não é regra específica de tema (o console não tem temas): é uma regra de
+   * CONTEXTO, e por isso ela mora aqui e não em `RapidexLogo.css` — o logo
+   * também aparece na tela de login, onde o fundo é a página.
+   */
+  .shell__brand .logo__wordmark {
+    color: var(--console-ink);
+  }
+
+  .shell__brand .logo__mark {
+    border-color: var(--console-line);
   }
 
   /* Na trilha, o nome do grupo sai da tela mas o vão entre grupos fica: é ele
@@ -219,30 +257,35 @@
     justify-content: center;
     width: var(--sp-32);
     height: var(--sp-32);
-    border-radius: var(--r-field);
-    color: var(--ink-2);
+    border-radius: var(--r-chip);
+    color: var(--console-ink-2);
     text-decoration: none;
-    transition: background var(--motion-fast) var(--ease);
+    transition:
+      background var(--motion-fast) var(--ease),
+      color var(--motion-fast) var(--ease);
   }
 
   .shell__link:hover {
-    background: var(--hover);
-    color: var(--ink);
+    background: var(--console-hover);
+    color: var(--console-ink);
   }
 
   /*
-   * O ITEM ATIVO: tinta cheia, um degrau de tom e um trilho de 2px na cor da
-   * marca. Três sinais, e o laranja em nenhum deles é texto.
+   * O ITEM ATIVO: tinta cheia, um trilho de brasa de 2px e um halo curto para
+   * dentro. Três sinais, e o laranja em nenhum deles é texto.
    *
    * Ele já foi "laranja sobre laranja claro". Media 3.11:1 no tema claro e
    * 4.17:1 no escuro — os dois abaixo do mínimo para 13px —, e não existe um
-   * laranja que passe nos dois sem deixar de ser o laranja da marca. Trocado
-   * por isto, ele ficou mais legível E a marca aparece menos na tela.
+   * laranja que passe nos dois sem deixar de ser o laranja da marca.
+   *
+   * O HALO existe porque, num console escuro com onze itens, o trilho de 2px
+   * sozinho some: ele é o degradê que morre em 70% da largura, e é o único uso
+   * do `--console-active`, que é a brasa vista de dentro do escuro.
    */
   .shell__link--active {
     position: relative;
-    background: var(--active);
-    color: var(--ink);
+    color: var(--console-ink);
+    background: linear-gradient(90deg, var(--console-active) 0%, transparent 70%);
   }
 
   .shell__link--active::before {
@@ -253,12 +296,11 @@
     transform: translateY(-50%);
     width: 2px;
     height: 16px;
-    border-radius: var(--r-round);
     background: var(--ember);
   }
 
   .shell__link--soon {
-    color: var(--ink-3);
+    color: var(--console-ink-3);
   }
 
   .shell__link-icon {
@@ -291,15 +333,30 @@
     padding-inline: var(--sp-8);
   }
 
-  /* O rótulo do grupo volta para a tela. Sem régua entre grupos: o vão separa. */
+  /*
+   * O rótulo do grupo volta para a tela, e leva um FIO que corre até a borda:
+   * é a etiqueta gravada na chapa. O fio faz o trabalho que antes era só do
+   * vão — num console de onze itens, o vão sozinho deixava os quatro grupos
+   * lendo como uma lista só.
+   */
   .shell__group-title {
     position: static;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-8);
     width: auto;
     height: auto;
     margin: 0;
     padding: 0 var(--sp-8) var(--sp-4);
     clip: auto;
-    color: var(--ink-3);
+    color: var(--console-ink-3);
+  }
+
+  .shell__group-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--console-line);
   }
 
   .shell__group,
@@ -332,7 +389,7 @@
   }
 
   .shell__link--active {
-    font-weight: var(--w-medium);
+    font-weight: var(--w-bold);
   }
 
   /*
@@ -346,8 +403,10 @@
     margin-left: auto;
     clip: auto;
     font-size: var(--tl-size);
+    letter-spacing: var(--tl-track);
+    text-transform: uppercase;
     line-height: 1;
-    color: var(--ink-3);
+    color: var(--console-ink-3);
   }
 
   .shell__bar {

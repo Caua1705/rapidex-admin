@@ -32,7 +32,7 @@ async function fazerLogin(page: Page) {
 
 async function abrirAbaImpressao(page: Page) {
   await page.getByRole('link', { name: 'Minha loja' }).click();
-  await page.getByTestId('store-tab-impressao').click();
+  await page.getByTestId('store-anchor-impressao').click();
 }
 
 /**

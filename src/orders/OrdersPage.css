@@ -14,26 +14,102 @@
   flex-direction: column;
 }
 
-/* --- barra de filtros --------------------------------------------------- */
-
-/*
- * Uma linha só, na altura de um controle. Ela é moldura, não conteúdo: sai em
- * `--bg`, o mesmo tom da barra do topo, e o que a separa do quadro é o
- * degrau para `--bg` — não uma régua.
- */
-.toolbar {
+/* ==========================================================================
+ * AS DUAS ABAS
+ * O trilho de brasa embaixo da escolhida é o mesmo do `ds/Tabs`; aqui ele é
+ * local porque estas abas são a estrutura da tela, não um componente reusado.
+ * ======================================================================= */
+.tabs {
   display: flex;
-  align-items: flex-end;
-  gap: var(--sp-12);
-  padding: var(--sp-8) var(--page-pad);
-  background: var(--bg);
-  flex-wrap: wrap;
+  gap: var(--sp-16);
+  flex: 0 0 auto;
+  padding: var(--sp-12) var(--page-pad) 0;
+  border-bottom: 1px solid var(--line);
 }
 
-.toolbar__search {
-  flex: 1;
-  min-width: 180px;
-  max-width: 340px;
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  height: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: var(--tb-size);
+  font-weight: var(--w-medium);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color var(--motion-fast) var(--ease);
+}
+
+.tab:hover {
+  color: var(--ink);
+}
+
+.tab--on {
+  color: var(--ink);
+  font-weight: var(--w-bold);
+  border-bottom-color: var(--ember);
+}
+
+/* A contagem é apoio, e não é mono: ela não se compara com a de baixo. */
+.tab__count {
+  font-size: var(--ta-size);
+  font-weight: var(--w-regular);
+  color: var(--ink-3);
+}
+
+/* ==========================================================================
+ * A BARRA DE FILTROS — fixa, sempre visível, na altura de um controle.
+ *
+ * Ela é moldura, não conteúdo: sai em `--bg`, o mesmo tom da barra do topo, e
+ * o que a separa do quadro é o fio de baixo.
+ * ======================================================================= */
+.filtros {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  padding: var(--sp-8) var(--page-pad);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.filtros__datas {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  font-size: var(--ta-size);
+}
+
+.filtros__data .input {
+  width: 132px;
+}
+
+/* A busca leva a lupa DENTRO do campo, recuada — não um ícone ao lado. */
+.filtros__busca {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 200px;
+  max-width: 320px;
+  min-width: 0;
+}
+
+.filtros__lupa {
+  position: absolute;
+  left: var(--sp-8);
+  display: flex;
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
+/* 8 de recuo + 14 do ícone + 8 de folga: o texto não encosta na lupa. */
+.filtros__busca-campo {
+  width: 100%;
+  padding-left: calc(var(--sp-8) + var(--sp-16) + var(--sp-8));
 }
 
 /*
@@ -42,7 +118,7 @@
  * "Atualizar" saíam da tela pela direita — sem barra de rolagem, sem nada
  * indicando que havia mais.
  */
-.toolbar__right {
+.filtros__dir {
   margin-left: auto;
   display: flex;
   align-items: center;
@@ -54,15 +130,15 @@
 
 /*
  * Sem caixa: dentro de uma barra que já é moldura, um controle contornado
- * disputava atenção com a coluna de pedidos. O que agrupa o controle é o vão
- * ao redor e o rótulo à esquerda.
+ * disputava atenção com os pedidos. O que agrupa o controle é o vão ao redor e
+ * o rótulo à esquerda.
  */
 .prep {
   position: relative;
   display: flex;
   align-items: center;
   gap: var(--sp-8);
-  height: 30px;
+  height: var(--field-h);
 }
 
 .prep__label {
@@ -76,16 +152,17 @@
 
 /*
  * A faixa é a informação principal do controle, não um enfeite ao lado dos
- * botões: é o número que se compara com o que o cliente vê na previsão. Fica
- * em mono e no peso mais alto da barra, mas no corpo do resto — o que a
- * destaca é o contraste com os rótulos ao redor, não o tamanho.
+ * botões: é o número que se compara com o que o cliente vê na previsão. Ela é
+ * mono porque é um número que se compara — a mesma regra do ticket.
  */
 .prep__range {
+  font-family: var(--font-num);
   font-size: var(--tb-size);
   line-height: var(--tb-line);
   font-weight: var(--w-bold);
   color: var(--ink);
   white-space: nowrap;
+  letter-spacing: -0.02em;
 }
 
 /* Sem faixa gravada a frase é texto, não número: sai da mono e do peso. */
@@ -93,6 +170,7 @@
   font-family: var(--font-ui);
   font-weight: var(--w-regular);
   color: var(--ink-3);
+  letter-spacing: 0;
 }
 
 .prep__buttons {
@@ -113,7 +191,7 @@
   position: absolute;
   top: calc(100% + var(--sp-8));
   right: 0;
-  z-index: 30;
+  z-index: var(--z-popover);
   width: 280px;
   display: flex;
   flex-direction: column;
@@ -152,82 +230,57 @@
   margin: var(--sp-12) var(--page-pad) 0;
 }
 
-/* --- a linha do período --------------------------------------------------- */
-
-/*
- * Uma linha, com o total do período — e é tudo. Os sete cartões de resumo que
- * moravam aqui repetiam os contadores das colunas logo abaixo, na mesma ordem
- * e na mesma cor, e custavam 90px da altura do quadro. O contador por status
- * ficou onde o olho já está: no cabeçalho da coluna.
- */
-.period {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: var(--sp-8);
-  padding: var(--sp-12) var(--page-pad) 0;
+.orders__vazio {
+  padding: var(--sp-32) var(--page-pad);
   font-size: var(--ta-size);
-  line-height: var(--ta-line);
-  color: var(--ink-3);
 }
 
-.period__total {
-  color: var(--ink);
-  font-weight: var(--w-bold);
-}
-
-/* --- quadro ------------------------------------------------------------- */
-
-.board {
+/* ==========================================================================
+ * O QUADRO EM TRÊS FAIXAS
+ *
+ * Sete colunas verticais viravam sete filas de dois cartões em 1440px: muito
+ * cabeçalho para pouco pedido, e o olho descia sete vezes. Em faixa, o pedido
+ * caminha da esquerda para a direita DENTRO da faixa e de cima para baixo
+ * ENTRE elas — que é a ordem em que a cozinha trabalha.
+ * ======================================================================= */
+.faixas {
   flex: 1;
   min-height: 0;
   display: flex;
-  gap: var(--sp-8);
+  flex-direction: column;
+  gap: var(--sp-16);
   padding: var(--sp-12) var(--page-pad) var(--page-pad);
-  overflow-x: auto;
+  overflow-y: auto;
 }
 
-/*
- * `1 0 232px`: cresce para ocupar a sobra numa tela larga, nunca encolhe.
- *
- * Com 7 colunas em 1366px, deixar a coluna espremer quebraria o card em duas
- * linhas e acabaria com a leitura de longe, que é como a cozinha usa. Abaixo
- * disso, o quadro rola na horizontal.
- */
-.column {
-  flex: 1 0 232px;
-  max-width: var(--column-max);
+.faixa {
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  background: var(--surface);
-  border-radius: var(--r-field);
+  gap: var(--sp-8);
 }
 
-.column__header {
+/* Cabeçalho: ponto, nome, contagem e um fio correndo até a margem direita. */
+.faixa__head {
   display: flex;
   align-items: center;
   gap: var(--sp-8);
-  height: 30px;
-  flex: 0 0 auto;
-  padding: 0 var(--sp-8);
 }
 
 /*
- * O ponto lê a cor da classe `status-<chave>` de tokens.css. Nenhuma matiz é
- * escolhida aqui: acrescentar uma coluna é acrescentar um status ao token, não
- * uma regra nova neste arquivo.
+ * O ponto lê `--st` da classe `is-<estágio>`. Nenhuma matiz é escolhida aqui:
+ * acrescentar uma faixa é acrescentar um token, não uma regra neste arquivo.
+ *
+ * Ele é QUADRADO, como tudo nesta direção.
  */
-.column__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--r-round);
+.faixa__dot {
+  width: 8px;
+  height: 8px;
   flex: 0 0 auto;
   background: var(--st, var(--ink-3));
 }
 
 /* Nível 3 (rótulo) — o mesmo de todo cabeçalho de coluna do painel. */
-.column__title {
+.faixa__title {
   margin: 0;
   min-width: 0;
   font-size: var(--tl-size);
@@ -237,164 +290,95 @@
   text-transform: uppercase;
   color: var(--ink-2);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /*
- * O contador da coluna é O contador: depois que o resumo de cima saiu, este é
- * o único lugar da tela que responde "quantos pendentes?". Sem caixa colorida
- * — a matiz já está no ponto à esquerda, e repeti-la num badge pintaria a
- * mesma informação duas vezes.
+ * O contador da faixa é O contador: é o único lugar da tela que responde
+ * "quantos em preparo?". Sem caixa colorida — a matiz já está no ponto à
+ * esquerda, e repeti-la num badge pintaria a mesma informação duas vezes.
+ *
+ * Ele NÃO é mono: é uma contagem, não um valor que se compara com o da linha
+ * de baixo. O tabular do `body` já o alinha.
  */
-.column__badge {
-  margin-left: auto;
-  font-variant-numeric: tabular-nums lining-nums;
+.faixa__count {
   font-size: var(--ta-size);
   font-weight: var(--w-bold);
   color: var(--ink);
 }
 
-.column__cards {
+/*
+ * O FIO ATÉ A MARGEM. Ele é o que faz a faixa ler como faixa mesmo vazia — e
+ * é por isso que faixa vazia não escreve "Nenhum pedido": o fio já diz que ela
+ * existe, e o zero ao lado já diz que está vazia.
+ */
+.faixa__rule {
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* Os cartões correm na horizontal dentro da faixa. */
+.faixa__cards {
+  display: flex;
+  gap: var(--sp-8);
+  overflow-x: auto;
+  padding-bottom: var(--sp-4);
+}
+
+/* ==========================================================================
+ * HISTÓRICO — grade de cartões, sem faixa e sem cabeçalho de estágio
+ * ======================================================================= */
+.historico {
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-16);
+  padding: var(--sp-12) var(--page-pad) var(--page-pad);
   overflow-y: auto;
-  padding: 0 var(--sp-4) var(--sp-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
+  max-width: var(--page-max);
 }
 
-.column__empty {
-  margin: var(--sp-8) var(--sp-4);
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-}
-
-/* --- card --------------------------------------------------------------- */
-
-.order-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-  width: 100%;
-  padding: var(--sp-8);
-  text-align: left;
-  background: var(--surface-raised);
-  border: 0;
-  border-left: 2px solid var(--st, var(--line-strong));
-  border-radius: var(--r-chip);
-  color: var(--ink);
-  cursor: pointer;
-  transition: background var(--motion-fast) var(--ease);
-}
-
-.order-card:hover {
-  background: var(--hover);
-}
-
-.order-card:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 1px;
-}
-
-.order-card--selected {
-  box-shadow: inset 0 0 0 1px var(--ember);
-}
-
-/* Pedido esperando pagamento online: vermelho e impossível de não ver.
-   É a única coisa da tela que o vermelho pinta — status nunca é vermelho. */
-.order-card--unpaid {
-  border-left-color: var(--danger);
-  background: var(--danger-wash);
-}
-
-.order-card--unpaid:hover {
-  background: var(--danger-wash);
-}
-
-/*
- * Tempo à esquerda, dinheiro à direita, os dois no nível 2 e sem quebrar.
- * São os dois números que se comparam descendo a coluna de cards.
- */
-.order-card__top {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+.historico__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(236px, 1fr));
   gap: var(--sp-8);
-  font-size: var(--ts-size);
-  line-height: var(--ts-line);
-  letter-spacing: var(--ts-track);
+  align-items: start;
 }
 
-/*
- * O CRONÔMETRO É A MAIOR TINTA DO CARTÃO, na matiz do estágio: na coluna
- * "Preparando" ele é roxo, na "Pronto" é verde. Não é decoração — é o dado que
- * responde "o que eu faço primeiro", no lugar onde o olho já está quando
- * percorre a fila.
- */
-.order-card__elapsed {
-  font-weight: var(--w-bold);
-  color: var(--st, var(--ink));
-  white-space: nowrap;
+/* No histórico o cartão preenche a célula da grade, em vez de ter largura fixa. */
+.historico__grade .ds-ticket {
+  flex: 1 1 auto;
+  width: auto;
 }
 
-.order-card__total {
-  font-weight: var(--w-semibold);
-  white-space: nowrap;
-}
-
-.order-card__customer {
-  font-size: var(--tb-size);
-  line-height: var(--tb-line);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/*
- * A LINHA DE APOIO: nº, hora, etiquetas e situação do pagamento, tudo em 12px
- * e em `--ink-3`. É como o pedido é chamado no balcão e conferido no caixa —
- * não é como ele é decidido, e por isso nada aqui compete com a linha de cima.
- */
-.order-card__foot {
+.historico__rodape {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: var(--sp-4);
-  min-width: 0;
+  gap: var(--sp-12);
   font-size: var(--ta-size);
-  line-height: var(--ta-line);
-  color: var(--ink-3);
-}
-
-.order-card__number {
-  font-weight: var(--w-semibold);
-  color: var(--ink-2);
-}
-
-.order-card__tags {
-  display: flex;
-  gap: var(--sp-4);
-  min-width: 0;
-  overflow: hidden;
-}
-
-.order-card__unpaid-banner {
-  font-size: var(--tb-size);
-  line-height: var(--tb-line);
-  font-weight: var(--w-semibold);
-  color: var(--danger);
 }
 
 @media (max-width: 720px) {
-  .toolbar,
-  .period,
-  .board {
+  .tabs,
+  .filtros,
+  .faixas,
+  .historico {
     padding-inline: var(--page-pad-mobile);
   }
 
   .orders__alert {
     margin-inline: var(--page-pad-mobile);
+  }
+
+  /* No celular a faixa vira coluna: rolar de lado com o dedo esconde pedido. */
+  .faixa__cards {
+    flex-direction: column;
+    overflow-x: visible;
+  }
+
+  .faixa__cards .ds-ticket {
+    flex: 1 1 auto;
+    width: auto;
   }
 }

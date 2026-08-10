@@ -309,6 +309,13 @@
   --console-ink-3: #9b8c79;
   --console-line: #2a231d;
   --console-hover: rgba(255, 255, 255, 0.06);
+  /*
+   * O halo do item ativo. Ele NÃO pode ser `--ember-wash`: no tema claro
+   * aquele token é um pêssego claro, e sobre o console escuro ele viraria uma
+   * mancha acesa atrás do texto. Aqui a brasa é vista de dentro do escuro, nos
+   * dois temas.
+   */
+  --console-active: #3b1b08;
 
   /* ==========================================================================
    * 10. ENQUADRAMENTO

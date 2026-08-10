@@ -1,14 +1,23 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import type { OrderListItem } from '../api/types';
 import { useSession } from '../auth/session-context';
-import { BOARD_COLUMNS, columnCount, groupOrdersIntoColumns } from './board-columns';
+import {
+  LANES,
+  countFor,
+  countForView,
+  groupIntoLanes,
+  historyOrders,
+  type BoardView,
+} from './board-lanes';
+import { OrderCard } from './OrderCard';
 import { OrderDetailPanel } from './OrderDetailPanel';
-import { OrdersToolbar } from './OrdersToolbar';
-import { PeriodLine } from './PeriodLine';
-import { StatusColumn } from './StatusColumn';
+import { OrderLane } from './OrderLane';
+import { OrdersFilters } from './OrdersFilters';
 import { useNewOrderSound } from './useNewOrderSound';
 import { useOrderStream } from './useOrderStream';
 import { useOrdersBoard } from './useOrdersBoard';
+import { usePrepRange } from './usePrepRange';
 import './OrdersPage.css';
 
 export function OrdersPage() {
@@ -16,6 +25,7 @@ export function OrdersPage() {
   const board = useOrdersBoard();
   const sound = useNewOrderSound();
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [view, setView] = useState<BoardView>('andamento');
 
   const { applyStreamEvent, reload, updateFilters } = board;
   const { play } = sound;
@@ -25,6 +35,14 @@ export function OrdersPage() {
   useEffect(() => {
     updateFilters({ branchId: activeBranchId });
   }, [activeBranchId, updateFilters]);
+
+  /*
+   * A janela de preparo da loja é a RÉGUA da barra de maturação: sem ela, a
+   * barra mediria o nada e por isso não aparece. É o mesmo número que a
+   * Cozinha usa como régua do cronômetro — uma leitura só, um hook só.
+   */
+  const { range } = usePrepRange(activeBranchId);
+  const windowMinutes = range?.prep_time_max ?? null;
 
   const handleOrderEvent = useCallback(
     (event: Parameters<typeof applyStreamEvent>[0]) => {
@@ -44,18 +62,46 @@ export function OrdersPage() {
     onReconnected: reload,
   });
 
-  const grouped = groupOrdersIntoColumns(board.orders);
-  const loadedCount = board.orders.length;
+  const lanes = groupIntoLanes(board.orders);
+  const historico = historyOrders(board.orders);
 
   return (
     /*
      * Quadro à esquerda, detalhe à direita: o detalhe deixou de ser janela
-     * porque, aberto, ele escondia justamente as colunas que dizem o que fazer
-     * em seguida. Clicar em outro card troca o conteúdo do painel.
+     * porque, aberto, ele escondia justamente as faixas que dizem o que fazer
+     * em seguida. Clicar em outro cartão troca o conteúdo do painel.
      */
     <div className="orders">
       <div className="orders__main">
-        <OrdersToolbar
+        {/*
+          DUAS ABAS, E ELAS SEPARAM TRABALHO DE CONSULTA.
+          Concluído e cancelado ocupavam duas das sete colunas do quadro com o
+          que ninguém toca durante o turno. Aqui eles continuam a um clique —
+          e o clique é honesto, porque quem vai ao histórico está consultando.
+        */}
+        <div className="tabs" role="tablist" aria-label="Pedidos">
+          {(
+            [
+              { key: 'andamento', label: 'Em andamento' },
+              { key: 'historico', label: 'Histórico' },
+            ] as const
+          ).map((aba) => (
+            <button
+              key={aba.key}
+              type="button"
+              role="tab"
+              aria-selected={view === aba.key}
+              className={`tab${view === aba.key ? ' tab--on' : ''}`}
+              onClick={() => setView(aba.key)}
+              data-testid={`orders-tab-${aba.key}`}
+            >
+              {aba.label}
+              <span className="tab__count">{countForView(aba.key, board.counts)}</span>
+            </button>
+          ))}
+        </div>
+
+        <OrdersFilters
           filters={board.filters}
           streamStatus={streamStatus}
           isLoading={board.isLoading}
@@ -79,25 +125,31 @@ export function OrdersPage() {
           </p>
         ) : null}
 
-        <PeriodLine
-          total={board.totalInFilter}
-          loaded={loadedCount}
-          isLoading={board.isLoading}
-          onLoadMore={() => void board.loadMore()}
-        />
-
-        <div className="board">
-          {BOARD_COLUMNS.map((column) => (
-            <StatusColumn
-              key={column.key}
-              column={column}
-              orders={grouped[column.key] ?? []}
-              count={columnCount(column, board.counts)}
-              selectedOrderId={selectedOrderId}
-              onOpenOrder={setSelectedOrderId}
-            />
-          ))}
-        </div>
+        {view === 'andamento' ? (
+          <div className="faixas" data-testid="board-lanes">
+            {LANES.map((lane) => (
+              <OrderLane
+                key={lane.key}
+                lane={lane}
+                orders={lanes[lane.key] ?? []}
+                count={countFor(lane.statuses, board.counts)}
+                windowMinutes={windowMinutes}
+                selectedOrderId={selectedOrderId}
+                onOpenOrder={setSelectedOrderId}
+              />
+            ))}
+          </div>
+        ) : (
+          <Historico
+            orders={historico}
+            selectedOrderId={selectedOrderId}
+            onOpenOrder={setSelectedOrderId}
+            isLoading={board.isLoading}
+            carregados={board.orders.length}
+            total={board.totalInFilter}
+            onLoadMore={() => void board.loadMore()}
+          />
+        )}
       </div>
 
       <OrderDetailPanel
@@ -112,6 +164,77 @@ export function OrdersPage() {
           board.actionError?.orderId === selectedOrderId ? board.actionError.message : null
         }
       />
+    </div>
+  );
+}
+
+/**
+ * O HISTÓRICO — uma grade de pedidos encerrados, e nada além disso.
+ *
+ * Sem faixa e sem cabeçalho de estágio: aqui todos os pedidos estão no mesmo
+ * estado do ponto de vista de quem consulta ("acabou"), e o que separa um
+ * concluído de um cancelado é a matiz do próprio cartão. Agrupá-los custaria
+ * dois cabeçalhos para dizer o que a cor já diz.
+ *
+ * SEM BARRA DE MATURAÇÃO: ela mede quanto falta para estourar, e um pedido de
+ * ontem não tem o que estourar. Passar a régua aqui pintaria toda a lista de
+ * vermelho.
+ */
+function Historico({
+  orders,
+  selectedOrderId,
+  onOpenOrder,
+  isLoading,
+  carregados,
+  total,
+  onLoadMore,
+}: {
+  orders: OrderListItem[];
+  selectedOrderId: string | null;
+  onOpenOrder: (orderId: string) => void;
+  isLoading: boolean;
+  carregados: number;
+  total: number;
+  onLoadMore: () => void;
+}) {
+  if (isLoading && orders.length === 0) {
+    return <p className="orders__vazio faint">Carregando…</p>;
+  }
+
+  if (orders.length === 0) {
+    return <p className="orders__vazio faint">Nenhum pedido encerrado no período.</p>;
+  }
+
+  return (
+    <div className="historico" data-testid="board-historico">
+      <div className="historico__grade">
+        {orders.map((order) => (
+          <OrderCard
+            key={order.id}
+            order={order}
+            windowMinutes={null}
+            isSelected={order.id === selectedOrderId}
+            onOpen={() => onOpenOrder(order.id)}
+          />
+        ))}
+      </div>
+
+      {/*
+        O rodapé só existe quando há o que carregar. Com tudo na tela, "40 de
+        40" é a terceira vez que o mesmo número aparece — o contador da aba já
+        o disse, e os cartões estão logo acima.
+      */}
+      {carregados < total ? (
+        <footer className="historico__rodape faint">
+          <span>
+            <span className="tnum">{carregados}</span> de <span className="tnum">{total}</span> no
+            período
+          </span>
+          <button type="button" className="btn btn--sm" onClick={onLoadMore} disabled={isLoading}>
+            Carregar mais
+          </button>
+        </footer>
+      ) : null}
     </div>
   );
 }

@@ -106,7 +106,7 @@ export function KitchenPage() {
               <header className={`kitchen-column__head is-${stageOf(column.key)}`}>
                 <span className="kitchen-column__dot" aria-hidden="true" />
                 <h2 className="kitchen-column__title">{column.title}</h2>
-                <span className="kitchen-column__count tnum">{columnOrders.length}</span>
+                <span className="kitchen-column__count">{columnOrders.length}</span>
               </header>
 
               {/*

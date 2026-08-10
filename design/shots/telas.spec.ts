@@ -95,17 +95,18 @@ for (const viewport of VIEWPORTS) {
     await page.screenshot({ path: `design/shots/out/${TAG}/item-dialogo-${viewport.name}.png` });
 
     /*
-     * As abas de Minha loja são telas de verdade — formulários inteiros, cada
-     * um com a sua grade. Fotografar só a aba "Geral" deixaria "Horários" e
-     * "Formas de pagamento" fora de toda conferência de alinhamento.
+     * Minha loja é uma COLUNA ÚNICA: as seis seções são formulários inteiros,
+     * cada um com a sua grade, e agora todos estão na mesma página. O print de
+     * cada âncora continua existindo porque a conferência de alinhamento é por
+     * seção — o que mudou é que chegar nelas é rolar, não trocar de aba.
      */
     await page.goto('/minha-loja');
     await escolherFilial(page);
-    for (const aba of ['filial', 'horarios', 'entrega', 'pagamento', 'impressao']) {
-      await page.getByTestId(`store-tab-${aba}`).click();
+    for (const secao of ['filial', 'horarios', 'entrega', 'pagamento', 'impressao']) {
+      await page.getByTestId(`store-anchor-${secao}`).click();
       await page.waitForTimeout(400);
       await page.screenshot({
-        path: `design/shots/out/${TAG}/loja-${aba}-${viewport.name}.png`,
+        path: `design/shots/out/${TAG}/loja-${secao}-${viewport.name}.png`,
       });
     }
   });
