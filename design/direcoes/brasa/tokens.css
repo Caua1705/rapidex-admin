@@ -1,0 +1,359 @@
+/*
+ * ============================================================================
+ * DIREÇÃO 1 — BRASA
+ * ============================================================================
+ *
+ * A COZINHA ÀS 22H, VISTA DE DENTRO. Aço escovado, chapa quente, etiqueta de
+ * comanda. A referência não é software: é o equipamento da cozinha — o forno
+ * combinado, a impressora térmica, o display do timer.
+ *
+ * AS TRÊS DECISÕES QUE FAZEM ESTA DIREÇÃO:
+ *
+ *   1. ESCURO É O CHÃO, E O ESCURO É QUENTE. Não é cinza-azulado de editor de
+ *      código: é preto de fuligem, com marrom por baixo. O claro existe e é
+ *      completo, mas é o modo de dia — a tela do balcão às 22h é esta.
+ *
+ *   2. O NÚMERO É MONOESPAÇADO, E ISSO É O SOTAQUE. Tempo decorrido, preço, nº
+ *      de pedido: JetBrains Mono. É a letra da comanda impressa e do display do
+ *      forno, e é ela que faz a tela parecer instrumento e não formulário.
+ *      (A direção anterior baniu a mono por ler "como código". Aqui isso se
+ *      inverte de propósito: o painel ASSUME que é máquina.)
+ *
+ *   3. A BRASA É GRADIENTE. O único degradê do sistema é o da barra de
+ *      maturação do pedido — de latão a brasa conforme o tempo passa. Ele não
+ *      é enfeite: é a única escala contínua da tela, e ler "está esquentando"
+ *      de longe é exatamente o trabalho dela.
+ *
+ * TIPOGRAFIA: Space Grotesk. Grotesca com terminais cortados na diagonal e
+ * aberturas fechadas — desenho próprio, ao contrário de uma neo-grotesca
+ * neutra. Ela dá à tela o ar de placa de equipamento.
+ *
+ * RAIO: 2 / 3 / 4. Quase quadrado. Chapa cortada, não aplicativo de consumo.
+ */
+
+:root,
+[data-theme='light'] {
+  /* ==========================================================================
+   * 1. MARCA — a brasa
+   * No claro ela é mais escura que a do logo: sobre bege, o laranja do selo
+   * não chega aos 3:1 do anel de foco. O selo continua o mesmo; o token diverge.
+   * ======================================================================= */
+  --ember: #c24507;
+  --ember-press: #a63a05;
+  --ember-wash: #fbe3d2;
+  --on-ember: #fff3ea;
+  --on-ember-press: #fff3ea;
+
+  /* ==========================================================================
+   * 2. PLANOS — bege de papel pardo, não branco de escritório
+   * ======================================================================= */
+  --bg: #eae3d6;
+  --surface: #fbf7f0;
+  --surface-raised: #ffffff;
+  --field: #f2ebdf;
+
+  --line: #dcd2c0;
+  --line-strong: #c0b4a0;
+  --line-control: #837664;
+
+  /* ==========================================================================
+   * 3. TINTA
+   * ======================================================================= */
+  --ink: #16120e;
+  --ink-2: #564b3d;
+  --ink-3: #6a5d4d;
+
+  /* ==========================================================================
+   * 4. SEMÂNTICA DE ESTADO
+   * ======================================================================= */
+  --ok: #096546;
+  --ok-wash: #ddefe6;
+  --alert: #9c5a0a;
+  --alert-wash: #f8eede;
+  --danger: #b72c24;
+  --danger-wash: #f9e4e1;
+
+  /* ==========================================================================
+   * 5. STATUS — a escala é de METAL E CHAMA, e evita o laranja de propósito:
+   * o laranja é da marca, e um status laranja disputaria com o botão primário.
+   *
+   *   pendente    latão   — parado, esperando alguém
+   *   aceito      aço     — na fila da máquina
+   *   preparando  ametista— dentro da chapa
+   *   pronto      verde   — saiu
+   *   entrega     ciano   — na rua
+   *   concluído   neutro  — arquivo
+   *   cancelado   vermelho— fim de linha
+   * ======================================================================= */
+  --st-pendente: #8a5e08;
+  --st-aceito: #2a5aa8;
+  --st-preparando: #6b36b8;
+  --st-pronto: #096546;
+  --st-entrega: #0f6d80;
+  --st-concluido: #6a5d4d;
+  --st-cancelado: #b72c24;
+
+  --st-pendente-wash: #f6ebd6;
+  --st-aceito-wash: #e4eaf7;
+  --st-preparando-wash: #eee5f8;
+  --st-pronto-wash: #ddefe6;
+  --st-entrega-wash: #deedf1;
+  --st-concluido-wash: #efebe3;
+  --st-cancelado-wash: #f9e4e1;
+
+  /* ==========================================================================
+   * 6. ESTADOS INTERATIVOS
+   * ======================================================================= */
+  --hover: color-mix(in oklab, var(--ink) 7%, transparent);
+  --active: color-mix(in oklab, var(--ink) 13%, transparent);
+  --disabled-opacity: 0.45;
+
+  --focus: var(--ember);
+  --focus-width: 2px;
+  --focus-offset: 2px;
+
+  --scrim: rgba(22, 18, 14, 0.55);
+
+  /* ==========================================================================
+   * 7. TIPOGRAFIA — Space Grotesk na interface, JetBrains Mono no número
+   *
+   * A mono NÃO é decoração e não é livre: ela pinta exatamente três coisas —
+   * tempo decorrido, dinheiro e nº de pedido. Fora disso, texto é Space
+   * Grotesk. Uma mono aplicada a rótulo e a frase vira estética de terminal e
+   * o painel deixa de ler.
+   * ======================================================================= */
+  --font-ui: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-num: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* 1. Título de página. */
+  --tt-size: 19px;
+  --tt-line: 24px;
+  --tt-weight: 700;
+  --tt-track: -0.015em;
+
+  /* 2. Título de seção. */
+  --ts-size: 14px;
+  --ts-line: 20px;
+  --ts-weight: 600;
+  --ts-track: -0.008em;
+
+  /* 3. Rótulo — maiúscula, espacejada, tinta de apoio. É a etiqueta gravada. */
+  --tl-size: 10px;
+  --tl-line: 14px;
+  --tl-weight: 700;
+  --tl-track: 0.1em;
+
+  /* 4. Corpo. */
+  --tb-size: 13px;
+  --tb-line: 18px;
+  --tb-weight: 400;
+  --tb-track: 0em;
+
+  /* 5. Auxiliar. */
+  --ta-size: 12px;
+  --ta-line: 16px;
+  --ta-weight: 400;
+  --ta-track: 0em;
+
+  --w-regular: 400;
+  --w-medium: 500;
+  --w-semibold: 600;
+  --w-bold: 700;
+
+  /* A Cozinha: monitor de parede, lido a dois metros. Exceção declarada. */
+  --k-num: 32px;
+  --k-num-line: 34px;
+  --k-item: 18px;
+  --k-item-line: 24px;
+  --k-meta: 15px;
+  --k-meta-line: 20px;
+
+  /* ==========================================================================
+   * 8. ESPAÇAMENTO — seis degraus
+   * ======================================================================= */
+  --sp-4: 4px;
+  --sp-8: 8px;
+  --sp-12: 12px;
+  --sp-16: 16px;
+  --sp-24: 24px;
+  --sp-32: 32px;
+
+  /* ==========================================================================
+   * 9. RAIO E ELEVAÇÃO — chapa cortada
+   * ======================================================================= */
+  --r-chip: 2px;
+  --r-field: 3px;
+  --r-card: 4px;
+  --r-round: 999px;
+
+  --shadow-pop:
+    0 16px 40px rgba(22, 18, 14, 0.18), 0 2px 4px rgba(22, 18, 14, 0.1);
+
+  /*
+   * O ÚNICO DEGRADÊ DO SISTEMA: a barra de maturação do pedido.
+   * Latão → brasa, da esquerda para a direita. Ela é a escala contínua da
+   * tela; qualquer outro degradê neste arquivo é erro.
+   */
+  --grad-brasa: linear-gradient(90deg, #d9a441 0%, #e2761c 55%, #c22e07 100%);
+
+  /* A trama do console lateral: hachura fina a 45°, quase imperceptível. */
+  --hachura: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.022) 0 1px,
+    transparent 1px 5px
+  );
+
+  /* ==========================================================================
+   * 9b. O CONSOLE — a lateral é escura NOS DOIS TEMAS
+   *
+   * É a decisão de enquadramento desta direção: a navegação não é página, é
+   * equipamento. Ela fica escura de dia e de noite, e o conteúdo é o que troca
+   * de tema. Sem isto, no claro a lateral vira mais uma faixa bege e o painel
+   * perde a moldura que o faz parecer instrumento.
+   *
+   * Por isso os tokens do console NÃO são redefinidos no bloco escuro: eles já
+   * são os mesmos lá.
+   * ======================================================================= */
+  --console-bg: #14100d;
+  --console-ink: #f2ece2;
+  --console-ink-3: #9b8c79;
+  --console-line: #2a231d;
+  --console-hover: rgba(255, 255, 255, 0.06);
+
+  /* ==========================================================================
+   * 10. ENQUADRAMENTO
+   * ======================================================================= */
+  --sidebar-w: 212px;
+  --sidebar-rail: 52px;
+  --topbar-h: 46px;
+  --bottombar-h: 56px;
+  --page-pad: var(--sp-16);
+  --page-pad-mobile: var(--sp-12);
+  --page-max: 1280px;
+  --form-max: 820px;
+  --column-max: 300px;
+
+  --tap: 24px;
+  --tap-mobile: 44px;
+
+  --control-h: 28px;
+  --control-h-sm: 24px;
+  --control-h-touch: 36px;
+  --field-h: 30px;
+  --field-h-touch: 40px;
+
+  /* ==========================================================================
+   * 11. MOVIMENTO — curto e seco, como relé
+   * ======================================================================= */
+  --motion-fast: 100ms;
+  --motion-base: 160ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ==========================================================================
+   * 12. CAMADAS
+   * ======================================================================= */
+  --z-sticky: 20;
+  --z-popover: 40;
+  --z-modal: 60;
+  --z-toast: 80;
+
+  color-scheme: light;
+}
+
+/*
+ * ============================================================================
+ * ESCURO — o tema principal desta direção.
+ *
+ * Preto de fuligem: todo neutro tem marrom por baixo. Um cinza puro (#1a1a1a)
+ * ao lado destes tons lê como buraco azul na tela.
+ * ============================================================================
+ */
+[data-theme='dark'] {
+  --bg: #0c0a09;
+  --surface: #17130f;
+  --surface-raised: #221c17;
+  --field: #100d0b;
+
+  --line: #2b2520;
+  --line-strong: #443b32;
+  --line-control: #8c7e6c;
+
+  --ink: #f7f2e9;
+  --ink-2: #bfb2a0;
+  --ink-3: #a0927f;
+
+  /* No escuro a brasa acende: é o laranja do selo, sem escurecer. */
+  --ember: #ff6a1f;
+  --ember-press: #ff8a4d;
+  --ember-wash: #3b1b08;
+  --on-ember: #1a0c03;
+  --on-ember-press: #1a0c03;
+
+  --ok: #3fd489;
+  --ok-wash: #12352a;
+  --alert: #f0a63e;
+  --alert-wash: #3a2a0e;
+  --danger: #ff6b6b;
+  --danger-wash: #451d1d;
+
+  --st-pendente: #e8b44a;
+  --st-aceito: #7fa9e0;
+  --st-preparando: #c08ae8;
+  --st-pronto: #3fd489;
+  --st-entrega: #46c8e0;
+  --st-concluido: #a0927f;
+  --st-cancelado: #ff6b6b;
+
+  --st-pendente-wash: #3a2c0e;
+  --st-aceito-wash: #1d2a3d;
+  --st-preparando-wash: #2e2140;
+  --st-pronto-wash: #12352a;
+  --st-entrega-wash: #123239;
+  --st-concluido-wash: #2a2520;
+  --st-cancelado-wash: #451d1d;
+
+  --scrim: rgba(0, 0, 0, 0.66);
+  --shadow-pop: 0 16px 40px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.45);
+
+  --grad-brasa: linear-gradient(90deg, #e8b44a 0%, #ff8a3d 55%, #ff4d1a 100%);
+
+  color-scheme: dark;
+}
+
+/* --- status como classe --------------------------------------------------- */
+
+.is-pendente {
+  --st: var(--st-pendente);
+  --st-wash: var(--st-pendente-wash);
+}
+.is-aceito {
+  --st: var(--st-aceito);
+  --st-wash: var(--st-aceito-wash);
+}
+.is-preparando {
+  --st: var(--st-preparando);
+  --st-wash: var(--st-preparando-wash);
+}
+.is-pronto {
+  --st: var(--st-pronto);
+  --st-wash: var(--st-pronto-wash);
+}
+.is-entrega {
+  --st: var(--st-entrega);
+  --st-wash: var(--st-entrega-wash);
+}
+.is-concluido {
+  --st: var(--st-concluido);
+  --st-wash: var(--st-concluido-wash);
+}
+.is-cancelado {
+  --st: var(--st-cancelado);
+  --st-wash: var(--st-cancelado-wash);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0s;
+    --motion-base: 0s;
+  }
+}

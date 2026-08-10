@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rapidex · Direção 2 — Papel</title>
+
+    <!--
+      Fraunces no título (com os eixos SOFT e WONK ligados — é o desenho torto
+      que dá o tom), IBM Plex Sans em tudo que é dado. Sem mono: numa página
+      que imita impresso, a monoespaçada é o que grita "software".
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+    />
+
+    <link rel="stylesheet" href="tokens.css" />
+    <link rel="stylesheet" href="direcao.css" />
+    <link rel="stylesheet" href="../comparar.css" />
+  </head>
+
+  <body>
+    <header class="folha__head">
+      <p class="folha__kicker">Direção 2 de 3</p>
+      <h1 class="folha__titulo">Papel</h1>
+      <p class="folha__linha">
+        O cardápio impresso e a comanda de papel. Bege de papel pardo, tinta marrom, raio zero e
+        <strong>bordô</strong> no lugar do laranja — a divergência mais forte das três em relação ao
+        selo. <strong>Fraunces</strong> nos títulos, <strong>IBM Plex Sans</strong> no dado. O
+        pedido é um cupom, não um cartão: fio da cor do estágio em cima, corte fino embaixo. E a
+        linha pontilhada liga o nome ao preço, que é como um cardápio sempre resolveu isso.
+      </p>
+    </header>
+
+    <template id="nav-tpl">
+      <div class="shell__brand">
+        <img src="../../../public/logo-mark.png" alt="" />
+        <span class="shell__wordmark">Rapidex</span>
+      </div>
+
+      <div class="shell__group">
+        <p class="shell__group-title">Operação</p>
+        <ul>
+          <li><a class="shell__link" href="#" data-rota="pedidos"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z"/><path d="M9 8h6M9 12h6"/></svg><span>Pedidos</span></a></li>
+          <li><a class="shell__link" href="#" data-rota="cozinha"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11h16v4a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5v-4Z"/><path d="M20 12.5h1.5a1.5 1.5 0 0 1 0 3H20"/><path d="M8 8c0-1.5 1-1.5 1-3M12 8c0-1.5 1-1.5 1-3M16 8c0-1.5 1-1.5 1-3"/></svg><span>Cozinha</span></a></li>
+        </ul>
+      </div>
+
+      <div class="shell__group">
+        <p class="shell__group-title">Cardápio</p>
+        <ul>
+          <li><a class="shell__link" href="#" data-rota="cardapio"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h5v18H6a2 2 0 0 1-2-2V5Z"/><path d="M20 5a2 2 0 0 0-2-2h-5v18h5a2 2 0 0 0 2-2V5Z"/></svg><span>Cardápio</span></a></li>
+        </ul>
+      </div>
+
+      <div class="shell__group">
+        <p class="shell__group-title">Crescimento</p>
+        <ul>
+          <li><a class="shell__link" href="#" data-rota="clientes"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.6a3.2 3.2 0 0 1 0 4.8M17.5 14.6A5.5 5.5 0 0 1 20.5 20"/></svg><span>Clientes</span></a></li>
+          <li><a class="shell__link" href="#" data-rota="cupons"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5A1.5 1.5 0 0 1 5 7h14a1.5 1.5 0 0 1 1.5 1.5v2a2 2 0 0 0 0 3v2A1.5 1.5 0 0 1 19 17H5a1.5 1.5 0 0 1-1.5-1.5v-2a2 2 0 0 0 0-3v-2Z"/><path d="M13.5 9.5v1M13.5 13.5v1"/></svg><span>Cupons</span></a></li>
+          <li><a class="shell__link" href="#" data-rota="cashback"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7.5"/><path d="M14.5 9.6a3.4 3.4 0 1 0 0 4.8"/><path d="M4.6 6v3.2h3.2"/></svg><span>Cashback</span></a></li>
+          <li><a class="shell__link" href="#" data-rota="desempenho"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4v16h16"/><path d="M7.5 16.5c2-1 3-5 5-5.5s3 2 5-4.5"/></svg><span>Desempenho</span></a></li>
+        </ul>
+      </div>
+
+      <div class="shell__group">
+        <p class="shell__group-title">Configurações</p>
+        <ul>
+          <li><a class="shell__link" href="#" data-rota="minha-loja"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 9.5V19a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1V9.5"/><path d="M3 9.5c1.5 0 2.2-1 2.2-1s.7 1 2.2 1 2.2-1 2.2-1 .7 1 2.2 1 2.2-1 2.2-1 .7 1 2.2 1 2.2-1 2.2-1L19 4.6a1 1 0 0 0-1-.6H6a1 1 0 0 0-1 .6L3 9.5Z"/><path d="M9.5 20v-5.5h5V20"/></svg><span>Minha loja</span></a></li>
+          <li><a class="shell__link" href="#" data-rota="usuarios"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="1.5"/><circle cx="9.5" cy="10.5" r="1.8"/><path d="M6.5 15.5a3 3 0 0 1 6 0"/><path d="M15 10h3M15 13.5h3"/></svg><span>Usuários</span></a></li>
+          <li><a class="shell__link" href="#" data-rota="whatsapp"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l.9-4.4A8 8 0 1 1 20 12Z"/></svg><span>WhatsApp</span></a></li>
+          <li><a class="shell__link" href="#" data-rota="integracoes"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1"/><rect x="13.5" y="13.5" width="7" height="7" rx="1"/><path d="M10.5 7h3.5a3 3 0 0 1 3 3v3.5"/></svg><span>Integrações</span></a></li>
+        </ul>
+      </div>
+    </template>
+
+    <template id="tela-pedidos">
+      <div class="page">
+        <div class="tabs">
+          <button class="tab tab--on" type="button">Em andamento<span class="tab__count">8</span></button>
+          <button class="tab" type="button">Histórico<span class="tab__count">142</span></button>
+        </div>
+
+        <div class="filtros">
+          <div class="periodo" role="group" aria-label="Período">
+            <button class="periodo__opt periodo__opt--on" type="button">Hoje</button>
+            <button class="periodo__opt" type="button">Ontem</button>
+            <button class="periodo__opt" type="button">7 dias</button>
+            <button class="periodo__opt" type="button">Escolher…</button>
+          </div>
+
+          <label class="filtros__busca">
+            <input class="input" type="search" placeholder="Nº do pedido ou cliente" aria-label="Buscar pedido" />
+          </label>
+
+          <div class="filtros__dir">
+            <span class="prep">
+              <span class="t-label">Preparo</span>
+              <span class="prep__range">25–35 min</span>
+              <button class="btn btn--sm" type="button">+5</button>
+              <button class="btn btn--sm" type="button">+10</button>
+            </span>
+            <span class="conn"><span class="conn__dot"></span>Tempo real</span>
+          </div>
+        </div>
+
+        <div class="faixas">
+          <section class="faixa is-pendente">
+            <div class="faixa__head"><h2 class="faixa__title">Novos</h2><span class="faixa__count">3 pedidos</span><span class="faixa__rule"></span></div>
+            <div class="faixa__cards">
+              <button class="ticket is-pendente" type="button">
+                <span class="ticket__topo"><span class="ticket__numero">Nº 1042</span><span>20:41</span></span>
+                <span class="ticket__cliente">Marcos Lima</span>
+                <span class="ticket__linha"><span class="ticket__tempo">12 min</span><span class="pontos"></span><span class="ticket__total">R$ 192,90</span></span>
+                <span class="ticket__meta"><span class="tag">Entrega</span><span class="tag">Pix</span></span>
+              </button>
+              <button class="ticket is-pendente" type="button">
+                <span class="ticket__topo"><span class="ticket__numero">Nº 1041</span><span>20:49</span></span>
+                <span class="ticket__cliente">Ana Souza</span>
+                <span class="ticket__linha"><span class="ticket__tempo">4 min</span><span class="pontos"></span><span class="ticket__total">R$ 68,00</span></span>
+                <span class="ticket__meta"><span class="tag">Retirada</span><span class="tag">Dinheiro</span></span>
+              </button>
+              <button class="ticket is-pendente ticket--alerta" type="button">
+                <span class="ticket__topo"><span class="ticket__numero">Nº 1039</span><span>20:32</span></span>
+                <span class="ticket__cliente">Rafael Dias</span>
+                <span class="ticket__linha"><span class="ticket__tempo">21 min</span><span class="pontos"></span><span class="ticket__total">R$ 124,00</span></span>
+                <span class="ticket__alerta">Pagamento não recebido — não preparar</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="faixa is-preparando">
+            <div class="faixa__head"><h2 class="faixa__title">Em preparo</h2><span class="faixa__count">3 pedidos</span><span class="faixa__rule"></span></div>
+            <div class="faixa__cards">
+              <button class="ticket is-aceito" type="button">
+                <span class="ticket__topo"><span class="ticket__numero">Nº 1038</span><span>20:19</span></span>
+                <span class="ticket__cliente">Juliana Alves</span>
+                <span class="ticket__linha"><span class="ticket__tempo">34 min</span><span class="pontos"></span><span class="ticket__total">R$ 89,50</span></span>
+                <span class="ticket__meta"><span class="tag">Entrega</span><span class="tag">Crédito</span></span>
+              </button>
+              <button class="ticket is-preparando" type="button">
+                <span class="ticket__topo"><span class="ticket__numero">Nº 1036</span><span>20:12</span></span>
+                <span class="ticket__cliente">Pedro Nunes</span>
+                <span class="ticket__linha"><span class="ticket__tempo">41 min</span><span class="pontos"></span><span class="ticket__total">R$ 245,00</span></span>
+                <span class="ticket__meta"><span class="tag">Entrega</span><span class="tag">Pix</span></span>
+              </button>
+              <button class="ticket is-preparando" type="button">
+                <span class="ticket__topo"><span class="ticket__numero">Nº 1035</span><span>20:06</span></span>
+                <span class="ticket__cliente">Carla Reis</span>
+                <span class="ticket__linha"><span class="ticket__tempo">47 min</span><span class="pontos"></span><span class="ticket__total">R$ 56,00</span></span>
+                <span class="ticket__meta"><span class="tag">Retirada</span></span>
+              </button>
+            </div>
+          </section>
+
+          <section class="faixa is-pronto">
+            <div class="faixa__head"><h2 class="faixa__title">Prontos e na rua</h2><span class="faixa__count">2 pedidos</span><span class="faixa__rule"></span></div>
+            <div class="faixa__cards">
+              <button class="ticket is-pronto" type="button">
+                <span class="ticket__topo"><span class="ticket__numero">Nº 1033</span><span>19:55</span></span>
+                <span class="ticket__cliente">Bruno Tavares</span>
+                <span class="ticket__linha"><span class="ticket__tempo">58 min</span><span class="pontos"></span><span class="ticket__total">R$ 132,40</span></span>
+                <span class="ticket__meta"><span class="tag">Retirada</span></span>
+              </button>
+              <button class="ticket is-entrega" type="button">
+                <span class="ticket__topo"><span class="ticket__numero">Nº 1030</span><span>19:47</span></span>
+                <span class="ticket__cliente">Lívia Moura</span>
+                <span class="ticket__linha"><span class="ticket__tempo">1 h 06</span><span class="pontos"></span><span class="ticket__total">R$ 74,90</span></span>
+                <span class="ticket__meta"><span class="tag">Entrega</span></span>
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </template>
+
+    <template id="tela-cardapio">
+      <div class="menu">
+        <nav class="rail" aria-label="Categorias">
+          <div class="rail__head">
+            <span class="t-label">Categorias</span>
+            <button class="btn btn--sm icon-btn" type="button" aria-label="Nova categoria" style="margin-left:auto">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+          </div>
+          <button class="rail__item" type="button">Pizzas <span class="pontos"></span><span class="rail__count">12</span></button>
+          <button class="rail__item rail__item--on" type="button">Hambúrgueres <span class="pontos"></span><span class="rail__count">8</span></button>
+          <button class="rail__item" type="button">Bebidas <span class="pontos"></span><span class="rail__count">14</span></button>
+          <button class="rail__item" type="button">Sobremesas <span class="pontos"></span><span class="rail__count">5</span></button>
+          <button class="rail__item" type="button">Combos <span class="pontos"></span><span class="rail__count">3</span></button>
+        </nav>
+
+        <section class="menu__panel">
+          <header class="menu__head">
+            <h1 class="t-title">Hambúrgueres</h1>
+            <button class="btn btn--sm btn--ghost icon-btn" type="button" aria-label="Editar categoria">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L20 8l-4-4L4 16v4Z"/></svg>
+            </button>
+            <button class="btn btn--primary" type="button" style="margin-left:auto">Novo item</button>
+          </header>
+
+          <div class="menu__busca">
+            <input class="input" type="search" placeholder="Buscar item nesta categoria" aria-label="Buscar item" />
+          </div>
+
+          <ul class="itens">
+            <li class="item">
+              <span class="item__nome">X-Burger Clássico</span><span class="pontos"></span><span class="item__preco">R$ 24,90</span>
+              <span class="item__setor">Chapa</span>
+              <button class="sw" type="button" role="switch" aria-checked="true" aria-label="X-Burger Clássico disponível"></button>
+              <button class="btn btn--sm btn--ghost icon-btn item__acao" type="button" aria-label="Editar X-Burger Clássico"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L20 8l-4-4L4 16v4Z"/></svg></button>
+            </li>
+            <li class="item">
+              <span class="item__nome">X-Salada</span><span class="pontos"></span><span class="item__preco">R$ 27,50</span>
+              <span class="item__setor">Chapa</span>
+              <button class="sw" type="button" role="switch" aria-checked="true" aria-label="X-Salada disponível"></button>
+              <button class="btn btn--sm btn--ghost icon-btn item__acao" type="button" aria-label="Editar X-Salada"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L20 8l-4-4L4 16v4Z"/></svg></button>
+            </li>
+            <li class="item item--off">
+              <span class="item__nome">X-Bacon Duplo <span class="tag">Esgotado</span></span><span class="pontos"></span><span class="item__preco">R$ 34,00</span>
+              <span class="item__setor">Chapa</span>
+              <button class="sw" type="button" role="switch" aria-checked="false" aria-label="X-Bacon Duplo disponível"></button>
+              <button class="btn btn--sm btn--ghost icon-btn item__acao" type="button" aria-label="Editar X-Bacon Duplo"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L20 8l-4-4L4 16v4Z"/></svg></button>
+            </li>
+            <li class="item">
+              <span class="item__nome">Vegetariano de grão-de-bico</span><span class="pontos"></span><span class="item__preco">R$ 26,00</span>
+              <span class="item__setor">Chapa</span>
+              <button class="sw" type="button" role="switch" aria-checked="true" aria-label="Vegetariano disponível"></button>
+              <button class="btn btn--sm btn--ghost icon-btn item__acao" type="button" aria-label="Editar Vegetariano"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L20 8l-4-4L4 16v4Z"/></svg></button>
+            </li>
+            <li class="item">
+              <span class="item__nome">Kids</span><span class="pontos"></span><span class="item__preco">R$ 18,00</span>
+              <span class="item__setor">Não imprime</span>
+              <button class="sw" type="button" role="switch" aria-checked="true" aria-label="Kids disponível"></button>
+              <button class="btn btn--sm btn--ghost icon-btn item__acao" type="button" aria-label="Editar Kids"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L20 8l-4-4L4 16v4Z"/></svg></button>
+            </li>
+          </ul>
+        </section>
+      </div>
+    </template>
+
+    <template id="tela-loja">
+      <div class="loja">
+        <nav class="ancoras" aria-label="Seções desta tela">
+          <a class="ancora ancora--on" href="#">Geral</a>
+          <a class="ancora" href="#">Filial</a>
+          <a class="ancora" href="#">Horários</a>
+          <a class="ancora" href="#">Entrega</a>
+          <a class="ancora" href="#">Pagamento</a>
+          <a class="ancora" href="#">Impressão</a>
+        </nav>
+
+        <div class="loja__col">
+          <div style="display:flex; align-items:baseline; gap:var(--sp-12)">
+            <h1 class="t-title">Minha loja</h1>
+            <span class="status-loja">
+              <button class="sw" type="button" role="switch" aria-checked="true" aria-label="Loja aberta"></button>
+              Loja aberta
+            </span>
+          </div>
+
+          <section class="secao">
+            <div class="secao__head"><h2 class="t-section">Geral</h2><span class="t-aux">vale para o restaurante inteiro</span></div>
+            <div class="secao__corpo">
+              <div class="linha"><span class="linha__rotulo">Pedido mínimo</span><span class="pontos"></span><span class="linha__campos"><input class="input" value="25,00" aria-label="Pedido mínimo" /></span></div>
+              <div class="linha"><span class="linha__rotulo">Tempo estimado de entrega</span><span class="pontos"></span><span class="linha__campos"><input class="input" value="45" aria-label="Mínimo" /><span class="t-aux">a</span><input class="input" value="60" aria-label="Máximo" /><span class="t-aux">min</span></span></div>
+              <div class="linha"><span class="linha__rotulo">Taxa de serviço</span><span class="pontos"></span><span class="linha__campos"><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Taxa de serviço"></button></span></div>
+            </div>
+          </section>
+
+          <section class="secao">
+            <div class="secao__head"><h2 class="t-section">Horários</h2><span class="t-aux">Pizzaria do Zé — Aldeota</span></div>
+            <div class="secao__corpo semana">
+              <div class="semana__linha"><span class="semana__dia">Segunda</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Segunda aberta"></button><span class="pontos"></span><span class="semana__horas">18:00 – 23:30</span></div>
+              <div class="semana__linha"><span class="semana__dia">Terça</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Terça aberta"></button><span class="pontos"></span><span class="semana__horas">18:00 – 23:30</span></div>
+              <div class="semana__linha"><span class="semana__dia">Quarta</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Quarta aberta"></button><span class="pontos"></span><span class="semana__horas">18:00 – 23:30</span></div>
+              <div class="semana__linha"><span class="semana__dia">Quinta</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Quinta aberta"></button><span class="pontos"></span><span class="semana__horas">18:00 – 00:30</span></div>
+              <div class="semana__linha"><span class="semana__dia">Sexta</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Sexta aberta"></button><span class="pontos"></span><span class="semana__horas">18:00 – 02:00</span></div>
+              <div class="semana__linha"><span class="semana__dia">Sábado</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Sábado aberto"></button><span class="pontos"></span><span class="semana__horas">18:00 – 02:00</span></div>
+              <div class="semana__linha"><span class="semana__dia">Domingo</span><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Domingo aberto"></button><span class="pontos"></span><span class="semana__fechado">Fechado</span></div>
+            </div>
+          </section>
+
+          <section class="secao">
+            <div class="secao__head"><h2 class="t-section">Formas de pagamento</h2></div>
+            <div class="secao__corpo">
+              <div class="pgto"><span class="item__nome">Pix</span><span class="pontos"></span><span class="item__setor">Na entrega</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Pix ativo"></button></div>
+              <div class="pgto"><span class="item__nome">Cartão de crédito</span><span class="pontos"></span><span class="item__setor">Online</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Crédito ativo"></button></div>
+              <div class="pgto"><span class="item__nome">Dinheiro</span><span class="pontos"></span><span class="item__setor">Na entrega</span><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Dinheiro ativo"></button></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </template>
+
+    <main id="folha" data-temas="light,dark"></main>
+    <script src="../estampar.js"></script>
+  </body>
+</html>

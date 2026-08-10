@@ -1,0 +1,331 @@
+/*
+ * ============================================================================
+ * DIREÇÃO 2 — PAPEL
+ * ============================================================================
+ *
+ * O CARDÁPIO IMPRESSO E A COMANDA DE PAPEL. A referência não é software nem
+ * equipamento: é tipografia de restaurante — a carta em papel pardo, o quadro
+ * de giz, o cupom da impressora térmica.
+ *
+ * AS TRÊS DECISÕES QUE FAZEM ESTA DIREÇÃO:
+ *
+ *   1. CLARO É O CHÃO. Papel bege, tinta marrom-preta, e nenhuma superfície
+ *      branca pura fora do que flutua. O escuro existe inteiro e é o modo
+ *      noite — papel à luz de vela, não console.
+ *
+ *   2. A LINHA PONTILHADA LIGA O NOME AO PREÇO. É o gesto do cardápio
+ *      impresso, e resolve de verdade o problema que a grade resolve à força:
+ *      o olho segue o ponto e chega no número certo, sem precisar que as
+ *      colunas estejam na mesma abscissa por acidente de largura de nome.
+ *
+ *   3. O TÍTULO TEM SERIFA, O DADO NÃO. Fraunces nos títulos — serifa com
+ *      desenho torto de propósito, que é o que dá hospitalidade à tela. IBM
+ *      Plex Sans em tudo que é dado, porque dado precisa de numeral tabular e
+ *      de nenhuma opinião.
+ *
+ * RAIO: ZERO. Papel cortado não tem canto arredondado. O único raio do sistema
+ * é o do ponto e o do interruptor.
+ *
+ * A MARCA DIVERGE DO SELO AQUI, e é a divergência mais forte das três
+ * direções: o laranja vira BORDÔ. Sobre papel bege, o laranja do selo é a cor
+ * de um aviso, não de uma marca — e a tela inteira passa a parecer alerta.
+ */
+
+:root,
+[data-theme='light'] {
+  /* ==========================================================================
+   * 1. MARCA — bordô de carimbo
+   * ======================================================================= */
+  --ember: #8c2f2a;
+  --ember-press: #6f2320;
+  --ember-wash: #f4e2dd;
+  --on-ember: #fdf6f0;
+  --on-ember-press: #fdf6f0;
+
+  /* ==========================================================================
+   * 2. PLANOS — papel, e nenhum branco de escritório
+   * O branco puro é reservado ao que FLUTUA: diálogo, menu, folha.
+   * ======================================================================= */
+  --bg: #f2ecdf;
+  --surface: #fbf7ee;
+  --surface-raised: #ffffff;
+  --field: #ebe3d3;
+
+  --line: #dcd1bc;
+  --line-strong: #c2b49a;
+  --line-control: #8a7c66;
+
+  /* ==========================================================================
+   * 3. TINTA — marrom de impressão, nunca preto puro
+   * ======================================================================= */
+  --ink: #211c15;
+  --ink-2: #5a4f40;
+  --ink-3: #6e6252;
+
+  /* ==========================================================================
+   * 4. SEMÂNTICA DE ESTADO
+   * ======================================================================= */
+  --ok: #2f6b3a;
+  --ok-wash: #e3edde;
+  --alert: #8a5a10;
+  --alert-wash: #f5ecd9;
+  --danger: #a32e22;
+  --danger-wash: #f6e3df;
+
+  /* ==========================================================================
+   * 5. STATUS — TINTAS DE IMPRESSÃO, não cores de tela.
+   * Cada uma é uma cor que existe em papel: ocre, azul-ferrete, ameixa,
+   * verde-oliva, petróleo, grafite, carmim. Nenhuma delas brilha.
+   * ======================================================================= */
+  --st-pendente: #8a6a12;
+  --st-aceito: #2c5578;
+  --st-preparando: #6a3a72;
+  --st-pronto: #2f6b3a;
+  --st-entrega: #1f6470;
+  --st-concluido: #6e6252;
+  --st-cancelado: #a32e22;
+
+  --st-pendente-wash: #f2e9d2;
+  --st-aceito-wash: #e2e9f0;
+  --st-preparando-wash: #ece2ef;
+  --st-pronto-wash: #e3edde;
+  --st-entrega-wash: #dfebed;
+  --st-concluido-wash: #ece7dc;
+  --st-cancelado-wash: #f6e3df;
+
+  /* ==========================================================================
+   * 6. ESTADOS INTERATIVOS
+   * ======================================================================= */
+  --hover: color-mix(in oklab, var(--ink) 6%, transparent);
+  --active: color-mix(in oklab, var(--ink) 11%, transparent);
+  --disabled-opacity: 0.45;
+
+  --focus: var(--ember);
+  --focus-width: 2px;
+  --focus-offset: 2px;
+
+  --scrim: rgba(33, 28, 21, 0.5);
+
+  /* ==========================================================================
+   * 7. TIPOGRAFIA — Fraunces no título, IBM Plex Sans no dado
+   *
+   * A serifa NÃO desce para o corpo. Ela pinta o título de página e o título
+   * de seção, e para aí: uma tela de operação lida com pressa precisa de sans
+   * no que se lê rápido. A serifa dá o tom; a sans faz o trabalho.
+   * ======================================================================= */
+  --font-ui: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+
+  /* 1. Título de página — serifa, com o "wonk" da Fraunces ligado. */
+  --tt-size: 24px;
+  --tt-line: 28px;
+  --tt-weight: 600;
+  --tt-track: -0.01em;
+
+  /* 2. Título de seção — serifa também, e é o que amarra a tela. */
+  --ts-size: 15px;
+  --ts-line: 20px;
+  --ts-weight: 600;
+  --ts-track: 0em;
+
+  /* 3. Rótulo — versalete de cardápio: maiúscula, muito espacejada. */
+  --tl-size: 10px;
+  --tl-line: 14px;
+  --tl-weight: 600;
+  --tl-track: 0.14em;
+
+  /* 4. Corpo. */
+  --tb-size: 13px;
+  --tb-line: 19px;
+  --tb-weight: 400;
+  --tb-track: 0em;
+
+  /* 5. Auxiliar. */
+  --ta-size: 12px;
+  --ta-line: 16px;
+  --ta-weight: 400;
+  --ta-track: 0em;
+
+  --w-regular: 400;
+  --w-medium: 500;
+  --w-semibold: 600;
+  --w-bold: 700;
+
+  --k-num: 30px;
+  --k-num-line: 34px;
+  --k-item: 18px;
+  --k-item-line: 24px;
+  --k-meta: 15px;
+  --k-meta-line: 20px;
+
+  /* ==========================================================================
+   * 8. ESPAÇAMENTO — seis degraus
+   * ======================================================================= */
+  --sp-4: 4px;
+  --sp-8: 8px;
+  --sp-12: 12px;
+  --sp-16: 16px;
+  --sp-24: 24px;
+  --sp-32: 32px;
+
+  /* ==========================================================================
+   * 9. RAIO E ELEVAÇÃO — papel cortado não tem canto
+   * ======================================================================= */
+  --r-chip: 0px;
+  --r-field: 0px;
+  --r-card: 0px;
+  --r-round: 999px;
+
+  --shadow-pop: 0 18px 44px rgba(33, 28, 21, 0.16), 0 1px 2px rgba(33, 28, 21, 0.1);
+
+  /*
+   * A TRAMA DO PAPEL. Duas hachuras cruzadas em opacidade quase nula: ela não
+   * se vê, se sente. É a única textura do sistema, e ela mora no chão da
+   * página — nunca dentro de um cartão, onde viraria sujeira atrás do texto.
+   */
+  --trama:
+    repeating-linear-gradient(0deg, rgba(90, 79, 64, 0.028) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(90, 79, 64, 0.022) 0 1px, transparent 1px 4px);
+
+  /* O pontilhado que liga o nome ao preço. */
+  --pontilhado: radial-gradient(circle, var(--line-strong) 1px, transparent 1px);
+
+  /* ==========================================================================
+   * 10. ENQUADRAMENTO
+   * ======================================================================= */
+  --sidebar-w: 216px;
+  --sidebar-rail: 52px;
+  --topbar-h: 48px;
+  --bottombar-h: 56px;
+  --page-pad: var(--sp-24);
+  --page-pad-mobile: var(--sp-12);
+  --page-max: 1180px;
+  --form-max: 760px;
+  --column-max: 300px;
+
+  --tap: 24px;
+  --tap-mobile: 44px;
+
+  --control-h: 28px;
+  --control-h-sm: 24px;
+  --control-h-touch: 36px;
+  --field-h: 30px;
+  --field-h-touch: 40px;
+
+  /* ==========================================================================
+   * 11. MOVIMENTO — mais lento que Brasa: papel não tem relé
+   * ======================================================================= */
+  --motion-fast: 130ms;
+  --motion-base: 200ms;
+  --ease: cubic-bezier(0.32, 0, 0.14, 1);
+
+  /* ==========================================================================
+   * 12. CAMADAS
+   * ======================================================================= */
+  --z-sticky: 20;
+  --z-popover: 40;
+  --z-modal: 60;
+  --z-toast: 80;
+
+  color-scheme: light;
+}
+
+/*
+ * ============================================================================
+ * ESCURO — papel à luz de vela.
+ *
+ * Não é o mesmo papel invertido: é o marrom da capa da carta, com a tinta
+ * virada em creme. As tintas de status clareiam sem ganhar brilho de tela —
+ * uma delas em néon aqui destruiria a direção inteira.
+ * ============================================================================
+ */
+[data-theme='dark'] {
+  --bg: #16130f;
+  --surface: #1e1a15;
+  --surface-raised: #28231c;
+  --field: #12100c;
+
+  --line: #2f2921;
+  --line-strong: #473f34;
+  --line-control: #8d8069;
+
+  --ink: #f4ecdd;
+  --ink-2: #bdb09a;
+  --ink-3: #a1957f;
+
+  --ember: #e07a6a;
+  --ember-press: #ea9384;
+  --ember-wash: #3a1d19;
+  --on-ember: #1c0d0b;
+  --on-ember-press: #1c0d0b;
+
+  --ok: #7ec27f;
+  --ok-wash: #17301c;
+  --alert: #dfa94e;
+  --alert-wash: #362c11;
+  --danger: #ef8175;
+  --danger-wash: #3a1f1b;
+
+  --st-pendente: #d9b85f;
+  --st-aceito: #86aed4;
+  --st-preparando: #bb92c6;
+  --st-pronto: #7ec27f;
+  --st-entrega: #6fbecb;
+  --st-concluido: #a1957f;
+  --st-cancelado: #ef8175;
+
+  --st-pendente-wash: #362c11;
+  --st-aceito-wash: #1c2b38;
+  --st-preparando-wash: #2f2233;
+  --st-pronto-wash: #17301c;
+  --st-entrega-wash: #143035;
+  --st-concluido-wash: #2b261f;
+  --st-cancelado-wash: #3a1f1b;
+
+  --scrim: rgba(0, 0, 0, 0.6);
+  --shadow-pop: 0 18px 44px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(0, 0, 0, 0.4);
+
+  --trama:
+    repeating-linear-gradient(0deg, rgba(244, 236, 221, 0.02) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(244, 236, 221, 0.016) 0 1px, transparent 1px 4px);
+
+  color-scheme: dark;
+}
+
+/* --- status como classe --------------------------------------------------- */
+
+.is-pendente {
+  --st: var(--st-pendente);
+  --st-wash: var(--st-pendente-wash);
+}
+.is-aceito {
+  --st: var(--st-aceito);
+  --st-wash: var(--st-aceito-wash);
+}
+.is-preparando {
+  --st: var(--st-preparando);
+  --st-wash: var(--st-preparando-wash);
+}
+.is-pronto {
+  --st: var(--st-pronto);
+  --st-wash: var(--st-pronto-wash);
+}
+.is-entrega {
+  --st: var(--st-entrega);
+  --st-wash: var(--st-entrega-wash);
+}
+.is-concluido {
+  --st: var(--st-concluido);
+  --st-wash: var(--st-concluido-wash);
+}
+.is-cancelado {
+  --st: var(--st-cancelado);
+  --st-wash: var(--st-cancelado-wash);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0s;
+    --motion-base: 0s;
+  }
+}

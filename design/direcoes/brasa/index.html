@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rapidex · Direção 1 — Brasa</title>
+
+    <!--
+      Space Grotesk na interface, JetBrains Mono no número.
+      A mono pinta exatamente três coisas: tempo decorrido, dinheiro e nº de
+      pedido. Ver o bloco 7 de tokens.css.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
+    />
+
+    <link rel="stylesheet" href="tokens.css" />
+    <link rel="stylesheet" href="direcao.css" />
+    <link rel="stylesheet" href="../comparar.css" />
+  </head>
+
+  <body>
+    <header class="folha__head">
+      <p class="folha__kicker">Direção 1 de 3</p>
+      <h1 class="folha__titulo">Brasa</h1>
+      <p class="folha__linha">
+        A cozinha às 22h, vista de dentro. Escuro quente de fuligem, chapa cortada em raio 2px,
+        <strong>Space Grotesk</strong> na interface e <strong>JetBrains Mono</strong> em todo número
+        que se compara. A lateral é um console escuro nos dois temas — a navegação é equipamento,
+        não página. O único degradê do sistema é a barra de maturação do pedido: latão quando
+        entra, brasa quando estoura.
+      </p>
+    </header>
+
+    <!-- =====================================================================
+         A navegação inteira, uma vez. O script no fim da página a estampa em
+         cada moldura e marca o item ativo — seis cópias do mesmo <ul> seriam
+         seis lugares para divergir.
+    ====================================================================== -->
+    <template id="nav-tpl">
+      <div class="shell__brand">
+        <img src="../../../public/logo-mark.png" alt="" />
+        <span class="shell__wordmark">Rapidex</span>
+      </div>
+
+      <div class="shell__group">
+        <p class="shell__group-title">Operação</p>
+        <ul>
+          <li>
+            <a class="shell__link" href="#" data-rota="pedidos">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M4 5h16M4 10h16M4 15h16M4 20h9"/></svg>
+              <span>Pedidos</span>
+            </a>
+          </li>
+          <li>
+            <a class="shell__link" href="#" data-rota="cozinha">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M3 10h18v6a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4v-6Z"/><path d="M21 12h1.5v3H21"/><path d="M7 7V4M12 7V4M17 7V4"/></svg>
+              <span>Cozinha</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="shell__group">
+        <p class="shell__group-title">Cardápio</p>
+        <ul>
+          <li>
+            <a class="shell__link" href="#" data-rota="cardapio">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M12 4v16M7 8h2M15 8h2M7 12h2M15 12h2"/></svg>
+              <span>Cardápio</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="shell__group">
+        <p class="shell__group-title">Crescimento</p>
+        <ul>
+          <li>
+            <a class="shell__link" href="#" data-rota="clientes">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M6 9h6v6H6z"/><path d="M3 21v-2h12v2"/><path d="M15 10h6M15 14h6M15 18h6"/></svg>
+              <span>Clientes</span>
+            </a>
+          </li>
+          <li>
+            <a class="shell__link" href="#" data-rota="cupons">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M3 7h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4V7Z"/><path d="M14 9v1M14 14v1"/></svg>
+              <span>Cupons</span>
+            </a>
+          </li>
+          <li>
+            <a class="shell__link" href="#" data-rota="cashback">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M4 4v4h4"/><path d="M4.5 8.5A8 8 0 1 1 4 12"/><path d="M15 10a3 3 0 1 0 0 4"/></svg>
+              <span>Cashback</span>
+            </a>
+          </li>
+          <li>
+            <a class="shell__link" href="#" data-rota="desempenho">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M4 4v16h16"/><path d="M8 17V12M13 17V8M18 17V5"/></svg>
+              <span>Desempenho</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="shell__group">
+        <p class="shell__group-title">Configurações</p>
+        <ul>
+          <li>
+            <a class="shell__link" href="#" data-rota="minha-loja">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M3 9h18v11H3z"/><path d="M3 9l2-5h14l2 5"/><path d="M9 20v-6h6v6"/></svg>
+              <span>Minha loja</span>
+            </a>
+          </li>
+          <li>
+            <a class="shell__link" href="#" data-rota="usuarios">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M8 10h3v3H8z"/><path d="M7 17a3 3 0 0 1 5 0"/><path d="M14 10h3M14 14h3"/></svg>
+              <span>Usuários</span>
+            </a>
+          </li>
+          <li>
+            <a class="shell__link" href="#" data-rota="whatsapp">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M4 20l1.2-4A8 8 0 1 1 8 18.8L4 20Z"/><path d="M9 11h.01M12 11h.01M15 11h.01"/></svg>
+              <span>WhatsApp</span>
+            </a>
+          </li>
+          <li>
+            <a class="shell__link" href="#" data-rota="integracoes">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M3 3h7v7H3z"/><path d="M14 14h7v7h-7z"/><path d="M10 6.5h4v7.5"/></svg>
+              <span>Integrações</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </template>
+
+    <!-- O conteúdo das três telas, uma vez. O script clona por tema. -->
+    <template id="tela-pedidos">
+      <div class="page">
+        <div class="tabs">
+          <button class="tab tab--on" type="button">Em andamento <span class="tab__count">8</span></button>
+          <button class="tab" type="button">Histórico <span class="tab__count">142</span></button>
+        </div>
+
+        <div class="filtros">
+          <div class="seg" role="group" aria-label="Período">
+            <button class="seg__opt seg__opt--on" type="button">Hoje</button>
+            <button class="seg__opt" type="button">Ontem</button>
+            <button class="seg__opt" type="button">7 dias</button>
+            <button class="seg__opt" type="button">Escolher…</button>
+          </div>
+
+          <label class="filtros__busca">
+            <input class="input" style="width: 100%" type="search" placeholder="Nº do pedido ou cliente" aria-label="Buscar pedido" />
+          </label>
+
+          <div class="filtros__dir">
+            <div class="prep">
+              <span class="t-label">Preparo</span>
+              <span class="prep__range">25–35 min</span>
+              <button class="btn btn--sm" type="button">+5</button>
+              <button class="btn btn--sm" type="button">+10</button>
+            </div>
+            <span class="conn"><span class="conn__dot"></span>Tempo real</span>
+          </div>
+        </div>
+
+        <div class="faixas">
+          <section class="faixa is-pendente">
+            <div class="faixa__head">
+              <span class="faixa__dot"></span>
+              <h2 class="faixa__title">Novos</h2>
+              <span class="faixa__count">3</span>
+              <span class="faixa__rule"></span>
+            </div>
+            <div class="faixa__cards">
+              <button class="ticket is-pendente" type="button">
+                <span class="ticket__brasa" style="background-size: 30% 100%"></span>
+                <span class="ticket__corpo">
+                  <span class="ticket__topo"><span class="ticket__tempo">12 min</span><span class="ticket__total">R$ 192,90</span></span>
+                  <span class="ticket__cliente">Marcos Lima</span>
+                  <span class="ticket__meta"><span class="ticket__numero">#1042</span>·<span>20:41</span><span class="tag">Entrega</span><span class="tag">Pix</span></span>
+                </span>
+              </button>
+              <button class="ticket is-pendente" type="button">
+                <span class="ticket__brasa" style="background-size: 12% 100%"></span>
+                <span class="ticket__corpo">
+                  <span class="ticket__topo"><span class="ticket__tempo">4 min</span><span class="ticket__total">R$ 68,00</span></span>
+                  <span class="ticket__cliente">Ana Souza</span>
+                  <span class="ticket__meta"><span class="ticket__numero">#1041</span>·<span>20:49</span><span class="tag">Retirada</span><span class="tag">Dinheiro</span></span>
+                </span>
+              </button>
+              <button class="ticket is-pendente ticket--alerta" type="button">
+                <span class="ticket__brasa" style="background-size: 55% 100%"></span>
+                <span class="ticket__corpo">
+                  <span class="ticket__topo"><span class="ticket__tempo">21 min</span><span class="ticket__total">R$ 124,00</span></span>
+                  <span class="ticket__cliente">Rafael Dias</span>
+                  <span class="ticket__meta"><span class="ticket__numero">#1039</span>·<span>20:32</span><span class="tag">Entrega</span></span>
+                  <span class="ticket__alerta">Pagamento não recebido — não preparar</span>
+                </span>
+              </button>
+            </div>
+          </section>
+
+          <section class="faixa is-preparando">
+            <div class="faixa__head">
+              <span class="faixa__dot"></span>
+              <h2 class="faixa__title">Em preparo</h2>
+              <span class="faixa__count">3</span>
+              <span class="faixa__rule"></span>
+            </div>
+            <div class="faixa__cards">
+              <button class="ticket is-aceito" type="button">
+                <span class="ticket__brasa" style="background-size: 62% 100%"></span>
+                <span class="ticket__corpo">
+                  <span class="ticket__topo"><span class="ticket__tempo">34 min</span><span class="ticket__total">R$ 89,50</span></span>
+                  <span class="ticket__cliente">Juliana Alves</span>
+                  <span class="ticket__meta"><span class="ticket__numero">#1038</span>·<span>20:19</span><span class="tag">Entrega</span><span class="tag">Crédito</span></span>
+                </span>
+              </button>
+              <button class="ticket is-preparando" type="button">
+                <span class="ticket__brasa" style="background-size: 78% 100%"></span>
+                <span class="ticket__corpo">
+                  <span class="ticket__topo"><span class="ticket__tempo">41 min</span><span class="ticket__total">R$ 245,00</span></span>
+                  <span class="ticket__cliente">Pedro Nunes</span>
+                  <span class="ticket__meta"><span class="ticket__numero">#1036</span>·<span>20:12</span><span class="tag">Entrega</span><span class="tag">Pix</span></span>
+                </span>
+              </button>
+              <button class="ticket is-preparando" type="button">
+                <span class="ticket__brasa" style="background-size: 92% 100%"></span>
+                <span class="ticket__corpo">
+                  <span class="ticket__topo"><span class="ticket__tempo">47 min</span><span class="ticket__total">R$ 56,00</span></span>
+                  <span class="ticket__cliente">Carla Reis</span>
+                  <span class="ticket__meta"><span class="ticket__numero">#1035</span>·<span>20:06</span><span class="tag">Retirada</span></span>
+                </span>
+              </button>
+            </div>
+          </section>
+
+          <section class="faixa is-pronto">
+            <div class="faixa__head">
+              <span class="faixa__dot"></span>
+              <h2 class="faixa__title">Prontos e na rua</h2>
+              <span class="faixa__count">2</span>
+              <span class="faixa__rule"></span>
+            </div>
+            <div class="faixa__cards">
+              <button class="ticket is-pronto" type="button">
+                <span class="ticket__brasa" style="background-size: 100% 100%"></span>
+                <span class="ticket__corpo">
+                  <span class="ticket__topo"><span class="ticket__tempo">58 min</span><span class="ticket__total">R$ 132,40</span></span>
+                  <span class="ticket__cliente">Bruno Tavares</span>
+                  <span class="ticket__meta"><span class="ticket__numero">#1033</span>·<span>19:55</span><span class="tag">Retirada</span></span>
+                </span>
+              </button>
+              <button class="ticket is-entrega" type="button">
+                <span class="ticket__brasa" style="background-size: 100% 100%"></span>
+                <span class="ticket__corpo">
+                  <span class="ticket__topo"><span class="ticket__tempo">1 h 06</span><span class="ticket__total">R$ 74,90</span></span>
+                  <span class="ticket__cliente">Lívia Moura</span>
+                  <span class="ticket__meta"><span class="ticket__numero">#1030</span>·<span>19:47</span><span class="tag">Entrega</span></span>
+                </span>
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </template>
+
+    <template id="tela-cardapio">
+      <div class="menu">
+        <nav class="rail" aria-label="Categorias">
+          <div class="rail__head">
+            <span class="t-label">Categorias</span>
+            <button class="btn btn--sm icon-btn" type="button" aria-label="Nova categoria" style="margin-left:auto">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+          </div>
+          <button class="rail__item" type="button">Pizzas <span class="rail__count">12</span></button>
+          <button class="rail__item rail__item--on" type="button">Hambúrgueres <span class="rail__count">8</span></button>
+          <button class="rail__item" type="button">Bebidas <span class="rail__count">14</span></button>
+          <button class="rail__item" type="button">Sobremesas <span class="rail__count">5</span></button>
+          <button class="rail__item" type="button">Combos <span class="rail__count">3</span></button>
+        </nav>
+
+        <section class="menu__panel">
+          <header class="menu__head">
+            <h1 class="t-title">Hambúrgueres</h1>
+            <button class="btn btn--sm btn--ghost icon-btn" type="button" aria-label="Editar categoria">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M4 20h4L20 8l-4-4L4 16v4Z"/></svg>
+            </button>
+            <button class="btn btn--primary" type="button" style="margin-left:auto">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              Novo item
+            </button>
+          </header>
+
+          <div class="menu__busca">
+            <input class="input" type="search" placeholder="Buscar item nesta categoria" aria-label="Buscar item" />
+          </div>
+
+          <ul class="itens">
+            <li class="item">
+              <span class="item__nome">X-Burger Clássico</span>
+              <span class="item__setor">Chapa</span>
+              <span class="item__preco">24,90</span>
+              <button class="sw" type="button" role="switch" aria-checked="true" aria-label="X-Burger Clássico disponível"></button>
+              <button class="btn btn--sm btn--ghost icon-btn item__acao" type="button" aria-label="Editar X-Burger Clássico">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M4 20h4L20 8l-4-4L4 16v4Z"/></svg>
+              </button>
+            </li>
+            <li class="item">
+              <span class="item__nome">X-Salada</span>
+              <span class="item__setor">Chapa</span>
+              <span class="item__preco">27,50</span>
+              <button class="sw" type="button" role="switch" aria-checked="true" aria-label="X-Salada disponível"></button>
+              <button class="btn btn--sm btn--ghost icon-btn item__acao" type="button" aria-label="Editar X-Salada">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M4 20h4L20 8l-4-4L4 16v4Z"/></svg>
+              </button>
+            </li>
+            <li class="item item--off">
+              <span class="item__nome">X-Bacon Duplo <span class="tag">Esgotado</span></span>
+              <span class="item__setor">Chapa</span>
+              <span class="item__preco">34,00</span>
+              <button class="sw" type="button" role="switch" aria-checked="false" aria-label="X-Bacon Duplo disponível"></button>
+              <button class="btn btn--sm btn--ghost icon-btn item__acao" type="button" aria-label="Editar X-Bacon Duplo">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M4 20h4L20 8l-4-4L4 16v4Z"/></svg>
+              </button>
+            </li>
+            <li class="item">
+              <span class="item__nome">Vegetariano de grão-de-bico</span>
+              <span class="item__setor">Chapa</span>
+              <span class="item__preco">26,00</span>
+              <button class="sw" type="button" role="switch" aria-checked="true" aria-label="Vegetariano disponível"></button>
+              <button class="btn btn--sm btn--ghost icon-btn item__acao" type="button" aria-label="Editar Vegetariano">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M4 20h4L20 8l-4-4L4 16v4Z"/></svg>
+              </button>
+            </li>
+            <li class="item">
+              <span class="item__nome">Kids</span>
+              <span class="item__setor">Não imprime</span>
+              <span class="item__preco">18,00</span>
+              <button class="sw" type="button" role="switch" aria-checked="true" aria-label="Kids disponível"></button>
+              <button class="btn btn--sm btn--ghost icon-btn item__acao" type="button" aria-label="Editar Kids">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true"><path d="M4 20h4L20 8l-4-4L4 16v4Z"/></svg>
+              </button>
+            </li>
+          </ul>
+        </section>
+      </div>
+    </template>
+
+    <template id="tela-loja">
+      <div class="loja">
+        <nav class="ancoras" aria-label="Seções desta tela">
+          <a class="ancora ancora--on" href="#">Situação</a>
+          <a class="ancora" href="#">Geral</a>
+          <a class="ancora" href="#">Filial</a>
+          <a class="ancora" href="#">Horários</a>
+          <a class="ancora" href="#">Entrega</a>
+          <a class="ancora" href="#">Pagamento</a>
+          <a class="ancora" href="#">Impressão</a>
+        </nav>
+
+        <div class="loja__col">
+          <div style="display:flex; align-items:center; gap:var(--sp-12)">
+            <h1 class="t-title">Minha loja</h1>
+            <span class="status-loja">
+              <button class="sw" type="button" role="switch" aria-checked="true" aria-label="Loja aberta"></button>
+              Loja aberta
+            </span>
+          </div>
+
+          <section class="secao">
+            <div class="secao__head"><h2 class="t-section">Geral</h2><span class="t-aux">vale para o restaurante inteiro</span></div>
+            <div class="secao__corpo">
+              <div class="linha">
+                <span class="t-body">Pedido mínimo</span>
+                <span class="linha__campos"><input class="input" value="R$ 25,00" aria-label="Pedido mínimo" /></span>
+              </div>
+              <div class="linha">
+                <span class="t-body">Tempo estimado de entrega</span>
+                <span class="linha__campos"><input class="input" value="45" aria-label="Mínimo" /><span class="t-aux">a</span><input class="input" value="60" aria-label="Máximo" /><span class="t-aux">min</span></span>
+              </div>
+              <div class="linha">
+                <span class="t-body">Taxa de serviço</span>
+                <span class="linha__campos"><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Taxa de serviço"></button></span>
+              </div>
+            </div>
+          </section>
+
+          <section class="secao">
+            <div class="secao__head"><h2 class="t-section">Horários</h2><span class="t-aux">Pizzaria do Zé — Aldeota</span></div>
+            <div class="secao__corpo semana">
+              <span class="semana__dia">Segunda</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Segunda aberta"></button><span class="semana__horas">18:00 <span class="t-aux">às</span> 23:30</span>
+              <span class="semana__dia">Terça</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Terça aberta"></button><span class="semana__horas">18:00 <span class="t-aux">às</span> 23:30</span>
+              <span class="semana__dia">Quarta</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Quarta aberta"></button><span class="semana__horas">18:00 <span class="t-aux">às</span> 23:30</span>
+              <span class="semana__dia">Quinta</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Quinta aberta"></button><span class="semana__horas">18:00 <span class="t-aux">às</span> 00:30</span>
+              <span class="semana__dia">Sexta</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Sexta aberta"></button><span class="semana__horas">18:00 <span class="t-aux">às</span> 02:00</span>
+              <span class="semana__dia">Sábado</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Sábado aberto"></button><span class="semana__horas">18:00 <span class="t-aux">às</span> 02:00</span>
+              <span class="semana__dia">Domingo</span><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Domingo aberto"></button><span class="semana__fechado">Fechado</span>
+            </div>
+          </section>
+
+          <section class="secao">
+            <div class="secao__head"><h2 class="t-section">Formas de pagamento</h2></div>
+            <div class="secao__corpo">
+              <div class="pgto">
+                <span class="item__nome">Pix</span>
+                <span class="item__setor">Na entrega</span>
+                <button class="sw" type="button" role="switch" aria-checked="true" aria-label="Pix ativo"></button>
+              </div>
+              <div class="pgto">
+                <span class="item__nome">Cartão de crédito</span>
+                <span class="item__setor">Online</span>
+                <button class="sw" type="button" role="switch" aria-checked="true" aria-label="Crédito ativo"></button>
+              </div>
+              <div class="pgto">
+                <span class="item__nome">Dinheiro</span>
+                <span class="item__setor">Na entrega</span>
+                <button class="sw" type="button" role="switch" aria-checked="false" aria-label="Dinheiro ativo"></button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </template>
+
+    <main id="folha" data-temas="dark,light"></main>
+    <script src="../estampar.js"></script>
+  </body>
+</html>

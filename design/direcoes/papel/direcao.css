@@ -1,0 +1,1100 @@
+/*
+ * DIREÇÃO 2 — PAPEL · camada de componentes
+ *
+ * Tudo sai de `tokens.css`. Nenhum valor de cor, corpo de fonte ou raio
+ * escrito à mão — a mesma regra que `scripts/check-design-tokens.mjs` cobra.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+
+::selection {
+  background: var(--ember-wash);
+  color: var(--ink);
+}
+
+/* ==========================================================================
+ * TIPOGRAFIA — serifa no título, sans no dado
+ * ======================================================================= */
+
+/*
+ * `opsz` e `SOFT`/`WONK` da Fraunces ligados: é o eixo que dá o desenho torto
+ * do "g" e do "a", e é ele que separa esta direção de "uma serifa qualquer".
+ */
+.t-title {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-variation-settings: 'SOFT' 30, 'WONK' 1;
+  font-size: var(--tt-size);
+  line-height: var(--tt-line);
+  font-weight: var(--tt-weight);
+  letter-spacing: var(--tt-track);
+  color: var(--ink);
+}
+
+.t-section {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-variation-settings: 'SOFT' 20, 'WONK' 1;
+  font-size: var(--ts-size);
+  line-height: var(--ts-line);
+  font-weight: var(--ts-weight);
+  color: var(--ink);
+}
+
+/* O versalete do cardápio: pequeno, muito espacejado, tinta de apoio. */
+.t-label {
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.t-body {
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink);
+}
+
+.t-aux {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+/*
+ * O número é a MESMA sans, com numeral tabular. Não há mono nesta direção:
+ * numa página que imita papel, a monoespaçada é a única coisa que grita
+ * "software" — e o alinhamento que ela resolveria, o `tnum` do Plex resolve.
+ */
+.num,
+.tnum {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+.num {
+  text-align: right;
+}
+
+.faint {
+  color: var(--ink-3);
+}
+
+/* ==========================================================================
+ * PRIMITIVAS
+ * ======================================================================= */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+  height: var(--control-h);
+  padding-inline: var(--sp-12);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-chip);
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--tb-size);
+  line-height: 1;
+  font-weight: var(--w-medium);
+  white-space: nowrap;
+  transition:
+    background var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease);
+}
+
+.btn:hover {
+  background: var(--hover);
+  border-color: var(--line-control);
+}
+
+/*
+ * O botão primário é um CARIMBO: bordô cheio, canto reto, letra em versalete.
+ * É a única coisa da tela que fica assim, e é por isso que ele se acha sozinho
+ * numa página que não tem mais nenhuma área de cor.
+ */
+.btn--primary {
+  background: var(--ember);
+  border-color: var(--ember);
+  color: var(--on-ember);
+  font-weight: var(--w-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: var(--ta-size);
+}
+
+.btn--primary:hover {
+  background: var(--ember-press);
+  border-color: var(--ember-press);
+  color: var(--on-ember-press);
+}
+
+.btn--ghost {
+  border-color: transparent;
+  color: var(--ink-3);
+  font-weight: var(--w-regular);
+}
+
+.btn--ghost:hover {
+  background: var(--hover);
+  border-color: transparent;
+  color: var(--ink);
+}
+
+.btn--sm {
+  height: var(--control-h-sm);
+  padding-inline: var(--sp-8);
+  font-size: var(--ta-size);
+}
+
+.icon-btn {
+  width: var(--control-h);
+  padding: 0;
+  line-height: 0;
+}
+
+.icon-btn.btn--sm {
+  width: var(--control-h-sm);
+}
+
+/*
+ * O CAMPO NÃO É UMA CAIXA: é uma LINHA, como a do formulário impresso em que
+ * se escreve por cima. Contorno inteiro em toda parte encheria a página de
+ * retângulos e mataria a leitura de papel. O fio de baixo é `--line-control`,
+ * que é quem passa dos 3:1 da WCAG 1.4.11.
+ */
+.input {
+  height: var(--field-h);
+  padding-inline: var(--sp-4);
+  background: transparent;
+  color: var(--ink);
+  border: 0;
+  border-bottom: 1px solid var(--line-control);
+  border-radius: var(--r-field);
+  font-size: var(--tb-size);
+  min-width: 0;
+}
+
+.input:hover {
+  border-bottom-color: var(--ink-3);
+}
+
+.input:focus-visible {
+  outline-offset: 0;
+}
+
+.input::placeholder {
+  color: var(--ink-3);
+  opacity: 1;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+
+.field__label {
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* A etiqueta é um selo de tinta: sem fundo, só o fio. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 17px;
+  padding-inline: var(--sp-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-chip);
+  color: var(--ink-2);
+  font-size: var(--ta-size);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/*
+ * O PERÍODO É UMA LISTA DE PALAVRAS SUBLINHADAS, não um segmentado com caixa.
+ * Numa página de papel, o botão-caixa é o elemento mais estranho que existe:
+ * aqui a escolha é marcada como se marca num impresso — com um traço embaixo.
+ */
+.periodo {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--sp-16);
+}
+
+.periodo__opt {
+  padding: 0 0 var(--sp-4);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: var(--tb-size);
+}
+
+.periodo__opt:hover {
+  color: var(--ink);
+}
+
+.periodo__opt--on {
+  color: var(--ink);
+  font-weight: var(--w-semibold);
+  border-bottom-color: var(--ember);
+}
+
+/* O interruptor: trilho arredondado, o único raio redondo do sistema. */
+.sw {
+  position: relative;
+  width: 30px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--line-control);
+  border-radius: var(--r-round);
+  background: transparent;
+  flex: 0 0 auto;
+}
+
+.sw::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 12px;
+  height: 12px;
+  background: var(--ink-3);
+  border-radius: var(--r-round);
+  transition: transform var(--motion-fast) var(--ease);
+}
+
+.sw[aria-checked='true'] {
+  border-color: var(--ok);
+}
+
+.sw[aria-checked='true']::after {
+  background: var(--ok);
+  transform: translateX(14px);
+}
+
+/* ==========================================================================
+ * A MOLDURA — coluna de papel à esquerda, e o chão com trama
+ * ======================================================================= */
+.shell {
+  display: flex;
+  height: 720px;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-card);
+  background: var(--bg);
+  background-image: var(--trama);
+  color: var(--ink);
+}
+
+/*
+ * A LATERAL É PAPEL, COMO O RESTO. O que a separa é um fio — e só. Nenhum
+ * plano próprio, nenhuma cor de fundo: numa direção que imita impresso, uma
+ * coluna pintada leria como bloco de anúncio no meio da carta.
+ */
+.shell__nav {
+  flex: 0 0 var(--sidebar-w);
+  width: var(--sidebar-w);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-24);
+  padding: var(--sp-16) var(--sp-16) var(--sp-24);
+  border-right: 1px solid var(--line-strong);
+  overflow-y: auto;
+}
+
+.shell__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  height: var(--topbar-h);
+}
+
+.shell__brand img {
+  width: 22px;
+  height: 22px;
+}
+
+.shell__wordmark {
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1;
+  font-size: var(--ts-size);
+  font-weight: var(--w-semibold);
+}
+
+.shell__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+/* O rótulo do grupo é o cabeçalho de uma seção da carta: fio embaixo, largo. */
+.shell__group-title {
+  padding-bottom: var(--sp-4);
+  margin-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.shell__link {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  height: 28px;
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: var(--tb-size);
+  position: relative;
+}
+
+.shell__link:hover {
+  color: var(--ink);
+}
+
+/*
+ * O ATIVO NÃO GANHA FUNDO. Ganha um quadrado de tinta antes do nome — o
+ * marcador do impresso — e o peso. Uma pastilha colorida atrás do item seria
+ * a única área pintada da coluna, e puxaria o olho para a navegação em vez de
+ * para o trabalho.
+ */
+.shell__link--on {
+  color: var(--ink);
+  font-weight: var(--w-semibold);
+}
+
+.shell__link--on::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  width: 4px;
+  height: 4px;
+  background: var(--ember);
+}
+
+.shell__link--soon {
+  color: var(--ink-3);
+}
+
+.shell__soon {
+  margin-left: auto;
+  font-size: var(--tl-size);
+  letter-spacing: var(--tl-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  opacity: 0.75;
+}
+
+.shell__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.shell__bar {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-12);
+  height: var(--topbar-h);
+  flex: 0 0 auto;
+  padding-inline: var(--page-pad);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.branch {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+  min-width: 0;
+  align-self: center;
+}
+
+.branch__name {
+  flex: 0 0 auto;
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 20, 'WONK' 1;
+  font-size: var(--ts-size);
+  font-weight: var(--w-semibold);
+}
+
+.branch__detail {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shell__spacer {
+  flex: 1;
+}
+
+.shell__user {
+  align-self: center;
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.shell__content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.conn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.conn__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-round);
+  background: var(--ok);
+  flex: 0 0 auto;
+}
+
+/* ==========================================================================
+ * PEDIDOS
+ * ======================================================================= */
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+/* As abas: dois títulos em serifa, o escolhido sublinhado em bordô. */
+.tabs {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-24);
+  padding: var(--sp-16) var(--page-pad) 0;
+}
+
+.tab {
+  padding: 0 0 var(--sp-8);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1;
+  font-size: var(--tt-size);
+  line-height: var(--tt-line);
+  font-weight: var(--tt-weight);
+  color: var(--ink-3);
+}
+
+.tab--on {
+  color: var(--ink);
+  border-bottom-color: var(--ember);
+}
+
+.tab__count {
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--ta-size);
+  font-weight: var(--w-regular);
+  color: var(--ink-3);
+  margin-left: var(--sp-4);
+  vertical-align: super;
+}
+
+/*
+ * A BARRA DE FILTROS NÃO ABRE E NÃO FECHA — ela é a linha de cabeçalho do
+ * impresso: período à esquerda, busca no meio, prazo à direita, separada do
+ * conteúdo por um fio duplo (o fio de baixo mais forte é a única "régua
+ * grossa" do sistema, e ela existe para dizer que ali acaba o cabeçalho).
+ */
+.filtros {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-24);
+  flex-wrap: wrap;
+  padding: var(--sp-12) var(--page-pad);
+  border-bottom: 2px solid var(--line-strong);
+}
+
+.filtros__busca {
+  flex: 1 1 220px;
+  max-width: 320px;
+}
+
+.filtros__busca .input {
+  width: 100%;
+}
+
+.filtros__dir {
+  margin-left: auto;
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-16);
+}
+
+.prep {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+}
+
+.prep__range {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--w-semibold);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* --- as três faixas ------------------------------------------------------- */
+
+.faixas {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-24);
+  padding: var(--sp-16) var(--page-pad) var(--sp-32);
+  overflow-y: auto;
+}
+
+.faixa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+}
+
+/*
+ * O cabeçalho da faixa é o CABEÇALHO DE SEÇÃO DA CARTA: nome em serifa,
+ * contagem em versalete, e o fio correndo até a margem.
+ */
+.faixa__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+}
+
+.faixa__title {
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 20, 'WONK' 1;
+  font-size: var(--ts-size);
+  font-weight: var(--w-semibold);
+  color: var(--ink);
+}
+
+.faixa__count {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+}
+
+.faixa__rule {
+  flex: 1;
+  height: 1px;
+  background: var(--st, var(--line-strong));
+  opacity: 0.55;
+  align-self: center;
+}
+
+.faixa__cards {
+  display: flex;
+  gap: var(--sp-16);
+  overflow-x: auto;
+  padding-bottom: var(--sp-4);
+}
+
+.faixa__vazia {
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+}
+
+/* --- o ticket: uma entrada de comanda ------------------------------------- */
+
+/*
+ * O TICKET É UM CUPOM, não um cartão.
+ *
+ * Sem fundo próprio, sem sombra, sem canto: o que o delimita é um fio em cima
+ * na cor do estágio e um fio fino embaixo — exatamente o corte de um cupom
+ * térmico. É o oposto do cartão flutuante de dashboard, e é de propósito: numa
+ * página de papel, oito retângulos com sombra viram oito buracos.
+ */
+.ticket {
+  flex: 0 0 232px;
+  width: 232px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  text-align: left;
+  padding: var(--sp-8) 0 var(--sp-8);
+  background: transparent;
+  border: 0;
+  border-top: 3px solid var(--st, var(--line-strong));
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  transition: background var(--motion-fast) var(--ease);
+}
+
+.ticket:hover {
+  background: var(--hover);
+}
+
+/* O nº do pedido é o cabeçalho do cupom: versalete, tinta de apoio. */
+.ticket__topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-8);
+  font-size: var(--tl-size);
+  letter-spacing: var(--tl-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.ticket__numero {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--w-semibold);
+  color: var(--ink-2);
+}
+
+/* O cliente é o corpo do cupom e a maior tinta dele. */
+.ticket__cliente {
+  font-size: var(--ts-size);
+  line-height: var(--ts-line);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/*
+ * A LINHA DO CUPOM: tempo à esquerda, total à direita, PONTILHADO entre os
+ * dois. É o gesto do cardápio impresso, e faz o olho chegar no número certo
+ * sem depender de as colunas caírem na mesma abscissa.
+ */
+.ticket__linha {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+}
+
+.ticket__tempo {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--w-semibold);
+  color: var(--st, var(--ink));
+  white-space: nowrap;
+}
+
+.pontos {
+  flex: 1;
+  height: 1em;
+  background-image: var(--pontilhado);
+  background-position: 0 bottom 0.28em;
+  background-size: 5px 2px;
+  background-repeat: repeat-x;
+}
+
+.ticket__total {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--w-semibold);
+  white-space: nowrap;
+}
+
+.ticket__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+  min-width: 0;
+}
+
+/* Pagamento online não recebido. */
+.ticket--alerta {
+  border-top-color: var(--danger);
+}
+
+.ticket__alerta {
+  font-size: var(--ta-size);
+  font-weight: var(--w-semibold);
+  color: var(--danger);
+}
+
+/* ==========================================================================
+ * CARDÁPIO
+ * ======================================================================= */
+.menu {
+  display: flex;
+  min-height: 0;
+  height: 100%;
+}
+
+.rail {
+  flex: 0 0 208px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  padding: var(--sp-24) var(--sp-16);
+  border-right: 1px solid var(--line-strong);
+  overflow-y: auto;
+}
+
+.rail__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--sp-4);
+}
+
+/* A categoria é uma linha de índice: nome, pontilhado, contagem. */
+.rail__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+  width: 100%;
+  padding: var(--sp-4) 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+  font-size: var(--tb-size);
+  text-align: left;
+  position: relative;
+}
+
+.rail__item:hover {
+  color: var(--ink);
+}
+
+.rail__item--on {
+  color: var(--ink);
+  font-weight: var(--w-semibold);
+}
+
+.rail__item--on::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin-top: -2px;
+  background: var(--ember);
+}
+
+.rail__count {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+}
+
+.menu__panel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.menu__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+  padding: var(--sp-24) var(--page-pad) var(--sp-12);
+}
+
+.menu__busca {
+  padding: 0 var(--page-pad) var(--sp-16);
+}
+
+.menu__busca .input {
+  width: 100%;
+  max-width: 320px;
+}
+
+/*
+ * A LISTA É A CARTA: nome, pontilhado, preço.
+ *
+ * Ela continua sendo uma GRADE — setor, interruptor e ação têm largura fixa e
+ * caem na mesma abscissa em todas as linhas. O que o pontilhado resolve é o
+ * vão entre o nome e o preço, que numa lista de nomes de comprimento muito
+ * diferente é exatamente onde o olho se perde.
+ */
+.itens {
+  padding-inline: var(--page-pad);
+  max-width: var(--page-max);
+}
+
+.item {
+  display: grid;
+  grid-template-columns: auto 1fr auto 116px 32px 28px;
+  align-items: baseline;
+  gap: var(--sp-12);
+  min-height: 34px;
+  padding-block: var(--sp-8);
+  border-bottom: 1px solid var(--line);
+}
+
+.item:hover {
+  background: var(--hover);
+}
+
+.item__nome {
+  min-width: 0;
+  font-size: var(--tb-size);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item__preco {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--tb-size);
+  font-weight: var(--w-semibold);
+  text-align: right;
+}
+
+.item__setor {
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item__acao {
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease);
+  align-self: center;
+}
+
+.item:hover .item__acao,
+.item:focus-within .item__acao {
+  opacity: 1;
+}
+
+.item--off .item__nome,
+.item--off .item__preco {
+  color: var(--ink-3);
+}
+
+.sw {
+  align-self: center;
+}
+
+/* ==========================================================================
+ * MINHA LOJA — coluna única com âncoras
+ * ======================================================================= */
+.loja {
+  display: flex;
+  gap: var(--sp-32);
+  padding: var(--sp-24) var(--page-pad) var(--sp-32);
+  max-width: var(--page-max);
+}
+
+/*
+ * AS ÂNCORAS SÃO O SUMÁRIO DA CARTA, e substituíram seis abas. Numerada,
+ * porque um sumário numerado diz de cara quantas seções existem — coisa que
+ * uma fileira de abas nunca disse.
+ */
+.ancoras {
+  flex: 0 0 168px;
+  position: sticky;
+  top: var(--sp-16);
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  counter-reset: secao;
+}
+
+.ancora {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+  color: var(--ink-3);
+  font-size: var(--ta-size);
+  text-decoration: none;
+  counter-increment: secao;
+}
+
+.ancora::before {
+  content: counter(secao, decimal-leading-zero);
+  font-variant-numeric: tabular-nums;
+  color: var(--line-strong);
+}
+
+.ancora:hover {
+  color: var(--ink);
+}
+
+.ancora--on {
+  color: var(--ink);
+  font-weight: var(--w-semibold);
+}
+
+.ancora--on::before {
+  color: var(--ember);
+}
+
+.loja__col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-32);
+  max-width: var(--form-max);
+}
+
+.secao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-16);
+}
+
+.secao__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.secao__corpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-16);
+}
+
+/* A linha de formulário também usa pontilhado: rótulo … valor. */
+.linha {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+  min-height: 30px;
+}
+
+.linha__rotulo {
+  flex: 0 0 auto;
+  font-size: var(--tb-size);
+}
+
+.linha__campos {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+}
+
+.linha__campos .input {
+  max-width: 84px;
+  text-align: right;
+}
+
+.semana {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+}
+
+.semana__linha {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+}
+
+.semana__dia {
+  flex: 0 0 96px;
+  font-size: var(--tb-size);
+}
+
+.semana__horas {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--tb-size);
+}
+
+.semana__fechado {
+  flex: 0 0 auto;
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+}
+
+.status-loja {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  margin-left: auto;
+  font-size: var(--ta-size);
+  color: var(--ink-2);
+}
+
+.pgto {
+  display: grid;
+  grid-template-columns: auto 1fr auto 32px;
+  align-items: baseline;
+  gap: var(--sp-12);
+  min-height: 32px;
+  padding-block: var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}

@@ -1,0 +1,1066 @@
+/*
+ * DIREÇÃO 3 — SINAL · camada de componentes
+ *
+ * Tudo sai de `tokens.css`. Nenhum valor de cor, corpo de fonte ou raio
+ * escrito à mão — a mesma regra que `scripts/check-design-tokens.mjs` cobra.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+
+::selection {
+  background: var(--ember-wash);
+  color: var(--ink);
+}
+
+/* ==========================================================================
+ * TIPOGRAFIA
+ * ======================================================================= */
+.t-title {
+  font-size: var(--tt-size);
+  line-height: var(--tt-line);
+  font-weight: var(--tt-weight);
+  letter-spacing: var(--tt-track);
+  color: var(--ink);
+}
+
+.t-section {
+  font-size: var(--ts-size);
+  line-height: var(--ts-line);
+  font-weight: var(--ts-weight);
+  color: var(--ink);
+}
+
+/* O rótulo é LETREIRO: condensada, maiúscula, muito espacejada. */
+.t-label {
+  font-family: var(--font-quadro);
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.t-body {
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink);
+}
+
+.t-aux {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+.num,
+.tnum {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+.num {
+  text-align: right;
+}
+
+.faint {
+  color: var(--ink-3);
+}
+
+/* ==========================================================================
+ * PRIMITIVAS — tudo em cápsula
+ * ======================================================================= */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+  height: var(--control-h);
+  padding-inline: var(--sp-12);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-chip);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--tb-size);
+  line-height: 1;
+  font-weight: var(--w-medium);
+  white-space: nowrap;
+  transition:
+    background var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease);
+}
+
+.btn:hover {
+  background: var(--hover);
+  border-color: var(--line-control);
+}
+
+.btn--primary {
+  background: var(--ember);
+  border-color: var(--ember);
+  color: var(--on-ember);
+  font-weight: var(--w-semibold);
+}
+
+.btn--primary:hover {
+  background: var(--ember-press);
+  border-color: var(--ember-press);
+  color: var(--on-ember-press);
+}
+
+.btn--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ink-3);
+  font-weight: var(--w-regular);
+}
+
+.btn--ghost:hover {
+  background: var(--hover);
+  border-color: transparent;
+  color: var(--ink);
+}
+
+.btn--sm {
+  height: var(--control-h-sm);
+  padding-inline: var(--sp-8);
+  font-size: var(--ta-size);
+}
+
+.icon-btn {
+  width: var(--control-h);
+  padding: 0;
+  line-height: 0;
+}
+
+.icon-btn.btn--sm {
+  width: var(--control-h-sm);
+}
+
+.input {
+  height: var(--field-h);
+  padding-inline: var(--sp-12);
+  background: var(--field);
+  color: var(--ink);
+  border: 1px solid var(--line-control);
+  border-radius: var(--r-chip);
+  font-size: var(--tb-size);
+  min-width: 0;
+}
+
+.input::placeholder {
+  color: var(--ink-3);
+  opacity: 1;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+
+.field__label {
+  font-family: var(--font-quadro);
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* A etiqueta é uma cápsula preenchida — é o "selo de linha" do mapa. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 19px;
+  padding-inline: var(--sp-8);
+  border-radius: var(--r-chip);
+  background: var(--field);
+  color: var(--ink-2);
+  font-size: var(--ta-size);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/*
+ * O SEGMENTADO EM CÁPSULA: um trilho preenchido, e o escolhido é uma cápsula
+ * cheia dentro dele. É o controle de painel — o estado fica visível sem abrir
+ * nada, que é o que uma barra de filtro precisa ser.
+ */
+.seg {
+  display: inline-flex;
+  gap: var(--sp-4);
+  padding: 3px;
+  border-radius: var(--r-chip);
+  background: var(--field);
+  border: 1px solid var(--line);
+}
+
+.seg__opt {
+  height: var(--control-h-sm);
+  padding-inline: var(--sp-12);
+  border: 0;
+  border-radius: var(--r-chip);
+  background: transparent;
+  color: var(--ink-3);
+  font-size: var(--ta-size);
+  font-weight: var(--w-medium);
+  white-space: nowrap;
+}
+
+.seg__opt:hover {
+  color: var(--ink);
+}
+
+.seg__opt--on {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: var(--w-semibold);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+}
+
+/* O interruptor: cápsula cheia quando ligado. */
+.sw {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--line-control);
+  border-radius: var(--r-chip);
+  background: var(--field);
+  flex: 0 0 auto;
+}
+
+.sw::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: var(--ink-3);
+  border-radius: var(--r-round);
+  transition: transform var(--motion-fast) var(--ease);
+}
+
+.sw[aria-checked='true'] {
+  background: var(--ok);
+  border-color: var(--ok);
+}
+
+.sw[aria-checked='true']::after {
+  background: var(--surface);
+  transform: translateX(14px);
+}
+
+/* ==========================================================================
+ * A MOLDURA — painel sólido à esquerda, chão rebaixado à direita
+ * ======================================================================= */
+.shell {
+  display: flex;
+  height: 720px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/*
+ * A LATERAL É UM PLANO PRÓPRIO — `--surface`, não `--bg`.
+ *
+ * É o oposto de Brasa (console escuro) e de Papel (nenhum plano). Aqui a
+ * navegação é o PAINEL, e o conteúdo é a bancada rebaixada ao lado dele: quem
+ * separa os dois é o degrau de tom, não um fio.
+ */
+.shell__nav {
+  flex: 0 0 var(--sidebar-w);
+  width: var(--sidebar-w);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-16);
+  padding: var(--sp-12) var(--sp-12) var(--sp-16);
+  background: var(--surface);
+  overflow-y: auto;
+}
+
+.shell__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  height: var(--topbar-h);
+  padding-inline: var(--sp-8);
+}
+
+.shell__brand img {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-field);
+}
+
+.shell__wordmark {
+  font-size: var(--ts-size);
+  font-weight: var(--w-bold);
+  letter-spacing: -0.01em;
+}
+
+.shell__group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shell__group-title {
+  padding: 0 var(--sp-8) var(--sp-4);
+  font-family: var(--font-quadro);
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.shell__link {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  height: 34px;
+  padding-inline: var(--sp-8);
+  border-radius: var(--r-chip);
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: var(--tb-size);
+  font-weight: var(--w-medium);
+}
+
+.shell__link:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+/*
+ * O ATIVO É UMA CÁPSULA CHEIA na cor da marca. É a decisão mais "aplicativo"
+ * das três direções, e ela cabe aqui: num painel de sinalização, o que está
+ * selecionado é um bloco aceso, não um traço fino.
+ */
+.shell__link--on,
+.shell__link--on:hover {
+  background: var(--ember);
+  color: var(--on-ember);
+  font-weight: var(--w-semibold);
+}
+
+.shell__link--soon {
+  color: var(--ink-3);
+}
+
+.shell__soon {
+  margin-left: auto;
+  font-family: var(--font-quadro);
+  font-size: var(--tl-size);
+  letter-spacing: var(--tl-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.shell__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.shell__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  height: var(--topbar-h);
+  flex: 0 0 auto;
+  padding-inline: var(--page-pad);
+}
+
+.branch {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+  min-width: 0;
+}
+
+.branch__name {
+  flex: 0 0 auto;
+  font-size: var(--ts-size);
+  font-weight: var(--w-bold);
+}
+
+.branch__detail {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shell__spacer {
+  flex: 1;
+}
+
+.shell__user {
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.shell__content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.conn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 3px var(--sp-8);
+  border-radius: var(--r-chip);
+  background: var(--ok-wash);
+  font-size: var(--ta-size);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.conn__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-round);
+  background: var(--ok);
+  flex: 0 0 auto;
+}
+
+/* ==========================================================================
+ * PEDIDOS
+ * ======================================================================= */
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+/* As abas são cápsulas: "Em andamento" é onde se trabalha, "Histórico" consulta. */
+.tabs {
+  display: flex;
+  gap: var(--sp-4);
+  padding: 0 var(--page-pad) var(--sp-12);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-8);
+  height: var(--control-h);
+  padding-inline: var(--sp-12);
+  border: 0;
+  border-radius: var(--r-chip);
+  background: transparent;
+  color: var(--ink-3);
+  font-size: var(--tb-size);
+  font-weight: var(--w-medium);
+}
+
+.tab:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.tab--on {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: var(--w-semibold);
+}
+
+.tab__count {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+}
+
+/*
+ * A BARRA DE FILTROS NÃO ABRE E NÃO FECHA — é a régua de controle do painel.
+ * Ela vive numa superfície própria, encapsulada, e fica na tela o turno
+ * inteiro: um filtro escondido atrás de um botão é um filtro que ninguém
+ * lembra que ligou, e o lojista jura que sumiu pedido.
+ */
+.filtros {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  flex-wrap: wrap;
+  margin: 0 var(--page-pad) var(--sp-12);
+  padding: var(--sp-8);
+  border-radius: var(--r-card);
+  background: var(--surface);
+}
+
+.filtros__busca {
+  flex: 1 1 200px;
+  max-width: 320px;
+}
+
+.filtros__busca .input {
+  width: 100%;
+}
+
+.filtros__dir {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+}
+
+.prep {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.prep__range {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--w-semibold);
+  white-space: nowrap;
+}
+
+/* --- as três faixas ------------------------------------------------------- */
+
+.faixas {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-16);
+  padding: 0 var(--page-pad) var(--page-pad);
+  overflow-y: auto;
+}
+
+.faixa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+}
+
+/*
+ * O CABEÇOTE DA FAIXA — a testeira da linha.
+ *
+ * Cápsula tingida com o wash do estágio, um bloco chapado da cor cheia à
+ * esquerda e o nome em condensada maiúscula. É a leitura periférica: sem ler
+ * palavra nenhuma, dá para ver qual faixa está cheia.
+ */
+.faixa__head {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-8);
+  align-self: flex-start;
+  height: 26px;
+  padding-right: var(--sp-12);
+  border-radius: var(--r-chip);
+  background: var(--st-wash, var(--field));
+  overflow: hidden;
+}
+
+.faixa__cap {
+  width: 10px;
+  align-self: stretch;
+  background: var(--st, var(--ink-3));
+  flex: 0 0 auto;
+}
+
+.faixa__title {
+  font-family: var(--font-quadro);
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.faixa__count {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--ta-size);
+  font-weight: var(--w-bold);
+  color: var(--ink);
+}
+
+.faixa__cards {
+  display: flex;
+  gap: var(--sp-12);
+  overflow-x: auto;
+  padding-bottom: var(--sp-4);
+}
+
+/* Faixa vazia: a hachura de "sem serviço" da placa, e nenhuma frase. */
+.faixa__vazia {
+  height: 4px;
+  border-radius: var(--r-chip);
+  color: var(--st, var(--line-strong));
+  background-image: var(--refletiva);
+  opacity: 0.4;
+}
+
+/* --- o cartão ------------------------------------------------------------- */
+
+/*
+ * O CARTÃO É UM MÓDULO DE QUADRO: superfície cheia, canto arredondado, e uma
+ * testeira de 4px da cor do estágio no topo — a mesma cor do cabeçote da
+ * faixa, para o olho ligar um ao outro sem esforço.
+ */
+.ticket {
+  flex: 0 0 244px;
+  width: 244px;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  padding: 0;
+  background: var(--surface);
+  border: 0;
+  border-radius: var(--r-card);
+  color: var(--ink);
+  overflow: hidden;
+  transition: box-shadow var(--motion-fast) var(--ease);
+}
+
+.ticket:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+}
+
+.ticket__testeira {
+  height: 4px;
+  background: var(--st, var(--line-strong));
+}
+
+.ticket__corpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  padding: var(--sp-12);
+}
+
+.ticket__topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-8);
+}
+
+/*
+ * O NÚMERO DE QUADRO. Condensada, 26px, na matiz do estágio. É a única coisa
+ * da tela dimensionada para ser lida atravessada no salão — e é ela que
+ * responde "o que eu faço primeiro".
+ */
+.ticket__tempo {
+  font-family: var(--font-quadro);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--tq-size);
+  line-height: var(--tq-line);
+  font-weight: var(--tq-weight);
+  color: var(--st, var(--ink));
+  white-space: nowrap;
+}
+
+.ticket__total {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--ts-size);
+  font-weight: var(--w-semibold);
+  white-space: nowrap;
+}
+
+.ticket__cliente {
+  font-size: var(--tb-size);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ticket__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+  min-width: 0;
+}
+
+.ticket__numero {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--w-semibold);
+  color: var(--ink-2);
+}
+
+.ticket--alerta .ticket__testeira {
+  background: var(--danger);
+}
+
+.ticket__alerta {
+  display: block;
+  margin: 0 calc(-1 * var(--sp-12)) calc(-1 * var(--sp-12));
+  padding: var(--sp-8) var(--sp-12);
+  background: var(--danger-wash);
+  color: var(--danger);
+  font-size: var(--ta-size);
+  font-weight: var(--w-semibold);
+}
+
+/* ==========================================================================
+ * CARDÁPIO
+ * ======================================================================= */
+.menu {
+  display: flex;
+  gap: var(--sp-12);
+  min-height: 0;
+  height: 100%;
+  padding: 0 var(--page-pad) var(--page-pad);
+}
+
+/* A barra de categorias é um cartão, como tudo nesta direção. */
+.rail {
+  flex: 0 0 212px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-12);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  overflow-y: auto;
+}
+
+.rail__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  padding: 0 var(--sp-8) var(--sp-8);
+}
+
+.rail__item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  width: 100%;
+  height: 32px;
+  padding-inline: var(--sp-12);
+  border: 0;
+  border-radius: var(--r-chip);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: var(--tb-size);
+  text-align: left;
+}
+
+.rail__item:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.rail__item--on {
+  background: var(--ember-wash);
+  color: var(--ink);
+  font-weight: var(--w-semibold);
+}
+
+.rail__count {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+}
+
+.menu__panel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-card);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.menu__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  padding: var(--sp-12) var(--sp-16);
+}
+
+.menu__busca {
+  padding: 0 var(--sp-16) var(--sp-12);
+}
+
+.menu__busca .input {
+  width: 100%;
+  max-width: 340px;
+}
+
+/*
+ * A LISTA É UMA GRADE DE QUADRO: um bloco de status à esquerda, nome fluido,
+ * e as colunas fixas caindo na mesma abscissa em todas as linhas. Sem
+ * `space-between`: cada linha ancoraria o olho num lugar diferente conforme o
+ * comprimento do nome.
+ */
+.itens {
+  padding-inline: var(--sp-16);
+  max-width: var(--page-max);
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 4px 1fr 132px 96px 34px 30px;
+  align-items: center;
+  gap: var(--sp-12);
+  min-height: 38px;
+  padding-block: var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.item:hover {
+  background: var(--hover);
+}
+
+/* O bloco de disponibilidade: verde = à venda, cinza = esgotado. */
+.item__marca {
+  width: 4px;
+  height: 18px;
+  border-radius: var(--r-chip);
+  background: var(--ok);
+}
+
+.item--off .item__marca {
+  background: var(--line-strong);
+}
+
+.item__nome {
+  min-width: 0;
+  font-size: var(--tb-size);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item__setor {
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item__preco {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--tb-size);
+  font-weight: var(--w-medium);
+  text-align: right;
+}
+
+.item__acao {
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease);
+}
+
+.item:hover .item__acao,
+.item:focus-within .item__acao {
+  opacity: 1;
+}
+
+.item--off .item__nome,
+.item--off .item__preco {
+  color: var(--ink-3);
+}
+
+/* ==========================================================================
+ * MINHA LOJA — coluna única com âncoras
+ * ======================================================================= */
+.loja {
+  display: flex;
+  gap: var(--sp-16);
+  padding: 0 var(--page-pad) var(--page-pad);
+  max-width: var(--page-max);
+}
+
+/*
+ * AS ÂNCORAS SÃO CÁPSULAS, e substituíram seis abas. A diferença que importa
+ * não é a forma: é que agora as seis seções estão TODAS na página, e a lista
+ * só leva o olho até uma delas. Com abas, conferir o horário e a taxa de
+ * entrega custava dois cliques e a perda do que já tinha sido lido.
+ */
+.ancoras {
+  flex: 0 0 180px;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-8);
+  border-radius: var(--r-card);
+  background: var(--surface);
+}
+
+.ancora {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  padding-inline: var(--sp-12);
+  border-radius: var(--r-chip);
+  color: var(--ink-3);
+  font-size: var(--ta-size);
+  text-decoration: none;
+}
+
+.ancora:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.ancora--on {
+  background: var(--ember-wash);
+  color: var(--ink);
+  font-weight: var(--w-semibold);
+}
+
+.loja__col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+  max-width: var(--form-max);
+}
+
+/* Cada seção é um cartão — a tela vira uma pilha de módulos de painel. */
+.secao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+  padding: var(--sp-16);
+  border-radius: var(--r-card);
+  background: var(--surface);
+}
+
+.secao__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+}
+
+.secao__corpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+}
+
+.linha {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  align-items: center;
+  gap: var(--sp-12);
+  min-height: 34px;
+}
+
+.linha__campos {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.linha__campos .input {
+  max-width: 110px;
+}
+
+.semana {
+  display: grid;
+  grid-template-columns: 100px 34px 1fr;
+  align-items: center;
+  gap: var(--sp-8) var(--sp-12);
+}
+
+.semana__dia {
+  font-size: var(--tb-size);
+}
+
+.semana__horas {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--tb-size);
+}
+
+.semana__fechado {
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+}
+
+.status-loja {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  margin-left: auto;
+  padding: var(--sp-4) var(--sp-12) var(--sp-4) var(--sp-4);
+  border-radius: var(--r-chip);
+  background: var(--ok-wash);
+  font-size: var(--ta-size);
+  color: var(--ink-2);
+}
+
+.pgto {
+  display: grid;
+  grid-template-columns: 1fr 140px 34px;
+  align-items: center;
+  gap: var(--sp-12);
+  min-height: 36px;
+  border-bottom: 1px solid var(--line);
+}

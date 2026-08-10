@@ -1,0 +1,1127 @@
+/*
+ * DIREÇÃO 1 — BRASA · camada de componentes
+ *
+ * Tudo aqui sai de `tokens.css`. Nenhum valor de cor, corpo de fonte ou raio
+ * escrito à mão — é a mesma regra que `scripts/check-design-tokens.mjs` cobra
+ * no app, e ela vale aqui para que esta direção possa ser levantada inteira.
+ */
+
+/* ==========================================================================
+ * RESET CURTO
+ * ======================================================================= */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+
+::selection {
+  background: var(--ember-wash);
+  color: var(--ink);
+}
+
+/* ==========================================================================
+ * TIPOGRAFIA — cinco níveis
+ * ======================================================================= */
+.t-title {
+  font-size: var(--tt-size);
+  line-height: var(--tt-line);
+  font-weight: var(--tt-weight);
+  letter-spacing: var(--tt-track);
+  color: var(--ink);
+}
+
+.t-section {
+  font-size: var(--ts-size);
+  line-height: var(--ts-line);
+  font-weight: var(--ts-weight);
+  letter-spacing: var(--ts-track);
+  color: var(--ink);
+}
+
+.t-label {
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.t-body {
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink);
+}
+
+.t-aux {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+/*
+ * O NÚMERO É MONO — e só o número.
+ * Tempo decorrido, dinheiro e nº de pedido. É o sotaque desta direção.
+ */
+.num,
+.tnum {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: -0.02em;
+}
+
+.num {
+  text-align: right;
+}
+
+.faint {
+  color: var(--ink-3);
+}
+
+/* ==========================================================================
+ * PRIMITIVAS
+ * ======================================================================= */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+  height: var(--control-h);
+  padding-inline: var(--sp-8);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-chip);
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--tb-size);
+  line-height: 1;
+  font-weight: var(--w-medium);
+  white-space: nowrap;
+  transition:
+    background var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease);
+}
+
+.btn:hover {
+  background: var(--hover);
+  border-color: var(--line-control);
+}
+
+.btn--primary {
+  background: var(--ember);
+  border-color: var(--ember);
+  color: var(--on-ember);
+  font-weight: var(--w-bold);
+}
+
+.btn--primary:hover {
+  background: var(--ember-press);
+  border-color: var(--ember-press);
+  color: var(--on-ember-press);
+}
+
+.btn--ghost {
+  border-color: transparent;
+  color: var(--ink-3);
+  font-weight: var(--w-regular);
+}
+
+.btn--ghost:hover {
+  background: var(--hover);
+  border-color: transparent;
+  color: var(--ink);
+}
+
+.btn--sm {
+  height: var(--control-h-sm);
+  padding-inline: var(--sp-4);
+  font-size: var(--ta-size);
+}
+
+.icon-btn {
+  width: var(--control-h);
+  padding: 0;
+  line-height: 0;
+}
+
+.icon-btn.btn--sm {
+  width: var(--control-h-sm);
+}
+
+.input {
+  height: var(--field-h);
+  padding-inline: var(--sp-8);
+  background: var(--field);
+  color: var(--ink);
+  border: 1px solid var(--line-control);
+  border-radius: var(--r-field);
+  font-size: var(--tb-size);
+  min-width: 0;
+}
+
+.input::placeholder {
+  color: var(--ink-3);
+  opacity: 1;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+
+.field__label {
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding-inline: var(--sp-4);
+  border-radius: var(--r-chip);
+  background: var(--field);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  font-size: var(--ta-size);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/*
+ * O SEGMENTADO — o controle assinatura desta direção.
+ *
+ * Botões colados, divididos por um fio, como as teclas de um painel de forno.
+ * Ele substitui o <select> onde as opções são poucas e fixas: o estado fica
+ * visível sem abrir nada, que é o que uma barra de filtro precisa ser.
+ */
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-chip);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.seg__opt {
+  height: var(--control-h);
+  padding-inline: var(--sp-8);
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-3);
+  font-size: var(--ta-size);
+  font-weight: var(--w-medium);
+  white-space: nowrap;
+}
+
+.seg__opt:first-child {
+  border-left: 0;
+}
+
+.seg__opt:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+/* O escolhido é tinta cheia + um trilho de brasa embaixo. Nunca só a cor. */
+.seg__opt--on {
+  background: var(--ember-wash);
+  color: var(--ink);
+  font-weight: var(--w-bold);
+  box-shadow: inset 0 -2px 0 var(--ember);
+}
+
+/* O interruptor: trilho baixo, botão quadrado. */
+.sw {
+  position: relative;
+  width: 30px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--line-control);
+  border-radius: var(--r-chip);
+  background: var(--field);
+  flex: 0 0 auto;
+}
+
+.sw::after {
+  content: '';
+  position: absolute;
+  inset-block: 1px;
+  left: 1px;
+  width: 12px;
+  background: var(--ink-3);
+  border-radius: var(--r-chip);
+  transition: transform var(--motion-fast) var(--ease);
+}
+
+.sw[aria-checked='true'] {
+  background: var(--ok-wash);
+  border-color: var(--ok);
+}
+
+.sw[aria-checked='true']::after {
+  background: var(--ok);
+  transform: translateX(14px);
+}
+
+/* ==========================================================================
+ * A MOLDURA — console à esquerda, trabalho à direita
+ * ======================================================================= */
+.shell {
+  display: flex;
+  height: 720px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--bg);
+  /* A moldura fixa a TINTA, não só o fundo. Sem isto, todo texto que não
+     declara cor herda a de fora — e numa folha de comparação com fundo
+     próprio isso deixa metade da tela invisível. No app vale o mesmo: a
+     moldura é quem estabelece o par tinta/fundo. */
+  color: var(--ink);
+}
+
+/*
+ * A LATERAL É ESCURA NOS DOIS TEMAS. Ver o bloco 9b de tokens.css: a navegação
+ * é equipamento, não página. A hachura a 45° é a única textura do sistema, e
+ * ela existe para dar matéria à chapa sem virar desenho.
+ */
+.shell__nav {
+  flex: 0 0 var(--sidebar-w);
+  width: var(--sidebar-w);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-16);
+  padding: var(--sp-12) var(--sp-8) var(--sp-16);
+  background: var(--console-bg);
+  background-image: var(--hachura);
+  border-right: 1px solid var(--console-line);
+  overflow-y: auto;
+}
+
+.shell__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  height: var(--topbar-h);
+  padding-inline: var(--sp-4);
+  color: var(--console-ink);
+}
+
+.shell__brand img {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-chip);
+}
+
+.shell__wordmark {
+  font-size: var(--ts-size);
+  font-weight: var(--w-bold);
+  letter-spacing: 0.02em;
+}
+
+.shell__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+/*
+ * O rótulo do grupo leva um fio à direita que corre até a borda. É a etiqueta
+ * gravada na chapa — e é o que separa os grupos sem gastar um divisor inteiro.
+ */
+.shell__group-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  padding-inline: var(--sp-8);
+  margin-bottom: var(--sp-4);
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
+  text-transform: uppercase;
+  color: var(--console-ink-3);
+}
+
+.shell__group-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--console-line);
+}
+
+.shell__link {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  height: 30px;
+  padding-inline: var(--sp-8);
+  border-radius: var(--r-chip);
+  color: var(--console-ink-3);
+  text-decoration: none;
+  font-size: var(--tb-size);
+  position: relative;
+}
+
+.shell__link:hover {
+  background: var(--console-hover);
+  color: var(--console-ink);
+}
+
+.shell__link svg {
+  flex: 0 0 auto;
+}
+
+/*
+ * O ATIVO: trilho de brasa de 2px, tinta cheia e um halo curto para dentro.
+ * O halo é o único brilho do sistema e existe porque, num console escuro, o
+ * trilho sozinho some quando a lista tem onze itens.
+ */
+.shell__link--on {
+  color: var(--console-ink);
+  font-weight: var(--w-bold);
+  background: linear-gradient(90deg, var(--ember-wash) 0%, transparent 70%);
+}
+
+.shell__link--on::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--ember);
+}
+
+.shell__link--soon {
+  opacity: 0.55;
+}
+
+.shell__soon {
+  margin-left: auto;
+  font-size: var(--tl-size);
+  letter-spacing: var(--tl-track);
+  text-transform: uppercase;
+  color: var(--console-ink-3);
+}
+
+.shell__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.shell__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  height: var(--topbar-h);
+  flex: 0 0 auto;
+  padding-inline: var(--page-pad);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.branch {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+  min-width: 0;
+}
+
+.branch__name {
+  flex: 0 0 auto;
+  font-size: var(--ts-size);
+  font-weight: var(--w-bold);
+  letter-spacing: var(--ts-track);
+}
+
+/* Quem cede é o endereço: ele só existe para desempatar dois nomes parecidos. */
+.branch__detail {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shell__spacer {
+  flex: 1;
+}
+
+.shell__user {
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.shell__content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* --- ponto de conexão ----------------------------------------------------- */
+
+.conn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.conn__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-round);
+  background: var(--ok);
+  flex: 0 0 auto;
+}
+
+/* ==========================================================================
+ * PEDIDOS
+ * ======================================================================= */
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.page__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  padding: var(--sp-16) var(--page-pad) var(--sp-12);
+}
+
+/*
+ * AS ABAS: "Em andamento" e "Histórico".
+ *
+ * O histórico saiu do quadro. Concluído e cancelado são consulta, não trabalho:
+ * ocupavam duas das sete colunas com o que ninguém vai tocar durante o turno.
+ */
+.tabs {
+  display: flex;
+  gap: var(--sp-16);
+  padding-inline: var(--page-pad);
+  border-bottom: 1px solid var(--line);
+}
+
+.tab {
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: var(--tb-size);
+  font-weight: var(--w-medium);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.tab--on {
+  color: var(--ink);
+  font-weight: var(--w-bold);
+  border-bottom-color: var(--ember);
+}
+
+.tab__count {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-3);
+  margin-left: var(--sp-4);
+}
+
+/*
+ * A BARRA DE FILTROS NÃO ABRE E NÃO FECHA.
+ *
+ * Ela é uma linha fixa, sempre visível, na altura de um controle. O que estava
+ * atrás de um botão "Filtros" agora está escrito: período, busca e prazo de
+ * preparo. Numa tela que fica aberta o turno inteiro, um filtro escondido é um
+ * filtro que ninguém lembra que está ligado — e o lojista jura que sumiu
+ * pedido quando o que sumiu foi a memória do estado.
+ */
+.filtros {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  flex-wrap: wrap;
+  padding: var(--sp-8) var(--page-pad);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.filtros__busca {
+  flex: 1 1 200px;
+  max-width: 320px;
+}
+
+.filtros__dir {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+/* O prazo de preparo: rótulo, número em mono, e dois passos. */
+.prep {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.prep__range {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--w-bold);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/*
+ * O QUADRO EM TRÊS FAIXAS.
+ *
+ * Sete colunas verticais viravam sete filas de dois cards numa tela de 1440 —
+ * muito cabeçalho para pouco pedido, e a leitura horrível: o olho descia sete
+ * vezes. Em faixa, o pedido caminha da esquerda para a direita DENTRO da faixa
+ * e de cima para baixo ENTRE elas, que é a ordem em que a cozinha trabalha.
+ *
+ *   NOVOS       o que precisa de decisão agora
+ *   EM PREPARO  aceito + preparando — está com a cozinha
+ *   PRONTOS     pronto + saiu para entrega — está com o balcão e a rua
+ */
+.faixas {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+  padding: var(--sp-12) var(--page-pad) var(--page-pad);
+  overflow-y: auto;
+}
+
+.faixa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+}
+
+/* O cabeçalho da faixa: ponto, nome, contagem e um fio até a borda direita. */
+.faixa__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.faixa__dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  background: var(--st, var(--ink-3));
+}
+
+.faixa__title {
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.faixa__count {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--ta-size);
+  font-weight: var(--w-bold);
+  color: var(--ink);
+}
+
+.faixa__rule {
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* Os cards correm na horizontal dentro da faixa. */
+.faixa__cards {
+  display: flex;
+  gap: var(--sp-8);
+  overflow-x: auto;
+  padding-bottom: var(--sp-4);
+}
+
+.faixa__vazia {
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+  padding-block: var(--sp-8);
+}
+
+/* --- o ticket ------------------------------------------------------------- */
+
+/*
+ * UM SÓ COMPONENTE DE PEDIDO no sistema. O quadro, a cozinha e a galeria
+ * mostram este mesmo ticket — dois componentes para a mesma coisa é como as
+ * duas telas passam a discordar sobre o que é um pedido.
+ */
+.ticket {
+  flex: 0 0 236px;
+  width: 236px;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--st, var(--line-strong));
+  border-radius: var(--r-card);
+  color: var(--ink);
+  overflow: hidden;
+  transition: border-color var(--motion-fast) var(--ease);
+}
+
+.ticket:hover {
+  border-color: var(--line-control);
+  border-left-color: var(--st, var(--line-strong));
+}
+
+/*
+ * A BARRA DE MATURAÇÃO — o único degradê do sistema.
+ * Ela enche da esquerda para a direita conforme o pedido esquenta. De longe,
+ * ela é a única coisa da tela que se lê sem ler nada.
+ */
+.ticket__brasa {
+  height: 3px;
+  /* O trilho é a linha; o degradê é o quanto já passou. `no-repeat` é o que
+     faz a fração LER como fração — sem ele o degradê ladrilha e a barra
+     parece cheia desde o primeiro minuto. */
+  background-color: var(--line);
+  background-image: var(--grad-brasa);
+  background-repeat: no-repeat;
+}
+
+.ticket__corpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-8);
+}
+
+.ticket__topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-8);
+}
+
+/* O tempo decorrido é a maior tinta do cartão, na matiz do estágio. */
+.ticket__tempo {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--ts-size);
+  font-weight: var(--w-bold);
+  color: var(--st, var(--ink));
+  white-space: nowrap;
+}
+
+.ticket__total {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--ts-size);
+  font-weight: var(--w-semibold);
+  white-space: nowrap;
+}
+
+.ticket__cliente {
+  font-size: var(--tb-size);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ticket__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+  min-width: 0;
+}
+
+.ticket__numero {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--w-bold);
+  color: var(--ink-2);
+}
+
+/* Pagamento online não recebido: a cozinha não pode preparar. */
+.ticket--alerta {
+  border-left-color: var(--danger);
+  background: var(--danger-wash);
+}
+
+.ticket__alerta {
+  font-size: var(--ta-size);
+  font-weight: var(--w-bold);
+  color: var(--danger);
+}
+
+/* ==========================================================================
+ * CARDÁPIO
+ * ======================================================================= */
+.menu {
+  display: flex;
+  min-height: 0;
+  height: 100%;
+}
+
+/* A barra de categorias: coluna com fio à direita, não cartão. */
+.rail {
+  flex: 0 0 200px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-16) var(--sp-8);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+}
+
+.rail__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  padding-inline: var(--sp-8);
+  margin-bottom: var(--sp-8);
+}
+
+.rail__item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  width: 100%;
+  height: 30px;
+  padding-inline: var(--sp-8);
+  border: 0;
+  border-radius: var(--r-chip);
+  background: transparent;
+  color: var(--ink-2);
+  font-size: var(--tb-size);
+  text-align: left;
+}
+
+.rail__item:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.rail__item--on {
+  background: var(--ember-wash);
+  color: var(--ink);
+  font-weight: var(--w-bold);
+  box-shadow: inset 2px 0 0 var(--ember);
+}
+
+.rail__count {
+  margin-left: auto;
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+}
+
+.menu__panel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.menu__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  padding: var(--sp-16) var(--page-pad) var(--sp-12);
+}
+
+.menu__busca {
+  padding: 0 var(--page-pad) var(--sp-12);
+}
+
+.menu__busca .input {
+  width: 100%;
+  max-width: 340px;
+}
+
+/*
+ * A LISTA É GRADE, NUNCA `space-between`.
+ *
+ * Nome fluido; setor, preço, interruptor e ação com largura fixa — assim as
+ * quatro colunas ficam na mesma abscissa em todas as linhas. Com
+ * `space-between`, cada linha ancora o olho num lugar diferente conforme o
+ * comprimento do nome.
+ */
+.itens {
+  padding-inline: var(--page-pad);
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 1fr 132px 96px 32px 28px;
+  align-items: center;
+  gap: var(--sp-12);
+  min-height: 34px;
+  padding-block: var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.item:hover {
+  background: var(--hover);
+}
+
+.item__nome {
+  min-width: 0;
+  font-size: var(--tb-size);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item__setor {
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item__preco {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--tb-size);
+  text-align: right;
+}
+
+/* A ação de linha aparece no ponteiro e no foco — e é permanente no toque. */
+.item__acao {
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease);
+}
+
+.item:hover .item__acao,
+.item:focus-within .item__acao {
+  opacity: 1;
+}
+
+/*
+ * Item esgotado: a LINHA esmaece. Não existe a palavra "DISPONÍVEL" repetida em
+ * toda linha — o que se repete não distingue nada, só ocupa a largura do que
+ * muda. Escreve-se só o estado que NÃO é o normal.
+ */
+.item--off .item__nome,
+.item--off .item__preco {
+  color: var(--ink-3);
+}
+
+/* ==========================================================================
+ * MINHA LOJA — coluna única com âncoras
+ * ======================================================================= */
+.loja {
+  display: flex;
+  gap: var(--sp-24);
+  padding: var(--sp-16) var(--page-pad) var(--sp-32);
+  max-width: var(--page-max);
+}
+
+/*
+ * AS ÂNCORAS SUBSTITUÍRAM AS ABAS.
+ *
+ * Seis abas escondiam cinco formulários: para conferir o horário e a taxa de
+ * entrega o lojista clicava duas vezes e perdia o contexto do que já tinha
+ * lido. Em coluna única, tudo está na página e a âncora só leva o olho ao
+ * lugar — e a lista à esquerda também vira o índice do que existe nesta tela,
+ * que a aba nunca foi.
+ */
+.ancoras {
+  flex: 0 0 172px;
+  position: sticky;
+  top: var(--sp-16);
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  border-left: 1px solid var(--line);
+}
+
+.ancora {
+  padding: var(--sp-4) var(--sp-12);
+  margin-left: -1px;
+  border-left: 2px solid transparent;
+  color: var(--ink-3);
+  font-size: var(--ta-size);
+  text-decoration: none;
+}
+
+.ancora:hover {
+  color: var(--ink);
+}
+
+.ancora--on {
+  border-left-color: var(--ember);
+  color: var(--ink);
+  font-weight: var(--w-bold);
+}
+
+.loja__col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-24);
+  max-width: var(--form-max);
+}
+
+.secao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+}
+
+.secao__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.secao__corpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+}
+
+.linha {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  align-items: center;
+  gap: var(--sp-12);
+  min-height: 32px;
+}
+
+.linha__campos {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.linha__campos .input {
+  max-width: 120px;
+}
+
+/* A grade da semana: sete linhas idênticas, e é isso que a faz ler rápido. */
+.semana {
+  display: grid;
+  grid-template-columns: 92px 32px 1fr;
+  align-items: center;
+  gap: var(--sp-8) var(--sp-12);
+}
+
+.semana__dia {
+  font-size: var(--tb-size);
+}
+
+.semana__horas {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--tb-size);
+}
+
+.semana__fechado {
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+}
+
+/*
+ * A forma de pagamento é linha de lista, com as MESMAS colunas do cardápio —
+ * nome fluido, qualificador fixo, controle no fim. Ela não tem preço, e por
+ * isso não herda a coluna de preço: um "—" em toda linha é informação nenhuma
+ * ocupando a largura do que muda.
+ */
+.pgto {
+  display: grid;
+  grid-template-columns: 1fr 132px 32px;
+  align-items: center;
+  gap: var(--sp-12);
+  min-height: 34px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Loja aberta: a ação mais clicada da tela, na linha do título. */
+.status-loja {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  margin-left: auto;
+  padding: var(--sp-4) var(--sp-8);
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
+  background: var(--surface);
+  font-size: var(--ta-size);
+}

@@ -1,0 +1,87 @@
+/*
+ * A FOLHA DE COMPARAÇÃO — e nada além disso.
+ *
+ * Este arquivo é o papel em que as três direções são pregadas na parede: o
+ * cabeçalho, o nome do tema e a legenda de cada tela. Ele NÃO faz parte de
+ * nenhuma direção e não usa token nenhum — de propósito. Um cinza neutro aqui
+ * é o que deixa a paleta de cada direção aparecer sem contaminação.
+ *
+ * Nada deste arquivo é levantado quando uma direção vence.
+ */
+
+body {
+  margin: 0;
+  background: #17181a;
+  color: #e8e6e3;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  padding: 40px 32px 80px;
+}
+
+.folha__head {
+  max-width: 760px;
+  margin: 0 auto 40px;
+}
+
+.folha__kicker {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8d8a85;
+}
+
+.folha__titulo {
+  margin: 0 0 12px;
+  font-size: 40px;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: #fbfaf8;
+}
+
+.folha__linha {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #b4b0ab;
+}
+
+.folha__linha strong {
+  color: #e8e6e3;
+  font-weight: 600;
+}
+
+.folha__tema {
+  max-width: 1360px;
+  margin: 0 auto 56px;
+}
+
+.folha__tema-nome {
+  margin: 0 0 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #2c2e31;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8d8a85;
+}
+
+.folha__tela {
+  margin-bottom: 32px;
+}
+
+.folha__tela-nome {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #8d8a85;
+}
+
+.folha__tela-nome strong {
+  color: #e8e6e3;
+}
+
+/* A moldura de cada tela: sombra neutra, para o print não colar no fundo. */
+.folha__tela .shell {
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}

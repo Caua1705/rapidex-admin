@@ -1,0 +1,340 @@
+/*
+ * ============================================================================
+ * DIREÇÃO 3 — SINAL
+ * ============================================================================
+ *
+ * O PAINEL DE PARTIDAS E A SALA DE CONTROLE. A referência é sinalização de
+ * transporte: o quadro do aeroporto, o mapa de metrô, a faixa refletiva do
+ * colete. Nada aqui imita papel nem equipamento de cozinha — imita
+ * INFORMAÇÃO EXPOSTA PARA SER LIDA DE LONGE E COM PRESSA.
+ *
+ * AS TRÊS DECISÕES QUE FAZEM ESTA DIREÇÃO:
+ *
+ *   1. O NEUTRO É FRIO, E ISSO É PROPOSITAL. As outras duas direções são
+ *      quentes; esta quebra a regra antiga de "nada de cinza-azulado". Grafite
+ *      frio é o fundo que faz cor de sinalização acender — sobre bege, o mesmo
+ *      amarelo vira mostarda.
+ *
+ *   2. O TEMPO É UM NÚMERO DE QUADRO. Barlow Condensed, grande, no topo do
+ *      cartão. Não é "um dado maior": é o número que se lê atravessado no
+ *      salão, e é a única coisa da tela dimensionada para isso.
+ *
+ *   3. STATUS É UM BLOCO DE COR, NÃO UM PONTINHO. Cada faixa tem um cabeçote
+ *      chapado com a cor do estágio, como a testeira de uma linha de metrô. É
+ *      a leitura periférica: sem ler palavra nenhuma, dá para ver que a faixa
+ *      do meio está cheia.
+ *
+ * TIPOGRAFIA: a família Barlow inteira — desenhada a partir de letreiro de
+ * transporte, levemente arredondada e de contraste baixo. Barlow no corpo,
+ * Barlow Condensed no número de quadro e no cabeçote da faixa.
+ *
+ * RAIO: 999 no que é controle, 8 no que é superfície, 12 no cartão. É a mais
+ * arredondada das três — e é o que separa "sinalização" de "chapa cortada".
+ *
+ * A MARCA DIVERGE DO SELO: azul-sinal. Sobre grafite frio, o laranja do selo
+ * briga com o âmbar de "pendente" — e status tem que ganhar da marca.
+ */
+
+:root,
+[data-theme='light'] {
+  /* ==========================================================================
+   * 1. MARCA — azul de sinalização
+   * ======================================================================= */
+  --ember: #1152c7;
+  --ember-press: #0d40a0;
+  --ember-wash: #dfe8fa;
+  --on-ember: #ffffff;
+  --on-ember-press: #ffffff;
+
+  /* ==========================================================================
+   * 2. PLANOS — grafite frio, e branco de verdade na superfície
+   * ======================================================================= */
+  --bg: #edeff2;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --field: #f4f6f8;
+
+  --line: #dde2e8;
+  --line-strong: #c3cbd4;
+  --line-control: #78828f;
+
+  /* ==========================================================================
+   * 3. TINTA
+   * ======================================================================= */
+  --ink: #10151c;
+  --ink-2: #48525e;
+  --ink-3: #5b6675;
+
+  /* ==========================================================================
+   * 4. SEMÂNTICA DE ESTADO
+   * ======================================================================= */
+  --ok: #0f7a3d;
+  --ok-wash: #dff0e4;
+  --alert: #8a6100;
+  --alert-wash: #f8eed6;
+  --danger: #c22217;
+  --danger-wash: #fbe3e1;
+
+  /* ==========================================================================
+   * 5. STATUS — LINHAS DE UM MAPA, e nenhuma delas é azul: o azul é da marca,
+   * e num mapa duas linhas da mesma cor são duas linhas que ninguém separa.
+   *
+   *   pendente    âmbar    — o que ainda não partiu
+   *   aceito      petróleo — embarcado
+   *   preparando  roxo     — em trânsito
+   *   pronto      verde    — chegou
+   *   entrega     magenta  — está na rua (a linha que sai do mapa)
+   *   concluído   grafite  — arquivo
+   *   cancelado   vermelho — fim de linha
+   * ======================================================================= */
+  --st-pendente: #8a6100;
+  --st-aceito: #0e6e7a;
+  --st-preparando: #6b21a8;
+  --st-pronto: #0f7a3d;
+  --st-entrega: #a3006b;
+  --st-concluido: #5b6675;
+  --st-cancelado: #c22217;
+
+  --st-pendente-wash: #f8eed6;
+  --st-aceito-wash: #dcedef;
+  --st-preparando-wash: #ece0f7;
+  --st-pronto-wash: #dff0e4;
+  --st-entrega-wash: #f9dfee;
+  --st-concluido-wash: #e6e9ed;
+  --st-cancelado-wash: #fbe3e1;
+
+  /* ==========================================================================
+   * 6. ESTADOS INTERATIVOS
+   * ======================================================================= */
+  --hover: color-mix(in oklab, var(--ink) 6%, transparent);
+  --active: color-mix(in oklab, var(--ink) 11%, transparent);
+  --disabled-opacity: 0.45;
+
+  --focus: var(--ember);
+  --focus-width: 2px;
+  --focus-offset: 2px;
+
+  --scrim: rgba(16, 21, 28, 0.55);
+
+  /* ==========================================================================
+   * 7. TIPOGRAFIA — a família Barlow inteira
+   *
+   * A CONDENSADA NÃO É "A FONTE DOS TÍTULOS": ela pinta o NÚMERO DE QUADRO (o
+   * tempo decorrido) e o cabeçote da faixa. São os dois lugares lidos de longe.
+   * Aplicá-la a texto corrido devolveria a tela a um cartaz.
+   * ======================================================================= */
+  --font-ui: 'Barlow', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-quadro: 'Barlow Condensed', 'Barlow', system-ui, sans-serif;
+
+  /* 1. Título de página. */
+  --tt-size: 21px;
+  --tt-line: 26px;
+  --tt-weight: 600;
+  --tt-track: -0.01em;
+
+  /* 2. Título de seção. */
+  --ts-size: 14px;
+  --ts-line: 20px;
+  --ts-weight: 600;
+  --ts-track: 0em;
+
+  /* 3. Rótulo — o letreiro: condensada, maiúscula, espacejada. */
+  --tl-size: 11px;
+  --tl-line: 14px;
+  --tl-weight: 600;
+  --tl-track: 0.09em;
+
+  /* 4. Corpo. */
+  --tb-size: 13px;
+  --tb-line: 18px;
+  --tb-weight: 400;
+  --tb-track: 0em;
+
+  /* 5. Auxiliar. */
+  --ta-size: 12px;
+  --ta-line: 16px;
+  --ta-weight: 400;
+  --ta-track: 0em;
+
+  /* O número de quadro: fora da escala de texto, e declarado como exceção. */
+  --tq-size: 26px;
+  --tq-line: 26px;
+  --tq-weight: 600;
+
+  --w-regular: 400;
+  --w-medium: 500;
+  --w-semibold: 600;
+  --w-bold: 700;
+
+  --k-num: 34px;
+  --k-num-line: 36px;
+  --k-item: 18px;
+  --k-item-line: 24px;
+  --k-meta: 15px;
+  --k-meta-line: 20px;
+
+  /* ==========================================================================
+   * 8. ESPAÇAMENTO — seis degraus
+   * ======================================================================= */
+  --sp-4: 4px;
+  --sp-8: 8px;
+  --sp-12: 12px;
+  --sp-16: 16px;
+  --sp-24: 24px;
+  --sp-32: 32px;
+
+  /* ==========================================================================
+   * 9. RAIO E ELEVAÇÃO — a mais arredondada das três
+   * ======================================================================= */
+  --r-chip: 999px;
+  --r-field: 8px;
+  --r-card: 12px;
+  --r-round: 999px;
+
+  --shadow-pop: 0 20px 48px rgba(16, 21, 28, 0.18), 0 2px 6px rgba(16, 21, 28, 0.08);
+
+  /*
+   * A FAIXA REFLETIVA — a única textura do sistema, e ela só aparece no
+   * cabeçote de uma faixa VAZIA: hachura diagonal do próprio tom do estágio,
+   * que é como se marca "sem serviço" numa placa.
+   */
+  --refletiva: repeating-linear-gradient(
+    -45deg,
+    currentColor 0 6px,
+    transparent 6px 12px
+  );
+
+  /* ==========================================================================
+   * 10. ENQUADRAMENTO
+   * ======================================================================= */
+  --sidebar-w: 220px;
+  --sidebar-rail: 56px;
+  --topbar-h: 52px;
+  --bottombar-h: 56px;
+  --page-pad: var(--sp-16);
+  --page-pad-mobile: var(--sp-12);
+  --page-max: 1320px;
+  --form-max: 880px;
+  --column-max: 300px;
+
+  --tap: 24px;
+  --tap-mobile: 44px;
+
+  --control-h: 30px;
+  --control-h-sm: 26px;
+  --control-h-touch: 38px;
+  --field-h: 32px;
+  --field-h-touch: 42px;
+
+  /* ==========================================================================
+   * 11. MOVIMENTO
+   * ======================================================================= */
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ==========================================================================
+   * 12. CAMADAS
+   * ======================================================================= */
+  --z-sticky: 20;
+  --z-popover: 40;
+  --z-modal: 60;
+  --z-toast: 80;
+
+  color-scheme: light;
+}
+
+/*
+ * ============================================================================
+ * ESCURO — a sala de controle com a luz baixa.
+ *
+ * Aqui as cores de sinalização acendem de verdade: sobre grafite quase preto,
+ * o âmbar e o magenta ganham a saturação que no claro seria berrante.
+ * ============================================================================
+ */
+[data-theme='dark'] {
+  --bg: #0b0e13;
+  --surface: #141922;
+  --surface-raised: #1d2430;
+  --field: #0f131a;
+
+  --line: #232b36;
+  --line-strong: #364150;
+  --line-control: #6f7c8c;
+
+  --ink: #eef2f7;
+  --ink-2: #9faab8;
+  --ink-3: #8894a3;
+
+  --ember: #6fa8ff;
+  --ember-press: #96c0ff;
+  --ember-wash: #12233d;
+  --on-ember: #061021;
+  --on-ember-press: #061021;
+
+  --ok: #43c97a;
+  --ok-wash: #10301f;
+  --alert: #e8b53a;
+  --alert-wash: #33280c;
+  --danger: #ff6b5e;
+  --danger-wash: #3d1c1a;
+
+  --st-pendente: #e8b53a;
+  --st-aceito: #3fc0d2;
+  --st-preparando: #b07ff0;
+  --st-pronto: #43c97a;
+  --st-entrega: #f070b8;
+  --st-concluido: #8894a3;
+  --st-cancelado: #ff6b5e;
+
+  --st-pendente-wash: #33280c;
+  --st-aceito-wash: #0f2e33;
+  --st-preparando-wash: #251b39;
+  --st-pronto-wash: #10301f;
+  --st-entrega-wash: #351028;
+  --st-concluido-wash: #222831;
+  --st-cancelado-wash: #3d1c1a;
+
+  --scrim: rgba(0, 0, 0, 0.68);
+  --shadow-pop: 0 20px 48px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.45);
+
+  color-scheme: dark;
+}
+
+/* --- status como classe --------------------------------------------------- */
+
+.is-pendente {
+  --st: var(--st-pendente);
+  --st-wash: var(--st-pendente-wash);
+}
+.is-aceito {
+  --st: var(--st-aceito);
+  --st-wash: var(--st-aceito-wash);
+}
+.is-preparando {
+  --st: var(--st-preparando);
+  --st-wash: var(--st-preparando-wash);
+}
+.is-pronto {
+  --st: var(--st-pronto);
+  --st-wash: var(--st-pronto-wash);
+}
+.is-entrega {
+  --st: var(--st-entrega);
+  --st-wash: var(--st-entrega-wash);
+}
+.is-concluido {
+  --st: var(--st-concluido);
+  --st-wash: var(--st-concluido-wash);
+}
+.is-cancelado {
+  --st: var(--st-cancelado);
+  --st-wash: var(--st-cancelado-wash);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0s;
+    --motion-base: 0s;
+  }
+}
