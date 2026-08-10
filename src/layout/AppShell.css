@@ -125,8 +125,8 @@
 /* Etiqueta discreta, encostada à direita. Minúscula e sem caixa: é uma nota. */
 .shell__link-soon {
   margin-left: auto;
-  font-size: var(--text-xs);
-  line-height: var(--leading-xs);
+  font-size: var(--type-aux-size);
+  line-height: var(--type-aux-line);
   color: var(--text-disabled);
 }
 

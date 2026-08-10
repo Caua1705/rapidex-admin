@@ -161,6 +161,11 @@ Se a resposta for "fica bonito" ou "diferencia visualmente", a cor sai.
 1. **O laranja da marca aparece em três lugares e mais nenhum:** botão primário
    (`.btn--primary`), indicador do item ativo da navegação, anel de foco. Nunca
    em texto de corpo, em ícone neutro, em fundo de seção ou em ênfase.
+   Da mesma família do foco, e pelo mesmo motivo ("é aqui que você mexeu"), vêm
+   os dois únicos usos derivados: o texto selecionado (`::selection`) e o
+   realce de um segundo na linha que o lojista acabou de mover. Nenhum dos dois
+   é permanente na tela — se ficasse, seria ênfase, e ênfase é o que esta regra
+   proíbe.
 2. **A escala de status pinta status de pedido e mais nada.** Não use uma matiz
    de status para categorizar o que não é estado de pedido (tipo de entrega,
    forma de pagamento): confunde com a coluna do quadro da mesma cor.

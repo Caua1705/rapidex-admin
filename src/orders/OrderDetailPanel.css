@@ -60,15 +60,20 @@
   color: var(--text-primary);
 }
 
-/* Lê a matiz da classe `status-<chave>` de tokens.css. */
+/*
+ * Lê a matiz da classe `status-<chave>` de tokens.css. É o mesmo nível 3
+ * (rótulo) do cabeçalho das colunas do quadro — o mesmo dado, escrito igual.
+ */
 .panel__status {
   padding: 0 var(--space-2);
   border-radius: var(--radius-sm);
   background: var(--status-bg);
   color: var(--status-fg);
-  font-size: var(--text-xs);
-  line-height: 16px;
-  font-weight: var(--weight-bold);
+  font-size: var(--type-label-size);
+  line-height: 18px;
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
   white-space: nowrap;
 }
 

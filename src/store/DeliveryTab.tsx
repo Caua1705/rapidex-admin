@@ -219,7 +219,8 @@ export function DeliveryTab({
             return (
               <li className="delivery-preview__row" key={km}>
                 <span className="mono">{km} km</span>
-                <span className={fee === null ? 'faint' : 'mono delivery-preview__fee'}>
+                {/* Coluna de dinheiro: tabular e à direita, como em toda a tela. */}
+                <span className={fee === null ? 'faint num' : 'num delivery-preview__fee'}>
                   {fee === null ? 'Não atendido' : formatCurrency(fee)}
                 </span>
               </li>

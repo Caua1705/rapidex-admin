@@ -13,8 +13,10 @@
   border: 1px solid var(--border-subtle);
 }
 
+/* Nível 2 (título de seção) no peso mais alto: é o nome do produto. */
 .logo__wordmark {
-  font-size: var(--text-md);
+  font-size: var(--type-section-size);
+  line-height: var(--type-section-line);
   font-weight: var(--weight-extrabold);
   letter-spacing: -0.02em;
   color: var(--text-primary);

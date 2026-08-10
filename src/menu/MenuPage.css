@@ -530,11 +530,11 @@
  * o lojista está procurando ao abrir esta tela.
  */
 .item__state {
-  font-size: var(--text-xs);
-  line-height: var(--leading-xs);
-  font-weight: var(--weight-bold);
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
   white-space: nowrap;
   color: var(--text-tertiary);
 }

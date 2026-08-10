@@ -77,5 +77,20 @@ for (const viewport of VIEWPORTS) {
         fullPage: false,
       });
     }
+
+    /*
+     * Os dois estados que não têm rota própria e mesmo assim são tela: o painel
+     * de detalhe do pedido e um diálogo. Sem eles, metade do que se redesenha
+     * numa rodada de design nunca aparece no lote de prints.
+     */
+    await page.goto('/pedidos');
+    await page.getByTestId('order-card-1002').click();
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `design/shots/out/${TAG}/pedido-detalhe-${viewport.name}.png` });
+
+    await page.goto('/cardapio');
+    await page.getByRole('button', { name: 'Editar X-Burger Clássico' }).click();
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `design/shots/out/${TAG}/item-dialogo-${viewport.name}.png` });
   });
 }

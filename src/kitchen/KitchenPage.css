@@ -9,6 +9,14 @@
  *
  * O que ela NÃO herda é o excesso: o ritmo vertical, os raios e os vãos saem
  * da mesma escala do resto do painel.
+ *
+ * OS CINCO NÍVEIS CONTINUAM VALENDO — o que muda é o corpo de cada um:
+ *
+ *   1 título de página  "Cozinha", em --text-xl (igual ao painel)
+ *   2 título de seção   nº do pedido (--text-3xl) e nome do item (--text-2xl)
+ *   3 rótulo            cabeçalho da coluna, em --text-base MAIÚSCULO
+ *   4 corpo             adicional, observação, nota — --text-lg
+ *   5 auxiliar          tipo do pedido, contagem — --text-base
  */
 
 .kitchen {

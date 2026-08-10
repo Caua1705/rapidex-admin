@@ -284,25 +284,25 @@ function DetailBody({ detail }: { detail: OrderDetail }) {
         ) : null}
         <div className="detail__row">
           <span>Subtotal</span>
-          <span className="mono">{formatCurrency(detail.subtotal)}</span>
+          <span className="num">{formatCurrency(detail.subtotal)}</span>
         </div>
         <div className="detail__row">
           <span>Taxa de entrega</span>
-          <span className="mono">{formatCurrency(detail.delivery_fee)}</span>
+          <span className="num">{formatCurrency(detail.delivery_fee)}</span>
         </div>
         <div className="detail__row">
           <span>Taxa de serviço</span>
-          <span className="mono">{formatCurrency(detail.service_fee)}</span>
+          <span className="num">{formatCurrency(detail.service_fee)}</span>
         </div>
         {detail.coupon_code ? (
           <div className="detail__row">
             <span>Cupom {detail.coupon_code}</span>
-            <span className="mono">−{formatCurrency(detail.coupon_discount_amount)}</span>
+            <span className="num">−{formatCurrency(detail.coupon_discount_amount)}</span>
           </div>
         ) : null}
         <div className="detail__row detail__row--total">
           <span>Total</span>
-          <span className="mono">{formatCurrency(detail.total)}</span>
+          <span className="num">{formatCurrency(detail.total)}</span>
         </div>
       </section>
 
@@ -341,7 +341,7 @@ function ItemLine({ item }: { item: OrderItem }) {
       <div className="items__main">
         <span className="items__qty mono">{item.quantity}×</span>
         <span className="items__name">{item.product_name_snapshot}</span>
-        <span className="items__price mono">{formatCurrency(item.total)}</span>
+        <span className="items__price num">{formatCurrency(item.total)}</span>
       </div>
 
       {groups.length > 0 ? (
@@ -354,7 +354,7 @@ function ItemLine({ item }: { item: OrderItem }) {
                   <li key={option.key} className="options__option">
                     <span>{option.label}</span>
                     {option.additionalPrice ? (
-                      <span className="options__price mono faint">
+                      <span className="options__price num faint">
                         {formatCurrency(option.additionalPrice)}
                       </span>
                     ) : null}

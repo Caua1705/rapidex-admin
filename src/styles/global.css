@@ -112,7 +112,8 @@ textarea {
   background: var(--bg-surface);
   color: var(--text-primary);
   cursor: pointer;
-  font-size: var(--text-base);
+  /* Corpo (nível 4) no peso do rótulo: o botão é conteúdo, não título. */
+  font-size: var(--type-body-size);
   line-height: 1;
   font-weight: var(--weight-semibold);
   white-space: nowrap;
@@ -182,10 +183,11 @@ textarea {
   width: 100%;
 }
 
+/* O botão de dentro de uma linha de lista: um degrau abaixo, no auxiliar. */
 .btn--sm {
   height: 24px;
   padding: 0 var(--space-2);
-  font-size: var(--text-sm);
+  font-size: var(--type-aux-size);
 }
 
 /* Botão só de ícone: quadrado, sem padding assimétrico. */
@@ -413,14 +415,16 @@ textarea {
 .tag {
   display: inline-flex;
   align-items: center;
-  height: 16px;
+  height: 18px;
   padding: 0 var(--space-2);
   border-radius: var(--radius-sm);
   background: var(--bg-sunken);
   color: var(--text-secondary);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
-  letter-spacing: 0.02em;
+  /* Auxiliar (nível 5) numa caixa. A etiqueta não é rótulo: ela carrega um
+     nome próprio ("Entrega", "Pix"), e rótulo é MAIÚSCULA. */
+  font-size: var(--type-aux-size);
+  line-height: var(--type-aux-line);
+  font-weight: var(--weight-medium);
   white-space: nowrap;
 }
 
