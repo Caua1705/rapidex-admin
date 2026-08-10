@@ -1,0 +1,40 @@
+/*
+ * A tela de seção não construída.
+ *
+ * Nenhum cartão, nenhuma borda, nenhum ícone grande: o que está aqui é uma
+ * frase, e uma frase dentro de uma caixa decorada parece um anúncio. Ela fica
+ * no alto à esquerda, na mesma abscissa em que o título de todas as outras
+ * telas começa — quem trocou de seção não vê o texto pular de lugar.
+ */
+.soon {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-7) var(--space-5);
+}
+
+.soon__block {
+  max-width: 52ch;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+/* A etiqueta vem ANTES do título e é neutra: ela informa, não anuncia. */
+.soon__tag {
+  margin-bottom: var(--space-1);
+}
+
+.soon__text {
+  margin: 0;
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 720px) {
+  .soon {
+    padding: var(--space-6) var(--space-4);
+  }
+}

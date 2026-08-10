@@ -6,35 +6,60 @@
 
 /* --- navegação lateral -------------------------------------------------- */
 
+/*
+ * A moldura é separada do conteúdo pelo TOM (`--bg-chrome`), não por uma
+ * régua: a borda de 1px era o que fazia a lateral parecer colada por cima da
+ * tela em vez de ser a moldura dela.
+ */
 .shell__nav {
-  /* 200px e não 240: com duas entradas de um palavra, os 40px extras eram
-     espaço vazio tirado do conteúdo, que é onde a densidade importa. */
-  width: 200px;
+  width: var(--sidebar-width);
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 0 var(--space-2) var(--space-4);
-  background: var(--bg-surface);
-  border-right: 1px solid var(--border-subtle);
+  gap: var(--space-5);
+  padding: 0 var(--space-3) var(--space-5);
+  background: var(--bg-chrome);
+  overflow-y: auto;
 }
 
 .shell__brand {
-  height: 56px;
+  height: var(--topbar-height);
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  padding: 0 var(--space-2);
-  margin-bottom: var(--space-2);
+  padding-inline: var(--space-2);
 }
+
+/* --- grupos ------------------------------------------------------------- */
+
+.shell__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/*
+ * O rótulo do grupo é o nível 3 (rótulo) com a cor mais apagada da escala: ele
+ * organiza a lista, não compete com ela. O recuo horizontal é o mesmo do texto
+ * dos itens, para os dois começarem na mesma abscissa.
+ */
+.shell__group-title {
+  padding: 0 var(--space-3) var(--space-2);
+  color: var(--text-disabled);
+}
+
+/* --- itens -------------------------------------------------------------- */
 
 .shell__link {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
+  height: 28px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  font-size: var(--text-base);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
   font-weight: var(--weight-medium);
   text-decoration: none;
   white-space: nowrap;
@@ -46,45 +71,97 @@
   color: var(--text-primary);
 }
 
-/* Segundo dos três lugares onde o laranja aparece: o item ativo da navegação. */
+/*
+ * Segundo dos três lugares onde o laranja aparece.
+ *
+ * Fundo laranja em bloco puxava o olho para a navegação toda vez que a tela
+ * mudava. Agora o item ativo é um degrau de superfície + texto cheio, e o
+ * laranja é só o traço de 2px na lateral — o mínimo que diz "você está aqui".
+ */
 .shell__link--active {
-  background: var(--brand-soft-bg);
-  color: var(--brand-soft-fg);
+  background: var(--bg-active);
+  color: var(--text-primary);
   font-weight: var(--weight-semibold);
+  box-shadow: inset 2px 0 0 var(--brand);
 }
 
 .shell__link:focus-visible {
   outline: 2px solid var(--focus-ring);
-  outline-offset: 1px;
+  outline-offset: -1px;
 }
 
 .shell__link-icon {
   display: flex;
   flex: 0 0 auto;
+  color: var(--text-tertiary);
+}
+
+.shell__link--active .shell__link-icon {
+  color: var(--text-primary);
+}
+
+.shell__link-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /*
- * Abaixo de 900px a lateral vira trilha de ícones de 72px em vez de drawer:
- * trocar de tela continua sendo um clique só, que é o que importa durante o
- * serviço. O rótulo some da tela mas continua no `title` e no leitor de tela.
+ * Seção que ainda não existe: peso reduzido, e nada mais.
+ *
+ * Ela continua clicável e continua na ordem certa do produto. O que muda é o
+ * peso do texto — o suficiente para o olho pular para o que já funciona sem
+ * precisar de cadeado ou de opacidade a 40%, que a tornaria ilegível
+ * justamente para quem foi ler o que vem por aí.
+ */
+.shell__link--soon {
+  color: var(--text-tertiary);
+  font-weight: var(--weight-regular);
+}
+
+.shell__link--soon .shell__link-icon {
+  color: var(--text-disabled);
+}
+
+/* Etiqueta discreta, encostada à direita. Minúscula e sem caixa: é uma nota. */
+.shell__link-soon {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  color: var(--text-disabled);
+}
+
+/*
+ * Abaixo de 900px a lateral vira trilha de ícones em vez de drawer: trocar de
+ * tela continua sendo um clique só, que é o que importa durante o serviço. O
+ * rótulo some da tela mas continua no `title` e no leitor de tela.
  */
 @media (max-width: 900px) {
   .shell__nav {
-    width: 64px;
+    width: var(--sidebar-rail);
     padding-inline: var(--space-2);
     align-items: center;
+    gap: var(--space-4);
   }
 
   .shell__brand {
     padding: 0;
   }
 
-  .shell__link {
-    justify-content: center;
-    padding: var(--space-3);
+  .shell__group {
+    width: 100%;
+    align-items: center;
   }
 
-  .shell__link-label {
+  .shell__link {
+    width: 32px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  /* O grupo continua existindo para o leitor de tela; o que sai é o desenho. */
+  .shell__group-title,
+  .shell__link-label,
+  .shell__link-soon {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -102,19 +179,29 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  height: 56px;
+  height: var(--topbar-height);
   flex: 0 0 auto;
-  padding: 0 var(--space-4);
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 0 var(--space-5);
+  background: var(--bg-chrome);
 }
 
 .shell__spacer {
   flex: 1;
 }
 
+.shell__user {
+  font-size: var(--type-aux-size);
+  line-height: var(--type-aux-line);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
 /* --- seletor de filial --------------------------------------------------- */
 
+/*
+ * Sem caixa: dentro da barra, um controle contornado disputava atenção com o
+ * conteúdo da tela. O que diz que ele é clicável é o hover e o chevron.
+ */
 .branch {
   position: relative;
   display: flex;
@@ -122,24 +209,29 @@
   gap: var(--space-2);
   min-width: 0;
   max-width: 340px;
-  height: 40px;
+  height: 32px;
   padding: 0 var(--space-3);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
+  margin-left: calc(var(--space-3) * -1);
+  border-radius: var(--radius-sm);
+  transition: background var(--motion-fast) var(--motion-ease);
 }
 
+/*
+ * O endereço vira a segunda metade da MESMA linha, não uma segunda linha.
+ * Empilhado, ele obrigava a barra a ter 40px de conteúdo e desalinhava o
+ * seletor de tudo o mais que vive na altura de uma linha.
+ */
 .branch__text {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  align-items: baseline;
+  gap: var(--space-2);
   min-width: 0;
 }
 
 .branch__name {
-  font-size: var(--text-sm);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
   font-weight: var(--weight-bold);
-  line-height: 16px;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -147,8 +239,8 @@
 }
 
 .branch__detail {
-  font-size: var(--text-xs);
-  line-height: 14px;
+  font-size: var(--type-aux-size);
+  line-height: var(--type-aux-line);
   color: var(--text-tertiary);
   white-space: nowrap;
   overflow: hidden;
@@ -162,10 +254,9 @@
 }
 
 /*
- * O <select> real cobre a caixa e fica invisível: o desenho é o texto de duas
- * linhas abaixo dele, que um <select> não sabe fazer, mas o comportamento
- * (teclado, leitor de tela, seletor nativo do celular) é o do controle de
- * verdade — nada é reimplementado.
+ * O <select> real cobre a caixa e fica invisível: o desenho é o texto abaixo
+ * dele, mas o comportamento (teclado, leitor de tela, seletor nativo do
+ * celular) é o do controle de verdade — nada é reimplementado.
  */
 .branch__select {
   position: absolute;
@@ -184,13 +275,19 @@
 }
 
 .branch:has(.branch__select):hover {
-  border-color: var(--border-strong);
+  background: var(--bg-hover);
 }
 
-.shell__user {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  white-space: nowrap;
+@media (max-width: 720px) {
+  .shell__bar {
+    padding-inline: var(--space-4);
+  }
+
+  /* Numa tela de 390px o endereço não cabe junto do nome sem espremer os dois. */
+  .branch__detail,
+  .shell__user {
+    display: none;
+  }
 }
 
 /* --- conteúdo ----------------------------------------------------------- */
@@ -208,11 +305,4 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-}
-
-/* --- botão só de ícone --------------------------------------------------- */
-
-.icon-btn {
-  padding: var(--space-2);
-  line-height: 0;
 }

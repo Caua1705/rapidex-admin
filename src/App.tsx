@@ -4,21 +4,26 @@ import { RequireAuth } from './auth/RequireAuth';
 import { SessionProvider } from './auth/SessionProvider';
 import { KitchenPage } from './kitchen/KitchenPage';
 import { AppShell } from './layout/AppShell';
+import { PENDING_ENTRIES } from './layout/nav';
 import { MenuPage } from './menu/MenuPage';
 import { OrdersPage } from './orders/OrdersPage';
+import { ComingSoonPage } from './pages/ComingSoonPage';
 import { LoginPage } from './pages/LoginPage';
 import { StorePage } from './store/StorePage';
 
 /**
- * Login, pedidos, cardápio, minha loja e cozinha.
+ * As rotas do painel.
  *
  * A COZINHA É A ÚNICA TELA AUTENTICADA FORA DO <AppShell>: ela é um monitor
  * pendurado na parede da cozinha e usa a tela inteira, sem navegação lateral
- * nem barra do topo. Envolvê-la no AppShell "por consistência" devolveria os
- * 200px da lateral e os 56px do cabeçalho a uma tela cuja razão de existir é
- * ser lida de longe. A saída dela é o link no próprio canto.
+ * nem barra do topo. Envolvê-la no AppShell "por consistência" devolveria a
+ * lateral e o cabeçalho a uma tela cuja razão de existir é ser lida de longe.
+ * A saída dela é o link no próprio canto.
  *
- * Clientes e relatórios entram como irmãos de /cardapio, sem mexer em mais nada.
+ * As seções ainda não construídas viram rota de verdade a partir de
+ * `PENDING_ENTRIES` (a mesma lista que desenha a lateral), e não links mortos:
+ * um item de navegação que não navega é pior que um item ausente. O destino é
+ * a página de estado, que diz o que a tela vai fazer e mais nada.
  */
 export function App() {
   return (
@@ -64,6 +69,21 @@ export function App() {
               </RequireAuth>
             }
           />
+
+          {PENDING_ENTRIES.map((entry) => (
+            <Route
+              key={entry.to}
+              path={entry.to}
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <ComingSoonPage title={entry.label} description={entry.soon} />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+          ))}
+
           <Route path="*" element={<Navigate to="/pedidos" replace />} />
         </Routes>
       </SessionProvider>
