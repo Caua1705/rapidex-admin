@@ -10,7 +10,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--sp-32) var(--sp-16);
+  padding: var(--page-pad) var(--page-pad);
 }
 
 .soon__block {
@@ -35,6 +35,6 @@
 
 @media (max-width: 720px) {
   .soon {
-    padding: var(--sp-24) var(--sp-12);
+    padding: var(--page-pad-mobile) var(--page-pad-mobile);
   }
 }

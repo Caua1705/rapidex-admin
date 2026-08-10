@@ -292,6 +292,7 @@
   --topbar-h: 48px;
   --bottombar-h: 56px;
   --page-pad: var(--sp-16);
+  --page-pad-mobile: var(--sp-12);
   --page-max: 1240px;
   --form-max: 860px;
   --column-max: 296px;

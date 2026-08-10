@@ -16,7 +16,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--sp-24) var(--sp-16) var(--sp-32);
+  padding: var(--page-pad) var(--page-pad) var(--sp-32);
   display: flex;
   flex-direction: column;
   gap: var(--sp-16);
@@ -501,7 +501,7 @@
 
 @media (max-width: 720px) {
   .store {
-    padding: var(--sp-16) var(--sp-12) var(--sp-32);
+    padding: var(--page-pad-mobile) var(--page-pad-mobile) var(--sp-32);
   }
 
   /* O título fica sozinho na linha e o status desce inteiro para a seguinte. */

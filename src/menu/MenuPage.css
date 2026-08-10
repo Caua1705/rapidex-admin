@@ -1,10 +1,12 @@
 /*
- * A tela INTEIRA — barra de categorias junto — é o container centralizado.
+ * A tela inteira — barra de categorias junto — começa LOGO DEPOIS da lateral.
  *
- * Deixar só o painel dentro do teto de 1400px e a barra colada à esquerda
- * abria, numa tela de 2560px, um vão morto de 380px entre as duas: a barra num
- * canto, a lista flutuando longe dela. Centralizando o bloco todo, a sobra fica
- * nas beiradas, igual dos dois lados, e a tela lê como uma página.
+ * Ela já foi centrada no que sobrava do viewport, e a conta dava isto: numa
+ * tela de 1900px, a lateral terminava em 208 e a barra de categorias só
+ * começava em 506. Trezentos pixels de faixa vertical vazia no meio da tela,
+ * que é o defeito que mais faz um painel parecer quebrado. O teto de largura
+ * continua existindo — ele só passou a ser medido a partir do fim da lateral,
+ * e não do meio da tela.
  */
 .menu {
   flex: 1;
@@ -12,8 +14,8 @@
   display: flex;
   width: 100%;
   max-width: var(--page-max);
-  margin-inline: auto;
-  padding: var(--sp-16);
+  margin-inline: 0;
+  padding: var(--page-pad);
   background: var(--bg);
 }
 
@@ -646,7 +648,7 @@
 @media (max-width: 720px) {
   .menu {
     flex-direction: column;
-    padding: var(--sp-12);
+    padding: var(--page-pad-mobile);
   }
 
   .rail {

@@ -25,7 +25,7 @@
   display: flex;
   align-items: flex-end;
   gap: var(--sp-12);
-  padding: var(--sp-8) var(--sp-16);
+  padding: var(--sp-8) var(--page-pad);
   background: var(--bg);
   flex-wrap: wrap;
 }
@@ -142,7 +142,7 @@
 }
 
 .orders__alert {
-  margin: var(--sp-12) var(--sp-16) 0;
+  margin: var(--sp-12) var(--page-pad) 0;
 }
 
 /* --- a linha do período --------------------------------------------------- */
@@ -158,7 +158,7 @@
   display: flex;
   align-items: center;
   gap: var(--sp-8);
-  padding: var(--sp-12) var(--sp-16) 0;
+  padding: var(--sp-12) var(--page-pad) 0;
   font-size: var(--ta-size);
   line-height: var(--ta-line);
   color: var(--ink-3);
@@ -176,7 +176,7 @@
   min-height: 0;
   display: flex;
   gap: var(--sp-8);
-  padding: var(--sp-12) var(--sp-16) var(--sp-16);
+  padding: var(--sp-12) var(--page-pad) var(--page-pad);
   overflow-x: auto;
 }
 
@@ -381,10 +381,10 @@
   .toolbar,
   .period,
   .board {
-    padding-inline: var(--sp-12);
+    padding-inline: var(--page-pad-mobile);
   }
 
   .orders__alert {
-    margin-inline: var(--sp-12);
+    margin-inline: var(--page-pad-mobile);
   }
 }
