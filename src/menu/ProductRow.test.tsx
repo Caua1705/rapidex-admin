@@ -48,10 +48,17 @@ describe('ProductRow', () => {
     expect(screen.getByText(/24,90/)).toBeInTheDocument();
   });
 
-  it('item disponível traz o interruptor ligado', () => {
+  /*
+   * O estado positivo NÃO é escrito.
+   *
+   * "DISPONÍVEL" ao lado de um interruptor ligado, em toda linha da lista, é a
+   * mesma informação duas vezes. Quem diz que o item está à venda é o
+   * interruptor; a palavra fica para os estados que não são o normal.
+   */
+  it('item disponível traz o interruptor ligado e nenhum rótulo', () => {
     renderRow();
     expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByText('Disponível')).toBeInTheDocument();
+    expect(screen.queryByText('Disponível')).not.toBeInTheDocument();
   });
 
   it('esgotado desliga o interruptor e diz isso uma vez só, sem esmaecer a linha', () => {

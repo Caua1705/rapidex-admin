@@ -72,14 +72,15 @@ export function MenuPage() {
       <section className="menu__panel">
         <header className="menu__header">
           <div className="menu__heading">
-            <h1 className="menu__title">{selectedCategory?.name ?? 'Cardápio'}</h1>
+            {/* O nome da categoria é o título da tela — nível 1, um por tela. */}
+            <h1 className="t-title menu__title">{selectedCategory?.name ?? 'Cardápio'}</h1>
             {selectedCategory && !isCategoryActive(selectedCategory) ? (
               <span className="tag">Inativa</span>
             ) : null}
             {selectedCategory ? (
               <button
                 type="button"
-                className="btn btn--sm icon-btn"
+                className="btn btn--sm btn--ghost icon-btn"
                 onClick={() =>
                   setCategoryDraft({
                     id: selectedCategory.id,
@@ -150,68 +151,73 @@ export function MenuPage() {
           />
         </div>
 
+        {/* A lista é a área de trabalho: um degrau de tom acima do fundo da
+            página, sem cartão dentro de cartão. */}
         <div className="menu__list">
-          {/* A lista é um cartão em superfície elevada sobre o fundo da página:
-              é o que separa "a área de trabalho" do resto da tela. */}
-          <div className="menu__card">
-            {menu.isLoadingCategories ? (
-              <p className="menu__empty faint">Carregando o cardápio…</p>
-            ) : menu.categories.length === 0 ? (
-              <p className="menu__empty faint">
-                Nenhuma categoria ainda. Crie a primeira para começar o cardápio.
-              </p>
-            ) : menu.products.length === 0 ? (
-              <p className="menu__empty faint">
-                {menu.isLoadingProducts ? 'Carregando…' : 'Nenhum item encontrado.'}
-              </p>
-            ) : (
-              // A coluna de setor entra pelo modificador porque ela vale para a
-              // LISTA inteira (depende da filial, não do item): sem isso, a
-              // grade teria largura diferente conforme a linha.
-              <ul className={`menu__items${branchChosen ? ' menu__items--with-sector' : ''}`}>
-                {menu.products.map((product) => (
-                  <ProductRow
-                    key={product.id}
-                    product={product}
-                    sectors={printing.sectors}
-                    showSector={branchChosen}
-                    isSaving={menu.pendingAvailability.includes(product.id)}
-                    onToggleAvailability={() => void menu.toggleAvailability(product)}
-                    onEdit={() =>
-                      setProductDraft({
-                        id: product.id,
-                        categoryId: product.category_id,
-                        name: product.name,
-                        price: formatPriceInput(product.price),
-                        description: product.description ?? '',
-                        isActive: product.is_active !== false,
-                        isAvailable: product.is_available !== false,
-                        printSectorId: product.printing_sector_id ?? null,
-                      })
-                    }
-                  />
-                ))}
-              </ul>
-            )}
-          </div>
+          {menu.isLoadingCategories ? (
+            <p className="menu__empty faint">Carregando o cardápio…</p>
+          ) : menu.categories.length === 0 ? (
+            <p className="menu__empty faint">
+              Nenhuma categoria ainda. Crie a primeira para começar o cardápio.
+            </p>
+          ) : menu.products.length === 0 ? (
+            <p className="menu__empty faint">
+              {menu.isLoadingProducts ? 'Carregando…' : 'Nenhum item encontrado.'}
+            </p>
+          ) : (
+            // A coluna de setor entra pelo modificador porque ela vale para a
+            // LISTA inteira (depende da filial, não do item): sem isso, a
+            // grade teria largura diferente conforme a linha.
+            <ul className={`menu__items${branchChosen ? ' menu__items--with-sector' : ''}`}>
+              {menu.products.map((product) => (
+                <ProductRow
+                  key={product.id}
+                  product={product}
+                  sectors={printing.sectors}
+                  showSector={branchChosen}
+                  isSaving={menu.pendingAvailability.includes(product.id)}
+                  onToggleAvailability={() => void menu.toggleAvailability(product)}
+                  onEdit={() =>
+                    setProductDraft({
+                      id: product.id,
+                      categoryId: product.category_id,
+                      name: product.name,
+                      price: formatPriceInput(product.price),
+                      description: product.description ?? '',
+                      isActive: product.is_active !== false,
+                      isAvailable: product.is_available !== false,
+                      printSectorId: product.printing_sector_id ?? null,
+                    })
+                  }
+                />
+              ))}
+            </ul>
+          )}
         </div>
 
-        <footer className="menu__footer faint">
-          <span>
-            {menu.products.length} de {menu.totalInCategory}{' '}
-            {menu.totalInCategory === 1 ? 'item' : 'itens'} nesta categoria
-          </span>
-          {menu.products.length < menu.totalInCategory ? (
+        {/*
+          O rodapé só existe quando há o que carregar.
+          "3 de 3 itens nesta categoria" com tudo na tela é a terceira vez que
+          o mesmo número aparece — a barra de categorias já diz "3 itens" ao
+          lado do nome, e as três linhas estão logo acima, contáveis com o
+          olho. O que a tela NÃO diz sozinha é que faltam itens fora da página.
+        */}
+        {menu.products.length < menu.totalInCategory ? (
+          <footer className="menu__footer faint">
+            <span>
+              <span className="mono">{menu.products.length}</span> de{' '}
+              <span className="mono">{menu.totalInCategory}</span> itens na tela
+            </span>
             <button
               type="button"
-              className="btn btn--sm"
+              className="btn btn--sm btn--ghost"
               onClick={() => void menu.loadMoreProducts()}
               disabled={menu.isLoadingProducts}
             >
               Carregar mais
             </button>
-          ) : null}
-        </footer>
+          </footer>
+        ) : null}
       </section>
 
       {categoryDraft ? (

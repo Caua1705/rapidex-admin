@@ -4,7 +4,7 @@ import { useSession } from '../auth/session-context';
 import { BOARD_COLUMNS, columnCount, groupOrdersIntoColumns } from './board-columns';
 import { OrderDetailPanel } from './OrderDetailPanel';
 import { OrdersToolbar } from './OrdersToolbar';
-import { PeriodSummary } from './PeriodSummary';
+import { PeriodLine } from './PeriodLine';
 import { StatusColumn } from './StatusColumn';
 import { useNewOrderSound } from './useNewOrderSound';
 import { useOrderStream } from './useOrderStream';
@@ -79,10 +79,11 @@ export function OrdersPage() {
           </p>
         ) : null}
 
-        <PeriodSummary
-          counts={board.counts}
+        <PeriodLine
           total={board.totalInFilter}
+          loaded={loadedCount}
           isLoading={board.isLoading}
+          onLoadMore={() => void board.loadMore()}
         />
 
         <div className="board">
@@ -98,16 +99,6 @@ export function OrdersPage() {
           ))}
         </div>
 
-        <footer className="orders__footer faint">
-          <span>
-            {loadedCount} de {board.totalInFilter} pedidos do período carregados
-          </span>
-          {loadedCount < board.totalInFilter ? (
-            <button type="button" className="btn btn--sm" onClick={() => void board.loadMore()}>
-              Carregar mais
-            </button>
-          ) : null}
-        </footer>
       </div>
 
       <OrderDetailPanel

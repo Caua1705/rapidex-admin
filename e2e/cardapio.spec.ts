@@ -121,6 +121,13 @@ test('item inativo esmaece e não oferece o interruptor de disponível', async (
 test('reordenar categoria manda a lista completa de ids', async ({ page }) => {
   await abrirCardapio(page);
 
+  /*
+   * As setas de reordenar só aparecem com o ponteiro na linha — elas ocupam o
+   * lugar da contagem, e é isso que tira da barra uma coluna de setinhas
+   * permanentes competindo com o nome da categoria. Por isso o teste passa o
+   * mouse antes de clicar, como a pessoa faz.
+   */
+  await page.getByTestId('category-select-cat-2').hover();
   await page.getByRole('button', { name: 'Mover Acompanhamentos para cima' }).click();
 
   await expect.poll(() => api.reorderCalls()).toHaveLength(1);

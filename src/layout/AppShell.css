@@ -143,8 +143,14 @@
     gap: var(--space-4);
   }
 
+  /* Na trilha só cabe o selo; o nome escrito sairia cortado pela metade. */
   .shell__brand {
     padding: 0;
+    justify-content: center;
+  }
+
+  .shell__brand .logo__wordmark {
+    display: none;
   }
 
   .shell__group {

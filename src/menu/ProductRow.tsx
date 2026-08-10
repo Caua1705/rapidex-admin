@@ -14,8 +14,13 @@ import { isProductActive, isProductAvailable, showsAvailabilityToggle } from './
  * ancorava o olho num lugar diferente. Com a grade, preço e estado ficam
  * sempre na mesma abscissa e a coluna inteira se lê de cima a baixo.
  *
- * O interruptor de esgotado fica no fim, com o rótulo do estado ATUAL ao lado
- * — um interruptor sem legenda obriga a decorar de que lado é "ligado".
+ * O ESTADO POSITIVO NÃO É ESCRITO. "DISPONÍVEL" em verde ao lado de um
+ * interruptor verde ligado, repetido em toda linha da lista, é a mesma
+ * informação duas vezes e uma parede de cor que não carrega significado
+ * nenhum: se todas as linhas são verdes, o verde não distingue nada. O que
+ * sobrou é a palavra dos estados que NÃO são o normal — "Esgotado" ao lado do
+ * interruptor desligado, "Inativo" como etiqueta —, e são justamente elas que
+ * o lojista está procurando quando abre esta tela.
  *
  * Item inativo é outro assunto: ele não está à venda, então a linha esmaece e
  * o interruptor de disponibilidade some. Perguntar "tem hoje?" sobre algo que
@@ -77,7 +82,7 @@ export function ProductRow({
         ) : null}
       </span>
 
-      <span className="item__price mono">{formatCurrency(product.price)}</span>
+      <span className="item__price num">{formatCurrency(product.price)}</span>
 
       {/*
         A coluna existe para o lojista CONFERIR de bate-pronto se esqueceu
@@ -110,9 +115,9 @@ export function ProductRow({
       <span className="item__status">
         {showsAvailabilityToggle(product) ? (
           <>
-            <span className={`item__state${available ? '' : ' item__state--out'}`}>
-              {available ? 'Disponível' : 'Esgotado'}
-            </span>
+            {/* Só o estado que NÃO é o normal ganha palavra. Ver o comentário
+                do componente. */}
+            {available ? null : <span className="item__state">Esgotado</span>}
             <Switch
               checked={available}
               disabled={isSaving}
@@ -123,9 +128,15 @@ export function ProductRow({
         ) : null}
       </span>
 
+      {/*
+        Ação secundária: sem caixa, e só aparece com o ponteiro na linha (ou
+        com o foco do teclado nela — ver `.item__edit` no CSS). Uma coluna de
+        botões contornados, um por linha, é uma grade de caixinhas competindo
+        com o nome do item, que é o que se veio ler.
+      */}
       <button
         type="button"
-        className="btn btn--sm icon-btn item__edit"
+        className="btn btn--sm btn--ghost icon-btn item__edit"
         onClick={onEdit}
         aria-label={`Editar ${product.name}`}
         title="Editar item"

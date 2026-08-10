@@ -49,39 +49,49 @@ export function OrderCard({
       data-testid={`order-card-${order.order_number}`}
       data-status={order.status}
     >
+      {/*
+        Nº, hora, cronômetro e total na MESMA linha. Os dois números que se
+        comparam entre cards — o nº à esquerda e o total à direita — ficam na
+        mesma linha de base e em mono tabular, então a coluna inteira se lê de
+        cima a baixo sem o olho reancorar.
+      */}
       <div className="order-card__top">
         <strong className="order-card__number mono">#{order.order_number}</strong>
         <span className="faint">{formatTime(order.created_at)}</span>
         <span className="order-card__elapsed">{formatElapsed(order.created_at)}</span>
+        <span className="order-card__total mono">{formatCurrency(order.total)}</span>
       </div>
 
       <div className="order-card__customer">{order.customer_name_snapshot}</div>
 
-      <div className="order-card__tags">
-        <span className={`tag tag--${order.order_type}`}>
-          {labelFor(ORDER_TYPE_LABELS, order.order_type)}
+      <div className="order-card__foot">
+        <span className="order-card__tags">
+          <span className="tag">{labelFor(ORDER_TYPE_LABELS, order.order_type)}</span>
+          <span className="tag">{labelFor(PAYMENT_METHOD_LABELS, order.payment_method)}</span>
         </span>
-        <span className="tag">{labelFor(PAYMENT_METHOD_LABELS, order.payment_method)}</span>
+
+        {!awaitingPayment ? (
+          <span className="order-card__payment faint">
+            {labelFor(PAYMENT_STATUS_LABELS, order.payment_status)}
+          </span>
+        ) : null}
       </div>
 
       {/*
         O destaque mais importante da tela: pagamento online que ainda não
         entrou. A cozinha não pode preparar — e o backend recusa o "aceitar"
-        enquanto isso. Precisa ser visível de longe, não um ícone discreto.
+        enquanto isso.
+
+        Ele perdeu a caixa vermelha (o card inteiro já é vermelho) mas ficou
+        numa LINHA PRÓPRIA: espremido ao lado das etiquetas, ele quebrava em
+        três linhas de letra miúda e virava o texto menos legível do card, que
+        é o oposto do que ele precisa ser.
       */}
       {awaitingPayment ? (
-        // Sem emoji: o vermelho e a borda já gritam, e emoji some na
-        // renderização de algumas telas de balcão.
         <div className="order-card__unpaid-banner">
           {labelFor(PAYMENT_STATUS_LABELS, order.payment_status)} — não preparar
         </div>
-      ) : (
-        <div className="order-card__payment faint">
-          {labelFor(PAYMENT_STATUS_LABELS, order.payment_status)}
-        </div>
-      )}
-
-      <div className="order-card__total mono">{formatCurrency(order.total)}</div>
+      ) : null}
     </button>
   );
 }

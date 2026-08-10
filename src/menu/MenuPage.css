@@ -3,8 +3,8 @@
  *
  * Deixar só o painel dentro do teto de 1400px e a barra colada à esquerda
  * abria, numa tela de 2560px, um vão morto de 380px entre as duas: a barra num
- * canto, o cartão flutuando longe dela. Centralizando o bloco todo, a sobra
- * fica nas beiradas, igual dos dois lados, e a tela lê como uma página.
+ * canto, a lista flutuando longe dela. Centralizando o bloco todo, a sobra fica
+ * nas beiradas, igual dos dois lados, e a tela lê como uma página.
  */
 .menu {
   flex: 1;
@@ -13,61 +13,56 @@
   width: 100%;
   max-width: var(--layout-max);
   margin-inline: auto;
+  padding: var(--space-5);
   background: var(--bg-app);
 }
 
 /* --- barra de categorias ------------------------------------------------- */
 
-/*
- * Sem fundo próprio: dentro do bloco centralizado, uma faixa de
- * `--bg-surface` viraria uma ilha com borda de um lado só. O que separa as
- * categorias da lista é a régua vertical — e a hierarquia de superfície fica
- * por conta do cartão, que é onde o trabalho acontece.
- */
 .rail {
   width: 200px;
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-right: 1px solid var(--border-subtle);
+  padding-right: var(--space-4);
 }
 
+/*
+ * O cabeçalho da barra fica na MESMA altura do cabeçalho do painel à direita
+ * (30px + o padding da tela), então "Categorias" e o nome da categoria aberta
+ * partem da mesma linha de base.
+ */
 .rail__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-3) var(--space-2);
-}
-
-.rail__title {
-  margin: 0;
-  font-size: var(--text-xs);
-  font-weight: var(--weight-bold);
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  gap: var(--space-3);
+  height: 30px;
+  flex: 0 0 auto;
+  padding-left: var(--space-3);
 }
 
 .rail__list {
   list-style: none;
   margin: 0;
-  padding: 0 var(--space-2) var(--space-4);
+  padding: 0 0 var(--space-5);
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 1px;
 }
 
+/*
+ * A linha inteira é a área de clique, e as setas de reordenar ficam em cima da
+ * contagem, na direita. `position: relative` é o que segura as duas.
+ */
 .rail__item {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
 }
 
 .rail__item:hover {
@@ -75,7 +70,7 @@
 }
 
 .rail__item--selected {
-  background: var(--brand-soft-bg);
+  background: var(--bg-active);
 }
 
 /*
@@ -96,23 +91,104 @@
   }
 }
 
-.rail__reorder {
+/* Nome à esquerda, contagem à direita, tudo numa linha de 24px. */
+.rail__select {
+  flex: 1;
+  min-width: 0;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  height: 24px;
+  padding: 0 var(--space-3);
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.rail__select:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -1px;
+}
+
+.rail__name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rail__item--selected .rail__name {
+  color: var(--text-primary);
+  font-weight: var(--weight-bold);
+}
+
+.rail__name--inactive {
+  color: var(--text-disabled);
+}
+
+.rail__count {
   flex: 0 0 auto;
+  font-size: var(--type-aux-size);
+  line-height: var(--type-aux-line);
+  color: var(--text-tertiary);
+  transition: opacity var(--motion-fast) var(--motion-ease);
+}
+
+/* --- reordenar ------------------------------------------------------------ */
+
+/*
+ * As setas ocupam o lugar da contagem quando o ponteiro entra na linha. Ficam
+ * centradas na altura da linha (e não empilhadas fora dela, como antes), e o
+ * `position: absolute` é o que impede a linha de mudar de largura ao aparecer
+ * — mexer o texto embaixo do ponteiro é como se erra o clique.
+ */
+.rail__reorder {
+  position: absolute;
+  right: var(--space-2);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-fast) var(--motion-ease);
+}
+
+.rail__item:hover .rail__reorder,
+.rail__item:focus-within .rail__reorder {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.rail__item:hover .rail__count,
+.rail__item:focus-within .rail__count {
+  opacity: 0;
 }
 
 .rail__chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
   border: none;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-tertiary);
   cursor: pointer;
   padding: 0;
-  line-height: 0;
-  border-radius: var(--radius-sm);
 }
 
 .rail__chevron:hover:not(:disabled) {
+  background: var(--bg-active);
   color: var(--text-primary);
 }
 
@@ -123,73 +199,16 @@
 
 .rail__chevron:focus-visible {
   outline: 2px solid var(--focus-ring);
-  outline-offset: 1px;
-}
-
-/*
- * Nome em cima, contagem embaixo. Empilhar aqui é o oposto da regra da linha de
- * produto (rótulo ao lado do controle, para caber ~18 itens): a barra de
- * categorias tem uma dúzia de linhas, não duzentas, e a segunda linha é a
- * resposta de "qual categoria está vazia?".
- */
-.rail__select {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  padding: var(--space-2) 0;
-  border: none;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-}
-
-.rail__label {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
-  max-width: 100%;
-}
-
-.rail__count {
-  font-size: var(--text-xs);
-  color: var(--text-tertiary);
-}
-
-.rail__select:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 1px;
-}
-
-.rail__name {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.rail__item--selected .rail__name {
-  color: var(--brand-soft-fg);
-  font-weight: var(--weight-bold);
-}
-
-.rail__name--inactive {
-  color: var(--text-disabled);
+  outline-offset: -1px;
 }
 
 /* --- painel da categoria ------------------------------------------------- */
 
 /*
  * O respiro lateral mora aqui, no painel, e não em cada faixa. Assim
- * cabeçalho, busca, cartão e rodapé têm exatamente a mesma largura e as bordas
- * de um alinham com as bordas do outro — sem cada faixa carregar o próprio
- * padding e desalinhar por 20px.
+ * cabeçalho, busca, lista e rodapé têm exatamente a mesma largura e as bordas
+ * de um alinham com as do outro — sem cada faixa carregar o próprio padding e
+ * desalinhar por 20px.
  */
 .menu__panel {
   flex: 1;
@@ -197,50 +216,65 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding-inline: var(--space-5);
 }
 
 .menu__header {
-  height: 52px;
+  height: 30px;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
-  border-bottom: 1px solid var(--border-subtle);
+  gap: var(--space-4);
 }
 
 .menu__heading {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   min-width: 0;
 }
 
-/* As ações de CATEGORIA, juntas no canto: aplicar setor e novo item. */
-.menu__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex: 0 0 auto;
-}
-
 .menu__title {
-  margin: 0;
-  font-size: var(--text-lg);
-  font-weight: var(--weight-extrabold);
-  color: var(--text-primary);
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/*
+ * As ações da CATEGORIA — editar e o menu de lote — perdem a caixa e só
+ * aparecem com o ponteiro no cabeçalho. Contornadas, elas tinham o mesmo peso
+ * visual de "Novo item", que é a ação do dia.
+ */
+.menu__heading .btn--ghost {
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--motion-ease);
+}
+
+.menu__header:hover .btn--ghost,
+.menu__heading:focus-within .btn--ghost,
+.menu__heading .actions-menu__list ~ *,
+.menu__heading .btn--ghost[aria-expanded='true'] {
+  opacity: 1;
+}
+
+.menu__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 0 0 auto;
+}
+
+.menu__alert {
+  margin-top: var(--space-4);
+}
+
 /* --- menu de ações da categoria ------------------------------------------ */
 
 /*
- * As ações em lote moram aqui, ao lado do nome, e não no canto junto de "Novo
- * item": aplicar setor sobrescreve a categoria inteira, e dois botões lado a
- * lado diriam ao olho que criar um item e reescrever oitenta custam o mesmo.
+ * As ações em lote moram ao lado do NOME, e não no canto junto de "Novo item":
+ * aplicar setor sobrescreve a categoria inteira, e dois botões lado a lado
+ * diriam ao olho que criar um item e reescrever oitenta custam o mesmo.
  */
 .actions-menu {
   position: relative;
@@ -249,33 +283,33 @@
 
 .actions-menu__list {
   position: absolute;
-  top: calc(100% + var(--space-1));
+  top: calc(100% + var(--space-2));
   left: 0;
   z-index: 30;
   min-width: 232px;
   display: flex;
   flex-direction: column;
   padding: var(--space-1);
-  background: var(--bg-surface);
+  background: var(--bg-surface-2);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
 }
 
 .actions-menu__item {
-  padding: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   border: 0;
   border-radius: var(--radius-sm);
   background: none;
   font: inherit;
-  font-size: var(--text-sm);
+  font-size: var(--type-body-size);
+  line-height: 22px;
   color: var(--text-primary);
   text-align: left;
   white-space: nowrap;
   cursor: pointer;
 }
 
-/* Item interativo CLAREIA no hover — o fundo já é quase preto. */
 .actions-menu__item:hover:not(:disabled) {
   background: var(--bg-hover);
 }
@@ -290,20 +324,18 @@
   cursor: not-allowed;
 }
 
-.menu__alert {
-  margin-top: var(--space-3);
-}
+/* --- busca ---------------------------------------------------------------- */
 
 .menu__search {
   position: relative;
-  padding: var(--space-3) 0 var(--space-2);
+  padding: var(--space-4) 0 var(--space-3);
   flex: 0 0 auto;
 }
 
 .menu__search-icon {
   position: absolute;
   left: var(--space-3);
-  top: calc(var(--space-3) + 9px);
+  top: calc(var(--space-4) + 7px);
   display: flex;
   color: var(--text-tertiary);
   pointer-events: none;
@@ -316,27 +348,21 @@
  */
 .menu__search .menu__search-input {
   width: 100%;
-  padding-block: var(--space-1);
-  padding-left: var(--space-7);
+  padding-left: var(--space-8);
 }
 
+/* --- a lista -------------------------------------------------------------- */
+
+/*
+ * A lista é a área de trabalho: um degrau de tom acima do fundo da página, sem
+ * borda e sem sombra. O que diz onde ela começa e termina é o próprio tom.
+ */
 .menu__list {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding-block: 0 var(--space-4);
-}
-
-/*
- * Hierarquia de superfície: a lista é um cartão elevado com borda sobre o
- * fundo da página. Sem ele, as linhas flutuavam direto no `--bg-app` e não
- * havia nada dizendo onde a área de trabalho começa e termina.
- */
-.menu__card {
   background: var(--bg-surface);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+  border-radius: var(--radius-md);
 }
 
 .menu__items {
@@ -346,8 +372,9 @@
 }
 
 .menu__empty {
-  padding: var(--space-7) var(--space-4);
-  font-size: var(--text-base);
+  padding: var(--space-7) var(--space-5);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
 }
 
 .menu__footer {
@@ -355,9 +382,9 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding-block: var(--space-1);
-  border-top: 1px solid var(--border-subtle);
-  font-size: var(--text-xs);
+  padding-block: var(--space-3);
+  font-size: var(--type-aux-size);
+  line-height: var(--type-aux-line);
 }
 
 /* --- linha do item ------------------------------------------------------- */
@@ -372,10 +399,10 @@
  */
 .item {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 104px 132px 28px;
+  grid-template-columns: 24px minmax(0, 1fr) 88px 120px 24px;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-1) var(--space-3);
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--border-subtle);
   /* Esmaecer é o que comunica "saiu do cardápio"; a transição faz a mudança
      de estado ser vista, e não descoberta na próxima olhada. */
@@ -400,14 +427,13 @@
 }
 
 .item__thumb {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--radius-sm);
   object-fit: cover;
-  /* Um degrau ABAIXO do cartão: no cartão elevado, o marcador de foto
-     precisa afundar para aparecer. */
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
+  /* Um degrau ABAIXO da lista: no cartão, o marcador de foto precisa afundar
+     para aparecer. */
+  background: var(--bg-sunken);
 }
 
 .item__thumb--empty {
@@ -424,13 +450,13 @@
 .item__title {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   min-width: 0;
 }
 
 .item__name {
-  font-size: var(--text-base);
-  line-height: 18px;
+  font-size: var(--type-body-size);
+  line-height: 17px;
   font-weight: var(--weight-semibold);
   color: var(--text-primary);
   white-space: nowrap;
@@ -439,17 +465,17 @@
 }
 
 .item__description {
-  font-size: var(--text-xs);
-  line-height: 14px;
+  font-size: var(--type-aux-size);
+  line-height: 15px;
   color: var(--text-tertiary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* Dinheiro: mono tabular e à direita, como em toda a tela. */
 .item__price {
-  text-align: right;
-  font-size: var(--text-sm);
+  font-size: var(--type-body-size);
   color: var(--text-secondary);
   white-space: nowrap;
 }
@@ -461,12 +487,12 @@
  * desalinharia o preço de uma linha para a outra.
  */
 .menu__items--with-sector .item {
-  grid-template-columns: 28px minmax(0, 1fr) 104px 128px 132px 28px;
+  grid-template-columns: 24px minmax(0, 1fr) 88px 120px 120px 24px;
 }
 
 .item__sector {
-  font-size: var(--text-xs);
-  line-height: 14px;
+  font-size: var(--type-aux-size);
+  line-height: var(--type-aux-line);
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -492,30 +518,40 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
-/* Estado e interruptor lado a lado, não empilhados: empilhar dobrava a altura
-   de toda linha por causa da coluna mais estreita da grade. */
+/*
+ * Só "Esgotado" é escrito, e em neutro.
+ *
+ * "DISPONÍVEL" em verde em toda linha era a mesma informação que o interruptor
+ * já dá, numa cor que — repetida em todas as linhas — não distinguia nada. O
+ * que sobrou é a palavra do estado que NÃO é o normal, que é justamente o que
+ * o lojista está procurando ao abrir esta tela.
+ */
 .item__state {
   font-size: var(--text-xs);
-  line-height: 14px;
+  line-height: var(--leading-xs);
   font-weight: var(--weight-bold);
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
   white-space: nowrap;
-  color: var(--status-completed-h);
-  transition: color var(--motion-base) var(--motion-ease);
+  color: var(--text-tertiary);
 }
 
-.item__state--out {
-  color: var(--status-cancelled-h);
-}
-
-/* Menor que o `.btn--sm` padrão: aqui ele é quem definiria a altura da linha. */
+/*
+ * Editar aparece com o ponteiro na linha — ou com o foco do teclado nela, o
+ * que é o que mantém a ação alcançável por quem não usa mouse.
+ */
 .item__edit {
-  padding: var(--space-1);
   justify-self: end;
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--motion-ease);
+}
+
+.item:hover .item__edit,
+.item:focus-within .item__edit {
+  opacity: 1;
 }
 
 /* --- formulários dos diálogos -------------------------------------------- */
@@ -523,12 +559,12 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-5);
 }
 
 .form__grid {
   display: flex;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
 .form__grid > * {
@@ -539,41 +575,46 @@
 .form__row {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
 .form__switch-label {
-  font-size: var(--text-sm);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
   font-weight: var(--weight-semibold);
   color: var(--text-primary);
 }
 
 .form__hint {
-  margin: 2px 0 0;
-  font-size: var(--text-xs);
+  margin: var(--space-1) 0 0;
+  font-size: var(--type-aux-size);
+  line-height: var(--type-aux-line);
   color: var(--text-tertiary);
 }
 
 .form__error {
-  font-size: var(--text-xs);
+  font-size: var(--type-aux-size);
+  line-height: var(--type-aux-line);
   color: var(--danger-soft-fg);
 }
 
 .form__section {
   border-top: 1px solid var(--border-subtle);
-  padding-top: var(--space-4);
+  padding-top: var(--space-5);
 }
 
 .form__section-title {
-  margin: 0 0 var(--space-2);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-bold);
+  margin: 0 0 var(--space-3);
+  font-size: var(--type-section-size);
+  line-height: var(--type-section-line);
+  font-weight: var(--type-section-weight);
+  letter-spacing: var(--type-section-tracking);
   color: var(--text-primary);
 }
 
 .groups {
   list-style: none;
-  margin: 0 0 var(--space-2);
+  margin: 0 0 var(--space-3);
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -582,20 +623,21 @@
 
 .groups__item {
   background: var(--bg-sunken);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
 }
 
 .groups__name {
-  font-size: var(--text-sm);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
   font-weight: var(--weight-semibold);
   color: var(--text-primary);
 }
 
 .groups__options {
-  font-size: var(--text-xs);
-  margin-top: 2px;
+  font-size: var(--type-aux-size);
+  line-height: var(--type-aux-line);
+  margin-top: var(--space-1);
 }
 
 /* --- estreito ------------------------------------------------------------ */
@@ -603,45 +645,64 @@
 @media (max-width: 720px) {
   .menu {
     flex-direction: column;
+    padding: var(--space-4);
   }
 
   .rail {
     width: 100%;
-    border-right: none;
-    border-bottom: 1px solid var(--border-subtle);
-    max-height: 34vh;
-  }
-
-  .menu__panel {
-    padding-inline: var(--space-3);
+    padding-right: 0;
+    padding-bottom: var(--space-3);
+    max-height: 30vh;
   }
 
   /*
-   * No toque a densidade cede um pouco: a linha ganha altura de alvo de dedo e
-   * o rótulo do estado sai da grade. O interruptor fica — verde ou cinza, ele
-   * continua dizendo a mesma coisa, e é ele que precisa ser acertado com o
-   * dedo. As colunas continuam alinhadas; só ficam mais estreitas.
+   * No toque não há hover: as setas de reordenar ficam sempre visíveis e a
+   * contagem sai. Escondê-las atrás de um estado que o dedo não produz seria
+   * tirar a reordenação do celular inteiro.
+   */
+  .rail__reorder {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .rail__count {
+    display: none;
+  }
+
+  .rail__select {
+    height: 32px;
+    padding-right: var(--space-8);
+  }
+
+  /*
+   * No toque a densidade cede: a linha ganha altura de alvo de dedo e o rótulo
+   * do estado sai da grade. O interruptor fica — é ele que precisa ser
+   * acertado com o dedo — e a ação de editar volta a ser permanente, porque
+   * não existe hover para revelá-la.
+   */
+  /*
+   * A coluna do nome é a que não pode encolher: numa tela de 390px, "X-Burger
+   * Clássico" cortado em "X-Burger Cl…" obriga a abrir o item para saber qual
+   * é. Por isso o vão cai para 4px e o preço para 64px — o que sobra vai todo
+   * para o nome.
    */
   .item {
-    grid-template-columns: 28px minmax(0, 1fr) 84px 44px 28px;
+    grid-template-columns: 24px minmax(0, 1fr) 64px 40px 24px;
     gap: var(--space-2);
-    padding-block: var(--space-2);
+    padding-block: var(--space-3);
   }
 
-  .item__state {
-    display: none;
-  }
-
-  /*
-   * No toque o setor sai da grade junto com o rótulo do estado: numa tela
-   * estreita ele espremeria o nome do item, que é o que se procura primeiro.
-   * A conferência de setor é tarefa de mesa, feita no desktop.
-   */
   .menu__items--with-sector .item {
-    grid-template-columns: 28px minmax(0, 1fr) 84px 44px 28px;
+    grid-template-columns: 24px minmax(0, 1fr) 64px 40px 24px;
   }
 
+  .item__state,
   .item__sector {
     display: none;
+  }
+
+  .item__edit,
+  .menu__heading .btn--ghost {
+    opacity: 1;
   }
 }

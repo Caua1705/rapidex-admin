@@ -12,6 +12,13 @@ import { isCategoryActive } from './menu-model';
  *
  * Subir/descer em vez de arrastar: o painel é usado no balcão, às vezes com
  * touch e a mão ocupada, e arrastar exige precisão que ali não existe.
+ *
+ * AS SETAS FICAM À DIREITA E SÓ APARECEM NO HOVER. Antes elas moravam à
+ * esquerda, espremidas uma em cima da outra e desalinhadas do nome — e ainda
+ * empurravam todos os nomes 14px para dentro, desalinhando a lista do título
+ * "Categorias" logo acima. À direita elas ocupam o lugar da contagem, que é
+ * informação de varredura (lida sem o mouse em cima de nenhuma linha) e por
+ * isso pode ceder o espaço enquanto o ponteiro está ali.
  */
 export function CategoryRail({
   categories,
@@ -40,10 +47,10 @@ export function CategoryRail({
   return (
     <div className="rail">
       <div className="rail__header">
-        <h2 className="rail__title">Categorias</h2>
+        <h2 className="t-label">Categorias</h2>
         <button
           type="button"
-          className="btn btn--sm icon-btn"
+          className="btn btn--sm btn--ghost icon-btn"
           onClick={onNew}
           aria-label="Nova categoria"
           title="Nova categoria"
@@ -67,6 +74,34 @@ export function CategoryRail({
               data-moved={category.id === movedCategoryId ? 'true' : undefined}
               onAnimationEnd={onMoveSettled}
             >
+              <button
+                type="button"
+                className="rail__select"
+                onClick={() => onSelect(category.id)}
+                aria-current={selected ? 'true' : undefined}
+                data-testid={`category-select-${category.id}`}
+              >
+                <span className={`rail__name${active ? '' : ' rail__name--inactive'}`}>
+                  {category.name}
+                </span>
+                {!active ? <span className="tag">Inativa</span> : null}
+
+                {/*
+                  A contagem responde "qual categoria está vazia?" sem abrir uma
+                  por uma — é assim que se descobre que o cardápio subiu pela
+                  metade antes de o cliente descobrir. Ela sai de baixo do nome
+                  e vai para a direita da MESMA linha: a barra encolhe de 34px
+                  por categoria para 24px, e os números terminam todos na mesma
+                  abscissa, que é o que permite compará-los descendo o olho.
+                */}
+                {count !== undefined ? (
+                  <span className="rail__count" data-testid={`category-count-${category.id}`}>
+                    <span className="mono">{count}</span> {count === 1 ? 'item' : 'itens'}
+                  </span>
+                ) : null}
+              </button>
+
+              {/* Centradas no bloco do nome e escondidas até o ponteiro chegar. */}
               <span className="rail__reorder">
                 <button
                   type="button"
@@ -89,32 +124,6 @@ export function CategoryRail({
                   <ChevronDownIcon size={14} />
                 </button>
               </span>
-
-              <button
-                type="button"
-                className="rail__select"
-                onClick={() => onSelect(category.id)}
-                aria-current={selected ? 'true' : undefined}
-                data-testid={`category-select-${category.id}`}
-              >
-                <span className="rail__label">
-                  <span className={`rail__name${active ? '' : ' rail__name--inactive'}`}>
-                    {category.name}
-                  </span>
-                  {!active ? <span className="tag">Inativa</span> : null}
-                </span>
-
-                {/*
-                  A contagem embaixo do nome responde "qual categoria está
-                  vazia?" sem abrir uma por uma — é assim que se descobre que o
-                  cardápio subiu pela metade antes de o cliente descobrir.
-                */}
-                {count !== undefined ? (
-                  <span className="rail__count" data-testid={`category-count-${category.id}`}>
-                    <span className="mono">{count}</span> {count === 1 ? 'item' : 'itens'}
-                  </span>
-                ) : null}
-              </button>
             </li>
           );
         })}
