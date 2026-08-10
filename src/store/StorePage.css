@@ -483,6 +483,17 @@
   opacity: 0.55;
 }
 
+/* Revelada no ponteiro (ou no foco de teclado), como toda ação de linha. */
+.sectors__rename {
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease);
+}
+
+.sectors__row:hover .sectors__rename,
+.sectors__row:focus-within .sectors__rename {
+  opacity: 1;
+}
+
 /* A edição ocupa as duas primeiras colunas: o nome e o botão de renomear. */
 .sectors__edit {
   grid-column: 1 / 3;
@@ -553,7 +564,8 @@
   }
 
   /* No toque não há hover: a ação precisa estar sempre visível. */
-  .methods__remove {
+  .methods__remove,
+  .sectors__rename {
     opacity: 1;
   }
 }

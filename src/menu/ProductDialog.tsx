@@ -4,7 +4,7 @@ import { fetchProductDetail } from '../api/menu';
 import type { Category, PrintSector, ProductOptionGroup } from '../api/types';
 import { Select } from '../ds/Select';
 import { formatCurrency } from '../orders/format';
-import { activeSectors, NO_SECTOR_LABEL } from '../print-sectors/print-sectors';
+import { activeSectors, NO_SECTOR_LABEL, sectorLabelFor } from '../print-sectors/print-sectors';
 import { Modal } from '../ui/Modal';
 import { Switch } from '../ui/Switch';
 import { parsePriceInput } from './menu-model';
@@ -162,6 +162,12 @@ export function ProductDialog({
 
           O seletor guarda '' para representar o null do backend — uma opção não
           carrega null. A conversão acontece aqui, num lugar só.
+
+          O PLACEHOLDER DIZ POR QUE NÃO HÁ VALOR. Sem filial escolhida, o id
+          gravado no produto não tem nome: setor é da filial, e este item pode
+          imprimir em lugares diferentes em cada loja. O gatilho dizia
+          "Escolher…", que é falso — não há o que escolher, e o item talvez já
+          tenha setor.
         */}
         <div className="field">
           <span className="field__label" aria-hidden="true">
@@ -170,18 +176,13 @@ export function ProductDialog({
           <Select
             value={draft.printSectorId ?? ''}
             disabled={!branchChosen}
+            placeholder={branchChosen ? NO_SECTOR_LABEL : 'Depende da filial'}
             onChange={(printSectorId) =>
               setDraft({ ...draft, printSectorId: printSectorId || null })
             }
             aria-label="Setor de impressão"
             data-testid="product-print-sector"
-            options={[
-              { value: '', label: NO_SECTOR_LABEL },
-              ...activeSectors(sectors).map((sector) => ({
-                value: sector.id,
-                label: sector.name,
-              })),
-            ]}
+            options={sectorOptions(draft.printSectorId, sectors)}
           />
           <span className="field__hint">
             {!branchChosen
@@ -264,4 +265,31 @@ export function ProductDialog({
       </div>
     </Modal>
   );
+}
+
+/**
+ * As opções do seletor de setor, incluindo a que o item JÁ tem.
+ *
+ * `activeSectors` oferece só os ativos, e com razão: escolher um setor
+ * desativado seria mandar comanda para uma impressora que o lojista acabou de
+ * tirar do ar. Só que o item pode estar apontando para um deles — ou para um
+ * setor de outra filial —, e uma lista onde o valor atual não existe faz o
+ * gatilho mostrar o placeholder, como se o campo estivesse vazio.
+ *
+ * A opção do valor atual entra desabilitada: ela DIZ onde o item imprime hoje
+ * sem oferecê-la a quem ainda não a tinha.
+ */
+function sectorOptions(
+  current: string | null,
+  sectors: readonly PrintSector[],
+): { value: string; label: string; disabled?: boolean }[] {
+  const options = [
+    { value: '', label: NO_SECTOR_LABEL },
+    ...activeSectors(sectors).map((sector) => ({ value: sector.id, label: sector.name })),
+  ];
+
+  if (current === null || options.some((option) => option.value === current)) return options;
+
+  const { label } = sectorLabelFor(current, sectors);
+  return [...options, { value: current, label, disabled: true }];
 }

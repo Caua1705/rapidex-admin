@@ -109,11 +109,17 @@ export function KitchenPage() {
                 <span className="kitchen-column__count tnum">{columnOrders.length}</span>
               </header>
 
+              {/*
+                Coluna vazia não escreve nada — o zero do cabeçalho já diz, e
+                "Nada aqui." aparecia em duas das três colunas ao mesmo tempo,
+                em letra que a cozinha lê de dois metros. Só o carregamento
+                fala, porque aí a coluna vazia AINDA NÃO é uma afirmação.
+              */}
               <div className="kitchen-column__cards">
                 {columnOrders.length === 0 ? (
-                  <p className="kitchen-column__empty faint">
-                    {kitchen.isLoading ? 'Carregando…' : 'Nada aqui.'}
-                  </p>
+                  kitchen.isLoading ? (
+                    <p className="kitchen-column__empty faint">Carregando…</p>
+                  ) : null
                 ) : (
                   columnOrders.map((order) => (
                     <KitchenCard

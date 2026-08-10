@@ -91,9 +91,12 @@ export function PrintingTab({ branchId }: { branchId: string }) {
                   <>
                     <span className="sectors__name">{sector.name}</span>
 
+                    {/* Ação secundária de linha: ícone sem caixa, como no
+                        cardápio. Contornada, ela virava uma grade de
+                        caixinhas competindo com o nome do setor. */}
                     <button
                       type="button"
-                      className="btn btn--sm icon-btn"
+                      className="btn btn--sm btn--ghost icon-btn sectors__rename"
                       onClick={() => {
                         setEditingId(sector.id);
                         setProblem(null);
