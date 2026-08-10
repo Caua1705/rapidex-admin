@@ -435,6 +435,17 @@
   opacity: 0.55;
 }
 
+/* Excluir aparece com o ponteiro na linha — ou com o foco do teclado nela. */
+.methods__remove {
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--motion-ease);
+}
+
+.methods__row:hover .methods__remove,
+.methods__row:focus-within .methods__remove {
+  opacity: 1;
+}
+
 .methods__label,
 .sectors__name {
   font-weight: var(--weight-medium);
@@ -532,5 +543,10 @@
 
   .hours__time {
     width: 100%;
+  }
+
+  /* No toque não há hover: a ação precisa estar sempre visível. */
+  .methods__remove {
+    opacity: 1;
   }
 }

@@ -164,9 +164,10 @@ function MethodList({
             onChange={(next) => onToggle(method, next)}
           />
 
+          {/* Sem caixa vermelha em toda linha: ver `.btn--ghost-danger`. */}
           <button
             type="button"
-            className="btn btn--sm btn--danger"
+            className="btn btn--sm btn--ghost-danger methods__remove"
             disabled={pendingIds.includes(method.id)}
             onClick={() => onRemove(method)}
             data-testid={`payment-remove-${method.id}`}

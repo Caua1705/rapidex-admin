@@ -179,6 +179,25 @@ textarea {
   color: var(--text-primary);
 }
 
+/*
+ * Ação perigosa dentro de uma linha de lista.
+ *
+ * Sem caixa como qualquer ação secundária — um botão vermelho contornado em
+ * TODA linha faz da exclusão a coisa mais visível da tela, que é o oposto do
+ * que ela deve ser. O vermelho aparece quando o ponteiro chega nela.
+ */
+.btn--ghost-danger {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-tertiary);
+}
+
+.btn--ghost-danger:hover:not(:disabled) {
+  background: var(--danger-soft-bg);
+  border-color: transparent;
+  color: var(--danger-soft-fg);
+}
+
 .btn--block {
   width: 100%;
 }
