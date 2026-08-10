@@ -6,13 +6,13 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: var(--space-10) var(--space-4);
+  padding: var(--space-7) var(--space-4);
   z-index: 50;
   overflow: auto;
 }
 
 .modal {
-  background: var(--bg-surface-raised);
+  background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);

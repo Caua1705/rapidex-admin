@@ -10,7 +10,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--space-5) var(--space-5) var(--space-10);
+  padding: var(--space-5) var(--space-5) var(--space-7);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -50,7 +50,7 @@
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
-  background: var(--bg-surface-raised);
+  background: var(--bg-surface);
 }
 
 /*
@@ -132,10 +132,10 @@
   flex-direction: column;
   gap: var(--space-2);
   align-items: flex-start;
-  padding: var(--space-8);
+  padding: var(--space-7);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
-  background: var(--bg-surface-raised);
+  background: var(--bg-surface);
   max-width: 640px;
 }
 
@@ -168,7 +168,7 @@
   padding: var(--space-4);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
-  background: var(--bg-surface-raised);
+  background: var(--bg-surface);
 }
 
 .store-form__section-head {
@@ -240,14 +240,14 @@
  */
 .store-form__actions {
   position: sticky;
-  bottom: calc(var(--space-10) * -1);
+  bottom: calc(var(--space-7) * -1);
   z-index: 20;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  margin: var(--space-2) calc(var(--space-5) * -1) calc(var(--space-10) * -1);
+  margin: var(--space-2) calc(var(--space-5) * -1) calc(var(--space-7) * -1);
   padding: var(--space-3) var(--space-5);
-  background: var(--bg-surface-raised);
+  background: var(--bg-surface);
   border-top: 1px solid var(--border-default);
   /*
    * Entra junto com a primeira alteração — é mudança de estado ("há algo não
@@ -475,7 +475,7 @@
 
 @media (max-width: 720px) {
   .store {
-    padding: var(--space-4) var(--space-3) var(--space-8);
+    padding: var(--space-4) var(--space-3) var(--space-7);
   }
 
   .hours__row,

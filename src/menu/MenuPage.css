@@ -256,7 +256,7 @@
   display: flex;
   flex-direction: column;
   padding: var(--space-1);
-  background: var(--bg-surface-raised);
+  background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
@@ -317,7 +317,7 @@
 .menu__search .menu__search-input {
   width: 100%;
   padding-block: var(--space-1);
-  padding-left: var(--space-10);
+  padding-left: var(--space-7);
 }
 
 .menu__list {
@@ -333,10 +333,9 @@
  * havia nada dizendo onde a área de trabalho começa e termina.
  */
 .menu__card {
-  background: var(--bg-surface-raised);
+  background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-elevation);
   overflow: hidden;
 }
 
@@ -347,7 +346,7 @@
 }
 
 .menu__empty {
-  padding: var(--space-8) var(--space-4);
+  padding: var(--space-7) var(--space-4);
   font-size: var(--text-base);
 }
 
@@ -582,7 +581,7 @@
 }
 
 .groups__item {
-  background: var(--bg-surface-sunken);
+  background: var(--bg-sunken);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: var(--space-3);

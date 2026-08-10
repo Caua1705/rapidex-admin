@@ -1,9 +1,6 @@
 /*
  * Base e primitivas compartilhadas do painel, todas escritas em cima de
  * tokens.css. Nenhuma cor literal aqui — é `var(--token)` ou não entra.
- *
- * Os nomes de classe (.btn, .field, .input, .alert, .conn) são os mesmos de
- * antes da migração para o design system: a troca é de valores, não de API.
  */
 @import './tokens.css';
 
@@ -26,8 +23,8 @@ body {
   background: var(--bg-app);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: var(--text-base);
-  line-height: var(--leading-base);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -44,23 +41,84 @@ textarea {
   color: var(--text-primary);
 }
 
+/* --- os cinco níveis de tipografia --------------------------------------
+ *
+ * Todo texto do painel é um destes cinco. A regra de leitura: se você não
+ * consegue dizer QUAL nível um texto usa, ele está errado.
+ */
+
+/* 1. Título de página — um por tela. */
+.t-title {
+  margin: 0;
+  font-size: var(--type-title-size);
+  line-height: var(--type-title-line);
+  font-weight: var(--type-title-weight);
+  letter-spacing: var(--type-title-tracking);
+  color: var(--text-primary);
+}
+
+/* 2. Título de seção — cabeçalho de cartão, de coluna, de aba. */
+.t-section {
+  margin: 0;
+  font-size: var(--type-section-size);
+  line-height: var(--type-section-line);
+  font-weight: var(--type-section-weight);
+  letter-spacing: var(--type-section-tracking);
+  color: var(--text-primary);
+}
+
+/* 3. Rótulo — nome de campo, cabeçalho de coluna, título de grupo. */
+.t-label {
+  margin: 0;
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* 4. Corpo — o conteúdo. */
+.t-body {
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  font-weight: var(--type-body-weight);
+  color: var(--text-primary);
+}
+
+/* 5. Auxiliar — ajuda, meta, rodapé, contagem. */
+.t-aux {
+  font-size: var(--type-aux-size);
+  line-height: var(--type-aux-line);
+  font-weight: var(--type-aux-weight);
+  color: var(--text-tertiary);
+}
+
 /* --- botões ------------------------------------------------------------ */
 
+/*
+ * Altura de 28px: o botão acompanha a linha de texto em vez de definir a
+ * altura da faixa onde está. `--space-3` de padding lateral e nada de sombra.
+ */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  height: 28px;
+  padding: 0 var(--space-3);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  background: var(--bg-surface-raised);
+  background: var(--bg-surface);
   color: var(--text-primary);
   cursor: pointer;
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
+  line-height: 1;
   font-weight: var(--weight-semibold);
   white-space: nowrap;
-  transition: background var(--motion-fast) var(--motion-ease);
+  transition:
+    background var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease);
 }
 
 .btn:hover:not(:disabled) {
@@ -91,7 +149,7 @@ textarea {
 }
 
 .btn--danger {
-  background: var(--danger-soft-bg);
+  background: transparent;
   border-color: var(--danger);
   color: var(--danger-soft-fg);
 }
@@ -101,54 +159,106 @@ textarea {
   border-color: var(--danger-hover);
 }
 
+/*
+ * Ação secundária: sem caixa até o ponteiro chegar.
+ *
+ * É a regra da rodada — ícone sem caixa, ação secundária no hover. Uma linha
+ * de lista com um botão contornado por linha vira uma grade de caixinhas, e a
+ * caixinha compete com o dado que a pessoa veio ler.
+ */
+.btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-tertiary);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: transparent;
+  color: var(--text-primary);
+}
+
 .btn--block {
   width: 100%;
 }
 
 .btn--sm {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--text-xs);
+  height: 24px;
+  padding: 0 var(--space-2);
+  font-size: var(--text-sm);
+}
+
+/* Botão só de ícone: quadrado, sem padding assimétrico. */
+.icon-btn {
+  width: 28px;
+  padding: 0;
+  line-height: 0;
+}
+
+.icon-btn.btn--sm {
+  width: 24px;
 }
 
 /* --- campos ------------------------------------------------------------ */
 
+/*
+ * Campo, rótulo e ajuda têm SEMPRE este espaçamento, em toda tela do painel:
+ * rótulo → campo é `--space-2` (4px), campo → ajuda é `--space-2`. É o que faz
+ * dois formulários diferentes lerem com o mesmo ritmo.
+ */
 .field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
+  min-width: 0;
 }
 
 .field__label {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+}
+
+.field__hint {
+  font-size: var(--type-aux-size);
+  line-height: var(--type-aux-line);
   color: var(--text-tertiary);
 }
 
 /*
- * Campo usa a superfície ELEVADA, não a rebaixada.
+ * O campo AFUNDA (`--bg-sunken`), não sobe.
  *
- * No escuro os dois funcionam, mas `--bg-surface-sunken` inverte para um bege
- * acinzentado no tema claro — e um campo cinza sobre cartão branco lê como
- * "desabilitado". Elevada dá preto-quase-preto no escuro e branco no claro,
- * que é o que o campo deve parecer nos dois.
+ * Num cartão que já tem tom próprio, um campo mais claro que o cartão vira
+ * outro cartão. Afundando, ele lê como "aqui se escreve" sem precisar de
+ * borda grossa nenhuma.
  */
 .input,
 .select,
 .textarea {
-  padding: var(--space-2) var(--space-3);
-  background: var(--bg-surface-raised);
+  height: 30px;
+  padding: 0 var(--space-3);
+  background: var(--bg-sunken);
   color: var(--text-primary);
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   min-width: 0;
 }
 
 .textarea {
+  height: auto;
+  padding: var(--space-3);
   resize: vertical;
-  min-height: 72px;
+  min-height: 64px;
   font-family: var(--font-sans);
+}
+
+.input:hover:not(:disabled),
+.select:hover:not(:disabled),
+.textarea:hover:not(:disabled) {
+  border-color: var(--border-default);
 }
 
 .input::placeholder,
@@ -172,13 +282,31 @@ textarea {
   cursor: not-allowed;
 }
 
+/* Caixa de marcar: laranja porque é o estado escolhido pelo lojista. */
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+.checkbox input {
+  accent-color: var(--brand);
+  width: 15px;
+  height: 15px;
+  margin: 0;
+}
+
 /* --- avisos ------------------------------------------------------------ */
 
 .alert {
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sm);
-  border: 1px solid;
-  font-size: var(--text-sm);
+  border-left: 2px solid;
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
 }
 
 .alert--error {
@@ -188,13 +316,13 @@ textarea {
 }
 
 .alert--warn {
-  background: color-mix(in oklch, var(--status-pending-h) 14%, transparent);
+  background: color-mix(in oklch, var(--status-pending-h) 12%, transparent);
   border-color: var(--status-pending-h);
   color: var(--status-pending-h);
 }
 
 .alert--info {
-  background: color-mix(in oklch, var(--status-accepted-h) 14%, transparent);
+  background: color-mix(in oklch, var(--status-accepted-h) 12%, transparent);
   border-color: var(--status-accepted-h);
   color: var(--status-accepted-h);
 }
@@ -204,9 +332,9 @@ textarea {
 /*
  * A faixa de conteúdo. Centraliza e para de crescer em `--layout-max`.
  *
- * Vai em cada faixa horizontal da tela (cabeçalho, busca, lista, rodapé) em vez
- * de num wrapper único, para que as bordas e os fundos de cada faixa continuem
- * indo de ponta a ponta enquanto só o CONTEÚDO fica alinhado na coluna central.
+ * Vai em cada faixa horizontal da tela (cabeçalho, abas, painel) em vez de num
+ * wrapper único, para que fundos de faixa continuem indo de ponta a ponta
+ * enquanto só o CONTEÚDO fica alinhado na coluna central.
  */
 .container {
   width: 100%;
@@ -224,11 +352,22 @@ textarea {
   color: var(--text-tertiary);
 }
 
-/* Todo número que se compara em coluna passa por aqui. */
+/*
+ * Todo número que se compara em coluna passa por aqui: nº do pedido, preço,
+ * total, cronômetro, contagem. Tabular e alinhado à direita — é o que permite
+ * comparar duas linhas sem reler.
+ */
 .mono {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: 'tnum' 1;
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1;
+  text-align: right;
 }
 
 .sr-only {
@@ -243,24 +382,51 @@ textarea {
   border: 0;
 }
 
+/* --- etiqueta ------------------------------------------------------------ */
+
+/*
+ * Etiqueta neutra. NUNCA colorida por categoria: a matiz é da escala de status
+ * do pedido, e pintar "Entrega" de azul a poria competindo com a coluna
+ * "Aceito", que é azul. O que separa uma etiqueta da outra é a palavra.
+ */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--bg-sunken);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
 /* --- barra de status da conexão ---------------------------------------- */
 
 .conn {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
+  gap: var(--space-2);
+  font-size: var(--type-aux-size);
+  line-height: var(--type-aux-line);
+  color: var(--text-tertiary);
 }
 
 .conn__dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: var(--radius-full);
   background: var(--text-tertiary);
   flex: 0 0 auto;
 }
 
+/*
+ * Verde só quando há o que comemorar, e mesmo assim discreto: "tempo real
+ * ligado" é o estado normal, e estado normal não precisa de cor. O ponto verde
+ * é a exceção mínima porque o contrário — sem conexão — precisa saltar.
+ */
 .conn--live .conn__dot {
   background: var(--status-completed-h);
 }
@@ -272,6 +438,10 @@ textarea {
 .conn--connecting .conn__dot {
   background: var(--status-pending-h);
   animation: conn-pulse 1s ease-in-out infinite;
+}
+
+.conn--offline {
+  color: var(--danger-soft-fg);
 }
 
 .conn--offline .conn__dot {

@@ -1,42 +1,46 @@
 /*
- * Tokens do Rapidex Design System.
- *
- * Consolidado a partir de
- * design/_ds/rapidex-design-system-c214e0d9-.../tokens/*.css. Os valores são os
- * mesmos; o que muda é que aqui eles vivem num arquivo só, versionado com o
- * app, e que a escala de status ganhou os dois apelidos que a máquina de
- * estados do backend usa e o DS não nomeia (`out_for_delivery`, `rejected`).
+ * Tokens do painel do lojista Rapidex.
  *
  * ESTE É O ÚNICO ARQUIVO DO src/ QUE PODE CONTER UMA COR LITERAL.
  * Em qualquer outro lugar, cor é `var(--token)`. `npm run lint` cobra isso
  * (scripts/check-design-tokens.mjs).
  *
- * Regras que os valores abaixo carregam (ver .claude/skills/rapidex-design-system):
- *   - Escuro é o padrão. Claro é o MESMO conjunto de tokens semânticos com as
- *     superfícies invertidas — nunca uma segunda paleta.
- *   - O laranja de marca é escasso: botão primário, item ativo da navegação,
- *     anel de foco. Nunca em texto de corpo nem em fundo de seção grande.
- *   - A escala de status é separada do laranja, para que nenhum status compita
- *     com o CTA. Vermelho não é status: é só ação perigosa.
- *   - Neutros têm viés quente (marrom), não cinza-azulado de SaaS.
+ * O que estes valores decidem (as regras estão em
+ * .claude/skills/rapidex-design-system/SKILL.md):
+ *
+ *   - FERRAMENTA DE OPERAÇÃO, NÃO PÁGINA DE PRODUTO. Corpo em 13px, escala
+ *     apertada, espaçamento menor do que o instinto pede. Um lojista abre isto
+ *     às 22h de sábado com a cozinha cheia: pixel gasto com decoração é pixel a
+ *     menos de pedido na tela.
+ *   - SUPERFÍCIE SE SEPARA POR TOM, NÃO POR BORDA. Existe uma escada de fundos
+ *     (`--bg-app` → `--bg-chrome` → `--bg-surface` → `--bg-surface-2`) e é ela
+ *     que diz o que está em cima do quê. Borda é exceção, não o desenho.
+ *   - COR COM AVAREZA. O laranja de marca aparece em três lugares e nada mais.
+ *     A escala de status pinta status de pedido e nada mais. O resto é neutro.
+ *   - Neutros com viés quente (marrom), nunca cinza-azulado de SaaS.
+ *   - Escuro é o padrão. Claro é O MESMO conjunto semântico com as superfícies
+ *     invertidas — nunca uma segunda paleta.
+ *
+ * INTOCÁVEIS nesta rodada, por decisão do produto: o laranja da marca
+ * (`--brand-*`) e a escala de status de pedido (`--status-*-h`).
  */
 
 :root {
   /* --- primitivas: neutros quentes ------------------------------------- */
-  --neutral-0: #0b0a09;
-  --neutral-50: #121110;
-  --neutral-100: #1a1816;
-  --neutral-150: #211e1b;
-  --neutral-200: #2a2622;
-  --neutral-300: #3d3833;
-  --neutral-400: #565049;
-  --neutral-500: #756e65;
-  --neutral-600: #9a9288;
-  --neutral-700: #bfb8ad;
-  --neutral-800: #e4dfd7;
-  --neutral-900: #f7f4ef;
+  --neutral-0: #0a0908;
+  --neutral-50: #0e0d0c;
+  --neutral-100: #151312;
+  --neutral-150: #1c1a18;
+  --neutral-200: #262320;
+  --neutral-300: #35312c;
+  --neutral-400: #4e4840;
+  --neutral-500: #6f6759;
+  --neutral-600: #948b7d;
+  --neutral-700: #bab2a5;
+  --neutral-800: #e2ddd4;
+  --neutral-900: #f8f6f2;
 
-  /* --- primitivas: marca ------------------------------------------------ */
+  /* --- primitivas: marca (INTOCÁVEL) ------------------------------------ */
   --brand-50: #fff3e8;
   --brand-100: #ffe1c7;
   --brand-200: #ffc08a;
@@ -56,11 +60,11 @@
   --red-700: #b91c1c;
 
   /*
-   * --- escala de status: 7 matizes espalhados pela roda ------------------
+   * --- escala de status de pedido (INTOCÁVEL) ---------------------------
    *
-   * Espalhados de propósito e longe do laranja: no quadro de pedidos as sete
-   * colunas ficam lado a lado, e se dois status fossem vizinhos de matiz a
-   * cozinha leria a coluna errada de longe.
+   * 7 matizes espalhados pela roda, de propósito longe do laranja: no quadro
+   * as sete colunas ficam lado a lado, e se dois status fossem vizinhos de
+   * matiz a cozinha leria a coluna errada de longe.
    */
   --status-pending-h: #f5a524;
   --status-accepted-h: #3b82f6;
@@ -70,76 +74,103 @@
   --status-completed-h: #22c55e;
   --status-cancelled-h: #8a8178;
 
-  /* --- semânticas: superfícies ----------------------------------------- */
+  /*
+   * --- superfícies: a escada -------------------------------------------
+   *
+   * Quatro degraus, e o degrau É a hierarquia. De baixo para cima:
+   *
+   *   --bg-sunken      o que afunda dentro de um cartão: campo, miniatura, tag
+   *   --bg-app         o chão da área de trabalho
+   *   --bg-chrome      a moldura que não é conteúdo: lateral e barra do topo
+   *   --bg-surface     onde o trabalho acontece: cartão, coluna, linha
+   *   --bg-surface-2   o que flutua por cima: menu, diálogo, popover
+   *
+   * No claro a ordem de luminosidade se inverte (a moldura fica MAIS escura
+   * que o conteúdo), mas o papel de cada token é o mesmo — por isso nenhuma
+   * tela precisa saber qual tema está ativo.
+   */
   --bg-app: var(--neutral-0);
-  --bg-surface: var(--neutral-50);
-  --bg-surface-raised: var(--neutral-150);
-  --bg-surface-sunken: #000000;
-  --bg-overlay: rgba(11, 10, 9, 0.72);
-  /* Hover clareia: o fundo já é quase preto, escurecer não apareceria. */
-  --bg-hover: rgba(255, 255, 255, 0.04);
-  --bg-active: rgba(255, 255, 255, 0.07);
+  --bg-chrome: var(--neutral-50);
+  --bg-surface: var(--neutral-100);
+  --bg-surface-2: var(--neutral-150);
+  --bg-sunken: #060505;
+  --bg-overlay: rgba(6, 5, 5, 0.72);
 
-  /* --- semânticas: borda ------------------------------------------------ */
+  /* Hover clareia: o fundo já é quase preto, escurecer não apareceria. */
+  --bg-hover: rgba(255, 255, 255, 0.045);
+  --bg-active: rgba(255, 255, 255, 0.08);
+
+  /* --- borda ------------------------------------------------------------
+   * Existe para o que o tom não resolve: contorno de campo, régua entre
+   * linhas de uma lista. Contornar um cartão que já tem tom próprio é o que
+   * deixa a tela com cara de wireframe.
+   */
   --border-subtle: var(--neutral-150);
   --border-default: var(--neutral-200);
   --border-strong: var(--neutral-300);
 
-  /* --- semânticas: texto ------------------------------------------------ */
+  /* --- texto ------------------------------------------------------------ */
   --text-primary: var(--neutral-900);
   --text-secondary: var(--neutral-700);
-  --text-tertiary: var(--neutral-500);
-  --text-disabled: var(--neutral-400);
+  --text-tertiary: var(--neutral-600);
+  --text-disabled: var(--neutral-500);
   --text-on-brand: #1a0900;
-  --text-on-status: #0b0a09;
+  --text-on-status: #0a0908;
 
-  /* --- semânticas: accent laranja --------------------------------------- */
+  /* --- accent laranja ---------------------------------------------------- */
   --brand: var(--brand-500);
   --brand-hover: var(--brand-400);
   --brand-active: var(--brand-600);
-  --brand-soft-bg: rgba(255, 106, 10, 0.14);
+  --brand-soft-bg: rgba(255, 106, 10, 0.13);
   --brand-soft-fg: var(--brand-300);
   --focus-ring: var(--brand-400);
 
-  /* --- semânticas: perigo ----------------------------------------------- */
+  /* --- perigo ------------------------------------------------------------ */
   --danger: var(--red-500);
   --danger-hover: var(--red-400);
   --danger-active: var(--red-600);
-  --danger-soft-bg: rgba(239, 68, 68, 0.14);
+  --danger-soft-bg: rgba(239, 68, 68, 0.13);
   --danger-soft-fg: var(--red-400);
 
-  /* --- elevação --------------------------------------------------------- */
-  /* No escuro a elevação é degrau de luminosidade + borda de 1px: sombra
-     sobre preto é invisível. Daí --shadow-elevation:none aqui e sombra real
-     só no tema claro. */
-  --shadow-color: 0, 0, 0;
-  --shadow-elevation: none;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
-  --shadow-focus: 0 0 0 3px rgba(255, 131, 41, 0.35);
+  /* --- elevação ---------------------------------------------------------- */
+  /*
+   * No escuro a elevação é degrau de tom; sombra sobre preto é invisível.
+   * Só o que FLUTUA (menu, diálogo, folha lateral) ganha sombra, e mesmo lá
+   * ela é véu, não profundidade de cartão de SaaS.
+   */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
+  --shadow-focus: 0 0 0 3px rgba(255, 131, 41, 0.3);
 
-  /* --- tipografia ------------------------------------------------------- */
+  /* --- tipografia: a régua ----------------------------------------------
+   *
+   * Escala apertada. O painel é lido a 50cm com o mouse na mão, e o que
+   * separa um nível do outro é peso + cor + caixa, não três pontos de corpo.
+   *
+   * Os três tamanhos grandes (lg, 2xl, 3xl) existem para UMA tela: a Cozinha,
+   * que é um monitor de parede lido a dois metros. Fora dela, nenhum texto do
+   * painel passa de --text-xl.
+   */
   --font-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
-  --text-xs: 12px;
-  --leading-xs: 16px;
-  --text-sm: 13px;
-  --leading-sm: 18px;
-  /* 15px e não os 14px de SaaS: o painel é lido de pé, a um braço de distância. */
-  --text-base: 15px;
-  --leading-base: 22px;
-  --text-md: 17px;
-  --leading-md: 24px;
-  --text-lg: 20px;
-  --leading-lg: 27px;
-  --text-xl: 24px;
-  --leading-xl: 30px;
-  --text-2xl: 32px;
-  --leading-2xl: 38px;
-  --text-3xl: 44px;
-  --leading-3xl: 48px;
+  --text-xs: 11px;
+  --leading-xs: 14px;
+  --text-sm: 12px;
+  --leading-sm: 16px;
+  --text-base: 13px;
+  --leading-base: 18px;
+  --text-md: 14px;
+  --leading-md: 20px;
+  --text-lg: 16px;
+  --leading-lg: 22px;
+  --text-xl: 20px;
+  --leading-xl: 26px;
+  --text-2xl: 26px;
+  --leading-2xl: 32px;
+  --text-3xl: 34px;
+  --leading-3xl: 40px;
 
   --weight-regular: 400;
   --weight-medium: 500;
@@ -147,76 +178,134 @@
   --weight-bold: 700;
   --weight-extrabold: 800;
 
-  /* --- espaçamento (base 4px) ------------------------------------------- */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
+  /*
+   * --- tipografia: os CINCO NÍVEIS ---------------------------------------
+   *
+   * Todo texto do painel é um destes cinco. Se um texto não couber em nenhum,
+   * o texto está errado — não falta um nível. As classes que os aplicam
+   * (`.t-title`, `.t-section`, `.t-label`, `.t-body`, `.t-aux`) estão em
+   * global.css; os tokens existem para compor um nível dentro de outra regra
+   * (uma célula que é rótulo mas herda a cor do status, por exemplo).
+   *
+   *   1 título de página   um por tela, no canto superior esquerdo
+   *   2 título de seção    cabeçalho de cartão, de coluna, de aba
+   *   3 rótulo             nome de campo, cabeçalho de coluna de lista, grupo
+   *   4 corpo              o conteúdo
+   *   5 auxiliar           ajuda, meta, rodapé, contagem
+   */
+  --type-title-size: var(--text-xl);
+  --type-title-line: var(--leading-xl);
+  --type-title-weight: var(--weight-bold);
+  --type-title-tracking: -0.02em;
+
+  --type-section-size: var(--text-md);
+  --type-section-line: var(--leading-md);
+  --type-section-weight: var(--weight-bold);
+  --type-section-tracking: -0.01em;
+
+  --type-label-size: var(--text-xs);
+  --type-label-line: var(--leading-xs);
+  --type-label-weight: var(--weight-semibold);
+  --type-label-tracking: 0.06em;
+
+  --type-body-size: var(--text-base);
+  --type-body-line: var(--leading-base);
+  --type-body-weight: var(--weight-regular);
+  --type-body-tracking: 0;
+
+  --type-aux-size: var(--text-sm);
+  --type-aux-line: var(--leading-sm);
+  --type-aux-weight: var(--weight-regular);
+  --type-aux-tracking: 0;
+
+  /*
+   * --- espaçamento: a escala inteira -------------------------------------
+   *
+   * Oito degraus e nenhum valor solto. Cada um tem um trabalho; usar o de
+   * cima "porque ficou apertado" é como o ritmo da tela se perde.
+   *
+   *   1  2px   folga de cabelo: rótulo empilhado sobre o valor
+   *   2  4px   dentro de um controle: ícone ↔ texto
+   *   3  8px   entre controles irmãos; padding de linha densa
+   *   4  12px  padding de cartão; entre campos de uma mesma linha
+   *   5  16px  entre blocos de uma seção; respiro lateral da tela
+   *   6  24px  entre seções
+   *   7  32px  topo de tela, estado vazio
+   *   8  48px  estado vazio grande — o único degrau "generoso" que sobrou
+   */
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 16px;
   --space-6: 24px;
-  --space-8: 32px;
-  --space-10: 40px;
-  --space-12: 48px;
-  --space-16: 64px;
-  --space-20: 80px;
+  --space-7: 32px;
+  --space-8: 48px;
 
   /* --- enquadramento ----------------------------------------------------- */
   /*
-   * Teto de largura do conteúdo.
-   *
-   * Sem ele, numa tela de 27" a linha do cardápio vira um metro de vazio entre
-   * o nome do item e o preço — e o olho perde a associação entre os dois. O
-   * quadro de pedidos é a exceção proposital: ele rola na horizontal e usa a
-   * tela toda; quem segura a largura lá é `--column-max`.
+   * Teto de largura do conteúdo. Sem ele, numa tela de 27" a linha do cardápio
+   * vira um metro de vazio entre o nome do item e o preço. O quadro de pedidos
+   * e a Cozinha são as exceções propositais: rolam na horizontal e usam a tela
+   * toda; quem segura a largura lá é `--column-max`.
    */
   --layout-max: 1400px;
-  --column-max: 320px;
+  --column-max: 300px;
+  --sidebar-width: 220px;
+  --sidebar-rail: 56px;
+  --topbar-height: 48px;
 
-  /* --- raio ------------------------------------------------------------- */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+  /* --- raio --------------------------------------------------------------
+   * Apertado. Raio grande é o que faz um painel operacional parecer um site
+   * de marketing: 4px no que é controle, 6px no que é superfície, 10px só no
+   * que flutua sobre a tela inteira.
+   */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
   --radius-full: 999px;
 
-  /* --- movimento -------------------------------------------------------- */
+  /* --- movimento --------------------------------------------------------- */
   /*
    * Animação existe só onde comunica mudança de estado. Estes dois tokens
-   * viram 0s inteiros sob prefers-reduced-motion (mais abaixo), então toda
-   * transição escrita com eles já respeita a preferência sem media query
-   * própria.
+   * viram 0s sob prefers-reduced-motion (mais abaixo), então toda transição
+   * escrita com eles já respeita a preferência sem media query própria.
    */
-  --motion-fast: 120ms;
-  --motion-base: 200ms;
+  --motion-fast: 110ms;
+  --motion-base: 180ms;
   --motion-ease: cubic-bezier(0.2, 0, 0, 1);
 
   color-scheme: dark;
 }
 
 /*
- * Tema claro: as MESMAS variáveis semânticas, outras superfícies. Nada abaixo
- * daqui inventa cor nova de marca, de status ou de perigo — só inverte o
- * neutro e ajusta os pares "soft" para continuarem legíveis sobre branco.
+ * Tema claro: as MESMAS variáveis semânticas, outras superfícies.
+ *
+ * A escada se inverte de propósito — a moldura (lateral, barra do topo) fica
+ * mais ESCURA que a área de trabalho, e o cartão é o branco puro. É o mesmo
+ * contrato do escuro: o degrau de tom continua dizendo o que está em cima do
+ * quê, sem nenhuma tela precisar saber do tema.
  */
 [data-theme='light'] {
-  --bg-app: var(--neutral-900);
+  --bg-app: #f6f4f1;
+  --bg-chrome: #efece7;
   --bg-surface: #ffffff;
-  --bg-surface-raised: #ffffff;
-  --bg-surface-sunken: var(--neutral-800);
-  --bg-overlay: rgba(20, 17, 14, 0.4);
-  --bg-hover: rgba(11, 10, 9, 0.04);
-  --bg-active: rgba(11, 10, 9, 0.08);
+  --bg-surface-2: #ffffff;
+  --bg-sunken: #edeae4;
+  --bg-overlay: rgba(20, 17, 14, 0.35);
+  --bg-hover: rgba(10, 9, 8, 0.045);
+  --bg-active: rgba(10, 9, 8, 0.08);
 
-  --border-subtle: #ede8e1;
-  --border-default: var(--neutral-800);
-  --border-strong: var(--neutral-700);
+  --border-subtle: #e8e4dd;
+  --border-default: #dcd7ce;
+  --border-strong: #c3bcb0;
 
-  --text-primary: var(--neutral-0);
-  --text-secondary: var(--neutral-400);
-  --text-tertiary: var(--neutral-500);
-  --text-disabled: var(--neutral-600);
+  --text-primary: #16130f;
+  --text-secondary: #57504a;
+  --text-tertiary: #837b71;
+  --text-disabled: #a79f94;
   --text-on-brand: #fff7f0;
-  --text-on-status: #0b0a09;
+  --text-on-status: #0a0908;
 
   --brand-soft-bg: var(--brand-50);
   --brand-soft-fg: var(--brand-700);
@@ -224,11 +313,10 @@
   --danger-soft-bg: #fdecec;
   --danger-soft-fg: var(--red-600);
 
-  --shadow-elevation: 0 1px 2px rgba(20, 17, 14, 0.06), 0 4px 12px rgba(20, 17, 14, 0.06);
-  --shadow-sm: 0 1px 2px rgba(20, 17, 14, 0.06);
-  --shadow-md: 0 4px 16px rgba(20, 17, 14, 0.08);
-  --shadow-lg: 0 16px 40px rgba(20, 17, 14, 0.12);
-  --shadow-focus: 0 0 0 3px rgba(255, 106, 10, 0.25);
+  --shadow-sm: 0 1px 2px rgba(20, 17, 14, 0.07);
+  --shadow-md: 0 6px 20px rgba(20, 17, 14, 0.1);
+  --shadow-lg: 0 16px 40px rgba(20, 17, 14, 0.14);
+  --shadow-focus: 0 0 0 3px rgba(255, 106, 10, 0.22);
 
   color-scheme: light;
 }
@@ -279,7 +367,7 @@
 /*
  * Os dois nomes que o backend usa e o DS não tem.
  *
- * `out_for_delivery` É o estágio que o DS chama de "delivering", e `rejected`
+ * `out_for_delivery` é o estágio que o DS chama de "delivering", e `rejected`
  * termina o pedido do mesmo jeito que `cancelled` — as duas colunas do quadro
  * já vivem juntas. São apelidos, não matizes novas: a escala continua com 7.
  */

@@ -147,7 +147,7 @@
      etapa o prato está sem precisar ler o cabeçalho da coluna. */
   border-left: 4px solid var(--status);
   border-radius: var(--radius-md);
-  background: var(--bg-surface-raised);
+  background: var(--bg-surface);
 }
 
 .kitchen-card__head {
@@ -288,7 +288,7 @@
 .kitchen-options {
   list-style: none;
   margin: 0;
-  padding: 0 0 0 var(--space-8);
+  padding: 0 0 0 var(--space-7);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -324,7 +324,7 @@
  * mockup que pinta esgotado no cardápio.
  */
 .kitchen-items__observation {
-  margin: var(--space-1) 0 0 var(--space-8);
+  margin: var(--space-1) 0 0 var(--space-7);
   padding: var(--space-1) var(--space-2);
   border-left: 3px solid var(--status-pending-h);
   background: var(--bg-surface);
