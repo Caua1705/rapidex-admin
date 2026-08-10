@@ -1,11 +1,11 @@
 /** Chamadas da tela de pedidos. */
 import { apiClient, unwrap } from './client';
-import type { PrepTimeResponse } from './contract-pending';
 import type {
   Branch,
   OrderDetail,
   OrderListResponse,
   OrderStatusCountsResponse,
+  PrepTimeResponse,
   StreamTicket,
 } from './types';
 

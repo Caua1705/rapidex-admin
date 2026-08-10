@@ -108,26 +108,26 @@ describe('ProductRow', () => {
    */
   describe('coluna de setor de impressão', () => {
     it('mostra o nome do setor do item', () => {
-      renderRow({ print_sector_id: 's-chapa' });
+      renderRow({ printing_sector_id: 's-chapa' });
       expect(screen.getByTestId('product-sector-prod-1')).toHaveTextContent('Chapa');
     });
 
     // "Não imprimir" é uma escolha, não um vazio: célula em branco leria como
     // "não carregou", que é justamente a dúvida que a coluna tira.
     it('item sem setor diz "Não imprimir" em vez de ficar em branco', () => {
-      renderRow({ print_sector_id: null });
+      renderRow({ printing_sector_id: null });
       expect(screen.getByTestId('product-sector-prod-1')).toHaveTextContent('Não imprimir');
     });
 
     it('setor desativado continua identificado, e marcado como tal', () => {
-      renderRow({ print_sector_id: 's-bar' });
+      renderRow({ printing_sector_id: 's-bar' });
       expect(screen.getByTestId('product-sector-prod-1')).toHaveTextContent('Bar (desativado)');
     });
 
     // Produto é do restaurante e setor é da filial: um id gravado por outra
     // loja não está nesta lista, e chamar isso de "Não imprimir" seria mentir.
     it('setor de outra filial aparece como inconsistência, não como "Não imprimir"', () => {
-      renderRow({ print_sector_id: 's-de-outra-filial' });
+      renderRow({ printing_sector_id: 's-de-outra-filial' });
 
       const celula = screen.getByTestId('product-sector-prod-1');
       expect(celula).not.toHaveTextContent('Não imprimir');
@@ -135,7 +135,7 @@ describe('ProductRow', () => {
     });
 
     it('sem filial escolhida, a coluna não aparece', () => {
-      renderRow({ print_sector_id: 's-chapa' }, vi.fn(), { showSector: false });
+      renderRow({ printing_sector_id: 's-chapa' }, vi.fn(), { showSector: false });
       expect(screen.queryByTestId('product-sector-prod-1')).not.toBeInTheDocument();
     });
   });

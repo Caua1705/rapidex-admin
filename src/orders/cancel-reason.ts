@@ -8,10 +8,14 @@
  *
  * Quem manda continua sendo o backend — se os limites divergirem, o pior que
  * acontece é a tela deixar enviar algo que volta com 422 e vira mensagem.
+ *
+ * Os dois números são escritos à mão porque o contrato NÃO os publica:
+ * `CancelOrderRequest.reason` é só `string`, sem mínimo nem máximo. Não há de
+ * onde gerá-los — se um dia o /openapi.json ganhar as restrições, é daqui que
+ * elas saem.
  */
-import { CANCEL_REASON_MAX, CANCEL_REASON_MIN } from '../api/contract-pending';
-
-export { CANCEL_REASON_MAX, CANCEL_REASON_MIN };
+export const CANCEL_REASON_MIN = 3;
+export const CANCEL_REASON_MAX = 300;
 
 export type CancelReasonCheck =
   { valid: true; reason: string } | { valid: false; message: string | null };

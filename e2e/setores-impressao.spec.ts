@@ -146,7 +146,7 @@ test('o campo de setor no produto oferece só os ativos, com "Não imprimir"', a
   await page.getByRole('button', { name: 'Salvar' }).click();
 
   await expect(page.getByTestId('product-sector-prod-2')).toHaveText('Chapa');
-  expect(api.products().find((item) => item.id === 'prod-2')?.print_sector_id).toBe('sec-chapa');
+  expect(api.products().find((item) => item.id === 'prod-2')?.printing_sector_id).toBe('sec-chapa');
 });
 
 test('aplicar o setor à categoria inteira resolve os 80 cliques', async ({ page }) => {
@@ -177,7 +177,9 @@ test('aplicar o setor à categoria inteira resolve os 80 cliques', async ({ page
   await expect(page.getByTestId('product-sector-prod-3')).toHaveText('Chapa');
 
   // E a categoria vizinha não foi tocada.
-  expect(api.products().find((item) => item.id === 'prod-4')?.print_sector_id ?? null).toBeNull();
+  expect(
+    api.products().find((item) => item.id === 'prod-4')?.printing_sector_id ?? null,
+  ).toBeNull();
 });
 
 test('aplicar "Não imprimir" à categoria limpa o setor de todos', async ({ page }) => {

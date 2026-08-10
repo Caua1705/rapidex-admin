@@ -183,7 +183,7 @@ export function MenuPage() {
                         description: product.description ?? '',
                         isActive: product.is_active !== false,
                         isAvailable: product.is_available !== false,
-                        printSectorId: product.print_sector_id ?? null,
+                        printSectorId: product.printing_sector_id ?? null,
                       })
                     }
                   />

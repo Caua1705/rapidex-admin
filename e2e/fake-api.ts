@@ -14,26 +14,16 @@
 import type { Page, Route } from '@playwright/test';
 
 import type { components } from '../src/api/generated/openapi';
-import type {
-  OrderDetailWithOptions,
-  PrintSector,
-  ProductWithPrintSector,
-} from '../src/api/contract-pending';
 
 type Schemas = components['schemas'];
 type AdminUser = Schemas['AdminUserResponse'];
 type Branch = Schemas['AdminBranchResponse'];
 type OrderListItem = Schemas['AdminOrderListItem'];
-/*
- * O detalhe com `option_groups`: o backend já os manda e o /openapi.json ainda
- * não os descreve. O falso segue o mesmo overlay que o painel — assim os dois
- * divergem juntos quando o contrato sair, e não em silêncio.
- */
-type OrderDetail = OrderDetailWithOptions;
+type OrderDetail = Schemas['OrderDetailResponse'];
 type StreamEvent = Schemas['AdminOrderStreamEvent'];
 type Category = Schemas['AdminCategoryResponse'];
-/** O produto com `print_sector_id`, pelo mesmo overlay que o painel usa. */
-type Product = ProductWithPrintSector;
+type Product = Schemas['AdminProductResponse'];
+type PrintSector = Schemas['PrintingSectorResponse'];
 type RestaurantSettings = Schemas['AdminRestaurantSettingsResponse'];
 type BusinessHour = Schemas['BusinessHourResponse'];
 type BusinessHourInput = Schemas['BusinessHourInput'];
@@ -164,22 +154,33 @@ function initialOrders(): OrderListItem[] {
 function optionGroupsFixture() {
   return [
     {
-      id: 'grp-acomp',
+      option_group_id: 'grp-acomp',
       option_group_name_snapshot: 'Acompanhamento',
       options: [
-        { id: 'opt-espaguete', option_name_snapshot: 'Espaguete', additional_price_snapshot: 0 },
+        {
+          id: 'sel-espaguete',
+          option_id: 'opt-espaguete',
+          option_name_snapshot: 'Espaguete',
+          additional_price_snapshot: 0,
+        },
       ],
     },
     {
-      id: 'grp-adicional',
+      option_group_id: 'grp-adicional',
       option_group_name_snapshot: 'Adicional',
       options: [
         {
-          id: 'opt-espaguete-extra',
+          id: 'sel-espaguete-extra',
+          option_id: 'opt-espaguete',
           option_name_snapshot: 'Espaguete',
           additional_price_snapshot: 12,
         },
-        { id: 'opt-bacon', option_name_snapshot: 'Bacon', additional_price_snapshot: 5 },
+        {
+          id: 'sel-bacon',
+          option_id: 'opt-bacon',
+          option_name_snapshot: 'Bacon',
+          additional_price_snapshot: 5,
+        },
       ],
     },
   ];
@@ -272,7 +273,7 @@ function initialProducts(): Product[] {
       sort_order: 0,
       // O único da categoria já configurado: os outros dois estão em "Não
       // imprimir", que é o que a coluna de setor existe para o lojista notar.
-      print_sector_id: 'sec-chapa',
+      printing_sector_id: 'sec-chapa',
     },
     {
       id: 'prod-2',
@@ -434,6 +435,8 @@ export type FakeApi = {
   printSectors: () => PrintSector[];
   /** Cada PATCH de setor aplicado a uma categoria inteira. */
   categorySectorCalls: () => { categoryId: string; printSectorId: string | null }[];
+  /** Cada PATCH de setor aplicado a UM produto. */
+  productSectorCalls: () => { productId: string; printSectorId: string | null }[];
   /** Todos os produtos, para conferir o que o lote gravou. */
   products: () => Product[];
   /** Empurra um pedido novo pelo SSE, como se outro cliente tivesse comprado. */
@@ -497,6 +500,8 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     printSectors: initialPrintSectors(BRANCH_ID),
     /** Cada PATCH de setor na categoria inteira, para conferir o lote. */
     categorySectorCalls: [] as { categoryId: string; printSectorId: string | null }[],
+    /** Cada PATCH de setor em UM produto, vindo da edição do item. */
+    productSectorCalls: [] as { productId: string; printSectorId: string | null }[],
   };
 
   function findOrder(orderId: string): OrderListItem | undefined {
@@ -821,7 +826,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
 
     // --- setores de impressão ----------------------------------------------
 
-    const sectorsMatch = /^\/admin\/branches\/([^/]+)\/print-sectors$/.exec(path);
+    const sectorsMatch = /^\/admin\/branches\/([^/]+)\/printing-sectors$/.exec(path);
     if (sectorsMatch?.[1]) {
       const branchId = sectorsMatch[1];
       if (method === 'GET') {
@@ -847,7 +852,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       }
     }
 
-    const sectorMatch = /^\/admin\/print-sectors\/([^/]+)$/.exec(path);
+    const sectorMatch = /^\/admin\/printing-sectors\/([^/]+)$/.exec(path);
     if (method === 'PATCH' && sectorMatch?.[1]) {
       const found = state.printSectors.find((entry) => entry.id === sectorMatch[1]);
       if (!found) return json(route, 404, { detail: 'Setor não encontrado.' });
@@ -911,23 +916,28 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
 
     /*
      * Aplicar o setor à categoria inteira. Antes de /admin/categories/{id},
-     * pelo mesmo motivo do reorder: "print-sector" é rota, não id de categoria.
+     * pelo mesmo motivo do reorder: "printing-sector" é rota, não id de
+     * categoria.
      */
-    const categorySectorMatch = /^\/admin\/categories\/([^/]+)\/print-sector$/.exec(path);
+    const categorySectorMatch = /^\/admin\/categories\/([^/]+)\/printing-sector$/.exec(path);
     if (method === 'PATCH' && categorySectorMatch?.[1]) {
       const categoryId = categorySectorMatch[1];
-      const body = request.postDataJSON() as { print_sector_id: string | null };
-      state.categorySectorCalls.push({ categoryId, printSectorId: body.print_sector_id });
+      const body = request.postDataJSON() as { printing_sector_id: string | null };
+      state.categorySectorCalls.push({ categoryId, printSectorId: body.printing_sector_id });
 
       // Como o backend: sobrescreve TODOS os produtos da categoria, inclusive
       // os que já tinham outro setor.
       let updated = 0;
       state.products.forEach((item) => {
         if (item.category_id !== categoryId) return;
-        item.print_sector_id = body.print_sector_id;
+        item.printing_sector_id = body.printing_sector_id;
         updated += 1;
       });
-      return json(route, 200, { updated_count: updated });
+      return json(route, 200, {
+        category_id: categoryId,
+        printing_sector_id: body.printing_sector_id,
+        updated_products: updated,
+      });
     }
 
     const categoryMatch = /^\/admin\/categories\/([^/]+)$/.exec(path);
@@ -971,6 +981,31 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       return json(route, 200, found);
     }
 
+    /*
+     * O setor de UM produto, também antes de /admin/products/{id}. O painel
+     * chama esta rota ao editar um item: `AdminProductUpdate` não tem o campo,
+     * então o PATCH do produto não muda setor nenhum.
+     */
+    const productSectorMatch = /^\/admin\/products\/([^/]+)\/printing-sector$/.exec(path);
+    if (method === 'PATCH' && productSectorMatch?.[1]) {
+      const found = state.products.find((item) => item.id === productSectorMatch[1]);
+      if (!found) return json(route, 404, { detail: 'Produto não encontrado.' });
+
+      const body = request.postDataJSON() as { printing_sector_id: string | null };
+      state.productSectorCalls.push({
+        productId: found.id,
+        printSectorId: body.printing_sector_id,
+      });
+      found.printing_sector_id = body.printing_sector_id;
+
+      const sector = state.printSectors.find((entry) => entry.id === body.printing_sector_id);
+      return json(route, 200, {
+        product_id: found.id,
+        printing_sector_id: body.printing_sector_id,
+        printing_sector_name: sector?.name ?? null,
+      });
+    }
+
     const productMatch = /^\/admin\/products\/([^/]+)$/.exec(path);
     if (productMatch?.[1]) {
       const found = state.products.find((item) => item.id === productMatch[1]);
@@ -1009,6 +1044,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     paymentMethods: () => state.paymentMethods,
     printSectors: () => state.printSectors,
     categorySectorCalls: () => state.categorySectorCalls,
+    productSectorCalls: () => state.productSectorCalls,
     products: () => state.products,
     clearPrepTimeBase(branchId) {
       state.prepTime[branchId] = null;

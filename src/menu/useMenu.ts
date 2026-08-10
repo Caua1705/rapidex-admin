@@ -11,7 +11,7 @@ import {
   updateCategory,
   updateProduct,
 } from '../api/menu';
-import { applyPrintSectorToCategory } from '../api/print-sectors';
+import { applyPrintSectorToCategory, setProductPrintSector } from '../api/print-sectors';
 import type { Category, Product } from '../api/types';
 import { categoryIdsForReorder, moveCategory, sortCategories, sortProducts } from './menu-model';
 
@@ -264,19 +264,34 @@ export function useMenu() {
             price,
             is_active: draft.isActive,
             is_available: draft.isAvailable,
-            print_sector_id: draft.printSectorId,
           });
+
+          // O setor NÃO entra no corpo acima: produto que já existe muda de
+          // setor por rota própria (ver `api/print-sectors.ts`). Só chama se
+          // mudou — salvar preço não deve gastar uma segunda requisição para
+          // reescrever o mesmo setor. Sem o produto na lista carregada não dá
+          // para comparar, e aí grava, que é o lado seguro.
+          const before = products.find((product) => product.id === draft.id);
+          if (!before || (before.printing_sector_id ?? null) !== draft.printSectorId) {
+            await setProductPrintSector(draft.id, draft.printSectorId);
+          }
         } else {
-          await createProduct({
+          const created = await createProduct({
             category_id: draft.categoryId,
             name,
             description: draft.description.trim() || null,
             price,
             is_active: draft.isActive,
             is_available: draft.isAvailable,
-            print_sector_id: draft.printSectorId,
             sort_order: products.length,
           });
+
+          // Item novo nasce sem setor, então só há o que gravar se o lojista
+          // escolheu um. "Não imprimir" já é o estado do recém-criado — mandar
+          // `null` aqui gastaria uma requisição para não mudar nada.
+          if (draft.printSectorId) {
+            await setProductPrintSector(created.id, draft.printSectorId);
+          }
         }
         await loadProducts(selectedCategoryId, search);
         setErrorMessage(null);
@@ -286,7 +301,7 @@ export function useMenu() {
         return false;
       }
     },
-    [loadProducts, products.length, search, selectedCategoryId],
+    [loadProducts, products, search, selectedCategoryId],
   );
 
   /**

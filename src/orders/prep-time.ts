@@ -15,7 +15,6 @@
  * reconhece vira `other`, que só mostra a mensagem do backend.
  */
 import { ApiError } from '../api/errors';
-import type { PrepTimeResponse } from '../api/contract-pending';
 
 export type PrepTimeFailure =
   /** Falta a faixa base: a tela pode oferecer o campo de min/max. */
@@ -28,10 +27,10 @@ export type PrepTimeFailure =
 /**
  * Onde o backend pode ter posto um código legível por máquina.
  *
- * O contrato publicado ainda não descreve esta rota, então a função procura o
- * código nos lugares usuais e, se não achar, cai para o texto. Quando o
- * contrato sair, dá para trocar isto por uma leitura só — e os testes abaixo
- * dizem se algo quebrou.
+ * O contrato descreve a rota, mas só as respostas 200 e 422 — o corpo do 409
+ * que interessa aqui não está tipado em lugar nenhum. Por isso a função procura
+ * o código nos lugares usuais e, se não achar, cai para o texto. No dia em que
+ * o 409 for descrito, isto vira uma leitura só — e os testes dizem se quebrou.
  */
 function readErrorCode(body: unknown): string {
   if (!body || typeof body !== 'object') return '';
@@ -69,11 +68,23 @@ export function classifyPrepTimeFailure(error: unknown): PrepTimeFailure {
   return 'other';
 }
 
-/** "25–35 min", que é como o lojista fala da faixa. */
-export function formatPrepRange(range: PrepTimeResponse | null): string {
-  if (!range) return '—';
-  if (range.prep_time_min === range.prep_time_max) return `${range.prep_time_min} min`;
-  return `${range.prep_time_min}–${range.prep_time_max} min`;
+/**
+ * "25–35 min", que é como o lojista fala da faixa.
+ *
+ * Recebe só os dois campos, e não a linha de horário inteira que o PATCH
+ * devolve: é tudo o que formatar precisa. Os dois são ANULÁVEIS no contrato —
+ * filial com horário gravado e sem prazo de preparo é um estado real, e é o
+ * mesmo travessão de "ainda não carregou". Nos dois casos não há faixa a
+ * mostrar, e inventar "0 min" diria ao lojista que a cozinha entrega na hora.
+ */
+export function formatPrepRange(
+  range: { prep_time_min?: number | null; prep_time_max?: number | null } | null,
+): string {
+  const min = range?.prep_time_min ?? null;
+  const max = range?.prep_time_max ?? null;
+  if (min === null || max === null) return '—';
+  if (min === max) return `${min} min`;
+  return `${min}–${max} min`;
 }
 
 /** Os empurrões que a barra oferece, na ordem em que aparecem. */

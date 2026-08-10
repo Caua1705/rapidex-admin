@@ -12,13 +12,11 @@ As rotas: `/pedidos`, `/cardapio`, `/minha-loja` e `/cozinha`. A Cozinha é a
 única tela autenticada FORA do `AppShell` — ela usa a tela inteira, sem
 navegação lateral, porque é lida de longe.
 
-> **Setores de impressão dependem de backend que ainda não existe.** A aba
-> Impressão, o campo de setor no produto e a aplicação em lote na categoria
-> estão construídos e testados, mas em 2026-08-09 o backend não tem tabela de
-> setor, não tem `print_sector_id` em `products` e não tem nenhuma das rotas.
-> Enquanto não subirem, essas telas chamam e recebem 404 — o que aparece é o
-> erro da API, e isso é o esperado, não defeito do painel. A forma combinada
-> está no bloco 4 de `src/api/contract-pending.ts`.
+> **Setores de impressão estão no ar.** A aba Impressão, o campo de setor no
+> produto e a aplicação em lote na categoria falam com as rotas publicadas em
+> `/admin/branches/{id}/printing-sectors` — `printing-sectors`, e o campo é
+> `printing_sector_id`. O setor de um produto que já existe NÃO vai no PATCH do
+> produto: tem rota própria, `PATCH /admin/products/{id}/printing-sector`.
 
 O painel não é white-label: a identidade na tela é a do **Rapidex**. O nome do
 restaurante aparece só para o lojista saber em qual sessão está.
@@ -96,9 +94,6 @@ src/
                 formas de pagamento
     print-sectors.ts
                 setores de impressão (usados por Minha loja E pelo Cardápio)
-    contract-pending.ts
-                TEMPORÁRIO: as rotas que o backend já entregou e o
-                /openapi.json ainda não descreve. Leia o cabeçalho dele.
   auth/         Sessão: provider, guarda de rota, localStorage
   orders/       A TELA DE PEDIDOS inteira (o coração do painel)
     OrdersPage.tsx        junta tudo

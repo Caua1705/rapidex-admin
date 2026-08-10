@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import type { PrepTimeResponse } from '../api/contract-pending';
+import type { PrepTimeResponse } from '../api/types';
 import { messageFromUnknownError } from '../api/errors';
 import { adjustPrepTime, setPrepTimeBase } from '../api/orders';
 import { classifyPrepTimeFailure } from './prep-time';

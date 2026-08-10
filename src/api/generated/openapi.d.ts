@@ -728,6 +728,45 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/admin/orders/{order_id}/print-jobs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Order Print Jobs
+     * @description As vias deste pedido, ja formatadas em texto de largura fixa.
+     *
+     *     Mesmo token e mesmo escopo de filial do resto de /admin/orders — quem
+     *     nao pode ler o pedido nao pode imprimi-lo, e a comanda carrega nome,
+     *     telefone e endereco do cliente.
+     *
+     *     O agente de impressao da loja e burro de proposito: ele le `content`,
+     *     seleciona `font_size` e manda para a impressora. Nao alinha, nao quebra
+     *     linha e nao decide o que entra em cada via — isso tudo vive em
+     *     `src/services/print_layout.py`, num lugar so, testavel, e uma correcao
+     *     de layout vira um deploy em vez de uma visita a cada loja.
+     *
+     *     Pedido com pagamento online ainda nao confirmado devolve SO a via do
+     *     cliente: comanda de producao e ordem de preparo, e a regra do
+     *     "aguardando pagamento, nao preparar" nao pode valer apenas para quem
+     *     esta olhando a tela.
+     *
+     *     A rota nao marca nada como impresso. Reimprimir e a operacao mais comum
+     *     do balcao (papel picotou, comanda molhou), e ela precisa ser um simples
+     *     GET repetido.
+     */
+    get: operations['get_order_print_jobs_admin_orders__order_id__print_jobs_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/admin/orders/{order_id}/status': {
     parameters: {
       query?: never;
@@ -743,6 +782,33 @@ export interface paths {
     head?: never;
     /** Update Order Status */
     patch: operations['update_order_status_admin_orders__order_id__status_patch'];
+    trace?: never;
+  };
+  '/admin/orders/{order_id}/cancel': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Cancel Order
+     * @description Cancela o pedido registrando o motivo (obrigatorio).
+     *
+     *     O motivo vai para `order_status_history.note`, junto do lojista que
+     *     cancelou — e o unico lugar onde o suporte consegue reconstruir depois
+     *     por que o pedido do cliente sumiu.
+     *
+     *     Cancelar continua sujeito a mesma maquina de estados do PATCH de
+     *     status: pedido ja entregue ou ja cancelado responde 409.
+     */
+    patch: operations['cancel_order_admin_orders__order_id__cancel_patch'];
     trace?: never;
   };
   '/admin/categories': {
@@ -975,6 +1041,112 @@ export interface paths {
     patch: operations['update_option_admin_options__option_id__patch'];
     trace?: never;
   };
+  '/admin/branches/{branch_id}/printing-sectors': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Printing Sectors
+     * @description Setores de impressao da filial, ativos e inativos.
+     *
+     *     Traz os desativados pelo mesmo motivo da listagem de categorias: quem
+     *     desligou um setor precisa continuar vendo-o para religar.
+     */
+    get: operations['list_printing_sectors_admin_branches__branch_id__printing_sectors_get'];
+    put?: never;
+    /**
+     * Create Printing Sector
+     * @description Cadastra uma praca desta filial ("Cozinha", "Chapa", "Bar").
+     *
+     *     Nome repetido na mesma filial responde 409: duas impressoras chamadas
+     *     "Cozinha" tornam impossivel saber para onde um produto foi apontado.
+     */
+    post: operations['create_printing_sector_admin_branches__branch_id__printing_sectors_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/admin/printing-sectors/{sector_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Update Printing Sector
+     * @description Renomeia, reordena ou DESATIVA o setor (`{"is_active": false}`).
+     *
+     *     Nao existe DELETE: `products.printing_sector_id` aponta para esta linha
+     *     por FK, e apagar deixaria o vinculo de cada produto pendurado. Desativar
+     *     e o que o painel chama de excluir — mesma regra do cardapio.
+     */
+    patch: operations['update_printing_sector_admin_printing_sectors__sector_id__patch'];
+    trace?: never;
+  };
+  '/admin/products/{product_id}/printing-sector': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Set Product Printing Sector
+     * @description Aponta o produto para um setor, ou desliga a via de producao dele.
+     *
+     *     `{"printing_sector_id": null}` nao e "campo vazio": e a instrucao de
+     *     NAO imprimir comanda de producao para este produto — a lata que sai da
+     *     geladeira do balcao e nao passa por praca nenhuma.
+     */
+    patch: operations['set_product_printing_sector_admin_products__product_id__printing_sector_patch'];
+    trace?: never;
+  };
+  '/admin/categories/{category_id}/printing-sector': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Set Category Printing Sector
+     * @description Aplica o setor a TODOS os produtos da categoria de uma vez.
+     *
+     *     E como a configuracao acontece de verdade: "toda bebida vai para o Bar".
+     *     Produto a produto, um cardapio de 200 itens nunca sai do lugar — e
+     *     cardapio meio configurado imprime comanda pela metade.
+     *
+     *     Sobrescreve inclusive quem ja tinha setor; excecoes se reapontam depois
+     *     por `PATCH /admin/products/{id}/printing-sector`. Devolve quantos
+     *     produtos foram alterados.
+     */
+    patch: operations['set_category_printing_sector_admin_categories__category_id__printing_sector_patch'];
+    trace?: never;
+  };
   '/admin/settings': {
     parameters: {
       query?: never;
@@ -1090,6 +1262,38 @@ export interface paths {
     options?: never;
     head?: never;
     patch?: never;
+    trace?: never;
+  };
+  '/admin/branches/{branch_id}/prep-time': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Adjust Prep Time
+     * @description Ajusta o tempo de preparo que esta valendo agora.
+     *
+     *     E o atalho do dia cheio: `{"delta_minutes": 5}` empurra a janela
+     *     inteira em cinco minutos, `{"delta_minutes": -10}` puxa de volta. Para
+     *     a faixa que ainda nao tem prazo cadastrado, mande o par
+     *     `prep_time_min`/`prep_time_max` uma vez e depois use o delta.
+     *
+     *     Escreve SO na faixa de horario que contem o momento atual — a mesma que
+     *     o proximo pedido vai ler. Filial fechada agora responde 409: o cadastro
+     *     da semana inteira e `PUT /admin/branches/{branch_id}/business-hours`.
+     *
+     *     Devolve a faixa ajustada, para o painel mostrar o prazo que passou a
+     *     valer sem uma segunda chamada.
+     */
+    patch: operations['adjust_prep_time_admin_branches__branch_id__prep_time_patch'];
     trace?: never;
   };
   '/admin/branches/{branch_id}/payment-methods': {
@@ -1901,6 +2105,8 @@ export interface components {
        * @default 0
        */
       sort_order: number | null;
+      /** Printing Sector Id */
+      printing_sector_id?: string | null;
       /** Option Groups */
       option_groups?: components['schemas']['AdminOptionGroupResponse'][];
     };
@@ -1962,6 +2168,8 @@ export interface components {
        * @default 0
        */
       sort_order: number | null;
+      /** Printing Sector Id */
+      printing_sector_id?: string | null;
     };
     /**
      * AdminProductUpdate
@@ -2228,6 +2436,32 @@ export interface components {
       /** Requires Gateway */
       requires_gateway: boolean;
     };
+    /**
+     * BranchPrepTimeAdjustRequest
+     * @description Ajuste do tempo de preparo que esta valendo AGORA.
+     *
+     *     Existe separado do PUT da semana porque sao gestos diferentes: aquele e
+     *     o cadastro (uma tela, sete dias, salvo com calma), este e o botao que o
+     *     atendente aperta no meio do almoco quando a fila cresceu.
+     *
+     *     Dois modos, um por vez:
+     *
+     *     - `delta_minutes` — o atalho de +5/-10. Desloca a janela inteira a
+     *       partir do que ja esta gravado.
+     *     - `prep_time_min` + `prep_time_max` — valor absoluto, para a faixa que
+     *       ainda nao tem prazo nenhum: sem base, um delta nao tem de onde partir.
+     *
+     *     O par absoluto anda junto pelo mesmo motivo de `AdminBranchDeliveryRules`:
+     *     mandar so o maximo deixaria a faixa com teto abaixo do piso.
+     */
+    BranchPrepTimeAdjustRequest: {
+      /** Delta Minutes */
+      delta_minutes?: number | null;
+      /** Prep Time Min */
+      prep_time_min?: number | null;
+      /** Prep Time Max */
+      prep_time_max?: number | null;
+    };
     /** BranchResponse */
     BranchResponse: {
       /**
@@ -2351,6 +2585,24 @@ export interface components {
       /** Periods */
       periods?: components['schemas']['BusinessHourInput'][];
     };
+    /**
+     * CancelOrderRequest
+     * @description Corpo do cancelamento pelo painel.
+     *
+     *     O motivo e OBRIGATORIO aqui, e o `note` do PATCH de status continua
+     *     opcional: mudar para `preparing` nao precisa de justificativa, cancelar
+     *     precisa. Cancelamento e a unica transicao que o cliente questiona
+     *     depois — ele ligou, esperou, e o pedido sumiu — e sem motivo gravado o
+     *     historico so consegue dizer que alguem cancelou as 20h14.
+     *
+     *     Nao ha campo de status: a rota so cancela. Fosse `status` do corpo, ela
+     *     seria o PATCH de status com nome diferente e a obrigatoriedade do motivo
+     *     viraria um `if` por status.
+     */
+    CancelOrderRequest: {
+      /** Reason */
+      reason: string;
+    };
     /** CashbackBalanceResponse */
     CashbackBalanceResponse: {
       /** Balance */
@@ -2407,6 +2659,21 @@ export interface components {
       currency: 'BRL';
       /** Transactions */
       transactions: components['schemas']['CashbackTransactionResponse'][];
+    };
+    /**
+     * CategoryPrintingSectorResponse
+     * @description Resultado da aplicacao em massa por categoria.
+     */
+    CategoryPrintingSectorResponse: {
+      /**
+       * Category Id
+       * Format: uuid
+       */
+      category_id: string;
+      /** Printing Sector Id */
+      printing_sector_id?: string | null;
+      /** Updated Products */
+      updated_products: number;
     };
     /**
      * CategoryReorderRequest
@@ -3279,7 +3546,60 @@ export interface components {
       /** Selected Options */
       selected_options?: components['schemas']['OrderItemSelectedOptionInput'][];
     };
-    /** OrderItemResponse */
+    /**
+     * OrderItemOptionGroupResponse
+     * @description Os adicionais de um item, reunidos pelo grupo a que pertencem.
+     *
+     *     Agrupado e nao uma lista solta de nomes porque e o grupo que da sentido
+     *     a escolha: "Acompanhamento: espaguete" e uma TROCA (o arroz nao vai), e
+     *     "Adicional: espaguete" e uma porcao a mais. Sem o grupo as duas chegam
+     *     na cozinha como a mesma linha.
+     */
+    OrderItemOptionGroupResponse: {
+      /**
+       * Option Group Id
+       * Format: uuid
+       */
+      option_group_id: string;
+      /** Option Group Name Snapshot */
+      option_group_name_snapshot: string;
+      /** Options */
+      options: components['schemas']['OrderItemOptionResponse'][];
+    };
+    /**
+     * OrderItemOptionResponse
+     * @description Um adicional escolhido, congelado como estava no cardapio.
+     *
+     *     Tudo aqui e snapshot pelo mesmo motivo do produto: o lojista renomeia
+     *     "Espaguete" ou muda o preco depois, e a comanda de um pedido de ontem
+     *     precisa continuar dizendo o que foi vendido naquele dia.
+     */
+    OrderItemOptionResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Option Id
+       * Format: uuid
+       */
+      option_id: string;
+      /** Option Name Snapshot */
+      option_name_snapshot: string;
+      /** Additional Price Snapshot */
+      additional_price_snapshot: number;
+    };
+    /**
+     * OrderItemResponse
+     * @description Um item da comanda.
+     *
+     *     `unit_price_snapshot` JA inclui os adicionais de `option_groups` (ver
+     *     `OrderService._build_order_item`): quem monta a tela nao deve somar
+     *     `additional_price_snapshot` de novo, ou o item aparece mais caro do que
+     *     o pedido cobrou. Os valores dos adicionais vem para a conferencia — o
+     *     cliente que reclama do preco quer ver de onde saiu.
+     */
     OrderItemResponse: {
       /**
        * Id
@@ -3304,6 +3624,8 @@ export interface components {
       total: number;
       /** Created At */
       created_at?: string | null;
+      /** Option Groups */
+      option_groups?: components['schemas']['OrderItemOptionGroupResponse'][];
     };
     /** OrderItemSelectedOptionInput */
     OrderItemSelectedOptionInput: {
@@ -3317,6 +3639,31 @@ export interface components {
        * Format: uuid
        */
       option_id: string;
+    };
+    /**
+     * OrderPrintJobsResponse
+     * @description As vias de um pedido, na ordem em que devem sair.
+     *
+     *     `jobs` pode conter SO a via do cliente: pedido com pagamento online
+     *     ainda nao confirmado nao gera via de producao — a mesma regra do
+     *     "aguardando pagamento, nao preparar" que ja barra o pedido de entrar na
+     *     cozinha (`ensure_payment_allows_order_status`).
+     */
+    OrderPrintJobsResponse: {
+      /**
+       * Order Id
+       * Format: uuid
+       */
+      order_id: string;
+      /** Order Number */
+      order_number: number;
+      /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
+      /** Jobs */
+      jobs: components['schemas']['PrintJobResponse'][];
     };
     /**
      * PaymentErrorCode
@@ -3405,6 +3752,91 @@ export interface components {
       order_id?: string | null;
     };
     /**
+     * PrintJobResponse
+     * @description Uma bobina a imprimir, ja pronta.
+     *
+     *     `content` sai quebrado em `columns` colunas. O agente NAO reformata,
+     *     nao alinha e nao decide fonte: ele seleciona `font_size`, escreve o
+     *     texto e corta. Toda a regra fica no backend (src/services/print_layout.py),
+     *     onde e testavel e onde uma correcao de layout e um deploy, nao uma visita
+     *     a cada loja.
+     */
+    PrintJobResponse: {
+      /**
+       * Type
+       * @description 'customer' ou 'production'
+       */
+      type: string;
+      /** Sector Id */
+      sector_id?: string | null;
+      /** Sector Name */
+      sector_name: string;
+      /** Columns */
+      columns: number;
+      /**
+       * Font Size
+       * @description 'normal' ou 'large'
+       */
+      font_size: string;
+      /** Content */
+      content: string;
+    };
+    /** PrintingSectorCreate */
+    PrintingSectorCreate: {
+      /** Name */
+      name: string;
+      /**
+       * Sort Order
+       * @default 0
+       */
+      sort_order: number;
+      /**
+       * Is Active
+       * @default true
+       */
+      is_active: boolean;
+    };
+    /** PrintingSectorResponse */
+    PrintingSectorResponse: {
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
+      /** Name */
+      name: string;
+      /** Is Active */
+      is_active: boolean;
+      /** Sort Order */
+      sort_order: number;
+    };
+    /**
+     * PrintingSectorUpdate
+     * @description Edicao parcial: so o que vier no corpo e alterado.
+     *
+     *     Desativar um setor e `{"is_active": false}` aqui — nao existe DELETE,
+     *     pelo mesmo motivo do cardapio: `products.printing_sector_id` aponta para
+     *     esta linha por FK, e apagar quebraria o vinculo de todo produto ligado a
+     *     ela. "Excluir" no painel e desativar.
+     *
+     *     `branch_id` nao entra: mudar um setor de filial e mudar de impressora
+     *     fisica. Quem quer isso cria o setor na outra filial e reaponta os
+     *     produtos.
+     */
+    PrintingSectorUpdate: {
+      /** Name */
+      name?: string | null;
+      /** Sort Order */
+      sort_order?: number | null;
+      /** Is Active */
+      is_active?: boolean | null;
+    };
+    /**
      * ProductAvailabilityRequest
      * @description Corpo da acao rapida de esgotado/disponivel (BLOCO B4).
      *
@@ -3467,6 +3899,38 @@ export interface components {
        * @default 0
        */
       sort_order: number | null;
+    };
+    /**
+     * ProductPrintingSectorRequest
+     * @description Vincula (ou desvincula) um produto a um setor.
+     *
+     *     `null` nao e ausencia de valor: e a instrucao de NAO imprimir via de
+     *     producao para este produto. E o caso da lata de refrigerante, que sai da
+     *     geladeira do balcao — a comanda dela so gastaria papel e ensinaria a
+     *     cozinha a ignorar comanda.
+     */
+    ProductPrintingSectorRequest: {
+      /** Printing Sector Id */
+      printing_sector_id?: string | null;
+    };
+    /**
+     * ProductPrintingSectorResponse
+     * @description O vinculo depois de gravado.
+     *
+     *     Devolve o NOME do setor junto do id para a tela confirmar o que mudou
+     *     sem uma segunda chamada — "Pizza Calabresa -> Forno" e o que o lojista
+     *     precisa ler para saber que acertou.
+     */
+    ProductPrintingSectorResponse: {
+      /**
+       * Product Id
+       * Format: uuid
+       */
+      product_id: string;
+      /** Printing Sector Id */
+      printing_sector_id?: string | null;
+      /** Printing Sector Name */
+      printing_sector_name?: string | null;
     };
     /** ProductResponse */
     ProductResponse: {
@@ -5252,6 +5716,37 @@ export interface operations {
       };
     };
   };
+  get_order_print_jobs_admin_orders__order_id__print_jobs_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OrderPrintJobsResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   update_order_status_admin_orders__order_id__status_patch: {
     parameters: {
       query?: never;
@@ -5267,6 +5762,44 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': components['schemas']['UpdateOrderStatusRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OrderDetailResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  cancel_order_admin_orders__order_id__cancel_patch: {
+    parameters: {
+      query?: never;
+      header?: {
+        /** @description Reenviar a mesma chave com o mesmo motivo devolve a resposta original em vez de gravar outra linha no historico. */
+        'Idempotency-Key'?: string | null;
+      };
+      path: {
+        order_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CancelOrderRequest'];
       };
     };
     responses: {
@@ -5787,6 +6320,177 @@ export interface operations {
       };
     };
   };
+  list_printing_sectors_admin_branches__branch_id__printing_sectors_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        branch_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PrintingSectorResponse'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  create_printing_sector_admin_branches__branch_id__printing_sectors_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        branch_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PrintingSectorCreate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PrintingSectorResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  update_printing_sector_admin_printing_sectors__sector_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        sector_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PrintingSectorUpdate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PrintingSectorResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  set_product_printing_sector_admin_products__product_id__printing_sector_patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        product_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ProductPrintingSectorRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProductPrintingSectorResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  set_category_printing_sector_admin_categories__category_id__printing_sector_patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        category_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ProductPrintingSectorRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CategoryPrintingSectorResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   get_restaurant_settings_admin_settings_get: {
     parameters: {
       query?: never;
@@ -6012,6 +6716,41 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['BusinessHourResponse'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  adjust_prep_time_admin_branches__branch_id__prep_time_patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        branch_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BranchPrepTimeAdjustRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BusinessHourResponse'];
         };
       };
       /** @description Validation Error */

@@ -8,7 +8,7 @@
  * A ARMADILHA QUE ESTE ARQUIVO EXISTE PARA EVITAR: setor é POR FILIAL, mas
  * produto é DO RESTAURANTE. O mesmo item aparece nas duas lojas, e o "Chapa" da
  * Aldeota é outra linha de banco que o "Chapa" da Zona Norte. Por isso um
- * `print_sector_id` gravado no produto só faz sentido junto da filial que está
+ * `printing_sector_id` gravado no produto só faz sentido junto da filial que está
  * aberta na tela — e `sectorLabelFor` devolve um aviso, e não um nome, quando o
  * id aponta para setor que não é desta filial.
  */

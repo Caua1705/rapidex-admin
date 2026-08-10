@@ -5,12 +5,17 @@
  * setores são usados pelas DUAS telas: a aba Impressão de Minha loja os
  * administra, e o Cardápio os lê para dizer em qual setor cada produto imprime.
  *
- * ATENÇÃO: estas rotas ainda NÃO existem no backend (2026-08-09). Ver o bloco 4
- * de `contract-pending.ts` — enquanto não subirem, cada chamada aqui volta 404
- * e a tela mostra o erro da API.
+ * A rota é `printing-sectors` (e o campo, `printing_sector_id`) — é o nome que
+ * o contrato publica. `print-sectors`, que este arquivo usava antes de o
+ * contrato sair, nunca existiu do lado do backend.
  */
 import { apiClient, unwrap } from './client';
-import type { PrintSector, PrintSectorCreate, PrintSectorUpdate } from './types';
+import type {
+  PrintSector,
+  PrintSectorCreate,
+  PrintSectorUpdate,
+  ProductPrintSector,
+} from './types';
 
 /**
  * Os setores de UMA filial.
@@ -20,7 +25,7 @@ import type { PrintSector, PrintSectorCreate, PrintSectorUpdate } from './types'
  */
 export async function listPrintSectors(branchId: string): Promise<PrintSector[]> {
   return unwrap(
-    await apiClient.GET('/admin/branches/{branch_id}/print-sectors', {
+    await apiClient.GET('/admin/branches/{branch_id}/printing-sectors', {
       params: { path: { branch_id: branchId } },
     }),
   );
@@ -31,22 +36,44 @@ export async function createPrintSector(
   body: PrintSectorCreate,
 ): Promise<PrintSector> {
   return unwrap(
-    await apiClient.POST('/admin/branches/{branch_id}/print-sectors', {
+    await apiClient.POST('/admin/branches/{branch_id}/printing-sectors', {
       params: { path: { branch_id: branchId } },
       body,
     }),
   );
 }
 
-/** Renomear e desativar passam pelo mesmo PATCH. */
+/** Renomear e desativar passam pelo mesmo PATCH. Não existe DELETE. */
 export async function updatePrintSector(
   sectorId: string,
   body: PrintSectorUpdate,
 ): Promise<PrintSector> {
   return unwrap(
-    await apiClient.PATCH('/admin/print-sectors/{sector_id}', {
+    await apiClient.PATCH('/admin/printing-sectors/{sector_id}', {
       params: { path: { sector_id: sectorId } },
       body,
+    }),
+  );
+}
+
+/**
+ * Aponta UM produto para um setor — ou desliga a impressão dele.
+ *
+ * Rota própria, e não um campo no PATCH do produto: `AdminProductUpdate` não
+ * tem `printing_sector_id`. Faz sentido pelo mesmo motivo do esgotado — mandar
+ * o produto inteiro só para trocar o setor reenviaria preço e nome velhos por
+ * cima de uma edição feita em outra aba.
+ *
+ * `null` é escolha, não vazio: significa "não imprimir comanda deste item".
+ */
+export async function setProductPrintSector(
+  productId: string,
+  printSectorId: string | null,
+): Promise<ProductPrintSector> {
+  return unwrap(
+    await apiClient.PATCH('/admin/products/{product_id}/printing-sector', {
+      params: { path: { product_id: productId } },
+      body: { printing_sector_id: printSectorId },
     }),
   );
 }
@@ -66,10 +93,10 @@ export async function applyPrintSectorToCategory(
   printSectorId: string | null,
 ): Promise<number> {
   const result = await unwrap(
-    await apiClient.PATCH('/admin/categories/{category_id}/print-sector', {
+    await apiClient.PATCH('/admin/categories/{category_id}/printing-sector', {
       params: { path: { category_id: categoryId } },
-      body: { print_sector_id: printSectorId },
+      body: { printing_sector_id: printSectorId },
     }),
   );
-  return result.updated_count;
+  return result.updated_products;
 }

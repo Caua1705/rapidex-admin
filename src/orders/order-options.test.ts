@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import type { OrderItemWithOptions } from '../api/contract-pending';
+import type { OrderItem, OrderItemOption, OrderItemOptionGroup } from '../api/types';
 import { readOptionGroups } from './order-options';
 
-function item(overrides: Partial<OrderItemWithOptions> = {}): OrderItemWithOptions {
+function item(overrides: Partial<OrderItem> = {}): OrderItem {
   return {
     id: 'item-1',
     product_name_snapshot: 'Filé à parmegiana',
@@ -14,26 +14,48 @@ function item(overrides: Partial<OrderItemWithOptions> = {}): OrderItemWithOptio
   };
 }
 
+/** Uma opção completa — no contrato os quatro campos são obrigatórios. */
+function option(overrides: Partial<OrderItemOption> = {}): OrderItemOption {
+  return {
+    id: 'o1',
+    option_id: 'opt-1',
+    option_name_snapshot: 'Espaguete',
+    additional_price_snapshot: 0,
+    ...overrides,
+  };
+}
+
+function group(overrides: Partial<OrderItemOptionGroup> = {}): OrderItemOptionGroup {
+  return {
+    option_group_id: 'g1',
+    option_group_name_snapshot: 'Acompanhamento',
+    options: [option()],
+    ...overrides,
+  };
+}
+
 describe('readOptionGroups', () => {
   it('agrupa as opções pelo grupo, na ordem em que vieram', () => {
     const grupos = readOptionGroups(
       item({
         option_groups: [
-          {
-            id: 'g1',
+          group({
+            option_group_id: 'g1',
             option_group_name_snapshot: 'Acompanhamento',
-            options: [
-              { id: 'o1', option_name_snapshot: 'Espaguete', additional_price_snapshot: 0 },
-            ],
-          },
-          {
-            id: 'g2',
+            options: [option({ id: 'o1', option_name_snapshot: 'Espaguete' })],
+          }),
+          group({
+            option_group_id: 'g2',
             option_group_name_snapshot: 'Adicional',
             options: [
-              { id: 'o2', option_name_snapshot: 'Espaguete', additional_price_snapshot: 12 },
-              { id: 'o3', option_name_snapshot: 'Bacon', additional_price_snapshot: 5 },
+              option({
+                id: 'o2',
+                option_name_snapshot: 'Espaguete',
+                additional_price_snapshot: 12,
+              }),
+              option({ id: 'o3', option_name_snapshot: 'Bacon', additional_price_snapshot: 5 }),
             ],
-          },
+          }),
         ],
       }),
     );
@@ -46,40 +68,27 @@ describe('readOptionGroups', () => {
     expect(grupos[1]?.options[0]?.additionalPrice).toBe(12);
   });
 
-  it('aceita o nome curto quando o backend não usa o sufixo _snapshot', () => {
+  it('a chave de cada linha é o id que veio do backend', () => {
     const grupos = readOptionGroups(
       item({
-        option_groups: [
-          { id: 'g1', name: 'Ponto da carne', options: [{ id: 'o1', name: 'Ao ponto' }] },
-        ],
+        option_groups: [group({ option_group_id: 'g-9', options: [option({ id: 'o-9' })] })],
       }),
     );
 
-    expect(grupos[0]?.label).toBe('Ponto da carne');
-    expect(grupos[0]?.options[0]?.label).toBe('Ao ponto');
+    expect(grupos[0]?.key).toBe('g-9');
+    expect(grupos[0]?.options[0]?.key).toBe('o-9');
   });
 
-  it('lê preço que vem como string decimal', () => {
+  it('zero é um preço de verdade e aparece como zero', () => {
     const grupos = readOptionGroups(
-      item({
-        option_groups: [
-          {
-            id: 'g1',
-            option_group_name_snapshot: 'Adicional',
-            options: [
-              { id: 'o1', option_name_snapshot: 'Bacon', additional_price_snapshot: '5.50' },
-            ],
-          },
-        ],
-      }),
+      item({ option_groups: [group({ options: [option({ additional_price_snapshot: 0 })] })] }),
     );
 
-    expect(grupos[0]?.options[0]?.additionalPrice).toBe(5.5);
+    expect(grupos[0]?.options[0]?.additionalPrice).toBe(0);
   });
 
   it('item sem adicionais devolve lista vazia', () => {
     expect(readOptionGroups(item())).toEqual([]);
-    expect(readOptionGroups(item({ option_groups: null }))).toEqual([]);
     expect(readOptionGroups(item({ option_groups: [] }))).toEqual([]);
   });
 
@@ -89,41 +98,21 @@ describe('readOptionGroups', () => {
     const grupos = readOptionGroups(
       item({
         option_groups: [
-          {
-            id: 'g1',
+          group({
+            option_group_id: 'g1',
             option_group_name_snapshot: 'Vazio',
-            options: [{ id: 'o1', option_name_snapshot: '  ' }],
-          },
-          { id: 'g2', option_group_name_snapshot: 'Sem lista' },
-          {
-            id: 'g3',
+            options: [option({ option_name_snapshot: '  ' })],
+          }),
+          group({ option_group_id: 'g2', option_group_name_snapshot: 'Sem lista', options: [] }),
+          group({
+            option_group_id: 'g3',
             option_group_name_snapshot: 'Adicional',
-            options: [{ id: 'o2', option_name_snapshot: 'Bacon' }],
-          },
+            options: [option({ id: 'o2', option_name_snapshot: 'Bacon' })],
+          }),
         ],
       }),
     );
 
     expect(grupos.map((g) => g.label)).toEqual(['Adicional']);
-  });
-
-  it('preço ausente vira null, não zero — zero é um preço de verdade', () => {
-    const grupos = readOptionGroups(
-      item({
-        option_groups: [
-          {
-            id: 'g1',
-            option_group_name_snapshot: 'Acompanhamento',
-            options: [
-              { id: 'o1', option_name_snapshot: 'Arroz' },
-              { id: 'o2', option_name_snapshot: 'Fritas', additional_price_snapshot: 0 },
-            ],
-          },
-        ],
-      }),
-    );
-
-    expect(grupos[0]?.options[0]?.additionalPrice).toBeNull();
-    expect(grupos[0]?.options[1]?.additionalPrice).toBe(0);
   });
 });

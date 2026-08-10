@@ -66,13 +66,7 @@ export function KitchenCard({
                           <span className="kitchen-options__label">{group.label}:</span>
                         ) : null}
                         <span className="kitchen-options__values">
-                          {group.options
-                            .map((option) =>
-                              option.quantity && option.quantity > 1
-                                ? `${option.quantity}× ${option.label}`
-                                : option.label,
-                            )
-                            .join(', ')}
+                          {group.options.map((option) => option.label).join(', ')}
                         </span>
                       </li>
                     ))}

@@ -40,7 +40,7 @@ export function ProductRow({
 }) {
   const active = isProductActive(product);
   const available = isProductAvailable(product);
-  const sector = sectorLabelFor(product.print_sector_id, sectors);
+  const sector = sectorLabelFor(product.printing_sector_id, sectors);
 
   return (
     <li

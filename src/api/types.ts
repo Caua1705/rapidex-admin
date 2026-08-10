@@ -8,13 +8,6 @@
  * backend renomear um campo, o erro aparece no `npm run typecheck`.
  */
 import type { components } from './generated/openapi';
-import type {
-  OrderDetailWithOptions,
-  OrderItemWithOptions,
-  ProductCreateWithPrintSector,
-  ProductUpdateWithPrintSector,
-  ProductWithPrintSector,
-} from './contract-pending';
 
 type Schemas = components['schemas'];
 
@@ -23,14 +16,11 @@ export type LoginResponse = Schemas['AdminLoginResponse'];
 
 export type OrderListItem = Schemas['AdminOrderListItem'];
 export type OrderListResponse = Schemas['AdminOrderListResponse'];
-/*
- * O detalhe e o item vêm do overlay, não do contrato gerado: o /openapi.json
- * publicado ainda não descreve o `option_groups` que o backend já manda. Ver
- * `contract-pending.ts` — quando ele sair, estes dois voltam a ser
- * `Schemas['OrderDetailResponse']` e `Schemas['OrderItemResponse']`.
- */
-export type OrderDetail = OrderDetailWithOptions;
-export type OrderItem = OrderItemWithOptions;
+export type OrderDetail = Schemas['OrderDetailResponse'];
+export type OrderItem = Schemas['OrderItemResponse'];
+/** Os adicionais escolhidos, congelados como estavam no cardápio. */
+export type OrderItemOptionGroup = Schemas['OrderItemOptionGroupResponse'];
+export type OrderItemOption = Schemas['OrderItemOptionResponse'];
 export type OrderStatusHistoryEntry = Schemas['StatusHistoryResponse'];
 export type OrderStatusCountsResponse = Schemas['AdminOrderStatusCountsResponse'];
 export type OrderStreamEvent = Schemas['AdminOrderStreamEvent'];
@@ -49,6 +39,16 @@ export type BranchUpdate = Schemas['AdminBranchUpdate'];
 export type BusinessHour = Schemas['BusinessHourResponse'];
 export type BusinessHourInput = Schemas['BusinessHourInput'];
 
+/**
+ * O que o PATCH de tempo de preparo devolve.
+ *
+ * É a LINHA DE HORÁRIO do dia, não um objeto só com a faixa: o prazo de preparo
+ * mora junto do horário de funcionamento, e o backend responde a linha inteira.
+ * Por isso `prep_time_min`/`max` são anuláveis aqui — a filial pode ter horário
+ * gravado e ainda não ter faixa. Quem formata trata esse caso.
+ */
+export type PrepTimeResponse = Schemas['BusinessHourResponse'];
+
 export type PaymentMethod = Schemas['AdminPaymentMethodResponse'];
 export type PaymentMethodCreate = Schemas['AdminPaymentMethodCreate'];
 export type PaymentMethodUpdate = Schemas['AdminPaymentMethodUpdate'];
@@ -62,15 +62,15 @@ export type Category = Schemas['AdminCategoryResponse'];
 export type CategoryCreate = Schemas['AdminCategoryCreate'];
 export type CategoryUpdate = Schemas['AdminCategoryUpdate'];
 
+export type Product = Schemas['AdminProductResponse'];
 /*
- * O produto vem do overlay pelo mesmo motivo do detalhe do pedido: o
- * `print_sector_id` ainda não está no contrato publicado. Ver
- * `contract-pending.ts`, bloco 4 — e note que ali o setor é o único caso em que
- * a rota ainda NÃO existe do lado do backend.
+ * Nem `AdminProductCreate` nem `AdminProductUpdate` têm `printing_sector_id`:
+ * o setor de um produto só muda por `PATCH /admin/products/{id}/printing-sector`
+ * (ver `api/print-sectors.ts`). A RESPOSTA traz o campo — é por isso que a
+ * lista do cardápio consegue mostrar a coluna de setor.
  */
-export type Product = ProductWithPrintSector;
-export type ProductCreate = ProductCreateWithPrintSector;
-export type ProductUpdate = ProductUpdateWithPrintSector;
+export type ProductCreate = Schemas['AdminProductCreate'];
+export type ProductUpdate = Schemas['AdminProductUpdate'];
 export type ProductDetail = Schemas['AdminProductDetailResponse'];
 export type ProductListResponse = Schemas['AdminProductListResponse'];
 /** O grupo que vem no detalhe do produto — não o do cardápio público. */
@@ -78,4 +78,14 @@ export type ProductOptionGroup = Schemas['AdminOptionGroupResponse'];
 
 // --- setores de impressão -----------------------------------------------
 
-export type { PrintSector, PrintSectorCreate, PrintSectorUpdate } from './contract-pending';
+/*
+ * Apelidos curtos, como o resto do arquivo: no contrato eles são
+ * `PrintingSector*`. O id do setor no produto é `printing_sector_id`.
+ */
+export type PrintSector = Schemas['PrintingSectorResponse'];
+export type PrintSectorCreate = Schemas['PrintingSectorCreate'];
+export type PrintSectorUpdate = Schemas['PrintingSectorUpdate'];
+/** Corpo de "apontar para um setor", igual para produto e para categoria. */
+export type PrintSectorRequest = Schemas['ProductPrintingSectorRequest'];
+export type ProductPrintSector = Schemas['ProductPrintingSectorResponse'];
+export type CategoryPrintSectorResult = Schemas['CategoryPrintingSectorResponse'];

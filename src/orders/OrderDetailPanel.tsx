@@ -370,10 +370,7 @@ function ItemLine({ item }: { item: OrderItem }) {
               <ul className="options__list">
                 {group.options.map((option) => (
                   <li key={option.key} className="options__option">
-                    <span>
-                      {option.quantity && option.quantity > 1 ? `${option.quantity}× ` : ''}
-                      {option.label}
-                    </span>
+                    <span>{option.label}</span>
                     {option.additionalPrice ? (
                       <span className="options__price mono faint">
                         {formatCurrency(option.additionalPrice)}
