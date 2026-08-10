@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 
 import { useSession } from '../auth/session-context';
 import { useOrderStream } from '../orders/useOrderStream';
+import { usePrepRange } from '../orders/usePrepRange';
 import { KitchenCard } from './KitchenCard';
 import { groupForKitchen, KITCHEN_COLUMNS } from './kitchen-board';
 import { useKitchenOrders } from './useKitchenOrders';
+import { useNow } from './useNow';
 import './KitchenPage.css';
 
 const STREAM_LABELS: Record<string, string> = {
@@ -29,6 +31,13 @@ const STREAM_LABELS: Record<string, string> = {
 export function KitchenPage() {
   const { activeBranchId, branches, restaurantLabel } = useSession();
   const kitchen = useKitchenOrders(activeBranchId);
+  /*
+   * O relógio e a régua do cronômetro. Um relógio SÓ para a tela: com um por
+   * cartão, dois pedidos do mesmo minuto exibiriam minutos diferentes conforme
+   * a hora em que cada card montou.
+   */
+  const now = useNow();
+  const prep = usePrepRange(activeBranchId);
 
   const { applyStreamEvent, reload } = kitchen;
 
@@ -110,6 +119,8 @@ export function KitchenPage() {
                       key={order.id}
                       order={order}
                       detail={kitchen.details[order.id]}
+                      prepWindow={prep.range}
+                      now={now}
                       isPending={kitchen.pendingId === order.id}
                       errorMessage={
                         kitchen.actionError?.orderId === order.id

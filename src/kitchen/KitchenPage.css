@@ -69,10 +69,14 @@
 /*
  * Um terço da tela cada, sem encolher: cartão espremido quebra o nome do prato
  * em três linhas e acaba com a leitura de longe, que é a razão da tela existir.
+ *
+ * O piso subiu de 300px para 340px junto com a escala tipográfica: com o nome
+ * do item em --text-xl, 300px voltariam a quebrar "X-Burger Clássico" em duas
+ * linhas — exatamente o que o mínimo existe para impedir.
  */
 .kitchen-column {
   flex: 1 1 0;
-  min-width: 300px;
+  min-width: 340px;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -159,15 +163,69 @@
   font-weight: var(--weight-extrabold);
 }
 
+/*
+ * O CRONÔMETRO — a informação número um desta tela.
+ *
+ * Sobe para --text-xl e ganha caixa própria: a dois metros, a pergunta não é
+ * "que horas entrou" e sim "este já estourou?". Ele é uma etiqueta e não o
+ * cartão inteiro porque a borda esquerda já carrega a matiz do STATUS; pintar
+ * o cartão apagaria a etapa em que o prato está.
+ */
 .kitchen-card__elapsed {
-  font-size: var(--text-md);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xl);
+  line-height: var(--leading-xl);
   font-weight: var(--weight-bold);
   color: var(--text-secondary);
 }
 
+/*
+ * Entrou na janela de entrega (passou do mínimo da faixa). O âmbar de `pending`
+ * marca aqui um "em espera" fora do pedido — a mesma exceção herdada do mockup
+ * que pinta esgotado no cardápio e a observação do item logo abaixo.
+ */
+.kitchen-card[data-wait='due'] .kitchen-card__elapsed {
+  background: var(--status-pending-h);
+  color: var(--text-on-status);
+}
+
+/*
+ * Estourou o máximo prometido. Vermelho aqui não é status do pedido — o status
+ * continua sendo "preparando", na borda — é alarme, o mesmo uso de "pagamento
+ * recusado". É o único elemento da tela que grita, e por isso ele só aparece
+ * quando a filial tem faixa gravada: sem régua não há atraso a declarar.
+ */
+.kitchen-card[data-wait='late'] .kitchen-card__elapsed {
+  background: var(--danger-soft-bg);
+  color: var(--danger-soft-fg);
+}
+
+/*
+ * O atraso PULSA uma vez ao aparecer: num monitor que ninguém opera, uma cor
+ * que simplesmente troca no meio de trinta cartões passa despercebida. Uma vez
+ * só — piscar sem parar vira ruído de fundo e deixa de ser aviso.
+ */
+.kitchen-card[data-wait='late'] .kitchen-card__elapsed {
+  animation: kitchen-late var(--motion-base) var(--motion-ease) 2;
+}
+
+@keyframes kitchen-late {
+  50% {
+    background: var(--danger);
+    color: var(--text-on-status);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kitchen-card[data-wait='late'] .kitchen-card__elapsed {
+    animation: none;
+  }
+}
+
 .kitchen-card__type {
   margin-left: auto;
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   color: var(--text-secondary);
 }
 
@@ -198,16 +256,27 @@
   align-items: baseline;
 }
 
+/*
+ * ITEM E QUANTIDADE SÃO O QUE SE LÊ A DOIS METROS.
+ *
+ * Sobem de --text-md para --text-xl: esta tela não é lida de mesa, é lida de
+ * parede, de pé, por quem está com as mãos ocupadas. A quantidade ganha uma
+ * coluna de largura fixa para que os "2×" fiquem todos na mesma abscissa —
+ * alinhados, o olho varre a coluna e vê de uma vez quantas unidades tem o
+ * pedido; desalinhados, ele reancora a cada linha.
+ */
 .kitchen-items__qty {
-  font-size: var(--text-md);
+  min-width: 2.2em;
+  font-size: var(--text-xl);
+  line-height: var(--leading-xl);
   font-weight: var(--weight-extrabold);
   flex: 0 0 auto;
 }
 
 .kitchen-items__name {
-  font-size: var(--text-md);
-  line-height: var(--leading-md);
-  font-weight: var(--weight-semibold);
+  font-size: var(--text-xl);
+  line-height: var(--leading-xl);
+  font-weight: var(--weight-bold);
 }
 
 /*
@@ -219,17 +288,24 @@
 .kitchen-options {
   list-style: none;
   margin: 0;
-  padding: 0 0 0 var(--space-6);
+  padding: 0 0 0 var(--space-8);
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
+/*
+ * Os adicionais são instrução de montagem, não nota de rodapé: sobem para
+ * --text-md e o recuo cresce junto com o corpo do item, para que a hierarquia
+ * "item → complemento" continue legível de longe. Menor que isto e a cozinha
+ * lê o nome do prato e ignora o "sem cebola".
+ */
 .kitchen-options__group {
   display: flex;
   gap: var(--space-1);
   flex-wrap: wrap;
-  font-size: var(--text-base);
-  line-height: var(--leading-base);
+  font-size: var(--text-md);
+  line-height: var(--leading-md);
 }
 
 .kitchen-options__label {
@@ -238,7 +314,8 @@
 }
 
 .kitchen-options__values {
-  color: var(--text-secondary);
+  color: var(--text-primary);
+  font-weight: var(--weight-semibold);
 }
 
 /*
@@ -247,13 +324,14 @@
  * mockup que pinta esgotado no cardápio.
  */
 .kitchen-items__observation {
-  margin: var(--space-1) 0 0 var(--space-6);
+  margin: var(--space-1) 0 0 var(--space-8);
   padding: var(--space-1) var(--space-2);
   border-left: 3px solid var(--status-pending-h);
   background: var(--bg-surface);
   border-radius: var(--radius-sm);
-  font-size: var(--text-base);
-  font-weight: var(--weight-semibold);
+  font-size: var(--text-md);
+  line-height: var(--leading-md);
+  font-weight: var(--weight-bold);
 }
 
 .kitchen-card__notes {
@@ -261,7 +339,7 @@
   padding: var(--space-2);
   border-radius: var(--radius-sm);
   background: var(--bg-surface);
-  font-size: var(--text-base);
+  font-size: var(--text-md);
 }
 
 .kitchen-card__error {
@@ -272,7 +350,8 @@
 .kitchen-card__action {
   width: 100%;
   padding: var(--space-3);
-  font-size: var(--text-base);
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
   margin-top: var(--space-1);
 }
 
@@ -283,7 +362,23 @@
     padding-inline: var(--space-3);
   }
 
+  /*
+   * Num tablet a tela é lida a um braço de distância, não a dois metros: a
+   * coluna pode estreitar e o item volta ao corpo do resto do painel. É o único
+   * lugar em que a escala grande cede — e cede porque a distância de leitura
+   * mudou, não para "caber mais coisa".
+   */
   .kitchen-column {
-    min-width: 260px;
+    min-width: 280px;
+  }
+
+  .kitchen-items__qty,
+  .kitchen-items__name {
+    font-size: var(--text-md);
+    line-height: var(--leading-md);
+  }
+
+  .kitchen-card__elapsed {
+    font-size: var(--text-md);
   }
 }

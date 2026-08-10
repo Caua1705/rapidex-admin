@@ -8,7 +8,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 
-import { installFakeApi, LOGIN_EMAIL, LOGIN_PASSWORD, type FakeApi } from './fake-api';
+import { installFakeApi, FAKE_BRANCH, LOGIN_EMAIL, LOGIN_PASSWORD, type FakeApi } from './fake-api';
 
 let api: FakeApi;
 
@@ -46,6 +46,59 @@ test('a cozinha é tela cheia: sem sidebar, sem filtros e sem busca', async ({ p
   // A saída existe, e é a única.
   await page.getByRole('link', { name: 'Sair da cozinha' }).click();
   await expect(page).toHaveURL(/\/pedidos$/);
+});
+
+/*
+ * O cronômetro é a informação nº 1 de uma tela de cozinha, e a régua dele é a
+ * faixa de preparo da filial — a MESMA que a barra de pedidos ajusta. Se fossem
+ * dois números, a cozinha ficaria tranquila enquanto o cliente já esperava além
+ * do combinado. No falso a faixa é 25–35 min.
+ */
+test('o cartão conta a espera e acende quando passa do preparo da filial', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByLabel('E-mail').fill(LOGIN_EMAIL);
+  await page.getByLabel('Senha').fill(LOGIN_PASSWORD);
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page).toHaveURL(/\/pedidos$/);
+
+  // A faixa é POR FILIAL: sem uma escolhida não há régua, e nada acende.
+  await page.selectOption('.branch__select', FAKE_BRANCH.id);
+  await page.getByRole('link', { name: 'Cozinha' }).click();
+
+  // ord-1003 entrou há 25 min: já está na janela de entrega, ainda não estourou.
+  await expect(page.getByTestId('kitchen-wait-1003')).toHaveText('25 min');
+  await expect(page.getByTestId('kitchen-card-1003')).toHaveAttribute('data-wait', 'due');
+
+  api.pushNewOrder(
+    api.makeOrder({
+      id: 'ord-3001',
+      order_number: 3001,
+      status: 'accepted',
+      payment_status: 'paid',
+      // 90min30s, e não 90 exatos: entre montar este ISO e a tela renderizar
+      // passam alguns segundos, e o arredondamento para baixo faria "1h30"
+      // virar "1h29" de vez em quando. A meia sobra deixa o minuto estável.
+      created_at: new Date(Date.now() - (90 * 60_000 + 30_000)).toISOString(),
+    }),
+  );
+
+  // 90 min contra um máximo de 35: estourou, e é o único elemento que grita.
+  await expect(page.getByTestId('kitchen-card-3001')).toHaveAttribute('data-wait', 'late');
+  await expect(page.getByTestId('kitchen-wait-3001')).toHaveText('1h30');
+
+  // O atraso é da ETIQUETA de tempo, não do cartão: a borda esquerda continua
+  // com a matiz do status, que é o que diz em que etapa o prato está.
+  await expect(page.getByTestId('kitchen-card-3001')).toHaveAttribute('data-status', 'accepted');
+});
+
+test('sem filial escolhida a cozinha conta o tempo, mas não acusa atraso', async ({ page }) => {
+  // Sem filial não há faixa de preparo, e sem régua não existe atraso a
+  // declarar. Inventar um limite padrão pintaria de vermelho a cozinha inteira
+  // de quem ainda não configurou o prazo — alarme sempre ligado não é alarme.
+  await abrirCozinha(page);
+
+  await expect(page.getByTestId('kitchen-wait-1003')).toHaveText('25 min');
+  await expect(page.getByTestId('kitchen-card-1003')).toHaveAttribute('data-wait', 'ok');
 });
 
 test('mostra só Aceito, Preparando e Pronto', async ({ page }) => {

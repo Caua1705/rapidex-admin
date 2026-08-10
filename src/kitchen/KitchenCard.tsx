@@ -1,7 +1,8 @@
 import type { OrderDetail, OrderListItem } from '../api/types';
-import { formatElapsed, labelFor, ORDER_TYPE_LABELS } from '../orders/format';
+import { labelFor, ORDER_TYPE_LABELS } from '../orders/format';
 import { readOptionGroups } from '../orders/order-options';
 import { advanceFor } from './kitchen-board';
+import { readWait, type PrepWindow } from './wait-time';
 
 /**
  * O cartão da Cozinha.
@@ -23,27 +24,53 @@ import { advanceFor } from './kitchen-board';
 export function KitchenCard({
   order,
   detail,
+  prepWindow,
+  now,
   isPending,
   errorMessage,
   onAdvance,
 }: {
   order: OrderListItem;
   detail: OrderDetail | undefined;
+  /** A faixa de preparo da filial: a régua do cronômetro. Ver `wait-time.ts`. */
+  prepWindow: PrepWindow;
+  /** O mesmo instante para todos os cartões do render. Ver `useNow`. */
+  now: number;
   isPending: boolean;
   errorMessage: string | null;
   onAdvance: (target: string) => void;
 }) {
   const advance = advanceFor(order);
+  const wait = readWait(order.created_at, prepWindow, now);
 
   return (
     <article
       className={`kitchen-card status-${order.status}`}
       data-testid={`kitchen-card-${order.order_number}`}
       data-status={order.status}
+      data-wait={wait.level}
     >
       <header className="kitchen-card__head">
         <strong className="kitchen-card__number mono">#{order.order_number}</strong>
-        <span className="kitchen-card__elapsed mono">{formatElapsed(order.created_at)}</span>
+
+        {/*
+          O cronômetro é a informação nº 1 desta tela e por isso ele é a
+          etiqueta que muda de cor — não o cartão inteiro. Pintar o cartão de
+          vermelho apagaria a matiz de status na borda esquerda, que é o que
+          diz em que etapa o prato está.
+        */}
+        <span
+          className="kitchen-card__elapsed mono"
+          data-testid={`kitchen-wait-${order.order_number}`}
+          title={
+            wait.level === 'late'
+              ? 'Passou do tempo de preparo configurado para esta filial.'
+              : undefined
+          }
+        >
+          {wait.label}
+        </span>
+
         <span className="kitchen-card__type">{labelFor(ORDER_TYPE_LABELS, order.order_type)}</span>
       </header>
 
