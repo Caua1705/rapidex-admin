@@ -119,7 +119,7 @@ export function DeliveryTab({
     >
       <section className="store-form__section">
         <h2 className="store-form__heading">Cobrança da entrega</h2>
-        <p className="faint store-form__hint">
+        <p className="field__hint">
           O frete é por raio: taxa base mais o valor por quilômetro, medido em linha reta da filial
           até o endereço. Não existe preço por bairro.
         </p>
@@ -193,9 +193,7 @@ export function DeliveryTab({
                 data-testid="delivery-max-fee"
               />
             </div>
-            <span className="faint store-form__hint">
-              Vazio dos dois lados: sem piso e sem teto.
-            </span>
+            <span className="field__hint">Vazio dos dois lados: sem piso e sem teto.</span>
           </div>
 
           <label className="field">
@@ -207,7 +205,7 @@ export function DeliveryTab({
               onChange={(event) => patch({ maxDistanceKm: event.target.value })}
               data-testid="delivery-max-distance"
             />
-            <span className="faint store-form__hint">Além disso o endereço não é atendido.</span>
+            <span className="field__hint">Além disso o endereço não é atendido.</span>
           </label>
         </div>
       </section>

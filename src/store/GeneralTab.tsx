@@ -130,7 +130,7 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
               onChange={(event) => patch({ minOrderValue: event.target.value })}
               data-testid="settings-min-order"
             />
-            <span className="faint store-form__hint">
+            <span className="field__hint">
               Abaixo disso o cliente não fecha o pedido. Em reais.
             </span>
           </label>
@@ -165,9 +165,7 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
                 data-testid="settings-eta-max"
               />
             </div>
-            <span className="faint store-form__hint">
-              É a faixa que o cliente vê ao escolher a loja.
-            </span>
+            <span className="field__hint">É a faixa que o cliente vê ao escolher a loja.</span>
           </div>
         </div>
       </section>

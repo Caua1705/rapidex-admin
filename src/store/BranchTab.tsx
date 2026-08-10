@@ -155,9 +155,7 @@ export function BranchTab({ branchDetail }: { branchDetail: ReturnType<typeof us
               onChange={(event) => patch({ displayName: event.target.value })}
               data-testid="branch-display-name"
             />
-            <span className="faint store-form__hint">
-              O que o cliente vê. Vazio usa o nome acima.
-            </span>
+            <span className="field__hint">O que o cliente vê. Vazio usa o nome acima.</span>
           </label>
         </div>
       </section>

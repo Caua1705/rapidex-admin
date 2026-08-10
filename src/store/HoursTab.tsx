@@ -47,7 +47,7 @@ export function HoursTab({ branchId }: { branchId: string }) {
     >
       <section className="store-form__section">
         <h2 className="store-form__heading">Horário de funcionamento</h2>
-        <p className="faint store-form__hint">
+        <p className="field__hint">
           Salvar grava a semana inteira: o que estiver marcado como fechado aqui fica fechado no
           app.
         </p>

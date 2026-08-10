@@ -124,7 +124,7 @@ export function ProductDialog({
               onChange={(event) => setDraft({ ...draft, price: event.target.value })}
             />
             {priceIsInvalid ? (
-              <span className="form__error">Informe um valor como 24,90.</span>
+              <span className="field__error-text">Informe um valor como 24,90.</span>
             ) : null}
           </label>
 
@@ -183,7 +183,7 @@ export function ProductDialog({
               })),
             ]}
           />
-          <span className="form__hint">
+          <span className="field__hint">
             {!branchChosen
               ? 'Setor é por filial: escolha uma no topo para poder definir onde este item imprime.'
               : sectors.length === 0
@@ -200,7 +200,7 @@ export function ProductDialog({
           />
           <div>
             <div className="form__switch-label">Item ativo</div>
-            <p className="form__hint">
+            <p className="field__hint">
               Está no cardápio do cliente. Não existe excluir item — desative-o para tirar do ar sem
               apagar os pedidos que já o incluem.
             </p>
@@ -216,7 +216,7 @@ export function ProductDialog({
           />
           <div>
             <div className="form__switch-label">Disponível hoje</div>
-            <p className="form__hint">
+            <p className="field__hint">
               {draft.isActive
                 ? 'Tem na cozinha agora. Desligar marca o item como esgotado sem tirá-lo do cardápio.'
                 : 'Não se aplica: um item inativo não está à venda.'}
@@ -256,7 +256,7 @@ export function ProductDialog({
                 ))}
               </ul>
             )}
-            <p className="form__hint">
+            <p className="field__hint">
               Complementos têm rotas próprias e não são editados junto do preço.
             </p>
           </section>

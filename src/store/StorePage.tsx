@@ -45,7 +45,7 @@ export function StorePage() {
 
   return (
     <div className="store">
-      <div className="store__head container">
+      <div className="store__head">
         {/*
           O título é a PRIMEIRA coisa da linha, alinhado com as abas e com o
           primeiro campo do formulário. Antes ele dividia a linha com um cartão
@@ -68,7 +68,7 @@ export function StorePage() {
         />
       </div>
 
-      <div className="store__tabs container" role="tablist" aria-label="Configurações da loja">
+      <div className="store__tabs" role="tablist" aria-label="Configurações da loja">
         {TABS.map((candidate) => (
           <button
             key={candidate.key}
@@ -87,7 +87,7 @@ export function StorePage() {
       </div>
 
       <div
-        className="store__panel container"
+        className="store__panel"
         role="tabpanel"
         id={`store-panel-${tab.key}`}
         aria-labelledby={`store-tab-${tab.key}`}

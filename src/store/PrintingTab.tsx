@@ -65,7 +65,7 @@ export function PrintingTab({ branchId }: { branchId: string }) {
         </div>
 
         {printing.sectors.length === 0 ? (
-          <p className="faint store-form__hint">
+          <p className="field__hint">
             Nenhum setor nesta filial ainda. Crie o primeiro — depois é no Cardápio que se diz qual
             produto imprime em qual setor.
           </p>

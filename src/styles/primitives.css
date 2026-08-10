@@ -17,20 +17,6 @@
  */
 
 /* ==========================================================================
- * ENQUADRAMENTO DA PÁGINA
- *
- * A coluna de conteúdo começa LOGO DEPOIS da lateral e cresce até o teto — ela
- * não é centrada no viewport. Centrar abre, num monitor de 27", 300px de nada
- * entre a lateral e a primeira letra, e é o defeito que mais faz uma tela
- * parecer quebrada.
- * ======================================================================= */
-.container {
-  width: 100%;
-  max-width: var(--page-max);
-  margin-inline: 0;
-}
-
-/* ==========================================================================
  * BOTÃO
  *
  * Três pesos, e a diferença entre eles é a resposta a "quantas destas ações
@@ -186,11 +172,27 @@
   color: var(--ink-3);
 }
 
+/*
+ * A ajuda de campo tem UM nome de classe no painel inteiro. Ela já teve três
+ * (`form__hint`, `store-form__hint`, `field__hint`), com margens diferentes em
+ * cada tela — e é exatamente assim que o mesmo formulário passa a ler com três
+ * cadências. Quem entrega o espaçamento é o `gap` do `.field`; esta regra só
+ * cuida do corpo e da tinta.
+ */
 .field__hint,
 .ds-field__hint {
   font-size: var(--ta-size);
   line-height: var(--ta-line);
   color: var(--ink-3);
+}
+
+/* Erro de validação junto ao campo. Texto, e não só uma borda vermelha: cor
+   sozinha não passa em 1.4.1, e borda vermelha não diz O QUE está errado. */
+.field__error-text {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-weight: var(--w-medium);
+  color: var(--danger);
 }
 
 /* Dois campos que formam UM dado: "de 30 a 50 min", "de R$ 5 a R$ 20". */
@@ -266,6 +268,28 @@
   .input {
     height: var(--field-h-touch);
   }
+}
+
+/*
+ * HORA E DATA continuam sendo campo nativo — o seletor do sistema é o único
+ * que a mão já sabe operar sem olhar, e reescrevê-lo seria construir um
+ * calendário inteiro. O que denunciava a tela era o ÍCONE do navegador: cheio,
+ * em tinta do sistema, mais escuro que qualquer coisa ao redor. Aqui ele vira
+ * um affixo discreto, na tinta de apoio, que só ganha corpo no ponteiro.
+ */
+.input::-webkit-calendar-picker-indicator {
+  opacity: 0.4;
+  cursor: pointer;
+  transition: opacity var(--motion-fast) var(--ease);
+}
+
+.input:hover::-webkit-calendar-picker-indicator,
+.input:focus::-webkit-calendar-picker-indicator {
+  opacity: 0.85;
+}
+
+.input::-webkit-datetime-edit {
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 /* ==========================================================================

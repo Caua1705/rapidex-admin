@@ -75,7 +75,7 @@ export function CategoryDialog({
             />
             <div>
               <div className="form__switch-label">Categoria ativa</div>
-              <p className="form__hint">
+              <p className="field__hint">
                 Categorias inativas somem do cardápio do cliente. Não existe excluir categoria —
                 desativar é o que tira do ar sem apagar os pedidos que já apontam para ela.
               </p>

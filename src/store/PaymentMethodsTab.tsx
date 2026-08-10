@@ -130,7 +130,7 @@ function MethodList({
   }
 
   if (methods.length === 0) {
-    return <p className="faint store-form__hint">Nenhuma forma cadastrada neste fluxo.</p>;
+    return <p className="field__hint">Nenhuma forma cadastrada neste fluxo.</p>;
   }
 
   return (
@@ -217,7 +217,7 @@ function NewMethodForm({
     <section className="store-form__section" data-testid="payment-new">
       <h2 className="store-form__heading">Nova forma de pagamento</h2>
 
-      <p className="faint store-form__hint">
+      <p className="field__hint">
         O fluxo e o tipo não mudam depois de salvos: eles decidem como o dinheiro entra. Para
         corrigir um cadastro errado, desative a linha e crie outra.
       </p>

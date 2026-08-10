@@ -36,10 +36,17 @@
   max-width: 340px;
 }
 
+/*
+ * `flex-wrap` aqui também, e não só na barra: no celular este bloco desce
+ * inteiro para a segunda linha e, sem quebrar por dentro, o sino e o
+ * "Atualizar" saíam da tela pela direita — sem barra de rolagem, sem nada
+ * indicando que havia mais.
+ */
 .toolbar__right {
   margin-left: auto;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--sp-8);
 }
 
@@ -307,34 +314,33 @@
 }
 
 /*
- * Nº, hora e cronômetro na mesma linha de base. O nº é nível 2 (título de
- * seção) em mono: dentro do card, ele é o título.
+ * Tempo à esquerda, dinheiro à direita, os dois no nível 2 e sem quebrar.
+ * São os dois números que se comparam descendo a coluna de cards.
  */
 .order-card__top {
   display: flex;
   align-items: baseline;
+  justify-content: space-between;
   gap: var(--sp-8);
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-}
-
-.order-card__number {
   font-size: var(--ts-size);
   line-height: var(--ts-line);
-  font-weight: var(--ts-weight);
+  letter-spacing: var(--ts-track);
 }
 
+/*
+ * O CRONÔMETRO É A MAIOR TINTA DO CARTÃO, na matiz do estágio: na coluna
+ * "Preparando" ele é roxo, na "Pronto" é verde. Não é decoração — é o dado que
+ * responde "o que eu faço primeiro", no lugar onde o olho já está quando
+ * percorre a fila.
+ */
 .order-card__elapsed {
-  color: var(--ink-2);
-  font-variant-numeric: tabular-nums;
+  font-weight: var(--w-bold);
+  color: var(--st, var(--ink));
+  white-space: nowrap;
 }
 
-/* O dinheiro é o último da linha e encosta na direita, como toda a moeda. */
 .order-card__total {
-  margin-left: auto;
-  font-size: var(--tb-size);
-  line-height: var(--tb-line);
-  font-weight: var(--w-bold);
+  font-weight: var(--w-semibold);
   white-space: nowrap;
 }
 
@@ -347,15 +353,24 @@
 }
 
 /*
- * Etiquetas e total na MESMA linha: eram três linhas empilhadas ocupando 54px
- * por card, e todas respondem perguntas de conferência, não a pergunta "o que
- * eu faço com este pedido agora".
+ * A LINHA DE APOIO: nº, hora, etiquetas e situação do pagamento, tudo em 12px
+ * e em `--ink-3`. É como o pedido é chamado no balcão e conferido no caixa —
+ * não é como ele é decidido, e por isso nada aqui compete com a linha de cima.
  */
 .order-card__foot {
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  flex-wrap: wrap;
   gap: var(--sp-4);
   min-width: 0;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+.order-card__number {
+  font-weight: var(--w-semibold);
+  color: var(--ink-2);
 }
 
 .order-card__tags {
@@ -368,13 +383,8 @@
 .order-card__unpaid-banner {
   font-size: var(--tb-size);
   line-height: var(--tb-line);
-  font-weight: var(--w-bold);
+  font-weight: var(--w-semibold);
   color: var(--danger);
-}
-
-.order-card__payment {
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
 }
 
 @media (max-width: 720px) {

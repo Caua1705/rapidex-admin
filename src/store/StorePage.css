@@ -1,9 +1,9 @@
 /*
  * Minha loja. Toda cor sai de tokens.css — aqui é var(--token) ou não entra.
  *
- * A tela é um formulário longo, então ela usa `.container`: sem o teto de
- * 1400px, um campo de "taxa base" viraria uma caixa de um metro numa tela de
- * 27", e o rótulo ficaria longe do valor que ele nomeia.
+ * A tela é um formulário longo e tem UM teto de largura só (--form-max), que
+ * vale para o título, as abas e os cartões: sem ele, um campo de "taxa base"
+ * viraria uma caixa de um metro numa tela de 27".
  *
  * O ALINHAMENTO É A REGRA DESTA TELA. Título, abas e conteúdo começam todos na
  * MESMA abscissa: o título morava ao lado de um cartão de status de 60px de
@@ -164,17 +164,25 @@
 /* --- formulário ---------------------------------------------------------- */
 
 /*
- * O formulário para de crescer antes da tela.
+ * UMA COLUNA SÓ, e ela é a mesma para o título, as abas e o formulário.
  *
- * Um cartão de duas caixas de texto esticado por 1200px é ar puro à direita de
- * cada seção — e, pior, o rótulo fica a meio metro do próximo campo. 900px é
- * onde a grade de 200px fecha em quatro colunas cheias.
+ * O teto existe porque um cartão de duas caixas de texto esticado por 1200px é
+ * ar puro à direita de cada seção — e o rótulo fica a meio metro do próximo
+ * campo. Mas ele precisa ser o MESMO do resto da tela: com o formulário em
+ * 900px e as abas em 1240, a régua embaixo das abas corria 340px além da borda
+ * direita de todos os cartões, e a tela lia como dois blocos desalinhados.
  */
+.store-form,
+.store__head,
+.store__tabs,
+.store__panel {
+  max-width: var(--form-max);
+}
+
 .store-form {
   display: flex;
   flex-direction: column;
   gap: var(--sp-12);
-  max-width: 900px;
 }
 
 /*
@@ -221,7 +229,13 @@
  */
 .store-form__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  /*
+   * 176 e não 200: com 200 a coluna de `--form-max` fechava em TRÊS trilhas, e
+   * o endereço de quatro campos (bairro, cidade, estado, CEP) quebrava com o
+   * CEP sozinho numa linha nova. Em 176 fecham quatro, e o cartão de endereço
+   * vira uma linha só — que é como o endereço é lido.
+   */
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
   gap: var(--sp-12) var(--sp-16);
   align-items: start;
 }
@@ -245,16 +259,6 @@
 .store-form__narrow {
   width: 160px;
   flex: 0 0 auto;
-}
-
-/*
- * Ajuda de campo. MESMO espaçamento em toda a tela — quem entrega isso é o
- * `gap` do `.field`, então esta regra só cuida do tamanho e da cor.
- */
-.store-form__hint {
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-  color: var(--ink-3);
 }
 
 .store-form__warn {
@@ -349,6 +353,15 @@
  * Cada uma com o seu padding era o que fazia a aba "Horários" ler mais solta
  * que a aba "Impressão" sem nenhum motivo.
  */
+/*
+ * A semana tem largura de tabela, não de tela: com o nome do dia numa coluna
+ * fluida de 860px, o interruptor de segunda-feira ficava a meio metro do nome
+ * que ele liga, e o olho perdia a linha no caminho.
+ */
+.hours {
+  max-width: 560px;
+}
+
 .hours,
 .methods,
 .sectors,

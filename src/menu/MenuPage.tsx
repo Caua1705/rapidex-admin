@@ -136,24 +136,28 @@ export function MenuPage() {
           </p>
         ) : null}
 
-        <div className="menu__search">
-          <span className="menu__search-icon" aria-hidden="true">
-            <SearchIcon />
-          </span>
-          <input
-            className="input menu__search-input"
-            type="search"
-            placeholder="Buscar item nesta categoria"
-            aria-label="Buscar item nesta categoria"
-            value={menu.searchDraft}
-            onChange={(event) => menu.setSearchDraft(event.target.value)}
-            disabled={!selectedCategory}
-          />
-        </div>
-
-        {/* A lista é a área de trabalho: um degrau de tom acima do fundo da
-            página, sem cartão dentro de cartão. */}
+        {/*
+          A busca vive DENTRO do painel da lista, e não numa faixa própria
+          acima dele: assim a superfície da lista começa na mesma ordenada da
+          superfície da barra de categorias ao lado, e as duas colunas de
+          conteúdo têm a mesma borda de cima.
+        */}
         <div className="menu__list">
+          <div className="menu__search">
+            <span className="menu__search-icon" aria-hidden="true">
+              <SearchIcon />
+            </span>
+            <input
+              className="input menu__search-input"
+              type="search"
+              placeholder="Buscar item nesta categoria"
+              aria-label="Buscar item nesta categoria"
+              value={menu.searchDraft}
+              onChange={(event) => menu.setSearchDraft(event.target.value)}
+              disabled={!selectedCategory}
+            />
+          </div>
+
           {menu.isLoadingCategories ? (
             <p className="menu__empty faint">Carregando o cardápio…</p>
           ) : menu.categories.length === 0 ? (

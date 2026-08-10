@@ -35,10 +35,9 @@
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
+  gap: var(--sp-8);
   min-height: 0;
   margin-right: var(--sp-12);
-  background: var(--surface);
-  border-radius: var(--r-field);
 }
 
 /*
@@ -59,12 +58,14 @@
 .rail__list {
   list-style: none;
   margin: 0;
-  padding: 0 var(--sp-4) var(--sp-8);
+  padding: var(--sp-4);
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  background: var(--surface);
+  border-radius: var(--r-field);
 }
 
 /*
@@ -233,10 +234,11 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+  gap: var(--sp-8);
 }
 
 .menu__header {
-  height: 30px;
+  height: var(--sp-32);
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -343,16 +345,26 @@
 
 /* --- busca ---------------------------------------------------------------- */
 
+/*
+ * A busca é a primeira linha DO PAINEL da lista, não uma faixa acima dele.
+ * Ela fica presa no topo enquanto os itens rolam: numa categoria de oitenta
+ * lanches, o campo que filtra não pode sair da tela.
+ */
 .menu__search {
-  position: relative;
-  padding: var(--sp-12) 0 var(--sp-8);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: var(--sp-8);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
   flex: 0 0 auto;
 }
 
 .menu__search-icon {
   position: absolute;
-  left: var(--sp-8);
-  top: calc(var(--sp-12) + 7px);
+  left: var(--sp-16);
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   color: var(--ink-3);
   pointer-events: none;
@@ -363,7 +375,8 @@
  * e com a mesma especificidade quem ganha é quem o bundler puser por último —
  * o que já rendeu uma vez o ícone da lupa em cima do texto do campo.
  */
-/* 32px: a lupa começa em 8 e tem 16 de largura — o texto entra logo depois. */
+/* A lupa começa em 8 (mais o padding da faixa) e tem 16 de largura — o texto
+   entra logo depois dela. */
 .menu__search .menu__search-input {
   width: 100%;
   padding-left: var(--sp-32);
@@ -593,19 +606,6 @@
   color: var(--ink);
 }
 
-.form__hint {
-  margin: var(--sp-4) 0 0;
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-  color: var(--ink-3);
-}
-
-.form__error {
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-  color: var(--danger);
-}
-
 .form__section {
   border-top: 1px solid var(--line);
   padding-top: var(--sp-16);
@@ -658,19 +658,24 @@
 
   .rail {
     width: 100%;
-    padding-right: 0;
-    padding-bottom: var(--sp-8);
+    margin-right: 0;
     max-height: 30vh;
   }
 
   /*
-   * No toque não há hover: as setas de reordenar ficam sempre visíveis e a
-   * contagem sai. Escondê-las atrás de um estado que o dedo não produz seria
-   * tirar a reordenação do celular inteiro.
+   * No toque não há hover: as setas de reordenar ficam sempre visíveis, e por
+   * isso elas saem do posicionamento absoluto e passam a OCUPAR LUGAR na
+   * linha. Flutuando por cima, elas caíam em cima da etiqueta "Inativa" da
+   * categoria — que é justamente a linha em que o dedo precisa acertar o alvo
+   * certo. A contagem sai: no celular a barra é uma lista de escolha, não uma
+   * tabela de conferência.
    */
   .rail__reorder {
+    position: static;
+    transform: none;
     opacity: 1;
     pointer-events: auto;
+    flex: 0 0 auto;
   }
 
   .rail__count {
@@ -678,8 +683,12 @@
   }
 
   .rail__select {
-    height: 32px;
-    padding-right: var(--sp-32);
+    height: var(--tap-mobile);
+  }
+
+  .rail__chevron {
+    width: var(--sp-32);
+    height: var(--sp-32);
   }
 
   /*

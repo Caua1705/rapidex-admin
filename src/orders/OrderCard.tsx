@@ -50,28 +50,35 @@ export function OrderCard({
       data-status={order.status}
     >
       {/*
-        Nº, hora, cronômetro e total na MESMA linha. Os dois números que se
-        comparam entre cards — o nº à esquerda e o total à direita — ficam na
-        mesma linha de base e em mono tabular, então a coluna inteira se lê de
-        cima a baixo sem o olho reancorar.
+        A PRIMEIRA LINHA É O TEMPO E O DINHEIRO — os dois números que se
+        comparam de card para card descendo a coluna. O tempo leva a matiz do
+        estágio e o maior peso do cartão: é ele que decide o que fazer
+        primeiro. Nenhum dos dois quebra de linha.
+
+        O nº do pedido DESCEU para a linha de apoio. Ele era o título do card,
+        em 15px, disputando a primeira linha com hora, cronômetro e total —
+        quatro dados numa faixa de 200px, e o cronômetro quebrava em duas
+        linhas. Mas o nº não decide nada: ele é como o pedido é chamado no
+        balcão depois de a decisão já ter sido tomada.
       */}
       <div className="order-card__top">
-        <strong className="order-card__number tnum">#{order.order_number}</strong>
-        <span className="faint">{formatTime(order.created_at)}</span>
-        <span className="order-card__elapsed">{formatElapsed(order.created_at)}</span>
+        <span className="order-card__elapsed tnum">{formatElapsed(order.created_at)}</span>
         <span className="order-card__total tnum">{formatCurrency(order.total)}</span>
       </div>
 
       <div className="order-card__customer">{order.customer_name_snapshot}</div>
 
       <div className="order-card__foot">
+        <strong className="order-card__number tnum">#{order.order_number}</strong>
+        <span aria-hidden="true">·</span>
+        <span className="tnum">{formatTime(order.created_at)}</span>
         <span className="order-card__tags">
           <span className="tag">{labelFor(ORDER_TYPE_LABELS, order.order_type)}</span>
           <span className="tag">{labelFor(PAYMENT_METHOD_LABELS, order.payment_method)}</span>
         </span>
 
         {!awaitingPayment ? (
-          <span className="order-card__payment faint">
+          <span className="order-card__payment">
             {labelFor(PAYMENT_STATUS_LABELS, order.payment_status)}
           </span>
         ) : null}
