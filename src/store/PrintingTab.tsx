@@ -107,9 +107,10 @@ export function PrintingTab({ branchId }: { branchId: string }) {
                   </>
                 )}
 
-                <span className="sectors__state faint">
-                  {sector.is_active ? 'Ativo' : 'Desativado'}
-                </span>
+                {/* Só o estado que não é o normal ganha palavra — a mesma
+                    regra do "Esgotado" no cardápio e do dia "Fechado" em
+                    Horários. O interruptor já diz o resto. */}
+                <span className="sectors__state">{sector.is_active ? '' : 'Desativado'}</span>
 
                 <Switch
                   checked={sector.is_active}

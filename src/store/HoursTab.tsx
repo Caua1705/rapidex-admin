@@ -81,7 +81,15 @@ export function HoursTab({ branchId }: { branchId: string }) {
                   }}
                 />
 
-                <span className="hours__state faint">{day.isClosed ? 'Fechado' : 'Aberto'}</span>
+                {/*
+                  Só o estado que NÃO é o normal ganha palavra — a mesma regra
+                  do "Esgotado" no cardápio. Escrever "Aberto" ao lado de um
+                  interruptor ligado, em cinco das sete linhas, é a mesma
+                  informação duas vezes; o dia fechado, que é a exceção da
+                  semana, precisa da palavra porque os campos de hora ao lado
+                  ficam vazios e vazio também é o que se vê quando não carregou.
+                */}
+                <span className="hours__state">{day.isClosed ? 'Fechado' : ''}</span>
 
                 <input
                   className="input mono hours__time"

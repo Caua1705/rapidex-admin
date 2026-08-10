@@ -92,5 +92,20 @@ for (const viewport of VIEWPORTS) {
     await page.getByRole('button', { name: 'Editar X-Burger Clássico' }).click();
     await page.waitForTimeout(400);
     await page.screenshot({ path: `design/shots/out/${TAG}/item-dialogo-${viewport.name}.png` });
+
+    /*
+     * As abas de Minha loja são telas de verdade — formulários inteiros, cada
+     * um com a sua grade. Fotografar só a aba "Geral" deixaria "Horários" e
+     * "Formas de pagamento" fora de toda conferência de alinhamento.
+     */
+    await page.goto('/minha-loja');
+    await page.getByTestId('branch-selector').getByRole('combobox').selectOption({ index: 1 });
+    for (const aba of ['filial', 'horarios', 'entrega', 'pagamento', 'impressao']) {
+      await page.getByTestId(`store-tab-${aba}`).click();
+      await page.waitForTimeout(400);
+      await page.screenshot({
+        path: `design/shots/out/${TAG}/loja-${aba}-${viewport.name}.png`,
+      });
+    }
   });
 }

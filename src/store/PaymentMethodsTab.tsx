@@ -114,6 +114,19 @@ function MethodList({
   onToggle: (method: PaymentMethod, enabled: boolean) => void;
   onRemove: (method: PaymentMethod) => void;
 }) {
+  /**
+   * O tipo, quando ele acrescenta alguma coisa ao rótulo.
+   *
+   * "Pix" com tipo Pix é a mesma palavra duas vezes na mesma linha. Já
+   * "Maquininha da mesa" com tipo Crédito · Visa diz o que o nome escolhido
+   * pelo lojista não diz.
+   */
+  function typeDetail(method: PaymentMethod): string {
+    const type = PAYMENT_METHOD_LABELS[method.method_type] ?? method.method_type;
+    const detail = method.brand ? `${type} · ${method.brand}` : type;
+    return type.toLowerCase() === method.label.trim().toLowerCase() && !method.brand ? '' : detail;
+  }
+
   if (methods.length === 0) {
     return <p className="faint store-form__hint">Nenhuma forma cadastrada neste fluxo.</p>;
   }
@@ -132,11 +145,13 @@ function MethodList({
             Tipo e fluxo são texto, não campo: o contrato não aceita mudá-los
             depois de criados, e um <select> travado só ensinaria o lojista a
             tentar. O caminho para corrigir é desabilitar e criar outra.
+
+            E o tipo só aparece quando diz algo que o rótulo não diz: na maioria
+            das lojas a forma se chama "Pix" e é do tipo Pix, e a linha ficava
+            "Pix ... Pix". Ele existe para o caso de o lojista ter batizado a
+            forma de "Maquininha da mesa" — aí saber que é crédito importa.
           */}
-          <span className="methods__type faint">
-            {PAYMENT_METHOD_LABELS[method.method_type] ?? method.method_type}
-            {method.brand ? ` · ${method.brand}` : ''}
-          </span>
+          <span className="methods__type faint">{typeDetail(method)}</span>
 
           <span className="methods__gateway faint">
             {method.requires_gateway ? 'Exige gateway' : ''}

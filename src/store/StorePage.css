@@ -509,10 +509,17 @@
     display: none;
   }
 
+  /*
+   * As abas QUEBRAM em duas linhas no celular; não viram faixa rolável.
+   *
+   * Com `overflow-x: auto` as seis abas cabiam numa linha só, mas as três
+   * últimas ficavam fora da tela sem nada indicando que havia mais — e o alvo
+   * de toque da aba parcialmente visível ficava debaixo da barra de rolagem.
+   * Duas linhas de aba custam 28px e mostram o caminho inteiro de uma vez.
+   */
   .store__tabs {
-    gap: var(--space-4);
-    overflow-x: auto;
-    flex-wrap: nowrap;
+    gap: var(--space-3) var(--space-4);
+    flex-wrap: wrap;
   }
 
   .hours__row,
