@@ -7,16 +7,19 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     <!--
-      Manrope (UI) e IBM Plex Mono (números tabulares) são as fontes do design
-      system. Vêm por <link> e não por @import no CSS porque @import serializa o
-      download atrás da folha de estilo; os fallbacks de sistema em
-      `--font-sans` seguram o painel enquanto elas não chegam.
+      Archivo é a fonte da interface inteira. JetBrains Mono entra SÓ em número
+      de pedido e código — ela é continuidade com a comanda impressa de 48
+      colunas que sai na cozinha, não enfeite.
+
+      Vêm por <link> e não por @import no CSS porque @import serializa o
+      download atrás da folha de estilo; os fallbacks de sistema em `--font-ui`
+      seguram o painel enquanto elas não chegam.
     -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
     />
 
     <title>Rapidex — Painel do lojista</title>
@@ -25,18 +28,28 @@
       /*
        * Tema antes do primeiro pixel.
        *
-       * Se isto esperasse o React, quem escolheu o tema claro veria um quadro
-       * preto a cada F5 — e num painel que fica aberto o dia todo esse flash é
-       * a primeira coisa que se nota. Mesma chave que src/theme/theme.ts.
+       * Se isto esperasse o React, quem usa o tema escuro veria um quadro
+       * branco a cada F5 — e num painel que fica aberto o dia todo esse flash é
+       * a primeira coisa que se nota.
+       *
+       * A REGRA É A MESMA de src/theme/theme.ts, e precisa continuar sendo: a
+       * escolha guardada ganha do sistema, o sistema ganha do padrão. Duas
+       * regras diferentes aqui e lá é como o flash volta.
        */
       (function () {
+        var escolha = null;
         try {
-          if (localStorage.getItem('rapidex-admin.theme') === 'light') {
-            document.documentElement.setAttribute('data-theme', 'light');
-          }
+          escolha = localStorage.getItem('rapidex-admin.theme');
         } catch (_) {
-          /* localStorage bloqueado: fica no escuro, que é o padrão. */
+          /* localStorage bloqueado: sobra a preferência do sistema. */
         }
+        var tema =
+          escolha === 'dark' || escolha === 'light'
+            ? escolha
+            : window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+        document.documentElement.setAttribute('data-theme', tema);
       })();
     </script>
   </head>

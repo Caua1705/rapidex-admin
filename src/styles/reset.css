@@ -1,0 +1,109 @@
+/*
+ * Reset. Só o que muda comportamento de layout — não é normalização de 2011.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--t-body);
+  line-height: var(--t-body-line);
+  font-weight: var(--t-body-weight);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /*
+   * Números em lista precisam alinhar em coluna. Global, não por classe: o
+   * caso em que NÃO se quer tabular é raro o bastante para ser a exceção.
+   */
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+figure {
+  margin: 0;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+button {
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+}
+
+/*
+ * FOCO VISÍVEL EM TUDO (WCAG 2.4.7).
+ *
+ * Anel de 2px na cor da marca com 2px de folga, aplicado no elemento e não em
+ * cada componente: componente que esquece de declarar o foco é o jeito mais
+ * comum de um sistema perder a navegação por teclado.
+ */
+:focus-visible {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+  border-radius: var(--r-chip);
+}
+
+/* O foco não pode ficar escondido atrás da barra de salvar (WCAG 2.4.11). */
+:where(input, select, textarea, button, a, [tabindex]) {
+  scroll-margin-block: var(--sp-40);
+}
+
+::selection {
+  background: var(--ember-wash);
+  color: var(--ink);
+}
+
+/* Nada pisca acima de 3Hz e nada anima sob a preferência do sistema. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

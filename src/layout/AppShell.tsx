@@ -87,11 +87,7 @@ function NavItem({ entry }: { entry: NavEntry }) {
     <NavLink
       to={entry.to}
       className={({ isActive }) =>
-        [
-          'shell__link',
-          isActive ? 'shell__link--active' : '',
-          pending ? 'shell__link--soon' : '',
-        ]
+        ['shell__link', isActive ? 'shell__link--active' : '', pending ? 'shell__link--soon' : '']
           .filter(Boolean)
           .join(' ')
       }

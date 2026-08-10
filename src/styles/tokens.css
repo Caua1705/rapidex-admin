@@ -1,397 +1,338 @@
 /*
- * Tokens do painel do lojista Rapidex.
+ * ============================================================================
+ * TOKENS DO RAPIDEX — fonte única da verdade
+ * ============================================================================
  *
- * ESTE É O ÚNICO ARQUIVO DO src/ QUE PODE CONTER UMA COR LITERAL.
- * Em qualquer outro lugar, cor é `var(--token)`. `npm run lint` cobra isso
- * (scripts/check-design-tokens.mjs).
+ * ESTE É O ÚNICO ARQUIVO DO PROJETO QUE PODE CONTER UM VALOR LITERAL de cor,
+ * de corpo de fonte ou de raio. Em qualquer outro lugar é `var(--token)`.
+ * `npm run lint` cobra isso (scripts/check-design-tokens.mjs) e
+ * `npm run check:contrast` mede os pares de contraste declarados aqui.
  *
- * O que estes valores decidem (as regras estão em
- * .claude/skills/rapidex-design-system/SKILL.md):
+ * Precisou de um valor que não existe? Ele vira token AQUI primeiro, com o
+ * contraste medido — não vira número solto no componente.
  *
- *   - FERRAMENTA DE OPERAÇÃO, NÃO PÁGINA DE PRODUTO. Corpo em 13px, escala
- *     apertada, espaçamento menor do que o instinto pede. Um lojista abre isto
- *     às 22h de sábado com a cozinha cheia: pixel gasto com decoração é pixel a
- *     menos de pedido na tela.
- *   - SUPERFÍCIE SE SEPARA POR TOM, NÃO POR BORDA. Existe uma escada de fundos
- *     (`--bg-app` → `--bg-chrome` → `--bg-surface` → `--bg-surface-2`) e é ela
- *     que diz o que está em cima do quê. Borda é exceção, não o desenho.
- *   - COR COM AVAREZA. O laranja de marca aparece em três lugares e nada mais.
- *     A escala de status pinta status de pedido e nada mais. O resto é neutro.
- *   - Neutros com viés quente (marrom), nunca cinza-azulado de SaaS.
- *   - Escuro é o padrão. Claro é O MESMO conjunto semântico com as superfícies
- *     invertidas — nunca uma segunda paleta.
+ * O que estes valores decidem:
  *
- * INTOCÁVEIS nesta rodada, por decisão do produto: o laranja da marca
- * (`--brand-*`) e a escala de status de pedido (`--status-*-h`).
+ *   - PAINEL DE OPERAÇÃO, NÃO DASHBOARD DE ANALISTA. Quem lê está no balcão
+ *     no meio do rush, ou na cozinha a dois metros da tela.
+ *   - CLARO É O PADRÃO e o escuro é o mesmo conjunto semântico com as
+ *     superfícies invertidas — nunca uma segunda paleta.
+ *   - O LARANJA DA MARCA É AÇÃO, não decoração: botão primário e item ativo.
+ *     Mais de três ocorrências numa tela é erro.
+ *   - A ESCALA DE STATUS É INDEPENDENTE DA MARCA. São 7 estágios do pedido, e
+ *     nenhum deles compete com o laranja do CTA.
+ *   - VERMELHO SÓ EM CANCELAMENTO E ERRO DESTRUTIVO. Pagamento pendente,
+ *     atraso e aviso são `--st-pendente` — se o alarme pinta o normal, ele
+ *     deixa de ser alarme.
  */
 
 :root {
-  /* --- primitivas: neutros quentes ------------------------------------- */
-  --neutral-0: #0a0908;
-  --neutral-50: #0e0d0c;
-  --neutral-100: #151312;
-  --neutral-150: #1c1a18;
-  --neutral-200: #262320;
-  --neutral-300: #35312c;
-  --neutral-400: #4e4840;
-  --neutral-500: #6f6759;
-  --neutral-600: #948b7d;
-  --neutral-700: #bab2a5;
-  --neutral-800: #e2ddd4;
-  --neutral-900: #f8f6f2;
-
-  /* --- primitivas: marca (INTOCÁVEL) ------------------------------------ */
-  --brand-50: #fff3e8;
-  --brand-100: #ffe1c7;
-  --brand-200: #ffc08a;
-  --brand-300: #ff9f52;
-  --brand-400: #ff8329;
-  --brand-500: #ff6a0a;
-  --brand-600: #e85700;
-  --brand-700: #bd4400;
-  --brand-800: #8f3300;
-  --brand-900: #5c2100;
-
-  /* --- primitivas: vermelho (perigo, NUNCA status) ---------------------- */
-  --red-300: #fca5a5;
-  --red-400: #f87171;
-  --red-500: #ef4444;
-  --red-600: #dc2626;
-  --red-700: #b91c1c;
+  /* ==========================================================================
+   * MARCA
+   * Só ação primária e item ativo da navegação. Se aparecer mais de 3x numa
+   * tela, está errado.
+   * ======================================================================= */
+  --ember: #e8590c;
+  --ember-press: #c2410c;
+  --ember-wash: #fff1e7;
 
   /*
-   * --- escala de status de pedido (INTOCÁVEL) ---------------------------
+   * As duas tintas que vão EM CIMA do laranja — e por que são duas.
    *
-   * 7 matizes espalhados pela roda, de propósito longe do laranja: no quadro
-   * as sete colunas ficam lado a lado, e se dois status fossem vizinhos de
-   * matiz a cozinha leria a coluna errada de longe.
+   * Branco sobre `--ember` dá 3.58:1 e reprova em AA. Tinta escura sobre ele dá
+   * 4.87:1 e passa. Só que `--ember-press` é mais escuro, e ali a conta inverte:
+   * tinta escura cai para 3.37:1 e o branco sobe para 5.1:1. Não existe uma
+   * tinta que passe nos dois — então são duas, e o botão troca a sua junto com
+   * o fundo. Os dois pares estão medidos em scripts/check-contrast.mjs.
    */
-  --status-pending-h: #f5a524;
-  --status-accepted-h: #3b82f6;
-  --status-preparing-h: #8b5cf6;
-  --status-ready-h: #14b8a6;
-  --status-delivering-h: #ec4899;
-  --status-completed-h: #22c55e;
-  --status-cancelled-h: #8a8178;
+  --on-ember: #24170e;
+  --on-ember-press: #fff3ec;
+
+  /* ==========================================================================
+   * SUPERFÍCIES — neutro quente, nunca cinza-azulado
+   * ======================================================================= */
+  --bg: #f7f5f2;
+  --surface: #ffffff;
+  --surface-2: #fbfaf8;
 
   /*
-   * --- superfícies: a escada -------------------------------------------
+   * Três linhas, três trabalhos — e só uma delas precisa passar em contraste.
    *
-   * Quatro degraus, e o degrau É a hierarquia. De baixo para cima:
+   * `--line` e `--line-strong` são SEPARADORES: régua entre linhas de uma
+   * lista, divisão entre seções. A WCAG 1.4.11 não os alcança, porque não são
+   * o que identifica um controle.
    *
-   *   --bg-sunken      o que afunda dentro de um cartão: campo, miniatura, tag
-   *   --bg-app         o chão da área de trabalho
-   *   --bg-chrome      a moldura que não é conteúdo: lateral e barra do topo
-   *   --bg-surface     onde o trabalho acontece: cartão, coluna, linha
-   *   --bg-surface-2   o que flutua por cima: menu, diálogo, popover
-   *
-   * No claro a ordem de luminosidade se inverte (a moldura fica MAIS escura
-   * que o conteúdo), mas o papel de cada token é o mesmo — por isso nenhuma
-   * tela precisa saber qual tema está ativo.
+   * `--line-control` é o contorno do que se opera — campo, caixa de marcar,
+   * botão secundário. Esse identifica o componente, então ele é medido contra
+   * as duas superfícies e passa dos 3:1. É mais escuro do que o instinto pede;
+   * é o preço de a borda ser a única coisa que diz "aqui se escreve".
    */
-  --bg-app: var(--neutral-0);
-  --bg-chrome: var(--neutral-50);
-  --bg-surface: var(--neutral-100);
-  --bg-surface-2: var(--neutral-150);
-  --bg-sunken: #060505;
-  --bg-overlay: rgba(6, 5, 5, 0.72);
+  --line: #e6e1da;
+  --line-strong: #d5cec4;
+  --line-control: #948a80;
 
-  /* Hover clareia: o fundo já é quase preto, escurecer não apareceria. */
-  --bg-hover: rgba(255, 255, 255, 0.045);
-  --bg-active: rgba(255, 255, 255, 0.08);
-
-  /* --- borda ------------------------------------------------------------
-   * Existe para o que o tom não resolve: contorno de campo, régua entre
-   * linhas de uma lista. Contornar um cartão que já tem tom próprio é o que
-   * deixa a tela com cara de wireframe.
-   */
-  --border-subtle: var(--neutral-150);
-  --border-default: var(--neutral-200);
-  --border-strong: var(--neutral-300);
-
-  /* --- texto ------------------------------------------------------------ */
-  --text-primary: var(--neutral-900);
-  --text-secondary: var(--neutral-700);
-  --text-tertiary: var(--neutral-600);
-  --text-disabled: var(--neutral-500);
-  --text-on-brand: #1a0900;
-  --text-on-status: #0a0908;
-
-  /* --- accent laranja ---------------------------------------------------- */
-  --brand: var(--brand-500);
-  --brand-hover: var(--brand-400);
-  --brand-active: var(--brand-600);
-  --brand-soft-bg: rgba(255, 106, 10, 0.13);
-  --brand-soft-fg: var(--brand-300);
-  --focus-ring: var(--brand-400);
-
-  /* --- perigo ------------------------------------------------------------ */
-  --danger: var(--red-500);
-  --danger-hover: var(--red-400);
-  --danger-active: var(--red-600);
-  --danger-soft-bg: rgba(239, 68, 68, 0.13);
-  --danger-soft-fg: var(--red-400);
-
-  /* --- elevação ---------------------------------------------------------- */
+  /* ==========================================================================
+   * TEXTO
+   * ======================================================================= */
+  --ink: #1f1a16;
+  --ink-2: #5c534b;
   /*
-   * No escuro a elevação é degrau de tom; sombra sobre preto é invisível.
-   * Só o que FLUTUA (menu, diálogo, folha lateral) ganha sombra, e mesmo lá
-   * ela é véu, não profundidade de cartão de SaaS.
+   * O cinza de apoio saiu de #8A8078 para cá porque aquele dava 3.70:1 sobre
+   * `--surface-2` — e apoio/hint é texto de 12px, que precisa de 4.5:1. Um
+   * hint ilegível é um hint que não existe.
    */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.55);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
-  --shadow-focus: 0 0 0 3px rgba(255, 131, 41, 0.3);
+  --ink-3: #6e665e;
 
-  /* --- tipografia: a régua ----------------------------------------------
-   *
-   * Escala apertada. O painel é lido a 50cm com o mouse na mão, e o que
-   * separa um nível do outro é peso + cor + caixa, não três pontos de corpo.
-   *
-   * Os três tamanhos grandes (lg, 2xl, 3xl) existem para UMA tela: a Cozinha,
-   * que é um monitor de parede lido a dois metros. Fora dela, nenhum texto do
-   * painel passa de --text-xl.
-   */
-  --font-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
-
-  --text-xs: 11px;
-  --leading-xs: 14px;
-  --text-sm: 12px;
-  --leading-sm: 16px;
-  --text-base: 13px;
-  --leading-base: 18px;
-  --text-md: 14px;
-  --leading-md: 20px;
-  --text-lg: 16px;
-  --leading-lg: 22px;
-  --text-xl: 20px;
-  --leading-xl: 26px;
-  --text-2xl: 26px;
-  --leading-2xl: 32px;
-  --text-3xl: 34px;
-  --leading-3xl: 40px;
-
-  --weight-regular: 400;
-  --weight-medium: 500;
-  --weight-semibold: 600;
-  --weight-bold: 700;
-  --weight-extrabold: 800;
+  /* ==========================================================================
+   * STATUS DO PEDIDO — 7 estágios, independentes da cor da marca
+   * ======================================================================= */
+  --st-pendente: #b45309;
+  --st-aceito: #1d4ed8;
+  --st-preparando: #6d28d9;
+  --st-pronto: #047857;
+  --st-entrega: #0e7490;
+  --st-concluido: #78716c;
+  --st-cancelado: #dc2626; /* único vermelho do sistema inteiro */
 
   /*
-   * --- tipografia: os CINCO NÍVEIS ---------------------------------------
+   * O fundo de cada chip de status.
    *
-   * Todo texto do painel é um destes cinco. Se um texto não couber em nenhum,
-   * o texto está errado — não falta um nível. As classes que os aplicam
-   * (`.t-title`, `.t-section`, `.t-label`, `.t-body`, `.t-aux`) estão em
-   * global.css; os tokens existem para compor um nível dentro de outra regra
-   * (uma célula que é rótulo mas herda a cor do status, por exemplo).
-   *
-   *   1 título de página   um por tela, no canto superior esquerdo
-   *   2 título de seção    cabeçalho de cartão, de coluna, de aba
-   *   3 rótulo             nome de campo, cabeçalho de coluna de lista, grupo
-   *   4 corpo              o conteúdo
-   *   5 auxiliar           ajuda, meta, rodapé, contagem
+   * Hexadecimal medido, e não `color-mix`, porque o verificador de contraste
+   * precisa conseguir ler o valor: uma cor que a máquina não mede é uma cor
+   * que ninguém garante. Cada par (texto = a cor do status, fundo = o wash
+   * abaixo) está na lista de scripts/check-contrast.mjs.
    */
-  --type-title-size: var(--text-xl);
-  --type-title-line: var(--leading-xl);
-  --type-title-weight: var(--weight-bold);
-  --type-title-tracking: -0.02em;
+  --st-pendente-wash: #f8eee6;
+  --st-aceito-wash: #e8edfb;
+  --st-preparando-wash: #f0eafb;
+  --st-pronto-wash: #e6f1ee;
+  --st-entrega-wash: #e7f1f4;
+  --st-concluido-wash: #f2f1f0;
+  --st-cancelado-wash: #fbe9e9;
 
-  --type-section-size: var(--text-md);
-  --type-section-line: var(--leading-md);
-  --type-section-weight: var(--weight-bold);
-  --type-section-tracking: -0.01em;
-
-  --type-label-size: var(--text-xs);
-  --type-label-line: var(--leading-xs);
-  --type-label-weight: var(--weight-semibold);
-  --type-label-tracking: 0.06em;
-
-  --type-body-size: var(--text-base);
-  --type-body-line: var(--leading-base);
-  --type-body-weight: var(--weight-regular);
-  --type-body-tracking: 0;
-
-  --type-aux-size: var(--text-sm);
-  --type-aux-line: var(--leading-sm);
-  --type-aux-weight: var(--weight-regular);
-  --type-aux-tracking: 0;
+  /* ==========================================================================
+   * FOCO E VÉU
+   * ======================================================================= */
+  --focus: var(--ember);
+  --focus-width: 2px;
+  --focus-offset: 2px;
+  --scrim: rgba(31, 26, 22, 0.45);
 
   /*
-   * --- espaçamento: a escala inteira -------------------------------------
-   *
-   * Oito degraus e nenhum valor solto. Cada um tem um trabalho; usar o de
-   * cima "porque ficou apertado" é como o ritmo da tela se perde.
-   *
-   *   1  2px   folga de cabelo: rótulo empilhado sobre o valor
-   *   2  4px   dentro de um controle: ícone ↔ texto
-   *   3  8px   entre controles irmãos; padding de linha densa
-   *   4  12px  padding de cartão; entre campos de uma mesma linha
-   *   5  16px  entre blocos de uma seção; respiro lateral da tela
-   *   6  24px  entre seções
-   *   7  32px  topo de tela, estado vazio
-   *   8  48px  estado vazio grande — o único degrau "generoso" que sobrou
+   * Realce de ponteiro e de pressão. Derivados da tinta, então funcionam nos
+   * dois temas com uma regra só: no claro escurecem, no escuro clareiam,
+   * porque `--ink` já inverteu.
    */
-  --space-1: 2px;
-  --space-2: 4px;
-  --space-3: 8px;
-  --space-4: 12px;
-  --space-5: 16px;
-  --space-6: 24px;
-  --space-7: 32px;
-  --space-8: 48px;
+  --hover: color-mix(in oklab, var(--ink) 6%, transparent);
+  --active: color-mix(in oklab, var(--ink) 11%, transparent);
 
-  /* --- enquadramento ----------------------------------------------------- */
+  /* ==========================================================================
+   * TIPOGRAFIA
+   *
+   * Archivo em toda a interface. JetBrains Mono APENAS em número de pedido e
+   * códigos — é continuidade com a comanda impressa de 48 colunas, não
+   * decoração. Nunca em dinheiro nem em texto corrido.
+   * ======================================================================= */
+  --font-ui: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
   /*
-   * Teto de largura do conteúdo. Sem ele, numa tela de 27" a linha do cardápio
-   * vira um metro de vazio entre o nome do item e o preço. O quadro de pedidos
-   * e a Cozinha são as exceções propositais: rolam na horizontal e usam a tela
-   * toda; quem segura a largura lá é `--column-max`.
+   * Os SETE papéis da escala. Cada texto do painel é um deles — se você não
+   * consegue dizer qual papel um texto tem, o texto está errado.
    */
-  --layout-max: 1400px;
-  --column-max: 300px;
-  --sidebar-width: 220px;
+
+  /* 1. Número operacional — o tempo decorrido, a maior tinta da tela. */
+  --t-num-sm: 19px;
+  --t-num: 22px;
+  --t-num-lg: 28px;
+  --t-num-line: 1.05;
+  --t-num-weight: 800;
+  --t-num-track: -0.04em;
+
+  /* 2. Título de tela — um por rota. */
+  --t-screen: 22px;
+  --t-screen-line: 1.15;
+  --t-screen-weight: 800;
+  --t-screen-track: -0.03em;
+
+  /* 3. Título de card. */
+  --t-card: 15.5px;
+  --t-card-line: 1.25;
+  --t-card-weight: 700;
+  --t-card-track: -0.02em;
+
+  /* 4. Dinheiro — na UI, nunca em mono. */
+  --t-money-sm: 15px;
+  --t-money: 16px;
+  --t-money-lg: 17px;
+  --t-money-line: 1.2;
+  --t-money-weight: 800;
+  --t-money-track: -0.03em;
+
+  /* 5. Corpo e label. */
+  --t-body: 14px;
+  --t-body-line: 1.45;
+  --t-body-weight: 500;
+  --t-label: 13px;
+  --t-label-line: 1.3;
+  --t-label-weight: 600;
+
+  /* 6. Apoio / hint. */
+  --t-hint: 12px;
+  --t-hint-line: 1.35;
+  --t-hint-weight: 500;
+
+  /* 7. Eyebrow / cabeçalho de coluna. */
+  --t-eyebrow: 11px;
+  --t-eyebrow-line: 1.2;
+  --t-eyebrow-weight: 700;
+  --t-eyebrow-track: 0.09em;
+
+  /* ==========================================================================
+   * ESPAÇAMENTO — escala de 4px, e nada fora dela.
+   * O nome É o valor: um `--sp-13` não existe, e a falta dele é visível.
+   * ======================================================================= */
+  --sp-4: 4px;
+  --sp-8: 8px;
+  --sp-12: 12px;
+  --sp-16: 16px;
+  --sp-20: 20px;
+  --sp-24: 24px;
+  --sp-32: 32px;
+  --sp-40: 40px;
+
+  /* ==========================================================================
+   * RAIO E ELEVAÇÃO
+   * ======================================================================= */
+  --r-chip: 6px;
+  --r-field: 8px;
+  --r-card: 10px;
+  --r-round: 999px;
+
+  --shadow-card: 0 1px 2px rgba(31, 26, 22, 0.05), 0 1px 1px rgba(31, 26, 22, 0.04);
+  --shadow-pop: 0 10px 30px rgba(31, 26, 22, 0.13), 0 2px 6px rgba(31, 26, 22, 0.06);
+
+  /* ==========================================================================
+   * ENQUADRAMENTO
+   * ======================================================================= */
+  --sidebar-w: 216px;
   --sidebar-rail: 56px;
-  --topbar-height: 48px;
+  --topbar-h: 52px;
+  --bottombar-h: 56px;
+  --form-max: 1120px;
 
-  /* --- raio --------------------------------------------------------------
-   * Apertado. Raio grande é o que faz um painel operacional parecer um site
-   * de marketing: 4px no que é controle, 6px no que é superfície, 10px só no
-   * que flutua sobre a tela inteira.
-   */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
-  --radius-full: 999px;
+  /* Alvo mínimo de toque: 24px por WCAG 2.5.8, 44px no celular. */
+  --tap: 24px;
+  --tap-mobile: 44px;
 
-  /* --- movimento --------------------------------------------------------- */
-  /*
-   * Animação existe só onde comunica mudança de estado. Estes dois tokens
-   * viram 0s sob prefers-reduced-motion (mais abaixo), então toda transição
-   * escrita com eles já respeita a preferência sem media query própria.
-   */
+  /* ==========================================================================
+   * MOVIMENTO
+   * Estes dois tokens viram 0s sob prefers-reduced-motion (no fim do arquivo),
+   * então toda transição escrita com eles já respeita a preferência.
+   * ======================================================================= */
   --motion-fast: 110ms;
   --motion-base: 180ms;
-  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+  --ease: cubic-bezier(0.2, 0, 0, 1);
 
-  color-scheme: dark;
-}
-
-/*
- * Tema claro: as MESMAS variáveis semânticas, outras superfícies.
- *
- * A escada se inverte de propósito — a moldura (lateral, barra do topo) fica
- * mais ESCURA que a área de trabalho, e o cartão é o branco puro. É o mesmo
- * contrato do escuro: o degrau de tom continua dizendo o que está em cima do
- * quê, sem nenhuma tela precisar saber do tema.
- */
-[data-theme='light'] {
-  --bg-app: #f6f4f1;
-  --bg-chrome: #efece7;
-  --bg-surface: #ffffff;
-  --bg-surface-2: #ffffff;
-  --bg-sunken: #edeae4;
-  --bg-overlay: rgba(20, 17, 14, 0.35);
-  --bg-hover: rgba(10, 9, 8, 0.045);
-  --bg-active: rgba(10, 9, 8, 0.08);
-
-  --border-subtle: #e8e4dd;
-  --border-default: #dcd7ce;
-  --border-strong: #c3bcb0;
-
-  --text-primary: #16130f;
-  --text-secondary: #57504a;
-  --text-tertiary: #837b71;
-  --text-disabled: #a79f94;
-  --text-on-brand: #fff7f0;
-  --text-on-status: #0a0908;
-
-  --brand-soft-bg: var(--brand-50);
-  --brand-soft-fg: var(--brand-700);
-
-  --danger-soft-bg: #fdecec;
-  --danger-soft-fg: var(--red-600);
-
-  --shadow-sm: 0 1px 2px rgba(20, 17, 14, 0.07);
-  --shadow-md: 0 6px 20px rgba(20, 17, 14, 0.1);
-  --shadow-lg: 0 16px 40px rgba(20, 17, 14, 0.14);
-  --shadow-focus: 0 0 0 3px rgba(255, 106, 10, 0.22);
+  /* ==========================================================================
+   * CAMADAS
+   * ======================================================================= */
+  --z-sticky: 20;
+  --z-popover: 40;
+  --z-modal: 60;
+  --z-toast: 80;
 
   color-scheme: light;
 }
 
 /*
- * --- status como classe ---------------------------------------------------
- *
- * Quem pinta um status não escolhe matiz: põe `status-<chave>` no elemento e
- * usa var(--status) / var(--status-bg) / var(--status-fg). Assim a coluna, o
- * badge e o ponto do card saem sempre da mesma fonte.
+ * ============================================================================
+ * TEMA ESCURO — as MESMAS variáveis semânticas, outras superfícies.
+ * Nenhuma regra de componente pode ser específica de tema: se você precisou de
+ * `[data-theme="dark"] .minha-classe`, o token que você usou é o errado.
+ * ============================================================================
  */
-.status-pending {
-  --status: var(--status-pending-h);
-  --status-bg: color-mix(in oklch, var(--status-pending-h) 16%, transparent);
-  --status-fg: var(--status-pending-h);
-}
-.status-accepted {
-  --status: var(--status-accepted-h);
-  --status-bg: color-mix(in oklch, var(--status-accepted-h) 16%, transparent);
-  --status-fg: var(--status-accepted-h);
-}
-.status-preparing {
-  --status: var(--status-preparing-h);
-  --status-bg: color-mix(in oklch, var(--status-preparing-h) 16%, transparent);
-  --status-fg: var(--status-preparing-h);
-}
-.status-ready {
-  --status: var(--status-ready-h);
-  --status-bg: color-mix(in oklch, var(--status-ready-h) 16%, transparent);
-  --status-fg: var(--status-ready-h);
-}
-.status-delivering {
-  --status: var(--status-delivering-h);
-  --status-bg: color-mix(in oklch, var(--status-delivering-h) 16%, transparent);
-  --status-fg: var(--status-delivering-h);
-}
-.status-completed {
-  --status: var(--status-completed-h);
-  --status-bg: color-mix(in oklch, var(--status-completed-h) 16%, transparent);
-  --status-fg: var(--status-completed-h);
-}
-.status-cancelled {
-  --status: var(--status-cancelled-h);
-  --status-bg: color-mix(in oklch, var(--status-cancelled-h) 16%, transparent);
-  --status-fg: var(--status-cancelled-h);
+[data-theme='dark'] {
+  --bg: #17130f;
+  --surface: #211c18;
+  --surface-2: #282119;
+  --line: #332b24;
+  --line-strong: #443a31;
+  --line-control: #7d7167;
+
+  --ink: #f5f1ec;
+  --ink-2: #b3a99f;
+  --ink-3: #9c9188;
+
+  --ember-wash: #33200f;
+
+  --st-pendente: #f59e0b;
+  --st-aceito: #60a5fa;
+  --st-preparando: #a78bfa;
+  --st-pronto: #34d399;
+  --st-entrega: #22d3ee;
+  --st-concluido: #a8a29e;
+  --st-cancelado: #f87171;
+
+  --st-pendente-wash: #473316;
+  --st-aceito-wash: #2c3541;
+  --st-preparando-wash: #393041;
+  --st-pronto-wash: #243d2f;
+  --st-entrega-wash: #213d3e;
+  --st-concluido-wash: #393430;
+  --st-cancelado-wash: #482b28;
+
+  --scrim: rgba(0, 0, 0, 0.62);
+
+  /* Sombra sobre quase-preto é invisível: a elevação vira degrau de tom, e a
+     sombra fica só no que realmente flutua. */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-pop: 0 10px 30px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4);
+
+  color-scheme: dark;
 }
 
 /*
- * Os dois nomes que o backend usa e o DS não tem.
+ * ============================================================================
+ * STATUS COMO CLASSE
  *
- * `out_for_delivery` é o estágio que o DS chama de "delivering", e `rejected`
- * termina o pedido do mesmo jeito que `cancelled` — as duas colunas do quadro
- * já vivem juntas. São apelidos, não matizes novas: a escala continua com 7.
+ * Quem pinta um status não escolhe matiz: põe `is-<estágio>` no elemento e lê
+ * `--st` e `--st-wash`. Assim o chip, o trilho da coluna e o fio do ticket
+ * saem sempre da mesma fonte, e acrescentar um estágio é acrescentar um token.
+ * ============================================================================
  */
-.status-out_for_delivery {
-  --status: var(--status-delivering-h);
-  --status-bg: color-mix(in oklch, var(--status-delivering-h) 16%, transparent);
-  --status-fg: var(--status-delivering-h);
+.is-pendente {
+  --st: var(--st-pendente);
+  --st-wash: var(--st-pendente-wash);
 }
-.status-rejected {
-  --status: var(--status-cancelled-h);
-  --status-bg: color-mix(in oklch, var(--status-cancelled-h) 16%, transparent);
-  --status-fg: var(--status-cancelled-h);
+.is-aceito {
+  --st: var(--st-aceito);
+  --st-wash: var(--st-aceito-wash);
 }
-
-/* Números que se comparam em coluna (nº do pedido, preço, total, cronômetro). */
-.font-mono-tabular {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums lining-nums;
-  font-feature-settings: 'tnum' 1;
+.is-preparando {
+  --st: var(--st-preparando);
+  --st-wash: var(--st-preparando-wash);
+}
+.is-pronto {
+  --st: var(--st-pronto);
+  --st-wash: var(--st-pronto-wash);
+}
+.is-entrega {
+  --st: var(--st-entrega);
+  --st-wash: var(--st-entrega-wash);
+}
+.is-concluido {
+  --st: var(--st-concluido);
+  --st-wash: var(--st-concluido-wash);
+}
+.is-cancelado {
+  --st: var(--st-cancelado);
+  --st-wash: var(--st-cancelado-wash);
 }
 
 /*
- * Quem pediu menos movimento recebe menos movimento — inclusive nas animações
- * de mudança de estado, que aqui viram troca instantânea, nunca sumiço.
+ * Movimento reduzido: a tela troca de estado INSTANTANEAMENTE, nunca deixa de
+ * trocar. `@keyframes` com `animation:` precisa do seu próprio desligamento.
  */
 @media (prefers-reduced-motion: reduce) {
   :root {

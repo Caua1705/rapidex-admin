@@ -1,5 +1,3 @@
-import { createRequire } from 'node:module';
-
 import js from '@eslint/js';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
@@ -7,28 +5,37 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import prettier from 'eslint-config-prettier';
 
-const require = createRequire(import.meta.url);
-
 /*
- * As regras de aderência ao design system vêm do arquivo que o próprio design
- * system publica, e não de uma cópia mantida à mão:
+ * ADERÊNCIA AO DESIGN SYSTEM, no código .ts/.tsx.
  *
- *   design/_ds/rapidex-design-system-<id>/_adherence.oxlintrc.json
+ * Estas regras moram AQUI e não mais no `_adherence.oxlintrc.json` que o design
+ * system antigo publicava em `design/_ds/`. Aquele arquivo descreve um sistema
+ * que foi substituído: ele cobra as fontes antigas (Manrope, IBM Plex Mono) e
+ * as props de uma biblioteca de componentes que nunca existiu neste repositório.
+ * Carregá-lo agora seria pedir aderência a um sistema que não é o nosso.
  *
- * Ele é um oxlintrc, mas as duas regras que importam (`no-restricted-syntax` e
- * `no-restricted-imports`) são regras do ESLint com a mesma forma de
- * configuração, então dá para carregá-las direto. Quando o design system for
- * reexportado, o lint acompanha sem ninguém editar este arquivo.
+ * O que sobrou é o que importa e continua valendo: nenhuma cor, nenhum px e
+ * nenhuma família de fonte solta no código de produto.
  *
- * `react/forbid-elements` fica de fora de propósito: a lista `forbid` dele vem
- * vazia (não proíbe elemento nenhum) e habilitá-la exigiria o
- * eslint-plugin-react só para não fazer nada.
+ * A metade CSS desta mesma regra está em scripts/check-design-tokens.mjs, que
+ * roda no mesmo `npm run lint` — o ESLint não olha dentro de arquivo .css.
  */
-const adherence = require('./design/_ds/rapidex-design-system-c214e0d9-9d0d-4c89-a2fa-a40733347892/_adherence.oxlintrc.json');
-
 const adherenceRules = {
-  'no-restricted-syntax': adherence.rules['no-restricted-syntax'],
-  'no-restricted-imports': adherence.rules['no-restricted-imports'],
+  'no-restricted-syntax': [
+    'error',
+    {
+      selector: 'Literal[value=/#[0-9a-fA-F]{3,8}\\b/]',
+      message: 'Cor literal — use um token de cor via var(), de src/styles/tokens.css.',
+    },
+    {
+      selector: 'Literal[value=/\\b\\d+px\\b/]',
+      message: 'Valor em px solto — use um token (--sp-*, --t-*, --r-*) via var().',
+    },
+    {
+      selector: 'Literal[value=/font-family\\s*:\\s*(?![\'\\"]?(?:Archivo|JetBrains Mono))/i]',
+      message: 'Fonte fora do design system. Disponíveis: Archivo, JetBrains Mono.',
+    },
+  ],
 };
 
 export default tseslint.config(
@@ -37,7 +44,14 @@ export default tseslint.config(
     // nenhum dos dois é código deste projeto, e cobrar estilo deles só geraria
     // ruído que ninguém pode consertar aqui. As REGRAS do design system, essas
     // sim, são carregadas — de dentro de `design/` — mais abaixo.
-    ignores: ['dist', 'coverage', 'playwright-report', 'src/api/generated', 'design'],
+    ignores: [
+      'dist',
+      'coverage',
+      'playwright-report',
+      'test-results',
+      'src/api/generated',
+      'design',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

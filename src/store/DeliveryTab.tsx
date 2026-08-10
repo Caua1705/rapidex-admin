@@ -193,7 +193,9 @@ export function DeliveryTab({
                 data-testid="delivery-max-fee"
               />
             </div>
-            <span className="faint store-form__hint">Vazio dos dois lados: sem piso e sem teto.</span>
+            <span className="faint store-form__hint">
+              Vazio dos dois lados: sem piso e sem teto.
+            </span>
           </div>
 
           <label className="field">

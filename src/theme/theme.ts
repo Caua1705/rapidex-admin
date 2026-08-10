@@ -1,30 +1,34 @@
 /**
  * Tema claro/escuro.
  *
- * Escuro é o padrão do design system e continua sendo: o painel fica aberto o
- * turno inteiro, muitas vezes numa tela de cozinha. O claro existe para o
- * balcão perto de janela, onde o escuro vira espelho.
+ * CLARO É O PADRÃO DO SISTEMA, mas o padrão INICIAL de cada pessoa é o que o
+ * sistema operacional dela pede (`prefers-color-scheme`). Só depois que ela
+ * mexe no alternador é que existe uma escolha, e aí ela vale para sempre — é a
+ * ordem que a WCAG e o bom senso pedem: respeitar a preferência declarada
+ * antes de impor a nossa.
  *
- * Os dois temas saem dos MESMOS tokens semânticos — trocar o tema troca o
- * valor de `--bg-*`, `--text-*`, `--border-*` e das sombras, e nada mais.
- * Nenhuma tela precisa saber qual tema está ativo.
+ * O atributo `data-theme` é SEMPRE escrito no <html>, com "light" ou "dark".
+ * Deixar o claro como ":root sem atributo" economizava um atributo e custava
+ * clareza: com o valor sempre explícito, `document.documentElement.dataset`
+ * responde qual tema está no ar sem ninguém precisar deduzir.
  */
 export type Theme = 'dark' | 'light';
 
 export const THEME_STORAGE_KEY = 'rapidex-admin.theme';
 
-export const DEFAULT_THEME: Theme = 'dark';
+/** O que vale quando não há escolha guardada NEM preferência do sistema. */
+export const FALLBACK_THEME: Theme = 'light';
 
 function isTheme(value: unknown): value is Theme {
   return value === 'dark' || value === 'light';
 }
 
 /**
- * O que o lojista escolheu da última vez, ou null se nunca escolheu.
+ * O que a pessoa escolheu da última vez, ou null se nunca escolheu.
  *
  * Devolve null em vez do padrão para o chamador conseguir distinguir "quer
- * escuro" de "nunca opinou" — a mesma distinção que o script anti-flash do
- * index.html faz.
+ * claro" de "nunca opinou" — é essa distinção que faz o `prefers-color-scheme`
+ * ser consultado apenas enquanto ninguém decidiu nada.
  */
 export function readStoredTheme(): Theme | null {
   try {
@@ -45,6 +49,20 @@ export function storeTheme(theme: Theme): void {
   }
 }
 
+/** A preferência declarada no sistema operacional, se o navegador a expõe. */
+export function systemTheme(): Theme {
+  try {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  } catch {
+    return FALLBACK_THEME;
+  }
+}
+
+/** A escolha guardada ganha do sistema; o sistema ganha do padrão. */
+export function initialTheme(): Theme {
+  return readStoredTheme() ?? systemTheme();
+}
+
 /**
  * Escreve o tema no <html>.
  *
@@ -52,13 +70,7 @@ export function storeTheme(theme: Theme): void {
  * rolagem e o `color-scheme` nativo dos campos leem do elemento raiz.
  */
 export function applyTheme(theme: Theme, root: HTMLElement = document.documentElement): void {
-  if (theme === 'light') {
-    root.setAttribute('data-theme', 'light');
-  } else {
-    // O escuro é o :root sem atributo; deixar `data-theme="dark"` pendurado
-    // faria parecer que existem duas paletas quando existe uma só.
-    root.removeAttribute('data-theme');
-  }
+  root.setAttribute('data-theme', theme);
 }
 
 export function nextTheme(theme: Theme): Theme {

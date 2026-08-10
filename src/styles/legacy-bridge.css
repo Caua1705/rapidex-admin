@@ -1,0 +1,480 @@
+/*
+ * ============================================================================
+ * PONTE TEMPORÁRIA — APAGAR NA ETAPA 6
+ * ============================================================================
+ *
+ * POR QUE ELA EXISTE: o design system é substituído em sete etapas, e cada
+ * etapa precisa rodar antes da próxima. As telas atuais (Pedidos, Cardápio,
+ * Minha loja, Cozinha) foram escritas contra os nomes de token antigos; sem
+ * esta ponte, o app ficaria quebrado do commit da etapa 1 até o da etapa 6.
+ *
+ * O QUE ELA É: um apelido de cada nome antigo para o token NOVO equivalente.
+ * Nenhum valor literal de cor mora aqui — as telas antigas já passam a
+ * enxergar a paleta nova, e o que muda na etapa 6 é a estrutura, não a cor.
+ *
+ * O QUE ELA NÃO É: um lugar para escrever estilo novo. Componente novo usa os
+ * tokens novos direto.
+ *
+ * QUANDO SAI: na etapa 6, junto com a última tela migrada. Se este arquivo
+ * ainda existir depois disso, é dívida, não ponte.
+ */
+
+:root {
+  /* --- superfícies ------------------------------------------------------- */
+  --bg-app: var(--bg);
+  --bg-chrome: var(--surface-2);
+  --bg-surface: var(--surface);
+  --bg-surface-2: var(--surface);
+  --bg-sunken: var(--surface-2);
+  --bg-overlay: var(--scrim);
+  --bg-hover: var(--hover);
+  --bg-active: var(--active);
+
+  /* --- bordas ------------------------------------------------------------ */
+  --border-subtle: var(--line);
+  --border-default: var(--line);
+  --border-strong: var(--line-strong);
+
+  /* --- texto ------------------------------------------------------------- */
+  --text-primary: var(--ink);
+  --text-secondary: var(--ink-2);
+  --text-tertiary: var(--ink-3);
+  --text-disabled: var(--ink-3);
+  --text-on-brand: var(--on-ember);
+  --text-on-status: var(--on-ember);
+
+  /* --- marca ------------------------------------------------------------- */
+  --brand: var(--ember);
+  --brand-hover: var(--ember);
+  --brand-active: var(--ember-press);
+  --brand-soft-bg: var(--ember-wash);
+  --brand-soft-fg: var(--ember);
+  --focus-ring: var(--focus);
+
+  /* --- perigo ------------------------------------------------------------ */
+  --danger: var(--st-cancelado);
+  --danger-hover: var(--st-cancelado);
+  --danger-active: var(--st-cancelado);
+  --danger-soft-bg: var(--st-cancelado-wash);
+  --danger-soft-fg: var(--st-cancelado);
+
+  /* --- status (nomes antigos, em inglês) --------------------------------- */
+  --status-pending-h: var(--st-pendente);
+  --status-accepted-h: var(--st-aceito);
+  --status-preparing-h: var(--st-preparando);
+  --status-ready-h: var(--st-pronto);
+  --status-delivering-h: var(--st-entrega);
+  --status-completed-h: var(--st-pronto);
+  --status-cancelled-h: var(--st-concluido);
+
+  /* --- tipografia -------------------------------------------------------- */
+  --font-sans: var(--font-ui);
+
+  --text-xs: var(--t-eyebrow);
+  --text-sm: var(--t-hint);
+  --text-base: var(--t-label);
+  --text-md: var(--t-body);
+  --text-lg: var(--t-money);
+  --text-xl: var(--t-num-sm);
+  --text-2xl: var(--t-num);
+  --text-3xl: var(--t-num-lg);
+
+  --leading-xs: 1.3;
+  --leading-sm: 1.35;
+  --leading-base: 1.4;
+  --leading-md: 1.45;
+  --leading-lg: 1.35;
+  --leading-xl: 1.2;
+  --leading-2xl: 1.15;
+  --leading-3xl: 1.05;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+
+  --type-title-size: var(--t-screen);
+  --type-title-line: var(--t-screen-line);
+  --type-title-weight: var(--t-screen-weight);
+  --type-title-tracking: var(--t-screen-track);
+  --type-section-size: var(--t-card);
+  --type-section-line: var(--t-card-line);
+  --type-section-weight: var(--t-card-weight);
+  --type-section-tracking: var(--t-card-track);
+  --type-label-size: var(--t-eyebrow);
+  --type-label-line: var(--t-eyebrow-line);
+  --type-label-weight: var(--t-eyebrow-weight);
+  --type-label-tracking: var(--t-eyebrow-track);
+  --type-body-size: var(--t-label);
+  --type-body-line: var(--t-body-line);
+  --type-body-weight: var(--t-body-weight);
+  --type-aux-size: var(--t-hint);
+  --type-aux-line: var(--t-hint-line);
+  --type-aux-weight: var(--t-hint-weight);
+
+  /* --- espaçamento (a escala antiga tinha um degrau de 2px que morreu) ---- */
+  --space-1: var(--sp-4);
+  --space-2: var(--sp-4);
+  --space-3: var(--sp-8);
+  --space-4: var(--sp-12);
+  --space-5: var(--sp-16);
+  --space-6: var(--sp-24);
+  --space-7: var(--sp-32);
+  --space-8: var(--sp-40);
+
+  /* --- raio e elevação --------------------------------------------------- */
+  --radius-sm: var(--r-chip);
+  --radius-md: var(--r-field);
+  --radius-lg: var(--r-card);
+  --radius-full: var(--r-round);
+  --shadow-sm: var(--shadow-card);
+  --shadow-md: var(--shadow-pop);
+  --shadow-lg: var(--shadow-pop);
+
+  /* --- enquadramento e movimento ----------------------------------------- */
+  --layout-max: var(--form-max);
+  --column-max: 300px;
+  --sidebar-width: var(--sidebar-w);
+  --topbar-height: var(--topbar-h);
+  --motion-ease: var(--ease);
+}
+
+/*
+ * As classes de status antigas (`status-<chave>`), mapeadas para os estágios
+ * novos. Mesma ideia da nova `is-<estágio>`: o componente não escolhe matiz.
+ */
+.status-pending {
+  --status: var(--st-pendente);
+  --status-bg: var(--st-pendente-wash);
+  --status-fg: var(--st-pendente);
+}
+.status-accepted {
+  --status: var(--st-aceito);
+  --status-bg: var(--st-aceito-wash);
+  --status-fg: var(--st-aceito);
+}
+.status-preparing {
+  --status: var(--st-preparando);
+  --status-bg: var(--st-preparando-wash);
+  --status-fg: var(--st-preparando);
+}
+.status-ready {
+  --status: var(--st-pronto);
+  --status-bg: var(--st-pronto-wash);
+  --status-fg: var(--st-pronto);
+}
+.status-delivering,
+.status-out_for_delivery {
+  --status: var(--st-entrega);
+  --status-bg: var(--st-entrega-wash);
+  --status-fg: var(--st-entrega);
+}
+.status-completed {
+  --status: var(--st-pronto);
+  --status-bg: var(--st-pronto-wash);
+  --status-fg: var(--st-pronto);
+}
+.status-cancelled,
+.status-rejected {
+  --status: var(--st-concluido);
+  --status-bg: var(--st-concluido-wash);
+  --status-fg: var(--st-concluido);
+}
+
+/* --- primitivas visuais das telas antigas -------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+  height: 28px;
+  padding: 0 var(--sp-8);
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--t-label);
+  line-height: 1;
+  font-weight: var(--t-label-weight);
+  white-space: nowrap;
+  transition: background var(--motion-fast) var(--ease);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--hover);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--ember);
+  border-color: var(--ember);
+  color: var(--on-ember);
+}
+
+.btn--primary:hover:not(:disabled),
+.btn--primary:active:not(:disabled) {
+  background: var(--ember-press);
+  border-color: var(--ember-press);
+  /* A tinta troca junto com o fundo: nenhuma das duas passa nos dois. */
+  color: var(--on-ember-press);
+}
+
+.btn--danger {
+  background: transparent;
+  border-color: var(--st-cancelado);
+  color: var(--st-cancelado);
+}
+
+.btn--ghost,
+.btn--ghost-danger {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-3);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.btn--ghost-danger:hover:not(:disabled) {
+  background: var(--st-cancelado-wash);
+  color: var(--st-cancelado);
+}
+
+.btn--sm {
+  height: var(--tap);
+  padding: 0 var(--sp-4);
+  font-size: var(--t-hint);
+}
+
+.btn--block {
+  width: 100%;
+}
+
+.icon-btn {
+  width: 28px;
+  padding: 0;
+  line-height: 0;
+}
+
+.icon-btn.btn--sm {
+  width: var(--tap);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+
+.field__label {
+  font-size: var(--t-eyebrow);
+  line-height: var(--t-eyebrow-line);
+  font-weight: var(--t-eyebrow-weight);
+  letter-spacing: var(--t-eyebrow-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.field__hint {
+  font-size: var(--t-hint);
+  line-height: var(--t-hint-line);
+  color: var(--ink-3);
+}
+
+.field__pair {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.field__pair > .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.field__pair-sep {
+  flex: 0 0 auto;
+  font-size: var(--t-hint);
+  color: var(--ink-3);
+}
+
+.input,
+.select,
+.textarea {
+  height: 30px;
+  padding: 0 var(--sp-8);
+  background: var(--surface-2);
+  color: var(--ink);
+  /* Contorno de controle: `--line-control` é o que passa dos 3:1 da 1.4.11. */
+  border: 1px solid var(--line-control);
+  border-radius: var(--r-field);
+  min-width: 0;
+}
+
+.textarea {
+  height: auto;
+  padding: var(--sp-8);
+  resize: vertical;
+  min-height: 64px;
+  font-family: var(--font-ui);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--ink-3);
+}
+
+.input:disabled,
+.select:disabled,
+.textarea:disabled {
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  cursor: pointer;
+}
+
+.checkbox input {
+  accent-color: var(--ember);
+  width: 15px;
+  height: 15px;
+  margin: 0;
+}
+
+.alert {
+  padding: var(--sp-8) var(--sp-12);
+  border-radius: var(--r-chip);
+  border-left: 2px solid;
+  font-size: var(--t-label);
+  line-height: var(--t-body-line);
+}
+
+.alert--error {
+  background: var(--st-cancelado-wash);
+  border-color: var(--st-cancelado);
+  color: var(--st-cancelado);
+}
+
+.alert--warn {
+  background: var(--st-pendente-wash);
+  border-color: var(--st-pendente);
+  color: var(--st-pendente);
+}
+
+.alert--info {
+  background: var(--st-aceito-wash);
+  border-color: var(--st-aceito);
+  color: var(--st-aceito);
+}
+
+.container {
+  width: 100%;
+  max-width: var(--layout-max);
+  margin-inline: auto;
+}
+
+.muted {
+  color: var(--ink-2);
+}
+
+.faint {
+  color: var(--ink-3);
+}
+
+.mono,
+.font-mono-tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  text-align: right;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 var(--sp-4);
+  border-radius: var(--r-chip);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: var(--t-hint);
+  line-height: var(--t-hint-line);
+  font-weight: var(--t-hint-weight);
+  white-space: nowrap;
+}
+
+/* Os três papéis antigos que a escala nova renomeou. */
+.t-title {
+  font-size: var(--t-screen);
+  line-height: var(--t-screen-line);
+  font-weight: var(--t-screen-weight);
+  letter-spacing: var(--t-screen-track);
+  color: var(--ink);
+}
+
+.t-section {
+  font-size: var(--t-card);
+  line-height: var(--t-card-line);
+  font-weight: var(--t-card-weight);
+  letter-spacing: var(--t-card-track);
+  color: var(--ink);
+}
+
+.t-aux {
+  font-size: var(--t-hint);
+  line-height: var(--t-hint-line);
+  color: var(--ink-3);
+}
+
+.conn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  font-size: var(--t-hint);
+  color: var(--ink-3);
+}
+
+.conn__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-round);
+  background: var(--ink-3);
+  flex: 0 0 auto;
+}
+
+.conn--live .conn__dot {
+  background: var(--st-pronto);
+}
+
+.conn--connecting .conn__dot {
+  background: var(--st-pendente);
+}
+
+.conn--offline {
+  color: var(--st-cancelado);
+}
+
+.conn--offline .conn__dot {
+  background: var(--st-cancelado);
+}

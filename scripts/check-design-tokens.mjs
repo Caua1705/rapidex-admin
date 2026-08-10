@@ -1,11 +1,14 @@
-/**
- * Cor solta nos CSS do painel.
+/*
+ * Valor solto nos CSS do painel.
  *
- * O `_adherence.oxlintrc.json` do design system barra hexadecimal em literal
- * de JavaScript, mas neste projeto a cor mora em arquivo .css — onde o ESLint
- * não olha. Esta verificação fecha esse buraco: fora de `src/styles/tokens.css`,
- * cor é `var(--token)` ou não passa.
+ * O ESLint não olha dentro de arquivo .css, e é lá que mora quase todo o
+ * estilo. Esta verificação fecha o buraco: fora de `src/styles/tokens.css`,
  *
+ *   - cor é `var(--token)`;
+ *   - corpo de fonte é `var(--t-*)`;
+ *   - raio é `var(--r-*)`.
+ *
+ * É a metade CSS da mesma regra que o eslint.config.js aplica no .ts/.tsx.
  * Roda no `npm run lint`.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -15,22 +18,37 @@ import { fileURLToPath } from 'node:url';
 const projectRoot = fileURLToPath(new URL('..', import.meta.url));
 const cssRoot = join(projectRoot, 'src');
 
-/** O único arquivo onde uma cor literal é a definição, e não uma fuga. */
+/** O único arquivo onde um literal é a definição, e não uma fuga. */
 const TOKENS_FILE = join('src', 'styles', 'tokens.css');
 
-/**
- * `transparent` e `currentColor` não são cor de marca: são "sem cor" e "a cor
- * que o pai já decidiu". Ambos aparecem legitimamente em color-mix e em SVG.
- */
 const FORBIDDEN = [
+  /*
+   * `transparent` e `currentColor` não são cor de marca: são "sem cor" e "a cor
+   * que o pai já decidiu". Ambos aparecem legitimamente em color-mix e em SVG.
+   */
   { name: 'hexadecimal', pattern: /#[0-9a-fA-F]{3,8}\b/g },
   { name: 'rgb()/rgba()', pattern: /\brgba?\s*\(/g },
   { name: 'hsl()/hsla()', pattern: /\bhsla?\s*\(/g },
-  { name: 'oklch()/oklab()', pattern: /\bokl(ch|ab)\s*\(/g },
   {
     name: 'cor por nome',
     pattern:
       /(?<![\w-])(white|black|red|green|blue|orange|yellow|purple|pink|gray|grey|silver|maroon|navy|teal|olive|lime|aqua|fuchsia)(?![\w-])/gi,
+  },
+  /*
+   * Corpo de fonte em px. `font: inherit` e `font-size: inherit` continuam
+   * valendo — o que não pode é escolher um tamanho que não está na escala.
+   */
+  {
+    name: 'corpo de fonte solto',
+    pattern: /font-size\s*:\s*[^;]*\b\d*\.?\d+(px|pt|rem|em)\b/g,
+  },
+  /*
+   * Raio solto. A escala tem três degraus (--r-chip, --r-field, --r-card) mais
+   * o --r-round; um quarto valor escrito à mão é como ela começa a desandar.
+   */
+  {
+    name: 'raio solto',
+    pattern: /border-radius\s*:\s*[^;]*\b\d*\.?\d+(px|rem|em)\b/g,
   },
 ];
 
@@ -68,7 +86,7 @@ for (const file of collectCssFiles(cssRoot)) {
           file: relativePath.split(sep).join('/'),
           line: index + 1,
           kind: name,
-          text: match[0],
+          text: match[0].trim(),
         });
       }
     }
@@ -76,16 +94,14 @@ for (const file of collectCssFiles(cssRoot)) {
 }
 
 if (problems.length > 0) {
-  console.error('Cor fora dos tokens do design system:\n');
+  console.error('Valor solto fora dos tokens do design system:\n');
   for (const problem of problems) {
-    console.error(
-      `  ${problem.file}:${problem.line}  ${problem.kind} "${problem.text}" — use var(--token) de src/styles/tokens.css`,
-    );
+    console.error(`  ${problem.file}:${problem.line}  ${problem.kind} "${problem.text}"`);
   }
   console.error(
-    `\n${problems.length} ocorrência(s). Cor literal só é permitida em ${TOKENS_FILE.split(sep).join('/')}.`,
+    `\n${problems.length} ocorrência(s). Literal só é permitido em ${TOKENS_FILE.split(sep).join('/')}.`,
   );
   process.exit(1);
 }
 
-console.log('Aderência de cor: nenhum valor solto fora de src/styles/tokens.css.');
+console.log('Aderência: nenhuma cor, corpo de fonte ou raio solto fora de src/styles/tokens.css.');

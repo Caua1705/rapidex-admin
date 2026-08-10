@@ -1,0 +1,147 @@
+/*
+ * ============================================================================
+ * TIPOGRAFIA — os sete papéis, e nada além deles
+ * ============================================================================
+ *
+ * A regra de revisão: bata o olho em qualquer texto da tela e diga qual papel
+ * ele tem. Se não der para dizer, o texto está errado — não falta um papel.
+ *
+ * A HIERARQUIA É O PROBLEMA QUE ESTE ARQUIVO RESOLVE. Em cada tela existe UMA
+ * informação que a pessoa precisa ler de longe, e ela recebe o maior peso da
+ * tela; todo o resto desce um nível:
+ *
+ *   Pedidos       → tempo decorrido       (.t-num)
+ *   Cozinha       → itens do pedido       (.t-num, ampliado)
+ *   Cardápio      → nome e preço          (.t-card / .t-money)
+ *   Configurações → o campo, não o label  (o label é .t-label, o valor é corpo)
+ *
+ * Número do pedido, horário e metadados são APOIO: .t-hint, cor --ink-3.
+ */
+
+/* 1. Número operacional — a maior tinta da tela. */
+.t-num {
+  font-size: var(--t-num);
+  line-height: var(--t-num-line);
+  font-weight: var(--t-num-weight);
+  letter-spacing: var(--t-num-track);
+  color: var(--ink);
+}
+
+.t-num--sm {
+  font-size: var(--t-num-sm);
+}
+
+/* A cozinha lê a dois metros: aqui o número operacional é o do cartaz. */
+.t-num--lg {
+  font-size: var(--t-num-lg);
+}
+
+/* 2. Título de tela — um por rota. */
+.t-screen {
+  font-size: var(--t-screen);
+  line-height: var(--t-screen-line);
+  font-weight: var(--t-screen-weight);
+  letter-spacing: var(--t-screen-track);
+  color: var(--ink);
+}
+
+/* 3. Título de card. */
+.t-card {
+  font-size: var(--t-card);
+  line-height: var(--t-card-line);
+  font-weight: var(--t-card-weight);
+  letter-spacing: var(--t-card-track);
+  color: var(--ink);
+}
+
+/*
+ * 4. Dinheiro. NUNCA em mono — a mono é da comanda impressa, e dinheiro em
+ * mono numa interface lê como código, não como valor.
+ */
+.t-money {
+  font-family: var(--font-ui);
+  font-size: var(--t-money);
+  line-height: var(--t-money-line);
+  font-weight: var(--t-money-weight);
+  letter-spacing: var(--t-money-track);
+  color: var(--ink);
+}
+
+.t-money--sm {
+  font-size: var(--t-money-sm);
+}
+
+.t-money--lg {
+  font-size: var(--t-money-lg);
+}
+
+/* 5. Corpo e label. */
+.t-body {
+  font-size: var(--t-body);
+  line-height: var(--t-body-line);
+  font-weight: var(--t-body-weight);
+  color: var(--ink);
+}
+
+.t-label {
+  font-size: var(--t-label);
+  line-height: var(--t-label-line);
+  font-weight: var(--t-label-weight);
+  color: var(--ink);
+}
+
+/* 6. Apoio / hint. */
+.t-hint {
+  font-size: var(--t-hint);
+  line-height: var(--t-hint-line);
+  font-weight: var(--t-hint-weight);
+  color: var(--ink-3);
+}
+
+/* 7. Eyebrow / cabeçalho de coluna. */
+.t-eyebrow {
+  font-size: var(--t-eyebrow);
+  line-height: var(--t-eyebrow-line);
+  font-weight: var(--t-eyebrow-weight);
+  letter-spacing: var(--t-eyebrow-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/*
+ * A MONO É SÓ PARA NÚMERO DE PEDIDO E CÓDIGO.
+ *
+ * Ela é continuidade com a comanda impressa de 48 colunas que sai na cozinha —
+ * o "#1042" da tela é o mesmo "#1042" do papel. Fora disso ela é decoração, e
+ * decoração é o que este sistema não tem.
+ */
+.t-code {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: -0.02em;
+}
+
+/* --- cores de tinta, para quando o papel já está certo e falta a ênfase --- */
+
+.ink-2 {
+  color: var(--ink-2);
+}
+
+.ink-3 {
+  color: var(--ink-3);
+}
+
+/* --- só para leitor de tela ---------------------------------------------- */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

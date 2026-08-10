@@ -185,16 +185,35 @@ test('trocar de categoria troca a lista de itens', async ({ page }) => {
   await expect(page.getByText('X-Burger Clássico')).toHaveCount(0);
 });
 
+/*
+ * O tema tem três camadas de decisão, e o teste cobre as três:
+ *   1. sem escolha, vale a preferência do sistema (aqui, claro);
+ *   2. o alternador escreve a escolha;
+ *   3. a escolha sobrevive ao F5 — e chega ANTES do primeiro pixel, senão o
+ *      painel pisca branco a cada recarregamento.
+ */
 test('o tema escolhido sobrevive ao recarregamento', async ({ page }) => {
   await abrirCardapio(page);
 
   const html = page.locator('html');
-  await expect(html).not.toHaveAttribute('data-theme', 'light');
+  // O Playwright roda com prefers-color-scheme: light por padrão.
+  await expect(html).toHaveAttribute('data-theme', 'light');
 
   await page.getByTestId('theme-toggle').click();
-  await expect(html).toHaveAttribute('data-theme', 'light');
+  await expect(html).toHaveAttribute('data-theme', 'dark');
 
   await page.reload();
   // Sem flash: o atributo já está lá antes do app montar.
-  await expect(html).toHaveAttribute('data-theme', 'light');
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+});
+
+/*
+ * E, enquanto ninguém escolheu nada, o painel segue o sistema operacional —
+ * é o que a WCAG e o bom senso pedem antes de impor a nossa preferência.
+ */
+test('sem escolha guardada, o tema segue o sistema', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await abrirCardapio(page);
+
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });

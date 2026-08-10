@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 
-import { DEFAULT_THEME, type Theme } from './theme';
+import { FALLBACK_THEME, type Theme } from './theme';
 
 export type ThemeContextValue = {
   theme: Theme;
@@ -8,7 +8,7 @@ export type ThemeContextValue = {
 };
 
 export const ThemeContext = createContext<ThemeContextValue>({
-  theme: DEFAULT_THEME,
+  theme: FALLBACK_THEME,
   toggleTheme: () => {},
 });
 
