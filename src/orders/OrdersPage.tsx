@@ -4,6 +4,7 @@ import { useSession } from '../auth/session-context';
 import { BOARD_COLUMNS, columnCount, groupOrdersIntoColumns } from './board-columns';
 import { OrderDetailPanel } from './OrderDetailPanel';
 import { OrdersToolbar } from './OrdersToolbar';
+import { PeriodSummary } from './PeriodSummary';
 import { StatusColumn } from './StatusColumn';
 import { useNewOrderSound } from './useNewOrderSound';
 import { useOrderStream } from './useOrderStream';
@@ -77,6 +78,12 @@ export function OrdersPage() {
             Sem conexão com o servidor. Pedidos novos não vão aparecer sozinhos até a rede voltar.
           </p>
         ) : null}
+
+        <PeriodSummary
+          counts={board.counts}
+          total={board.totalInFilter}
+          isLoading={board.isLoading}
+        />
 
         <div className="board">
           {BOARD_COLUMNS.map((column) => (

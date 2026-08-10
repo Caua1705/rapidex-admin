@@ -50,6 +50,33 @@ test('abre na primeira categoria com os itens dela', async ({ page }) => {
   await expect(page.getByText('Inativa')).toBeVisible();
 });
 
+/*
+ * A contagem responde "qual categoria está vazia?" — a pergunta que faz o
+ * lojista descobrir que subiu o cardápio pela metade ANTES do cliente. Sem ela,
+ * a única forma de saber é abrir categoria por categoria.
+ */
+test('cada categoria mostra quantos itens tem, inclusive a vazia', async ({ page }) => {
+  await abrirCardapio(page);
+
+  await expect(page.getByTestId('category-count-cat-1')).toHaveText('3 itens');
+  await expect(page.getByTestId('category-count-cat-2')).toHaveText('1 item');
+  // Zero é o número que importa: é a categoria que ninguém percebeu que ficou
+  // sem item. Ele aparece escrito, e não como linha em branco.
+  await expect(page.getByTestId('category-count-cat-3')).toHaveText('0 itens');
+});
+
+test('criar um item atualiza a contagem da categoria na barra', async ({ page }) => {
+  await abrirCardapio(page);
+  await expect(page.getByTestId('category-count-cat-1')).toHaveText('3 itens');
+
+  await page.getByRole('button', { name: 'Novo item' }).click();
+  await page.getByLabel('Nome do item').fill('X-Tudo');
+  await page.getByLabel('Preço').fill('32,00');
+  await page.getByRole('button', { name: 'Salvar' }).click();
+
+  await expect(page.getByTestId('category-count-cat-1')).toHaveText('4 itens');
+});
+
 test('esgotar um item usa a rota de disponibilidade e não some com a linha', async ({ page }) => {
   await abrirCardapio(page);
 
@@ -142,8 +169,9 @@ test('desativar é o caminho: não existe excluir em lugar nenhum', async ({ pag
 test('trocar de categoria troca a lista de itens', async ({ page }) => {
   await abrirCardapio(page);
 
-  // `exact` porque os botões de mover levam o nome da categoria no rótulo.
-  await page.getByRole('button', { name: 'Acompanhamentos', exact: true }).click();
+  // Pelo testid: o rótulo do botão junta nome e contagem ("Acompanhamentos
+  // 1 item"), e os botões de mover também levam o nome da categoria.
+  await page.getByTestId('category-select-cat-2').click();
 
   await expect(page.getByRole('heading', { name: 'Acompanhamentos' })).toBeVisible();
   await expect(page.getByText('Batata frita M')).toBeVisible();

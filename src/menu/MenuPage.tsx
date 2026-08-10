@@ -62,6 +62,7 @@ export function MenuPage() {
         categories={menu.categories}
         selectedCategoryId={menu.selectedCategoryId}
         movedCategoryId={menu.movedCategoryId}
+        productCountByCategory={menu.productCountByCategory}
         onSelect={menu.selectCategory}
         onMove={(index, direction) => void menu.reorderCategory(index, direction)}
         onMoveSettled={menu.clearMovedCategory}

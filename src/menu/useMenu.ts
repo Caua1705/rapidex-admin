@@ -53,6 +53,8 @@ export function useMenu() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [totalInCategory, setTotalInCategory] = useState(0);
+  /** Itens por categoria, para a barra da esquerda. Ver `loadProductCounts`. */
+  const [productCounts, setProductCounts] = useState<Record<string, number>>({});
 
   const [searchDraft, setSearchDraft] = useState('');
   const [search, setSearch] = useState('');
@@ -76,6 +78,42 @@ export function useMenu() {
     return () => window.clearTimeout(timer);
   }, [searchDraft, search]);
 
+  /**
+   * Quantos itens cada categoria tem, para a barra da esquerda.
+   *
+   * O NÚMERO NÃO VEM DE GRAÇA: `AdminCategoryResponse` não tem contagem, e não
+   * existe rota que traga todas de uma vez. O que existe é o `total` do
+   * envelope de `GET /admin/products`, então isto é uma sondagem por categoria
+   * com `limit: 1` — corpo de um item, só para ler o total.
+   *
+   * Vale a pena porque a pergunta que a barra responde é "qual categoria está
+   * vazia?", e essa é a que faz o lojista descobrir, no meio do almoço, que
+   * subiu o cardápio pela metade. As sondagens são paralelas, falham em
+   * silêncio (contagem é apoio, não pode derrubar a tela) e a categoria ABERTA
+   * nem precisa delas: o `total` da listagem já está na mão e é sempre o mais
+   * fresco.
+   */
+  const loadProductCounts = useCallback(async (list: readonly Category[]) => {
+    const entries = await Promise.all(
+      list.map(async (category) => {
+        try {
+          const page = await listProducts({ categoryId: category.id, limit: 1, offset: 0 });
+          return [category.id, page.total] as const;
+        } catch {
+          return null;
+        }
+      }),
+    );
+
+    setProductCounts((current) => {
+      const next = { ...current };
+      entries.forEach((entry) => {
+        if (entry) next[entry[0]] = entry[1];
+      });
+      return next;
+    });
+  }, []);
+
   const loadCategories = useCallback(async () => {
     setIsLoadingCategories(true);
     try {
@@ -86,12 +124,14 @@ export function useMenu() {
         return loaded[0]?.id ?? null;
       });
       setErrorMessage(null);
+      // Sem await: a barra aparece na hora e os números entram quando chegam.
+      void loadProductCounts(loaded);
     } catch (error) {
       setErrorMessage(messageFromUnknownError(error));
     } finally {
       setIsLoadingCategories(false);
     }
-  }, []);
+  }, [loadProductCounts]);
 
   useEffect(() => {
     void loadCategories();
@@ -294,6 +334,10 @@ export function useMenu() {
           }
         }
         await loadProducts(selectedCategoryId, search);
+        // Criar um item, ou movê-lo de categoria, muda a contagem de DUAS
+        // categorias — a de origem e a de destino. Só a aberta se atualiza
+        // sozinha pelo `total` da listagem, então aqui vale re-sondar.
+        void loadProductCounts(categories);
         setErrorMessage(null);
         return true;
       } catch (error) {
@@ -301,7 +345,7 @@ export function useMenu() {
         return false;
       }
     },
-    [loadProducts, products, search, selectedCategoryId],
+    [categories, loadProductCounts, loadProducts, products, search, selectedCategoryId],
   );
 
   /**
@@ -334,12 +378,24 @@ export function useMenu() {
   const selectedCategory =
     categories.find((category) => category.id === selectedCategoryId) ?? null;
 
+  /*
+   * A categoria ABERTA usa o total da listagem, que já está na mão e é sempre
+   * o mais fresco — criar um item ali atualiza o número na hora, sem sondagem.
+   * As outras usam o que a sondagem trouxe. A busca não conta: ela filtra a
+   * lista e mudaria o total para "quantos casam com o termo".
+   */
+  const productCountByCategory =
+    selectedCategoryId && search.trim() === ''
+      ? { ...productCounts, [selectedCategoryId]: totalInCategory }
+      : productCounts;
+
   return {
     categories,
     selectedCategory,
     selectedCategoryId,
     products,
     totalInCategory,
+    productCountByCategory,
     searchDraft,
     isLoadingCategories,
     isLoadingProducts,

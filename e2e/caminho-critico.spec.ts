@@ -194,6 +194,35 @@ test('pedido novo chega sozinho pelo SSE', async ({ page }) => {
  * para o painel inteiro. Este teste é o que garante que ele continua sendo um
  * FILTRO de verdade, e não só um rótulo bonito com nome e endereço.
  */
+/*
+ * O resumo responde "como está o dia?" sem contar card com o olho — contagem
+ * visual erra assim que uma coluna passa da altura da tela. Os números saem do
+ * mesmo status-counts dos badges, que conta o PERÍODO inteiro e não só os 50
+ * pedidos carregados.
+ */
+test('o resumo do período conta por status e não inventa faturamento', async ({ page }) => {
+  await fazerLogin(page);
+
+  const resumo = page.getByTestId('period-summary');
+  await expect(resumo).toBeVisible();
+
+  // O falso abre com dois pendentes e um preparando.
+  await expect(page.getByTestId('summary-total')).toHaveText('3');
+  await expect(page.getByTestId('summary-pending')).toContainText('2');
+  await expect(page.getByTestId('summary-preparing')).toContainText('1');
+  await expect(page.getByTestId('summary-ready')).toContainText('0');
+
+  // Faturamento NÃO aparece: não existe rota que o devolva, e um número
+  // inventado numa barra de resumo é o tipo de erro que vira decisão.
+  await expect(resumo).not.toContainText('R$');
+
+  // Mover um pedido reflete no resumo, que é o que o torna confiável.
+  await page.getByTestId('order-card-1002').click();
+  await page.getByTestId('change-status-accepted').click();
+  await expect(page.getByTestId('summary-accepted')).toContainText('1');
+  await expect(page.getByTestId('summary-pending')).toContainText('1');
+});
+
 test('o seletor de filial do cabeçalho filtra o quadro', async ({ page }) => {
   await fazerLogin(page);
 

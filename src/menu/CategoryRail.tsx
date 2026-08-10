@@ -17,6 +17,7 @@ export function CategoryRail({
   categories,
   selectedCategoryId,
   movedCategoryId,
+  productCountByCategory,
   onSelect,
   onMove,
   onMoveSettled,
@@ -25,6 +26,12 @@ export function CategoryRail({
   categories: Category[];
   selectedCategoryId: string | null;
   movedCategoryId: string | null;
+  /**
+   * Itens por categoria. Ausente = ainda não contado; a linha fica sem número
+   * em vez de mostrar zero, que é uma afirmação diferente ("categoria vazia") e
+   * a única que faz o lojista ir conferir o que não subiu.
+   */
+  productCountByCategory: Record<string, number>;
   onSelect: (categoryId: string) => void;
   onMove: (index: number, direction: -1 | 1) => void;
   onMoveSettled: () => void;
@@ -49,6 +56,7 @@ export function CategoryRail({
         {categories.map((category, index) => {
           const selected = category.id === selectedCategoryId;
           const active = isCategoryActive(category);
+          const count = productCountByCategory[category.id];
 
           return (
             <li
@@ -87,11 +95,25 @@ export function CategoryRail({
                 className="rail__select"
                 onClick={() => onSelect(category.id)}
                 aria-current={selected ? 'true' : undefined}
+                data-testid={`category-select-${category.id}`}
               >
-                <span className={`rail__name${active ? '' : ' rail__name--inactive'}`}>
-                  {category.name}
+                <span className="rail__label">
+                  <span className={`rail__name${active ? '' : ' rail__name--inactive'}`}>
+                    {category.name}
+                  </span>
+                  {!active ? <span className="tag">Inativa</span> : null}
                 </span>
-                {!active ? <span className="tag">Inativa</span> : null}
+
+                {/*
+                  A contagem embaixo do nome responde "qual categoria está
+                  vazia?" sem abrir uma por uma — é assim que se descobre que o
+                  cardápio subiu pela metade antes de o cliente descobrir.
+                */}
+                {count !== undefined ? (
+                  <span className="rail__count" data-testid={`category-count-${category.id}`}>
+                    <span className="mono">{count}</span> {count === 1 ? 'item' : 'itens'}
+                  </span>
+                ) : null}
               </button>
             </li>
           );
