@@ -90,3 +90,12 @@ export function PlusIcon(props: IconProps) {
     </Icon>
   );
 }
+
+/** Três pontos: o que não coube na barra, e não "outras coisas quaisquer". */
+export function MoreIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 6.01v.01M12 12v.01M12 17.99v.01" />
+    </Icon>
+  );
+}

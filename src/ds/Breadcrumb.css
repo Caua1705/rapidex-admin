@@ -1,0 +1,49 @@
+.ds-crumb__lista {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+}
+
+.ds-crumb__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+
+.ds-crumb__link {
+  /* Alvo de 24px (2.5.8) sem inflar a linha: o padding faz o alvo. */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  padding-inline: var(--sp-4);
+  margin-inline: calc(var(--sp-4) * -1);
+  border-radius: var(--r-chip);
+  color: var(--ink-2);
+  font-size: var(--t-hint);
+  line-height: var(--t-hint-line);
+  font-weight: var(--t-hint-weight);
+  text-decoration: none;
+}
+
+.ds-crumb__link:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+/* Onde a pessoa está: tinta cheia, sem link. */
+.ds-crumb__atual {
+  font-size: var(--t-hint);
+  line-height: var(--t-hint-line);
+  font-weight: var(--t-label-weight);
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-crumb__sep {
+  color: var(--ink-3);
+  font-size: var(--t-hint);
+}

@@ -1,170 +1,177 @@
+/*
+ * A MOLDURA, escrita mobile-first: o que está fora de qualquer `@media` é o
+ * celular, e cada `min-width` só ACRESCENTA. É a única ordem em que dá para
+ * garantir que nada dependa de ser desligado depois.
+ */
+
 .shell {
-  height: 100%;
+  min-height: 100%;
   display: flex;
-  background: var(--bg-app);
+  flex-direction: column;
+  background: var(--bg);
 }
 
-/* --- navegação lateral -------------------------------------------------- */
+/* --- celular: a lateral não existe, a barra inferior sim ------------------ */
 
-/*
- * A moldura é separada do conteúdo pelo TOM (`--bg-chrome`), não por uma
- * régua: a borda de 1px era o que fazia a lateral parecer colada por cima da
- * tela em vez de ser a moldura dela.
- */
 .shell__nav {
-  width: var(--sidebar-width);
-  flex: 0 0 auto;
+  display: none;
+}
+
+.shell__bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  height: calc(var(--bottombar-h) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+
+.shell__tab {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
-  padding: 0 var(--space-3) var(--space-5);
-  background: var(--bg-chrome);
-  overflow-y: auto;
-}
-
-.shell__brand {
-  height: var(--topbar-height);
-  flex: 0 0 auto;
-  display: flex;
   align-items: center;
-  padding-inline: var(--space-2);
-}
-
-/* --- grupos ------------------------------------------------------------- */
-
-.shell__group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-/*
- * O rótulo do grupo é o nível 3 (rótulo) com a cor mais apagada da escala: ele
- * organiza a lista, não compete com ela. O recuo horizontal é o mesmo do texto
- * dos itens, para os dois começarem na mesma abscissa.
- */
-.shell__group-title {
-  padding: 0 var(--space-3) var(--space-2);
-  color: var(--text-disabled);
-}
-
-/* --- itens -------------------------------------------------------------- */
-
-.shell__link {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  height: 28px;
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-size: var(--type-body-size);
-  line-height: var(--type-body-line);
-  font-weight: var(--weight-medium);
+  justify-content: center;
+  gap: 2px;
+  /* Alvo de 44px com folga: é o alvo mais usado do painel no celular. */
+  min-height: var(--tap-mobile);
+  color: var(--ink-3);
   text-decoration: none;
-  white-space: nowrap;
-  transition: background var(--motion-fast) var(--motion-ease);
 }
 
-.shell__link:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+.shell__tab-nome {
+  font-size: var(--t-eyebrow);
+  line-height: 1;
+  font-weight: var(--t-label-weight);
 }
 
 /*
- * Segundo dos três lugares onde o laranja aparece.
- *
- * Fundo laranja em bloco puxava o olho para a navegação toda vez que a tela
- * mudava. Agora o item ativo é um degrau de superfície + texto cheio, e o
- * laranja é só o traço de 2px na lateral — o mínimo que diz "você está aqui".
+ * O item ativo é dito por TRÊS coisas: a tinta cheia, o peso e o traço em cima.
+ * Cor sozinha não passa em 1.4.1 — e num rodapé de quatro ícones iguais, a cor
+ * sozinha é justamente o que não se distingue de relance.
  */
-.shell__link--active {
-  background: var(--bg-active);
-  color: var(--text-primary);
-  font-weight: var(--weight-semibold);
-  box-shadow: inset 2px 0 0 var(--brand);
+.shell__tab--ativa {
+  color: var(--ember-press);
+  position: relative;
 }
 
-.shell__link:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: -1px;
+.shell__tab--ativa::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 25%;
+  right: 25%;
+  height: 2px;
+  border-radius: 0 0 var(--r-round) var(--r-round);
+  background: var(--ember);
 }
 
-.shell__link-icon {
+/* O conteúdo não pode terminar embaixo da barra fixa. */
+.shell__main {
+  flex: 1;
+  min-width: 0;
   display: flex;
+  flex-direction: column;
+  padding-bottom: calc(var(--bottombar-h) + env(safe-area-inset-bottom));
+}
+
+.shell__mais-grupo {
+  padding: var(--sp-8) var(--sp-12) var(--sp-12);
+}
+
+.shell__mais-grupo .t-eyebrow {
+  padding: var(--sp-4) var(--sp-12) var(--sp-8);
+}
+
+/* --- barra do topo -------------------------------------------------------- */
+
+.shell__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  min-height: var(--topbar-h);
   flex: 0 0 auto;
-  color: var(--text-tertiary);
+  padding-inline: var(--sp-12);
+  background: var(--surface-2);
 }
 
-.shell__link--active .shell__link-icon {
-  color: var(--text-primary);
+.shell__spacer {
+  flex: 1;
 }
 
-.shell__link-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* Quem é a pessoa não cabe no celular; ela está em "Mais". */
+.shell__user {
+  display: none;
+  white-space: nowrap;
 }
 
-/*
- * Seção que ainda não existe: peso reduzido, e nada mais.
- *
- * Ela continua clicável e continua na ordem certa do produto. O que muda é o
- * peso do texto — o suficiente para o olho pular para o que já funciona sem
- * precisar de cadeado ou de opacidade a 40%, que a tornaria ilegível
- * justamente para quem foi ler o que vem por aí.
- */
-.shell__link--soon {
-  color: var(--text-tertiary);
-  font-weight: var(--weight-regular);
+.shell__sair {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-mobile);
+  padding-inline: var(--sp-8);
+  border-radius: var(--r-chip);
+  color: var(--ink-2);
+  font-size: var(--t-label);
+  font-weight: var(--t-label-weight);
 }
 
-.shell__link--soon .shell__link-icon {
-  color: var(--text-disabled);
+.shell__sair:hover {
+  background: var(--hover);
+  color: var(--ink);
 }
 
-/* Etiqueta discreta, encostada à direita. Minúscula e sem caixa: é uma nota. */
-.shell__link-soon {
-  margin-left: auto;
-  font-size: var(--type-aux-size);
-  line-height: var(--type-aux-line);
-  color: var(--text-disabled);
+.shell__content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-/*
- * Abaixo de 900px a lateral vira trilha de ícones em vez de drawer: trocar de
- * tela continua sendo um clique só, que é o que importa durante o serviço. O
- * rótulo some da tela mas continua no `title` e no leitor de tela.
- */
-@media (max-width: 900px) {
-  .shell__nav {
-    width: var(--sidebar-rail);
-    padding-inline: var(--space-2);
-    align-items: center;
-    gap: var(--space-4);
+/* ==========================================================================
+ * TABLET (≥640): a lateral entra como trilha de ícones
+ * ======================================================================= */
+
+@media (min-width: 640px) {
+  .shell {
+    flex-direction: row;
   }
 
-  /* Na trilha só cabe o selo; o nome escrito sairia cortado pela metade. */
-  .shell__brand {
-    padding: 0;
-    justify-content: center;
-  }
-
-  .shell__brand .logo__wordmark {
+  .shell__bottom {
     display: none;
   }
 
-  .shell__group {
-    width: 100%;
+  .shell__main {
+    padding-bottom: 0;
+  }
+
+  .shell__nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-16);
+    width: var(--sidebar-rail);
+    flex: 0 0 auto;
+    padding: 0 var(--sp-8) var(--sp-16);
+    background: var(--surface-2);
+    overflow-y: auto;
     align-items: center;
   }
 
-  .shell__link {
-    width: 32px;
+  .shell__brand {
+    display: flex;
+    align-items: center;
     justify-content: center;
-    padding: 0;
+    height: var(--topbar-h);
+    flex: 0 0 auto;
   }
 
-  /* O grupo continua existindo para o leitor de tela; o que sai é o desenho. */
+  /* Na trilha, o nome do grupo sai da tela mas o vão entre grupos fica: é ele
+     que continua dizendo que "Cozinha" e "Cardápio" são coisas diferentes. */
   .shell__group-title,
   .shell__link-label,
   .shell__link-soon {
@@ -177,32 +184,144 @@
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
   }
+
+  .shell__group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-4);
+    width: 100%;
+  }
+
+  .shell__group ul {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-4);
+    width: 100%;
+  }
+
+  .shell__link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--sp-40);
+    height: var(--sp-40);
+    border-radius: var(--r-field);
+    color: var(--ink-2);
+    text-decoration: none;
+    transition: background var(--motion-fast) var(--ease);
+  }
+
+  .shell__link:hover {
+    background: var(--hover);
+    color: var(--ink);
+  }
+
+  .shell__link--active {
+    background: var(--ember-wash);
+    color: var(--ember-press);
+  }
+
+  .shell__link--soon {
+    color: var(--ink-3);
+  }
+
+  .shell__link-icon {
+    display: flex;
+  }
+
+  .shell__bar {
+    padding-inline: var(--sp-16);
+  }
+
+  .shell__user {
+    display: inline;
+  }
 }
 
-/* --- barra do topo ------------------------------------------------------ */
+/* ==========================================================================
+ * DESKTOP (≥1024): a lateral abre com os nomes e os grupos escritos
+ * ======================================================================= */
 
-.shell__bar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  height: var(--topbar-height);
-  flex: 0 0 auto;
-  padding: 0 var(--space-5);
-  background: var(--bg-chrome);
+@media (min-width: 1024px) {
+  .shell__nav {
+    width: var(--sidebar-w);
+    align-items: stretch;
+    padding-inline: var(--sp-8);
+    gap: var(--sp-20);
+  }
+
+  .shell__brand {
+    justify-content: flex-start;
+    padding-inline: var(--sp-8);
+  }
+
+  /* O rótulo do grupo volta para a tela. Sem régua entre grupos: o vão separa. */
+  .shell__group-title {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 0 var(--sp-8) var(--sp-4);
+    clip: auto;
+    color: var(--ink-3);
+  }
+
+  .shell__group,
+  .shell__group ul {
+    align-items: stretch;
+    gap: 2px;
+  }
+
+  .shell__link {
+    width: auto;
+    height: auto;
+    /* Alvo de 32px: no mouse, a densidade sobe. */
+    min-height: var(--sp-32);
+    justify-content: flex-start;
+    gap: var(--sp-12);
+    padding-inline: var(--sp-8);
+    font-size: var(--t-body);
+    font-weight: var(--t-body-weight);
+  }
+
+  .shell__link-label {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    clip: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .shell__link--active {
+    font-weight: var(--t-label-weight);
+  }
+
+  /*
+   * "Em breve" volta a aparecer, discreto, à direita. Ele não some no tablet
+   * por decoração: é que ao lado de um ícone de 18px não sobra onde escrevê-lo.
+   */
+  .shell__link-soon {
+    position: static;
+    width: auto;
+    height: auto;
+    margin-left: auto;
+    clip: auto;
+    font-size: var(--t-eyebrow);
+    line-height: 1;
+    color: var(--ink-3);
+  }
+
+  .shell__bar {
+    padding-inline: var(--sp-20);
+  }
 }
 
-.shell__spacer {
-  flex: 1;
-}
-
-.shell__user {
-  font-size: var(--type-aux-size);
-  line-height: var(--type-aux-line);
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-/* --- seletor de filial --------------------------------------------------- */
+/* --- seletor de filial ---------------------------------------------------- */
 
 /*
  * Sem caixa: dentro da barra, um controle contornado disputava atenção com o
@@ -212,57 +331,67 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--sp-8);
   min-width: 0;
-  max-width: 340px;
-  height: 32px;
-  padding: 0 var(--space-3);
-  margin-left: calc(var(--space-3) * -1);
-  border-radius: var(--radius-sm);
-  transition: background var(--motion-fast) var(--motion-ease);
+  max-width: 320px;
+  min-height: var(--tap-mobile);
+  padding-inline: var(--sp-8);
+  margin-left: calc(var(--sp-8) * -1);
+  border-radius: var(--r-chip);
+  transition: background var(--motion-fast) var(--ease);
 }
 
-/*
- * O endereço vira a segunda metade da MESMA linha, não uma segunda linha.
- * Empilhado, ele obrigava a barra a ter 40px de conteúdo e desalinhava o
- * seletor de tudo o mais que vive na altura de uma linha.
- */
+.branch:has(.branch__select):hover {
+  background: var(--hover);
+}
+
 .branch__text {
   display: flex;
   align-items: baseline;
-  gap: var(--space-2);
+  gap: var(--sp-8);
   min-width: 0;
 }
 
 .branch__name {
-  font-size: var(--type-body-size);
-  line-height: var(--type-body-line);
-  font-weight: var(--weight-bold);
-  color: var(--text-primary);
+  font-size: var(--t-label);
+  line-height: var(--t-label-line);
+  font-weight: var(--t-card-weight);
+  color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* O endereço só cabe a partir do tablet: no celular ele espremia o nome. */
 .branch__detail {
-  font-size: var(--type-aux-size);
-  line-height: var(--type-aux-line);
-  color: var(--text-tertiary);
+  display: none;
+  font-size: var(--t-hint);
+  line-height: var(--t-hint-line);
+  color: var(--ink-3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+@media (min-width: 640px) {
+  .branch__detail {
+    display: block;
+  }
 }
 
 .branch__chevron {
   display: flex;
   flex: 0 0 auto;
-  color: var(--text-tertiary);
+  color: var(--ink-3);
 }
 
 /*
- * O <select> real cobre a caixa e fica invisível: o desenho é o texto abaixo
- * dele, mas o comportamento (teclado, leitor de tela, seletor nativo do
- * celular) é o do controle de verdade — nada é reimplementado.
+ * O <select> real cobre a caixa e fica invisível.
+ *
+ * É A ÚNICA EXCEÇÃO do sistema à regra de não usar controle nativo, e ela é
+ * proposital: no celular, o seletor de filial é justamente onde o seletor
+ * nativo ganha do nosso — ele abre a roda do sistema, que é o que a mão do
+ * lojista já sabe operar sem olhar. O desenho por baixo continua sendo o nosso.
  */
 .branch__select {
   position: absolute;
@@ -276,39 +405,6 @@
 }
 
 .branch:has(.branch__select:focus-visible) {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 1px;
-}
-
-.branch:has(.branch__select):hover {
-  background: var(--bg-hover);
-}
-
-@media (max-width: 720px) {
-  .shell__bar {
-    padding-inline: var(--space-4);
-  }
-
-  /* Numa tela de 390px o endereço não cabe junto do nome sem espremer os dois. */
-  .branch__detail,
-  .shell__user {
-    display: none;
-  }
-}
-
-/* --- conteúdo ----------------------------------------------------------- */
-
-.shell__main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-/* min-height: 0 é o que permite o quadro de pedidos rolar dentro do flex. */
-.shell__content {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
 }

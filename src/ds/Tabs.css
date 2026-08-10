@@ -1,0 +1,89 @@
+/*
+ * A faixa de abas. Um traço embaixo da faixa inteira, e a aba ativa desenha o
+ * seu por cima — nada de caixa por aba: caixa dentro de uma tela que já tem
+ * cartões vira o terceiro nível de moldura na mesma vertical.
+ */
+.ds-tabs {
+  display: flex;
+  gap: var(--sp-16);
+  box-shadow: inset 0 -1px 0 var(--line);
+  /*
+   * No celular a faixa rola na horizontal, mas com `scroll-snap` e sem
+   * esconder nada: as abas de fora continuam alcançáveis pelo dedo e pelas
+   * setas do teclado, que é o que a rolagem sozinha não garantia.
+   */
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.ds-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.ds-tab {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-8);
+  /* Alvo de toque: 44px de altura, e o traço no fim dela. */
+  min-height: var(--tap-mobile);
+  padding-inline: var(--sp-4);
+  scroll-snap-align: start;
+  color: var(--ink-2);
+  font-size: var(--t-body);
+  line-height: var(--t-body-line);
+  font-weight: var(--t-body-weight);
+  white-space: nowrap;
+  transition: color var(--motion-fast) var(--ease);
+}
+
+.ds-tab:hover {
+  color: var(--ink);
+}
+
+/*
+ * O SUBLINHADO É UM PSEUDO-ELEMENTO da aba, com transição de transform: ele
+ * desliza de uma aba para a outra em vez de piscar. `view-transition` seria
+ * mais bonito e menos previsível; isto funciona em tudo.
+ */
+.ds-tab::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: var(--r-round) var(--r-round) 0 0;
+  background: var(--ember);
+  transform: scaleX(0);
+  transition: transform var(--motion-base) var(--ease);
+}
+
+.ds-tab--ativa {
+  color: var(--ink);
+  font-weight: var(--t-label-weight);
+}
+
+.ds-tab--ativa::after {
+  transform: scaleX(1);
+}
+
+/* A contagem é apoio: ela informa, não compete com o nome da aba. */
+.ds-tab__count {
+  font-size: var(--t-hint);
+  font-weight: var(--t-hint-weight);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-tab--ativa .ds-tab__count {
+  color: var(--ink-2);
+}
+
+@media (min-width: 1024px) {
+  .ds-tab {
+    min-height: var(--sp-40);
+  }
+}

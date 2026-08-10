@@ -22,3 +22,7 @@ export { RadioGroup, type RadioOption } from './Radio';
 export { Switch } from './Switch';
 export { Spinner } from './Spinner';
 export * from './icons';
+export { Tabs, type TabItem } from './Tabs';
+export { Breadcrumb, type CrumbItem } from './Breadcrumb';
+export { Sheet } from './Sheet';
+export { useFocusTrap } from './use-focus-trap';

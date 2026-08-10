@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { useTheme } from '../theme/theme-context';
 import {
+  Breadcrumb,
   Checkbox,
   Field,
   FieldRow,
@@ -12,6 +13,8 @@ import {
   Select,
   Spinner,
   Switch,
+  Sheet,
+  Tabs,
   Textarea,
 } from '../ds';
 import './UiGalleryPage.css';
@@ -45,6 +48,9 @@ export function UiGalleryPage() {
   const [tipo, setTipo] = useState('delivery');
   const [aberta, setAberta] = useState(true);
   const [disponivel, setDisponivel] = useState(true);
+  const [aba, setAba] = useState('geral');
+  const [coluna, setColuna] = useState('preparando');
+  const [folha, setFolha] = useState(false);
 
   const categorias = [
     { value: 'promocoes', label: 'Promoções', hint: '10 itens' },
@@ -264,6 +270,64 @@ export function UiGalleryPage() {
               <Spinner />
               <Spinner label="Salvando…" />
             </div>
+          </Amostra>
+        </Secao>
+
+        <Secao
+          titulo="Navegação"
+          nota="Nas abas, Tab sai para o conteúdo e as setas trocam de aba."
+        >
+          <Amostra rotulo="Abas" larga>
+            <Tabs
+              label="Configurações da loja"
+              value={aba}
+              onChange={setAba}
+              tabs={[
+                { id: 'geral', label: 'Geral' },
+                { id: 'filial', label: 'Filial' },
+                { id: 'horarios', label: 'Horários' },
+                { id: 'entrega', label: 'Entrega' },
+                { id: 'pagamento', label: 'Formas de pagamento' },
+                { id: 'impressao', label: 'Impressão' },
+              ]}
+            />
+          </Amostra>
+
+          <Amostra rotulo="Abas com contagem">
+            <Tabs
+              label="Pedidos por status"
+              value={coluna}
+              onChange={setColuna}
+              tabs={[
+                { id: 'pendente', label: 'Pendente', count: 3 },
+                { id: 'preparando', label: 'Preparando', count: 12 },
+                { id: 'pronto', label: 'Pronto', count: 0 },
+              ]}
+            />
+          </Amostra>
+
+          <Amostra rotulo="Trilha">
+            <Breadcrumb
+              items={[{ label: 'Cardápio', to: '/cardapio' }, { label: 'Cortes especiais' }]}
+            />
+          </Amostra>
+
+          <Amostra rotulo="Folha inferior">
+            <button type="button" className="gal__theme" onClick={() => setFolha(true)}>
+              Abrir a folha
+            </button>
+            <Sheet open={folha} title="Mudar o status" onClose={() => setFolha(false)}>
+              {['Aceito', 'Preparando', 'Pronto', 'Saiu para entrega'].map((nome) => (
+                <button
+                  key={nome}
+                  type="button"
+                  className="ds-sheet__opcao"
+                  onClick={() => setFolha(false)}
+                >
+                  {nome}
+                </button>
+              ))}
+            </Sheet>
           </Amostra>
         </Secao>
 

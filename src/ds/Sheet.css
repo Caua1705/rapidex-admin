@@ -1,0 +1,134 @@
+.ds-sheet__veu {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  /* Véu sólido semi-opaco. Sem blur: o painel é denso e funcional. */
+  background: var(--scrim);
+}
+
+.ds-sheet {
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-radius: var(--r-card) var(--r-card) 0 0;
+  box-shadow: var(--shadow-pop);
+  animation: ds-sheet-sobe var(--motion-base) var(--ease);
+}
+
+/*
+ * A folha SOBE — é a única animação de entrada do sistema, e ela carrega
+ * informação: diz de onde a caixa veio e para onde ela volta. Sob
+ * prefers-reduced-motion o reset global a zera e a folha simplesmente aparece.
+ */
+@keyframes ds-sheet-sobe {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+.ds-sheet__cab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  padding: var(--sp-20) var(--sp-16) var(--sp-12);
+  border-bottom: 1px solid var(--line);
+}
+
+/* A alça é o sinal de "isto se arrasta" que todo celular ensinou. */
+.ds-sheet__alca {
+  position: absolute;
+  top: var(--sp-8);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 4px;
+  border-radius: var(--r-round);
+  background: var(--line-strong);
+}
+
+.ds-sheet__titulo {
+  flex: 1;
+  min-width: 0;
+}
+
+.ds-sheet__fechar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Alvo de 44px no toque, que é onde esta caixa vive. */
+  width: var(--tap-mobile);
+  height: var(--tap-mobile);
+  margin: calc(var(--sp-8) * -1) calc(var(--sp-8) * -1) calc(var(--sp-8) * -1) 0;
+  border-radius: var(--r-chip);
+  color: var(--ink-2);
+}
+
+.ds-sheet__fechar:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.ds-sheet__corpo {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--sp-8) var(--sp-8) var(--sp-24);
+  /* Respeita a faixa do gesto de voltar do celular. */
+  padding-bottom: max(var(--sp-24), env(safe-area-inset-bottom));
+}
+
+/* --- lista de escolhas dentro da folha ------------------------------------ */
+
+/*
+ * O formato mais comum de folha: uma lista de ações. Cada linha é um alvo de
+ * 48px, que é o que o polegar acerta sem olhar.
+ */
+.ds-sheet__opcao {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  width: 100%;
+  min-height: 48px;
+  padding: var(--sp-8) var(--sp-12);
+  border-radius: var(--r-chip);
+  color: var(--ink);
+  font-size: var(--t-body);
+  line-height: var(--t-body-line);
+  font-weight: var(--t-body-weight);
+  text-align: left;
+  text-decoration: none;
+}
+
+.ds-sheet__opcao:hover {
+  background: var(--hover);
+}
+
+.ds-sheet__opcao[aria-current='page'] {
+  background: var(--ember-wash);
+  color: var(--ember-press);
+  font-weight: var(--t-label-weight);
+}
+
+.ds-sheet__opcao-icone {
+  flex: 0 0 auto;
+  display: flex;
+  color: var(--ink-3);
+}
+
+.ds-sheet__opcao[aria-current='page'] .ds-sheet__opcao-icone {
+  color: var(--ember-press);
+}
+
+.ds-sheet__opcao-nota {
+  margin-left: auto;
+  font-size: var(--t-hint);
+  color: var(--ink-3);
+}
