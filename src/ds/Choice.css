@@ -1,0 +1,189 @@
+/*
+ * CAIXA DE MARCAR E BOTÃO DE RÁDIO.
+ *
+ * O <input> continua sendo nativo — é ele que dá teclado, formulário e leitor
+ * de tela de graça — mas com `appearance: none` ele para de desenhar qualquer
+ * coisa: some a caixinha do sistema operacional, some o `accent-color`. O que
+ * se vê é inteiramente daqui.
+ *
+ * O desenho do check e do ponto é CSS puro, em `currentColor`: nada de imagem,
+ * nada de SVG embutido com cor literal dentro.
+ */
+
+.ds-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-12);
+  /* Alvo de toque: a linha inteira, não só o quadradinho de 18px. */
+  min-height: var(--tap-mobile);
+  padding-block: var(--sp-4);
+  cursor: pointer;
+}
+
+@media (min-width: 1024px) {
+  .ds-choice {
+    min-height: var(--sp-32);
+  }
+}
+
+.ds-choice--disabled {
+  cursor: not-allowed;
+}
+
+.ds-choice__box {
+  flex: 0 0 auto;
+  position: relative;
+  width: 18px;
+  height: 18px;
+  /* Alinha o quadrado com a primeira linha do texto, não com o bloco todo. */
+  margin-top: 2px;
+  appearance: none;
+  background: var(--surface);
+  border: 1px solid var(--line-control);
+  cursor: inherit;
+  transition:
+    background var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease);
+}
+
+.ds-choice__box--check {
+  border-radius: var(--r-chip);
+}
+
+.ds-choice__box--radio {
+  border-radius: var(--r-round);
+}
+
+.ds-choice:hover .ds-choice__box:not(:disabled) {
+  border-color: var(--ink-3);
+}
+
+/*
+ * O `:indeterminate` é restrito à CAIXA DE MARCAR de propósito.
+ *
+ * Um grupo de rádios sem nenhuma opção escolhida deixa TODOS os botões em
+ * `:indeterminate` — é assim que o CSS funciona. Sem o `--check` aqui, um
+ * formulário em branco abria com todas as opções pintadas de laranja, cada uma
+ * parecendo a escolhida.
+ */
+.ds-choice__box:checked,
+.ds-choice__box--check:indeterminate {
+  background: var(--ember);
+  border-color: var(--ember);
+}
+
+.ds-choice__box:disabled {
+  background: var(--surface-2);
+  border-color: var(--line);
+}
+
+.ds-choice__box:checked:disabled {
+  background: var(--ink-3);
+  border-color: var(--ink-3);
+}
+
+/* O check: duas bordas de um retângulo, giradas 45°. */
+.ds-choice__box--check::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 10px;
+  border: solid var(--on-ember);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  transition: transform var(--motion-fast) var(--ease);
+}
+
+.ds-choice__box--check:checked::after {
+  transform: rotate(45deg) scale(1);
+}
+
+/*
+ * MARCADO EM PARTE é um traço, não um check.
+ *
+ * O estado existe quando esta caixa comanda uma lista meio marcada ("30 de 80
+ * itens"). Um check ali mentiria dizendo "todos", e uma caixa vazia mentiria
+ * dizendo "nenhum" — e é a partir dessa leitura que alguém clica e sobrescreve
+ * os 30 que já estavam certos.
+ */
+.ds-choice__box--check:indeterminate::after {
+  left: 3px;
+  top: 7px;
+  width: 10px;
+  height: 0;
+  border-width: 0 0 2px 0;
+  transform: none;
+}
+
+/* O ponto do rádio. */
+.ds-choice__box--radio::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: var(--r-round);
+  background: var(--on-ember);
+  transform: scale(0);
+  transition: transform var(--motion-fast) var(--ease);
+}
+
+.ds-choice__box--radio:checked::after {
+  transform: scale(1);
+}
+
+.ds-choice__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+
+.ds-choice__label {
+  font-size: var(--t-body);
+  line-height: var(--t-body-line);
+  font-weight: var(--t-body-weight);
+  color: var(--ink);
+}
+
+.ds-choice--disabled .ds-choice__label {
+  color: var(--ink-3);
+}
+
+.ds-choice__hint {
+  font-size: var(--t-hint);
+  line-height: var(--t-hint-line);
+  color: var(--ink-3);
+}
+
+/* --- grupo de rádios ------------------------------------------------------ */
+
+.ds-choice-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.ds-choice-group__legend {
+  padding: 0;
+  margin-bottom: var(--sp-4);
+  font-size: var(--t-label);
+  line-height: var(--t-label-line);
+  font-weight: var(--t-label-weight);
+  color: var(--ink);
+}
+
+.ds-choice-group__error {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  margin-top: var(--sp-4);
+  font-size: var(--t-hint);
+  line-height: var(--t-hint-line);
+  font-weight: var(--t-label-weight);
+  color: var(--st-cancelado);
+}

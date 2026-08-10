@@ -10,6 +10,7 @@ import { OrdersPage } from './orders/OrdersPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { LoginPage } from './pages/LoginPage';
 import { StorePage } from './store/StorePage';
+import { UiGalleryPage } from './ui-gallery/UiGalleryPage';
 
 /**
  * As rotas do painel.
@@ -69,6 +70,15 @@ export function App() {
               </RequireAuth>
             }
           />
+
+          {/*
+            A GALERIA DO DESIGN SYSTEM, só em desenvolvimento.
+            `import.meta.env.DEV` é estático: no build de produção o bloco
+            inteiro sai do bundle, e a rota simplesmente não existe. Ela também
+            fica FORA do <RequireAuth>: é ferramenta de quem constrói a tela,
+            não do lojista.
+          */}
+          {import.meta.env.DEV ? <Route path="/ui" element={<UiGalleryPage />} /> : null}
 
           {PENDING_ENTRIES.map((entry) => (
             <Route

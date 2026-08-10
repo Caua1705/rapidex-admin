@@ -1,0 +1,77 @@
+/*
+ * O envelope do campo. O espaçamento entre rótulo, controle, ajuda e erro é
+ * ditado AQUI e em nenhum outro lugar: é o que faz dois formulários diferentes
+ * lerem com o mesmo ritmo.
+ */
+.ds-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+
+.ds-field__label {
+  font-size: var(--t-label);
+  line-height: var(--t-label-line);
+  font-weight: var(--t-label-weight);
+  color: var(--ink);
+}
+
+/*
+ * O campo desabilitado esmaece o conjunto, não só a caixa: um rótulo em tinta
+ * cheia sobre um controle apagado é o que faz alguém tentar clicar.
+ */
+.ds-field--disabled .ds-field__label,
+.ds-field--disabled .ds-field__hint {
+  color: var(--ink-3);
+}
+
+.ds-field__hint {
+  font-size: var(--t-hint);
+  line-height: var(--t-hint-line);
+  font-weight: var(--t-hint-weight);
+  color: var(--ink-3);
+}
+
+/*
+ * O erro é texto, e não só uma borda vermelha: cor sozinha não passa em 1.4.1,
+ * e "campo com borda vermelha" não diz O QUE está errado.
+ */
+.ds-field__error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  font-size: var(--t-hint);
+  line-height: var(--t-hint-line);
+  font-weight: var(--t-label-weight);
+  color: var(--st-cancelado);
+}
+
+/* O triângulo é a FORMA que acompanha a cor — a terceira pista, além do texto. */
+.ds-field__error::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 0;
+  height: 0;
+  margin-top: 3px;
+  border-inline: 5px solid transparent;
+  border-bottom: 9px solid currentColor;
+}
+
+/* --- linha de campos irmãos ---------------------------------------------- */
+
+/*
+ * Mobile-first: no celular os campos empilham, e só a partir do tablet eles
+ * dividem a linha. Grade e não flex, para que dois campos irmãos tenham a
+ * MESMA largura mesmo com rótulos de comprimentos diferentes.
+ */
+.ds-field-row {
+  display: grid;
+  gap: var(--sp-16);
+}
+
+@media (min-width: 640px) {
+  .ds-field-row {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}

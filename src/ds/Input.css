@@ -1,0 +1,170 @@
+/*
+ * A CAIXA DE CONTROLE — a mesma para campo de texto, área de texto, busca,
+ * intervalo e gatilho do seletor.
+ *
+ * Uma caixa só, com um contorno só, é o que faz um formulário com sete tipos
+ * de controle continuar lendo como uma coisa só. O que muda entre eles é o
+ * miolo; a borda, o raio, a altura e os cinco estados moram aqui.
+ *
+ * O contorno usa `--line-control`, o único da paleta que passa dos 3:1 contra
+ * as duas superfícies (WCAG 1.4.11): num controle sem preenchimento próprio, a
+ * borda é a única coisa que diz que ali se escreve.
+ */
+.ds-control {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  /* 40px no toque, que é o alvo confortável; o mínimo da 2.5.8 é 24. */
+  min-height: 40px;
+  padding-inline: var(--sp-12);
+  background: var(--surface);
+  border: 1px solid var(--line-control);
+  border-radius: var(--r-field);
+  color: var(--ink);
+  cursor: text;
+  transition:
+    border-color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-fast) var(--ease);
+}
+
+@media (min-width: 1024px) {
+  /* No mouse a densidade sobe: o alvo de 40px é para o dedo. */
+  .ds-control {
+    min-height: 34px;
+  }
+}
+
+.ds-control:hover:not(.ds-control--disabled) {
+  border-color: var(--ink-3);
+}
+
+/*
+ * O foco mora na CAIXA, não no <input> de dentro: o anel precisa contornar o
+ * afixo junto, senão ele corta "R$" ao meio.
+ */
+.ds-control:focus-within {
+  border-color: var(--ember);
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+
+.ds-control--invalid {
+  border-color: var(--st-cancelado);
+}
+
+.ds-control--disabled {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
+/* O miolo não tem estilo próprio: ele é o texto dentro da caixa. */
+.ds-control__input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font-size: var(--t-body);
+  line-height: var(--t-body-line);
+  font-weight: var(--t-body-weight);
+}
+
+/* O anel é da caixa; um segundo anel no miolo seria um anel dentro do outro. */
+.ds-control__input:focus,
+.ds-control__input:focus-visible {
+  outline: none;
+}
+
+.ds-control__input::placeholder {
+  color: var(--ink-3);
+  opacity: 1;
+}
+
+.ds-control__input:disabled {
+  cursor: not-allowed;
+}
+
+/*
+ * O afixo interno: "R$" à esquerda, "min" à direita, o spinner do estado
+ * ocupado. Ele não recebe clique — a caixa inteira já joga o foco no texto.
+ */
+.ds-control__affix {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  color: var(--ink-3);
+  font-size: var(--t-hint);
+  line-height: 1;
+  font-weight: var(--t-label-weight);
+  user-select: none;
+}
+
+/* --- área de texto -------------------------------------------------------- */
+
+.ds-control--textarea {
+  align-items: stretch;
+  padding-block: var(--sp-8);
+  cursor: text;
+}
+
+.ds-control--textarea .ds-control__input {
+  resize: vertical;
+  min-height: 80px;
+  font-family: var(--font-ui);
+}
+
+/* --- intervalo ------------------------------------------------------------ */
+
+/*
+ * Dois números que formam UM dado (30 a 50 min, R$ 5 a R$ 20). Um rótulo, uma
+ * ajuda, duas caixas e o "a" no meio dizendo que é intervalo — em vez de dois
+ * campos rotulados separadamente que ninguém lê como par.
+ */
+.ds-range {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.ds-range > .ds-control {
+  flex: 1;
+  min-width: 0;
+}
+
+.ds-range__sep {
+  flex: 0 0 auto;
+  font-size: var(--t-hint);
+  color: var(--ink-3);
+}
+
+/* --- busca ---------------------------------------------------------------- */
+
+.ds-control--search .ds-control__icon {
+  flex: 0 0 auto;
+  display: flex;
+  color: var(--ink-3);
+}
+
+/*
+ * Limpar a busca é ação de ponteiro E de teclado: ele entra na ordem de
+ * tabulação e tem nome acessível. Só existe quando há texto para limpar.
+ */
+.ds-control__clear {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap);
+  height: var(--tap);
+  margin-right: calc(var(--sp-4) * -1);
+  border-radius: var(--r-chip);
+  color: var(--ink-3);
+}
+
+.ds-control__clear:hover {
+  background: var(--hover);
+  color: var(--ink);
+}

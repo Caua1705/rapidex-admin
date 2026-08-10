@@ -1,0 +1,101 @@
+/*
+ * O interruptor.
+ *
+ * O estado é dito por TRÊS coisas ao mesmo tempo: a posição do botão (forma), o
+ * tom do trilho (cor) e o `aria-checked` (palavra). Cor sozinha não passa em
+ * 1.4.1 — e, na prática, um trilho verde é indistinguível de um cinza para
+ * quem tem baixa visão a um metro da tela.
+ *
+ * O ligado usa o verde de `--st-pronto`: "no ar / à venda" é o mesmo
+ * significado que a coluna Pronto carrega. O desligado é neutro, nunca
+ * vermelho — desligar não é erro.
+ */
+.ds-switch {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  /* Alvo de toque de 44px sem o trilho ter 44px: o padding faz o alvo. */
+  padding: var(--sp-12) var(--sp-8);
+  margin: calc(var(--sp-12) * -1) calc(var(--sp-8) * -1);
+  border-radius: var(--r-chip);
+  cursor: pointer;
+}
+
+.ds-switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.ds-switch__track {
+  position: relative;
+  display: block;
+  width: 38px;
+  height: 22px;
+  border-radius: var(--r-round);
+  background: var(--line-control);
+  transition: background var(--motion-base) var(--ease);
+}
+
+.ds-switch[aria-checked='true'] .ds-switch__track {
+  background: var(--st-pronto);
+}
+
+.ds-switch__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--r-round);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--motion-base) var(--ease);
+}
+
+.ds-switch[aria-checked='true'] .ds-switch__knob {
+  transform: translateX(16px);
+}
+
+/* --- interruptor com rótulo ao lado --------------------------------------- */
+
+.ds-switch-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-12);
+  min-width: 0;
+}
+
+.ds-switch-row__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: 0;
+  /* Alinha o rótulo com o trilho, e não com o topo da área de toque. */
+  padding-top: 1px;
+}
+
+.ds-switch-row__label {
+  font-size: var(--t-body);
+  line-height: var(--t-body-line);
+  font-weight: var(--t-body-weight);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.ds-switch-row--disabled .ds-switch-row__label {
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
+.ds-switch-row__hint {
+  font-size: var(--t-hint);
+  line-height: var(--t-hint-line);
+  color: var(--ink-3);
+}
+
+/* Sem rótulo (dentro de uma linha de lista), o spinner fica ao lado do trilho. */
+.ds-switch-busy {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+}

@@ -1,0 +1,123 @@
+.ds-select {
+  position: relative;
+  min-width: 0;
+}
+
+/*
+ * O gatilho é a MESMA caixa do campo de texto (`.ds-control`), com o cursor de
+ * ponteiro e o texto alinhado à esquerda. Um seletor que não parece um campo é
+ * um seletor que ninguém acha no meio do formulário.
+ */
+.ds-select__trigger {
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+  gap: var(--sp-8);
+}
+
+.ds-select__value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--t-body);
+  line-height: var(--t-body-line);
+  font-weight: var(--t-body-weight);
+}
+
+/* Sem escolha, o texto é apoio: ele é sugestão, não valor. */
+.ds-select__value--empty {
+  color: var(--ink-3);
+}
+
+.ds-select__chevron {
+  flex: 0 0 auto;
+  display: flex;
+  color: var(--ink-3);
+  transition: transform var(--motion-fast) var(--ease);
+}
+
+.ds-select__trigger[aria-expanded='true'] .ds-select__chevron {
+  transform: rotate(180deg);
+}
+
+/*
+ * A LISTA FLUTUA. É um dos poucos lugares do sistema com sombra — aqui ela
+ * carrega informação (o que está por cima do quê), e não decoração.
+ */
+.ds-select__list {
+  position: absolute;
+  top: calc(100% + var(--sp-4));
+  left: 0;
+  right: 0;
+  z-index: var(--z-popover);
+  max-height: 280px;
+  overflow-y: auto;
+  padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-field);
+  box-shadow: var(--shadow-pop);
+}
+
+.ds-select__option {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  /* Alvo de 2.5.8 com folga: 36px no toque. */
+  min-height: 36px;
+  padding: var(--sp-4) var(--sp-8);
+  border-radius: var(--r-chip);
+  cursor: pointer;
+  font-size: var(--t-body);
+  line-height: var(--t-body-line);
+  color: var(--ink);
+}
+
+/*
+ * O realce da opção sob o cursor do teclado é o MESMO do ponteiro: quem navega
+ * com as setas vê exatamente o que quem navega com o mouse vê.
+ */
+.ds-select__option:hover,
+.ds-select__option:focus-visible {
+  background: var(--hover);
+}
+
+.ds-select__option--selected {
+  font-weight: var(--t-label-weight);
+}
+
+.ds-select__option--disabled {
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
+.ds-select__option--disabled:hover {
+  background: none;
+}
+
+/*
+ * A coluna do check tem largura fixa mesmo vazia: sem ela, escolher uma opção
+ * empurraria o texto de todas as outras 22px para o lado.
+ */
+.ds-select__check {
+  flex: 0 0 auto;
+  display: flex;
+  width: 14px;
+  color: var(--ember);
+}
+
+.ds-select__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-select__hint {
+  flex: 0 0 auto;
+  font-size: var(--t-hint);
+  color: var(--ink-3);
+}

@@ -1,0 +1,41 @@
+.ds-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-8);
+  color: var(--ink-2);
+  font-size: var(--t-hint);
+  line-height: var(--t-hint-line);
+}
+
+/*
+ * Um anel com um quarto aceso. A cor vem de `currentColor`, então ele fica
+ * legível dentro de um botão primário, de um campo ou do fundo da página sem
+ * ninguém precisar escolher uma cor para ele.
+ */
+.ds-spinner__ring {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: var(--r-round);
+  opacity: 0.75;
+  animation: ds-spin 620ms linear infinite;
+}
+
+@keyframes ds-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/*
+ * Sem movimento, o anel para de girar e vira um arco parado. O que comunica a
+ * espera então é o `aria-busy` do controle e o texto ao lado — nunca o giro
+ * sozinho.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .ds-spinner__ring {
+    animation: none;
+  }
+}
