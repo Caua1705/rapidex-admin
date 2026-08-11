@@ -112,7 +112,7 @@ function NavItem({ entry }: { entry: NavEntry }) {
         <entry.Icon size={18} />
       </span>
       <span className="shell__link-label">{entry.label}</span>
-      {pending ? <span className="shell__link-soon">em breve</span> : null}
+      {pending ? <span className="shell__link-soon">Em breve</span> : null}
     </NavLink>
   );
 }

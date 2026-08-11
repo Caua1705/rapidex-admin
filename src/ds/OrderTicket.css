@@ -136,14 +136,27 @@
 /*
  * O AVISO QUE IMPEDE O PREPARO, em âmbar de `pendente` — não em vermelho.
  *
- * Já foi um card inteiro pintado de vermelho. Como quase todo pedido de Pix
- * passa por "aguardando pagamento", metade do quadro ficava em alarme — e o
- * alarme que pinta o estado normal deixa de ser alarme. Aqui ele é uma faixa
- * âmbar em linha própria: continua impossível de não ver, sem transformar a
- * fila num incêndio.
+ * Já foi um card inteiro pintado de vermelho, depois uma faixa âmbar em linha
+ * própria embaixo do cartão. A linha própria virou o problema seguinte: com
+ * treze cartões na mesma aba e quase todo pedido de Pix passando por
+ * "aguardando pagamento", os treze repetiam a mesma tarja e o quadro lia como
+ * listra, não como aviso. Ele mora na mesma linha dos badges de Entrega/Pix
+ * agora — ainda impossível de não ver num cartão, sem virar padrão repetido
+ * numa coluna inteira.
+ */
+/*
+ * `min-width: 0` deixa o badge encolher dentro do flex em vez de estourar a
+ * borda do cartão — a frase é mais longa que qualquer outro badge da linha.
+ * SEM `nowrap`/ellipsis de propósito: é a instrução "não preparar", e cortar
+ * o fim da frase esconde justamente a palavra que importa. Se não couber
+ * numa linha, ele quebra em duas — continua mais leve que a tarja de borda a
+ * borda que ele substituiu.
  */
 .ds-ticket__alerta {
-  margin-top: var(--sp-4);
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
   padding: var(--sp-4) var(--sp-8);
   border-radius: var(--r-chip);
   background: var(--st-pendente-wash);

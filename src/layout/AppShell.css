@@ -396,15 +396,15 @@
    * "Em breve" volta a aparecer, discreto, à direita. Ele não some no tablet
    * por decoração: é que ao lado de um ícone de 18px não sobra onde escrevê-lo.
    */
+  /* Badge, não rótulo de nível 3: sentence case, como qualquer badge do
+     sistema — "Em breve" continua discreto pela tinta e pelo tamanho. */
   .shell__link-soon {
     position: static;
     width: auto;
     height: auto;
     margin-left: auto;
     clip: auto;
-    font-size: var(--tl-size);
-    letter-spacing: var(--tl-track);
-    text-transform: uppercase;
+    font-size: var(--ta-size);
     line-height: 1;
     color: var(--console-ink-3);
   }

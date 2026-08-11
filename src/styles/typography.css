@@ -73,44 +73,33 @@
 
 /*
  * ============================================================================
- * O NÚMERO É MONO — e o sotaque da direção mora aqui
+ * O NÚMERO É TABULAR — não é mais mono, e nunca mais é uma segunda letra
  * ============================================================================
  *
- * Não é um sexto nível: é o mesmo nível com OUTRA LETRA e outra métrica.
+ * Não é um sexto nível: é o mesmo nível, na MESMA Space Grotesk, só com a
+ * métrica travada. `.tnum`/`.num` existiam para trocar a fonte inteira por uma
+ * monoespaçada — isso saiu. Uma letra à parte para "dinheiro, hora, tempo
+ * decorrido e nº de pedido" lia como terminal de servidor, não como
+ * equipamento de cozinha, e o ganho de alinhamento nunca dependeu da mono: é o
+ * `font-variant-numeric: tabular-nums` sozinho que faz cada dígito ocupar a
+ * mesma largura e alinhar em coluna.
  *
- * A MONO PINTA EXATAMENTE QUATRO COISAS: dinheiro, hora, tempo decorrido e nº
- * de pedido. São os números que se comparam de linha para linha e que ligam a
- * tela à comanda impressa — o "#1042" da tela é o mesmo "#1042" que sai no
- * papel de 48 colunas, e essa continuidade é o que faz o balcão e a cozinha
- * falarem do mesmo pedido.
- *
- * FORA DESSES QUATRO, NÃO USE — e a lista é literal. Não entram: minuto de
- * configuração ("25–35 min" do prazo de preparo), quantidade ("2×"),
- * coordenada, contagem. Todos são números; nenhum se compara descendo uma
- * coluna, e em mono eles só emprestam ao painel um sotaque de terminal que
- * custa legibilidade.
- *
- * NÃO É A MONO que dá aparência de máquina a uma tela — é o rótulo em caixa
- * alta com peso alto e espacejamento largo. Ver o nível 3 em `tokens.css`.
+ * AS DUAS CLASSES FICAM, como marcador semântico — "este número se compara
+ * com o de cima ou de baixo" — mas não pintam mais uma família diferente. Um
+ * `font-family` monoespaçada em qualquer arquivo fora deste é erro de lint
+ * (`scripts/check-design-tokens.mjs`).
  *
  * `.num` acrescenta o alinhamento à direita, que é o que faz uma COLUNA de
  * dinheiro ler como coluna. Número solto dentro de uma frase usa `.tnum`.
- *
- * O espacejamento negativo é necessário: a JetBrains Mono é larga, e sem ele
- * "R$ 192,90" ocupa mais que o nome do cliente logo acima.
  */
 .tnum {
-  font-family: var(--font-num);
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: 'tnum' 1;
-  letter-spacing: -0.02em;
 }
 
 .num {
-  font-family: var(--font-num);
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: 'tnum' 1;
-  letter-spacing: -0.02em;
   text-align: right;
 }
 

@@ -10,11 +10,13 @@
   min-width: 0;
 }
 
+/* Mesmo tratamento de `.field__label` em primitives.css: rótulo de campo não
+   é o nível 3 (ver o comentário lá). */
 .ds-field__label {
-  font-size: var(--tb-size);
-  line-height: var(--tb-line);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
   font-weight: var(--w-medium);
-  color: var(--ink);
+  color: var(--ink-2);
 }
 
 /*

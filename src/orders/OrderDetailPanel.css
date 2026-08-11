@@ -99,22 +99,21 @@
 }
 
 /*
- * Lê a matiz da classe `is-<estágio>` de tokens.css. É o mesmo nível 3
- * (rótulo) do cabeçalho das colunas do quadro — o mesmo dado, escrito igual.
+ * Lê a matiz da classe `is-<estágio>` de tokens.css.
  *
- * SEM CAIXA. Ele era tinta do status sobre o wash do status, par que o
- * verificador de contraste garante em 3:1 (elemento gráfico) e não em 4.5:1
- * (texto) — e este é texto de 11px. Sobre a superfície do painel a mesma
- * matiz passa com folga, e o rótulo para de ser mais uma caixinha ao lado do
- * número do pedido.
+ * SEM CAIXA ALTA. Ele já foi nível 3 (rótulo) inteiro — caixa alta e
+ * espaçado —, mas caixa alta com tracking ficou reservada à sidebar e à faixa
+ * do quadro (ver o comentário sobre `.field__label` em primitives.css); um
+ * badge de status é frase comum. O que continua fazendo o trabalho é a matiz:
+ * era tinta do status sobre o wash do status, par que o verificador de
+ * contraste garante em 3:1 (elemento gráfico) e não em 4.5:1 (texto). Sobre a
+ * superfície do painel a mesma matiz passa com folga.
  */
 .panel__status {
   color: var(--st);
-  font-size: var(--tl-size);
-  line-height: 18px;
-  font-weight: var(--tl-weight);
-  letter-spacing: var(--tl-track);
-  text-transform: uppercase;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-weight: var(--w-medium);
   white-space: nowrap;
 }
 
@@ -155,15 +154,20 @@
   gap: var(--sp-4);
 }
 
-/* Nível 3 (rótulo): o mesmo cabeçalho de bloco do resto do painel. */
+/*
+ * O TÍTULO DE BLOCO É `.t-section`, NÃO O NÍVEL 3. "Cliente", "Itens",
+ * "Pagamento" são um título por bloco do painel — a mesma função que
+ * `.t-section` já cobre em cartão/coluna/aba/diálogo (§1 do SKILL). Caixa
+ * alta e tracking eram o que fazia um painel de detalhe ler como réguas de
+ * formulário; um título de bloco é frase comum, só com peso.
+ */
 .detail__heading {
   margin: 0 0 var(--sp-4);
-  font-size: var(--tl-size);
-  line-height: var(--tl-line);
-  font-weight: var(--tl-weight);
-  letter-spacing: var(--tl-track);
-  text-transform: uppercase;
-  color: var(--ink-3);
+  font-size: var(--ts-size);
+  line-height: var(--ts-line);
+  font-weight: var(--ts-weight);
+  letter-spacing: var(--ts-track);
+  color: var(--ink);
 }
 
 .detail__row {
@@ -284,11 +288,9 @@
  * significados opostos para a cozinha.
  */
 .options__label {
-  font-size: var(--tl-size);
-  line-height: var(--tl-line);
-  font-weight: var(--tl-weight);
-  letter-spacing: var(--tl-track);
-  text-transform: uppercase;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-weight: var(--w-medium);
   color: var(--ink-3);
 }
 

@@ -176,3 +176,57 @@ test('no celular, todo alvo tem 24px de lado (WCAG 2.5.8)', async ({ page }) => 
     expect(pequenos, `alvo pequeno demais em ${rota}`).toEqual([]);
   }
 });
+
+for (const tema of ['light', 'dark'] as const) {
+  test(`checkbox e rádio marcados não usam a brasa (tema ${tema})`, async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    // O tema é lido do localStorage antes do primeiro pixel (script do
+    // index.html) — precisa estar gravado antes da primeira navegação.
+    await page.addInitScript(
+      (t) => window.localStorage.setItem('rapidex-admin.theme', t),
+      tema,
+    );
+    await entrar(page);
+    await escolherFilial(page);
+    await page.goto('/minha-loja');
+    await page.waitForLoadState('networkidle').catch(() => undefined);
+
+    /*
+     * A brasa é avara (§4 do SKILL): botão primário, item ativo de navegação
+     * e anel de foco — nada mais. Um checkbox/rádio marcado é o quarto uso que
+     * já vazou uma vez (ds/Choice.css). A régua compara a cor computada do
+     * controle marcado contra `--ember` resolvido no tema, via uma sonda no
+     * DOM — comparar strings de `var()` direto não funciona pós-computação.
+     */
+    const vazamentos = await page.evaluate(() => {
+      const emberValor = getComputedStyle(document.documentElement)
+        .getPropertyValue('--ember')
+        .trim();
+      const sonda = document.createElement('div');
+      sonda.style.color = emberValor;
+      document.body.appendChild(sonda);
+      const emberComputado = getComputedStyle(sonda).color;
+      sonda.remove();
+
+      const falhas: string[] = [];
+      for (const caixa of document.querySelectorAll<HTMLElement>(
+        '.ds-choice__box:checked, .ds-choice__box--check:indeterminate',
+      )) {
+        const estilo = getComputedStyle(caixa);
+        if (estilo.backgroundColor === emberComputado || estilo.borderColor === emberComputado) {
+          falhas.push(caixa.className);
+        }
+      }
+      return falhas;
+    });
+
+    expect(vazamentos, `checkbox/rádio em brasa no tema ${tema}`).toEqual([]);
+
+    // Confere que a régua não está testando um conjunto vazio por acidente.
+    const marcados = await page.locator('.ds-choice__box:checked').count();
+    expect(marcados, `nenhum checkbox marcado encontrado para testar (tema ${tema})`).toBeGreaterThan(
+      0,
+    );
+  });
+}

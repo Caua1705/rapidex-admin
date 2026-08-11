@@ -28,14 +28,15 @@ import './OrderTicket.css';
  * A HIERARQUIA, que é o que ele resolve:
  *
  *   BARRA DE MATURAÇÃO  o fio de brasa no topo — lê-se de longe, sem ler nada
- *   TEMPO DECORRIDO     em mono, na matiz do estágio, a maior tinta do cartão
- *   dinheiro            em mono, porque é o que se confere no caixa
+ *   TEMPO DECORRIDO     tabular, na matiz do estágio, a maior tinta do cartão
+ *   dinheiro            tabular, porque é o que se confere no caixa
  *   cliente             corpo
  *   nº e hora           apoio — é como o pedido é CHAMADO, não como é decidido
  *
- * Tempo, dinheiro e nº saem em MONOESPAÇADA: são os três números que se
- * comparam descendo a fila, e o "#1042" da tela é o mesmo que sai na comanda
- * térmica. Nada mais no ticket é mono.
+ * Tempo, dinheiro e nº levam `.tnum`: são os três números que se comparam
+ * descendo a fila, e o "#1042" da tela é o mesmo que sai na comanda térmica.
+ * A letra continua sendo a mesma Space Grotesk do resto do cartão — só o
+ * alinhamento em coluna (`tabular-nums`) muda.
  *
  * O ticket inteiro é um `<button>`: abrir o detalhe é UMA ação, e um card
  * clicável feito de <div> com onClick é a forma mais comum de uma tela perder
@@ -119,9 +120,8 @@ export function OrderTicket({
             </span>
           ))}
           {extraTag ? <span className="ds-ticket__pgto">{extraTag}</span> : null}
+          {alerta ? <span className="ds-ticket__alerta">{alerta}</span> : null}
         </span>
-
-        {alerta ? <span className="ds-ticket__alerta">{alerta}</span> : null}
       </span>
     </button>
   );

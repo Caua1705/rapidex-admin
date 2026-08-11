@@ -186,13 +186,19 @@
   gap: var(--sp-8);
 }
 
+/*
+ * TÍTULO DE CARTÃO, NÃO NÍVEL 3. "Pedido", "Taxa de serviço", "Como a loja
+ * atende" são um título por cartão — a mesma função que `.t-section` já
+ * cobre. Caixa alta e tracking eram o que dava a cada formulário de Minha
+ * loja ar de painel de comando; agora só a sidebar e a faixa do quadro de
+ * pedidos usam esse tratamento (ver `.field__label` em primitives.css).
+ */
 .store-form__heading {
-  font-size: var(--tl-size);
-  line-height: var(--tl-line);
-  font-weight: var(--tl-weight);
-  letter-spacing: var(--tl-track);
-  text-transform: uppercase;
-  color: var(--ink-3);
+  font-size: var(--ts-size);
+  line-height: var(--ts-line);
+  font-weight: var(--ts-weight);
+  letter-spacing: var(--ts-track);
+  color: var(--ink);
 }
 
 /*
@@ -396,16 +402,14 @@
   color: var(--ink-3);
 }
 
+/* Mesmo tratamento de `.methods__type` ao lado: qualificador de linha densa,
+   não rótulo — as duas listas liam com pesos diferentes para o mesmo papel. */
 .sectors__state {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--tl-size);
-  line-height: var(--tl-line);
-  font-weight: var(--tl-weight);
-  letter-spacing: var(--tl-track);
-  text-transform: uppercase;
+  font-size: var(--ta-size);
   color: var(--ink-3);
 }
 
@@ -480,11 +484,9 @@
   color: var(--ink-2);
 }
 
-/* Dinheiro é mono — a mesma regra do ticket. */
+/* Dinheiro é tabular — a mesma regra do ticket. */
 .delivery-preview__fee {
-  font-family: var(--font-num);
   font-variant-numeric: tabular-nums lining-nums;
-  letter-spacing: -0.02em;
   font-weight: var(--w-semibold);
   color: var(--ink);
 }

@@ -50,6 +50,19 @@ const FORBIDDEN = [
     name: 'raio solto',
     pattern: /border-radius\s*:\s*[^;]*\b\d*\.?\d+(px|rem|em)\b/g,
   },
+  /*
+   * FAMÍLIA DE FONTE MONOESPAÇADA — proibida em qualquer tela.
+   *
+   * A direção usava JetBrains Mono para tempo decorrido, dinheiro e nº de
+   * pedido; isso saiu (ver o bloco do número em styles/typography.css). O
+   * painel inteiro é uma letra só, Space Grotesk, com `tabular-nums` onde
+   * precisa alinhar em coluna. Esta regra fecha a porta para a mono voltar
+   * escondida num componente novo.
+   */
+  {
+    name: 'família de fonte monoespaçada (proibida)',
+    pattern: /font-family\s*:\s*[^;]*(mono|jetbrains|menlo|consolas|courier|sf mono)/gi,
+  },
 ];
 
 /** Troca o miolo dos comentários por espaço, preservando as quebras de linha. */

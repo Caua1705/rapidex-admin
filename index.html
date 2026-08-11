@@ -7,28 +7,28 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     <!--
-      DUAS LETRAS, E CADA UMA COM UM TRABALHO.
+      UMA LETRA SÓ, EM TODA A TELA.
 
       SPACE GROTESK na interface. Grotesca com terminais cortados na diagonal e
       aberturas fechadas — ela tem desenho próprio, ao contrário da Inter, que
       é justamente uma neo-grotesca sem opinião. É o que dá à tela o ar de
       placa de equipamento em vez de dashboard de qualquer coisa.
 
-      JETBRAINS MONO no número, e SÓ em três lugares: tempo decorrido, dinheiro
-      e nº de pedido. É a letra da comanda térmica e do display do forno, e a
-      continuidade entre a tela e o papel é o que faz o balcão e a cozinha
-      falarem do mesmo pedido. Fora desses três, mono vira estética de terminal
-      e o painel deixa de ler — ver o bloco do número em styles/typography.css.
+      NÃO HÁ SEGUNDA FAMÍLIA PARA NÚMERO. Tempo decorrido, dinheiro e nº de
+      pedido levam `font-variant-numeric: tabular-nums` na mesma Space
+      Grotesk — uma mono à parte já foi o sotaque desta direção, e na prática
+      lia como terminal de servidor. Ver o bloco do número em
+      styles/typography.css.
 
       Vem por <link> e não por @import no CSS porque @import serializa o
       download atrás da folha de estilo; os fallbacks de sistema em `--font-ui`
-      seguram o painel enquanto elas não chegam.
+      seguram o painel enquanto ela não chega.
     -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
     />
 
     <title>Rapidex — Painel do lojista</title>

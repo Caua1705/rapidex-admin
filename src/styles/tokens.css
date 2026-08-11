@@ -23,10 +23,14 @@
  *      baixo — nunca cinza-azulado de editor de código. O claro existe inteiro
  *      e é o modo de dia; a tela do balcão no sábado à noite é a escura.
  *
- *   2. O NÚMERO É MONOESPAÇADO, E ISSO É O SOTAQUE. Tempo decorrido, dinheiro
- *      e nº de pedido saem em JetBrains Mono. É a letra da comanda impressa e
- *      do display do forno, e é ela que faz a tela parecer instrumento em vez
- *      de formulário. Fora desses três, texto é Space Grotesk.
+ *   2. O NÚMERO É TABULAR, NÃO MONOESPAÇADO. Tempo decorrido, dinheiro e nº de
+ *      pedido levam `font-variant-numeric: tabular-nums` na MESMA Space
+ *      Grotesk do resto da tela — nunca uma segunda família. Uma mono à parte
+ *      já foi o sotaque desta direção; na prática ela lia como terminal de
+ *      servidor, não como equipamento de cozinha. O alinhamento em coluna
+ *      continua (é o tabular que faz esse trabalho); a letra não muda.
+ *      PROIBIDO: qualquer `font-family` monoespaçada em qualquer tela. Ver o
+ *      bloco do número em `styles/typography.css`.
  *
  *   3. A BRASA É O ÚNICO DEGRADÊ. Ele pinta a barra de maturação do pedido —
  *      latão quando entra, brasa quando estoura. Não é enfeite: é a única
@@ -84,6 +88,20 @@
   --line: #dcd2c0;
   --line-strong: #c0b4a0;
   --line-control: #837664;
+
+  /*
+   * A MARCA DE SELEÇÃO — checkbox e rádio marcados.
+   *
+   * Fixa nos dois temas, como os tokens do console: um quadrado escuro com o
+   * traço em quase-branco, sempre — nunca a brasa. A brasa é avara (§4); um
+   * checkbox marcado não é ação primária nem item ativo de navegação, e pintar
+   * ele de laranja gastava a cor num lugar que não precisa dela. Hoje os
+   * valores espelham `--console-*` (mesma ideia: um plano que não inverte),
+   * mas como token próprio — um checkbox não é a lateral, e um leitor futuro
+   * não devia precisar saber disso para usá-lo.
+   */
+  --mark-bg: var(--console-bg);
+  --mark-ink: var(--console-ink);
 
   /* ==========================================================================
    * 3. TINTA — três níveis, e o papel de cada um
@@ -169,9 +187,10 @@
    * aberturas fechadas. Tem desenho próprio, ao contrário de uma neo-grotesca
    * neutra — é ela que dá à tela o ar de placa de equipamento.
    *
-   * JETBRAINS MONO no número, e a mono NÃO É LIVRE: ela pinta exatamente três
-   * coisas — tempo decorrido, dinheiro e nº de pedido. Aplicada a rótulo ou a
-   * frase, vira estética de terminal e o painel deixa de ler.
+   * NÃO HÁ SEGUNDA FAMÍLIA. O número que precisa alinhar em coluna (tempo
+   * decorrido, dinheiro, nº de pedido) leva `.tnum`/`.num`, que ligam
+   * `font-variant-numeric: tabular-nums` na MESMA Space Grotesk — nunca uma
+   * mono à parte. Ver o bloco em `styles/typography.css`.
    *
    *   1 --tt-*   título de página   um por rota, no alto à esquerda
    *   2 --ts-*   título de seção    cartão, coluna, aba, grupo, diálogo
@@ -186,7 +205,6 @@
   --font-ui:
     'Space Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     sans-serif;
-  --font-num: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
   /* 1. Título de página. */
   --tt-size: 19px;
@@ -302,6 +320,15 @@
   --r-card: 4px;
   --r-round: 999px;
 
+  /*
+   * A ÚNICA EXCEÇÃO AO RAIO APERTADO: o segmentado e o stepper (o período do
+   * quadro de pedidos, o +5/+10/−5 do preparo). Uma fileira de botões colados
+   * em 2px de raio lê como tecla de teclado numérico; em 8px ela lê como grupo
+   * de opções. Não é para o resto do sistema — `.btn`, `.tag` e o campo
+   * continuam em `--r-chip`/`--r-field`.
+   */
+  --r-control: 8px;
+
   --shadow-pop: 0 16px 40px rgba(22, 18, 14, 0.18), 0 2px 4px rgba(22, 18, 14, 0.1);
 
   /*
@@ -330,11 +357,21 @@
    * estes. E por isso eles têm pares próprios em check-contrast.mjs — um plano
    * que não inverte precisa ser medido uma vez e valer para os dois temas.
    * ======================================================================= */
-  --console-bg: #131312;
+  /*
+   * CARVÃO QUENTE, NÃO FULIGEM. Era `#131312` — quase preto puro —, e ao lado
+   * do bege do conteúdo no tema claro o salto de tom lia como dois produtos
+   * colados, não como console e página do mesmo instrumento. Mais claro
+   * aproxima os dois planos sem abrir mão da decisão de enquadramento (§3): o
+   * console continua sensivelmente mais escuro que qualquer superfície de
+   * conteúdo, nos dois temas — só não é mais o fundo mais escuro da tela
+   * inteira. `--console-line` e `--console-active` subiram na mesma proporção,
+   * senão a régua e o halo do item ativo desapareciam contra o fundo novo.
+   */
+  --console-bg: #221d19;
   --console-ink: #efeeeb;
   --console-ink-2: #b0ada5;
   --console-ink-3: #928f87;
-  --console-line: #262624;
+  --console-line: #332e28;
   --console-hover: rgba(255, 255, 255, 0.06);
   /*
    * O halo do item ativo. Ele NÃO pode ser `--ember-wash`: no tema claro
@@ -342,7 +379,7 @@
    * mancha acesa atrás do texto. Aqui a brasa é vista de dentro do escuro, nos
    * dois temas.
    */
-  --console-active: #2a1509;
+  --console-active: #3d2414;
 
   /* ==========================================================================
    * 10. ENQUADRAMENTO
@@ -368,8 +405,13 @@
   /*
    * Altura dos controles. Um botão com padding próprio é como a densidade
    * começa a desandar — estas alturas valem para o painel inteiro.
+   *
+   * `--control-h` é 32, não 28: é o mesmo alvo de "linha densa" que `--sp-32`
+   * já dá às linhas de lista (§8) — dois números para a mesma ideia de altura
+   * mínima era o tipo de inconsistência que fazia um controle parecer menor
+   * que o resto sem motivo.
    */
-  --control-h: 28px;
+  --control-h: 32px;
   --control-h-sm: 24px;
   --control-h-touch: 36px;
   --field-h: 30px;

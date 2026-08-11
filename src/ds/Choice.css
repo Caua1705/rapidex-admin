@@ -63,13 +63,17 @@
  *
  * Um grupo de rádios sem nenhuma opção escolhida deixa TODOS os botões em
  * `:indeterminate` — é assim que o CSS funciona. Sem o `--check` aqui, um
- * formulário em branco abria com todas as opções pintadas de laranja, cada uma
- * parecendo a escolhida.
+ * formulário em branco abriria com todas as opções marcadas.
+ *
+ * A MARCA É `--mark-bg`/`--mark-ink`, NÃO A BRASA. Um checkbox marcado não é
+ * botão primário nem item ativo de navegação — é só "isto está ligado", e a
+ * brasa é avara (§4 do SKILL): ela pinta três coisas, e um checkbox chapado de
+ * laranja em toda tela de configuração era o quarto uso, sem ser um deles.
  */
 .ds-choice__box:checked,
 .ds-choice__box--check:indeterminate {
-  background: var(--ember);
-  border-color: var(--ember);
+  background: var(--mark-bg);
+  border-color: var(--mark-bg);
 }
 
 .ds-choice__box:disabled {
@@ -90,7 +94,7 @@
   top: 1px;
   width: 5px;
   height: 10px;
-  border: solid var(--on-ember);
+  border: solid var(--mark-ink);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg) scale(0);
   transition: transform var(--motion-fast) var(--ease);
@@ -123,7 +127,7 @@
   position: absolute;
   inset: 4px;
   border-radius: var(--r-round);
-  background: var(--on-ember);
+  background: var(--mark-ink);
   transform: scale(0);
   transition: transform var(--motion-fast) var(--ease);
 }

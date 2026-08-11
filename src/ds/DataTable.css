@@ -80,11 +80,9 @@
   .ds-tabela th {
     padding: var(--sp-8) var(--sp-12);
     text-align: left;
-    font-size: var(--tl-size);
-    line-height: var(--tl-line);
-    font-weight: var(--tl-weight);
-    letter-spacing: var(--tl-track);
-    text-transform: uppercase;
+    font-size: var(--ta-size);
+    line-height: var(--ta-line);
+    font-weight: var(--w-medium);
     color: var(--ink-3);
     white-space: nowrap;
     border-bottom: 1px solid var(--line);

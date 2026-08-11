@@ -1,6 +1,6 @@
 ---
 name: rapidex-design-system
-description: Regras visuais do painel do lojista Rapidex — a direção Brasa, os cinco níveis de tipografia mais a mono do número, a escala de seis degraus, os quatro planos, o console, cor, densidade, enquadramento e movimento. Leia ANTES de escrever qualquer tela, componente ou CSS novo em src/, e antes de mexer em src/styles/tokens.css. Também aplicável ao revisar uma tela existente ou ao decidir uma cor, um espaçamento, um raio ou uma animação.
+description: Regras visuais do painel do lojista Rapidex — a direção Brasa, os cinco níveis de tipografia mais o número tabular (sem mono), a escala de seis degraus, os quatro planos, o console, cor (a brasa é avara — nunca em checkbox/rádio), densidade, enquadramento e movimento. Leia ANTES de escrever qualquer tela, componente ou CSS novo em src/, e antes de mexer em src/styles/tokens.css. Também aplicável ao revisar uma tela existente ou ao decidir uma cor, um espaçamento, um raio ou uma animação.
 ---
 
 # Design system do Rapidex
@@ -30,11 +30,15 @@ específica deste documento:
    laranja da marca por cima a tela lia como sépia. Cinza-azulado de editor de
    código continua proibido do outro lado. O claro existe inteiro e é o modo de
    dia.
-2. **O número é monoespaçado, e isso é o sotaque.** Dinheiro, hora, tempo
-   decorrido e nº de pedido, em JetBrains Mono. É a letra da comanda térmica e
-   do display do forno, e a continuidade entre a tela e o papel é o que faz o
-   balcão e a cozinha falarem do mesmo pedido. **Fora desses quatro, não** — e
-   o que faz uma tela parecer máquina não é ela, é o rótulo. Ver §1.
+2. **O número é tabular, e a letra é uma só.** Dinheiro, hora, tempo decorrido
+   e nº de pedido levam `.tnum`/`.num` — `font-variant-numeric: tabular-nums`
+   na MESMA Space Grotesk do resto da tela, nunca uma mono à parte. Já foi
+   JetBrains Mono nesses quatro lugares; na prática lia como terminal de
+   servidor, não como equipamento de cozinha, e o alinhamento em coluna nunca
+   dependeu da mono — é o tabular sozinho que faz isso. **Nenhuma
+   `font-family` monoespaçada sobrevive em lugar nenhum do painel** (é erro de
+   lint, `scripts/check-design-tokens.mjs`). O que faz uma tela parecer
+   máquina não é uma letra, é o rótulo em caixa alta fora de lugar. Ver §1.
 3. **A brasa é o único degradê.** Ele pinta a barra de maturação do pedido —
    latão quando entra, brasa quando estoura. É a única escala contínua da tela,
    e ler "está esquentando" de longe é o trabalho dela. Qualquer outro degradê
@@ -74,10 +78,25 @@ neutra, e é ela que dá à tela o ar de placa de equipamento.
 | #   | Nível            | Classe       | Corpo/entrelinha | Peso | Caixa     | Tinta     | Onde                                              |
 | --- | ---------------- | ------------ | ---------------- | ---- | --------- | --------- | ------------------------------------------------- |
 | 1   | Título de página | `.t-title`   | 19 / 24          | 700  | normal    | `--ink`   | **um por tela**, no alto à esquerda               |
-| 2   | Título de seção  | `.t-section` | 16 / 22          | 600  | normal    | `--ink`   | cartão, faixa, diálogo, **nome de item de lista** |
-| 3   | Rótulo           | `.t-label`   | 11 / 14          | 600  | MAIÚSCULA | `--ink-3` | nome de campo, cabeçalho de faixa, grupo da nav   |
+| 2   | Título de seção  | `.t-section` | 16 / 22          | 600  | normal    | `--ink`   | cartão, faixa, diálogo, título de bloco, **nome de item de lista** |
+| 3   | Rótulo           | `.t-label`   | 11 / 14          | 600  | MAIÚSCULA | `--ink-3` | **só** separador de grupo da sidebar e cabeçalho de faixa do quadro de pedidos |
 | 4   | Corpo            | `.t-body`    | 14 / 20          | 400  | normal    | `--ink`   | o conteúdo                                        |
 | 5   | Auxiliar         | `.t-aux`     | 13 / 18          | 400  | normal    | `--ink-3` | ajuda, meta, hora, contagem, rodapé               |
+
+**Rótulo de campo de formulário não é o nível 3.** Ele já foi — caixa alta,
+muito espaçado — e era metade do que dava a um formulário de sete campos ar de
+console de comando. Hoje é `.field__label`/`.ds-field__label` (13/18, peso
+500, `--ink-2`, caixa normal, sem tracking): mais claro que a ajuda abaixo
+dele, mais escuro que o corpo do campo, sem precisar gritar. A mesma ideia
+vale para rótulo de contexto pequeno fora de formulário (o "Preparo"/"Entrega"
+da barra de filtro, o rótulo de um grupo de adicionais, o qualificador de uma
+linha de lista densa) — 13px, sem caixa alta, na tinta que o contexto já
+pedia (em geral `--ink-3`).
+
+**Badge é frase comum.** "Em breve", o nome de uma etiqueta, o status escrito
+no painel de detalhe do pedido — nenhum leva caixa alta. A cor e a forma
+(ponto, filete) já carregam a distinção; caixa alta em cima disso só soma
+ruído.
 
 **A prova: bata o olho em qualquer texto da tela e diga qual nível ele usa.** Se
 não der para dizer, o texto está errado — não falta um nível.
@@ -103,10 +122,20 @@ não der para dizer, o texto está errado — não falta um nível.
 - **Nunca escolha tamanho e peso caso a caso.** É exatamente isso que dá a
   sensação de inacabado: quatro tamanhos de "título" em quatro telas.
 
-## A mono, e a coleira dela
+## O número é tabular, e não há mais mono
 
-**`.tnum` e `.num` trocam a LETRA, não o nível.** Elas pintam JetBrains Mono, e
-pintam exatamente quatro coisas:
+**`.tnum` e `.num` travam a MÉTRICA, não trocam a letra.** Elas eram
+JetBrains Mono; hoje são `font-variant-numeric: tabular-nums` na mesma Space
+Grotesk do resto da tela. Uma mono à parte já foi o sotaque desta direção —
+na prática lia como terminal de servidor, não como equipamento de cozinha, e
+o alinhamento em coluna nunca dependeu dela: é o tabular sozinho que faz cada
+dígito ocupar a mesma largura. **Nenhum `font-family` monoespaçada sobrevive
+em lugar nenhum do painel** — é erro de lint (`scripts/check-design-tokens.mjs`
+varre todo `.css` fora de `tokens.css` atrás de `mono|jetbrains|menlo|consolas`
+em `font-family`).
+
+As duas classes continuam marcando exatamente quatro coisas — o que muda é só
+a letra, não a lista:
 
 | O quê           | Por quê                                                             |
 | --------------- | ------------------------------------------------------------------- |
@@ -118,18 +147,24 @@ pintam exatamente quatro coisas:
 **Fora desses quatro, não use — e a lista é literal.** Não entram: minuto de
 configuração ("25–35 min" do prazo de preparo), quantidade ("2×"), telefone,
 CEP, coordenada, quilômetro, contagem. Todos são números; nenhum se compara
-descendo uma coluna, e em mono eles só emprestam ao painel um sotaque de
-terminal que custa legibilidade.
+descendo uma coluna. Sem uma mono para emprestar sotaque de terminal, aplicar
+`.tnum` fora da lista não é mais um erro visível — é só uma classe sem
+efeito —, mas continua sendo a classe errada: ela documenta "este número se
+compara com o de cima ou de baixo", e um minuto de configuração não se
+compara.
 
-**Não é a mono que dá aparência de máquina a uma tela** — é o rótulo em caixa
-alta com peso alto e espacejamento largo. O nível 3 já foi 10px/700/0.1em e
-imitava tão bem uma monoespaçada que a tela inteira parecia estar nela.
+**Não é a mono que dá aparência de máquina a uma tela — nunca foi.** É o
+rótulo em caixa alta com peso alto e espacejamento largo, fora dos dois
+lugares em que isso é permitido (separador de grupo da sidebar, cabeçalho de
+faixa do quadro de pedidos). O nível 3 já foi 10px/700/0.1em e imitava tão
+bem uma monoespaçada que a tela inteira parecia estar nela.
 
-**Contagem não é mono, e não precisa de classe nenhuma:** `reset.css` já liga
-numeral tabular no `body` inteiro. "12 itens" ao lado do nome de uma categoria
-é uma frase com um número dentro — ele alinha e continua na letra da interface.
-Campo de formulário segue a mesma lista: preço, taxa e valor por km levam
-`.tnum` porque são reais; telefone, CEP e coordenada não levam.
+**Contagem não é tabular por classe própria, e não precisa:** `reset.css` já
+liga numeral tabular no `body` inteiro. "12 itens" ao lado do nome de uma
+categoria é uma frase com um número dentro — ele alinha e continua na letra
+da interface. Campo de formulário segue a mesma lista: preço, taxa e valor
+por km levam `.tnum` porque são reais e comparáveis; telefone, CEP e
+coordenada não levam.
 
 `.num` acrescenta o alinhamento à direita, que é o que faz uma COLUNA de
 dinheiro ler como coluna. Número dentro de uma frase usa `.tnum`.
@@ -213,6 +248,13 @@ Mais `--field`, o plano do que se PREENCHE, que afunda.
 - **Raio apertado**: `--r-chip` (2px) no que é controle, `--r-field` (3px) no que
   é superfície, `--r-card` (4px) no que flutua. `--r-round` só em ponto de
   status e ponto de conexão — o interruptor é retangular.
+- **Uma exceção declarada ao raio apertado: `--r-control` (8px), só no
+  segmentado (`.seg`) e no stepper (os botões +5/+10/−5 do preparo).** Uma
+  fileira de botões colados em 2px lê como tecla de teclado numérico; em 8px
+  lê como grupo de opções. Não é para mais nada — `.btn`, `.tag` e o campo
+  continuam em `--r-chip`/`--r-field`. Os dois controles também perderam a
+  borda de repouso: o que os separa do fundo agora é `--field` (o mesmo plano
+  que os campos afundam), não uma linha.
 
 ### O console
 
@@ -225,6 +267,13 @@ Ela tem tokens próprios (`--console-*`, bloco 9b de `tokens.css`) que **não s�
 redefinidos no tema escuro** — lá eles já são aqueles. E eles têm pares próprios
 em `check-contrast.mjs`: um plano que não inverte é justamente o que escapa da
 revisão de contraste, porque ninguém pensa nele ao mexer na paleta do claro.
+
+**`--console-bg` é carvão quente (`#221d19`), não fuligem quase-preta.** Já foi
+`#131312`, e no tema claro o salto do console para o bege do conteúdo lia como
+dois produtos colados, não como console e página do mesmo instrumento. Mais
+claro aproxima os dois planos sem abrir mão da decisão de enquadramento acima:
+o console continua sensivelmente mais escuro que qualquer superfície de
+conteúdo, nos dois temas — só não é mais o ponto mais escuro da tela inteira.
 
 O item ativo leva **tinta cheia + trilho de brasa de 2px + halo curto**
 (`--console-active`). Três sinais, e o laranja em nenhum deles é texto.
@@ -253,6 +302,13 @@ Se a resposta for "fica bonito" ou "diferencia visualmente", a cor sai.
    (`.btn--primary`), indicador do item ativo (navegação, aba, âncora, categoria
    selecionada), anel de foco. Nunca em texto de corpo, em ícone neutro, em
    fundo de seção ou em ênfase.
+   **Checkbox e rádio marcados não são um quarto lugar** — já foram, em
+   `ds/Choice.css`, e um formulário de configuração inteiro em quadradinhos
+   laranja é exatamente a decoração que a regra de avareza proíbe. A marca é
+   `--mark-bg`/`--mark-ink` (fixos nos dois temas, como `--console-*`): um
+   quadrado escuro com o traço em quase-branco. `design/shots/acabamento.spec.ts`
+   varre `.ds-choice__box:checked` nos dois temas atrás desse vazamento
+   especificamente.
    **No tema claro ela é mais escura que a do selo, e isso é medido, não gosto:**
    sobre o bege da página, o laranja do selo dá 2,2:1 e reprova nos 3:1 do anel
    de foco. O selo continua o mesmo; o token da interface diverge dele. No
@@ -413,7 +469,14 @@ ao lado de um endereço inteiro.
   que se repete não distingue nada, só ocupa a largura do que muda. Escreva só o
   estado que **não** é o normal. **A regra vale em escala de seção também**: a
   mesma caixa de aviso repetida em cinco seções da mesma página é o mesmo
-  defeito (ver `StorePage`, onde ela é dita uma vez só).
+  defeito (ver `StorePage`, onde ela é dita uma vez só). **E vale em escala de
+  quadro**: o aviso "aguardando pagamento — não preparar" do ticket
+  (`ds/OrderTicket`) já foi uma tarja de borda a borda embaixo do cartão — com
+  treze pedidos na mesma aba e quase todo Pix passando por esse estado, os
+  treze repetiam a mesma tarja e o quadro lia como listra, não como aviso.
+  Hoje ele é um badge pequeno na mesma linha dos badges de Entrega/Pix: ainda
+  impossível de não ver num cartão, sem virar padrão repetido numa coluna
+  inteira.
 - **Faixa/lista vazia não escreve nada** quando o contador ao lado já diz zero.
   O fio da faixa já mostra que ela existe. O "Carregando…" fica: aí a lista
   vazia ainda não é uma afirmação.
@@ -532,9 +595,14 @@ Qualquer "não" é conserto, não ressalva.
       em toda seção da página?**
 - [ ] **Todo espaçamento vem da escala, ou sobrou valor solto no CSS?**
 - [ ] **Dá para nomear qual dos cinco níveis tipográficos cada texto usa?**
-- [ ] **A mono está SÓ em tempo decorrido, dinheiro, nº de pedido e campo
-      numérico?**
-- [ ] **Alguma cor está lá por decoração, e não por significado?**
+- [ ] **Sobrou algum `font-family` monoespaçada em algum lugar?** (não deveria
+      sobreviver ao lint, mas confira num componente novo antes de rodar)
+- [ ] **A caixa alta com tracking está SÓ na sidebar e no cabeçalho de faixa
+      do quadro de pedidos?** Rótulo de campo, título de cartão e badge são
+      frase comum.
+- [ ] **Alguma cor está lá por decoração, e não por significado?** Checkbox e
+      rádio marcados incluídos — a marca é `--mark-bg`/`--mark-ink`, nunca a
+      brasa.
 - [ ] **Todo elemento interativo tem hover e foco visíveis?**
 - [ ] **Algum texto trunca onde havia espaço de sobra?**
 - [ ] **As colunas de conteúdo alinham entre si e com o cabeçalho?**
@@ -550,7 +618,7 @@ Qualquer "não" é conserto, não ressalva.
 Quatro delas não dependem de olhar:
 
 ```
-npx playwright test -c design/shots/shots.config.ts acabamento     # nativos, foco, truncamento, alvo de toque
+npx playwright test -c design/shots/shots.config.ts acabamento     # nativos, foco, truncamento, alvo de toque, brasa no checkbox/rádio
 npx playwright test -c design/shots/shots.config.ts enquadramento  # o vão entre lateral e conteúdo em 1440/1900/2560
 npx playwright test -c design/shots/shots.config.ts cabecalho      # quem trunca no cabeçalho
 npx playwright test -c design/shots/shots.config.ts telas          # o lote de prints, dois temas + celular

@@ -112,6 +112,8 @@ const PAIRS = [
   { fg: '--st-aceito', bg: '--st-aceito-wash', min: 4.5, use: 'texto do aviso informativo' },
   // O interruptor ligado é elemento gráfico, não texto (1.4.11).
   { fg: '--ok', bg: '--surface', min: 3, use: 'interruptor ligado sobre cartão' },
+  // O traço do checkbox/rádio marcado é elemento gráfico, não texto (1.4.11).
+  { fg: '--mark-ink', bg: '--mark-bg', min: 3, use: 'marca do checkbox/rádio marcado' },
 
   // --- marca ---
   { fg: '--on-ember', bg: '--ember', min: 4.5, use: 'texto do botão primário' },

@@ -23,7 +23,6 @@
   font-size: var(--tl-size);
   line-height: 1;
   font-weight: var(--tl-weight);
-  letter-spacing: 0.02em;
 }
 
 /* A FORMA. Ele carrega a matiz do estágio e é o que sobrevive ao daltonismo. */

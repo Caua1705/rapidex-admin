@@ -149,13 +149,17 @@
  *
  * O escolhido leva TINTA CHEIA + PESO + um trilho de brasa embaixo. Nunca só a
  * cor: cor sozinha não passa em 1.4.1.
+ *
+ * SEM BORDA E COM RAIO MAIS ABERTO (`--r-control`, 8px): contornado em 2px ele
+ * lia como teclado numérico industrial, não como grupo de opções. O que
+ * separa o grupo do fundo agora é o preenchimento (`--field`, o mesmo plano
+ * que os campos afundam), não uma linha.
  * ======================================================================= */
 .seg {
   display: inline-flex;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-chip);
+  border-radius: var(--r-control);
   overflow: hidden;
-  background: var(--surface);
+  background: var(--field);
 }
 
 .seg__opt {
@@ -214,15 +218,20 @@
   min-width: 0;
 }
 
+/*
+ * O RÓTULO DE CAMPO NÃO É O NÍVEL 3. Ele já foi `.t-label` (caixa alta, muito
+ * espacejado) e era metade do que fazia um formulário de sete campos ler como
+ * console de comando. Caixa alta com tracking fica reservada a exatamente dois
+ * lugares no sistema inteiro: o separador de grupo da lateral e o cabeçalho de
+ * faixa do quadro de pedidos (ambos em `.t-label` mesmo). Um rótulo de campo é
+ * frase comum, só mais claro e um degrau mais escuro que a ajuda abaixo dele.
+ */
 .field__label,
-.ds-field__label,
 .ds-choice-group__legend {
-  font-size: var(--tl-size);
-  line-height: var(--tl-line);
-  font-weight: var(--tl-weight);
-  letter-spacing: var(--tl-track);
-  text-transform: uppercase;
-  color: var(--ink-3);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-weight: var(--w-medium);
+  color: var(--ink-2);
 }
 
 /*
@@ -330,8 +339,8 @@
  * em tinta do sistema, mais escuro que qualquer coisa ao redor. Aqui ele vira
  * um afixo discreto, na tinta de apoio, que só ganha corpo no ponteiro.
  *
- * O valor sai em mono: hora é número que se compara de linha para linha na
- * grade da semana.
+ * O valor leva tabular: hora é número que se compara de linha para linha na
+ * grade da semana, e o tabular sozinho já faz esse alinhamento.
  */
 .input::-webkit-calendar-picker-indicator {
   opacity: 0.4;
@@ -345,7 +354,6 @@
 }
 
 .input::-webkit-datetime-edit {
-  font-family: var(--font-num);
   font-variant-numeric: tabular-nums lining-nums;
 }
 
