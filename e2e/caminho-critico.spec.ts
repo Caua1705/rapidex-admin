@@ -95,10 +95,11 @@ test('o detalhe é painel lateral: o quadro fica visível e o conteúdo troca', 
 
   const painel = page.getByTestId('order-panel');
 
-  // Sem seleção o painel NÃO existe: 400px de largura fixa para dizer "nenhum
-  // pedido aberto" é um quarto da tela gasto com ausência de informação, e o
-  // quadro é quem fica sem espaço.
-  await expect(painel).toHaveCount(0);
+  // A COLUNA É PERMANENTE: sem seleção ela existe e explica o que faz. É o que
+  // impede o quadro de mudar de largura a cada clique — com a gaveta antiga,
+  // o cartão seguinte trocava de posição embaixo do ponteiro.
+  await expect(painel).toBeVisible();
+  await expect(painel).toContainText('Clique num pedido');
 
   await page.getByTestId('order-card-1002').click();
   await expect(painel).toContainText('#1002');
@@ -112,9 +113,10 @@ test('o detalhe é painel lateral: o quadro fica visível e o conteúdo troca', 
   await expect(painel).toContainText('Rafael Nunes');
   await expect(painel).not.toContainText('#1002');
 
-  // Fechar devolve a largura ao quadro, que nunca saiu do lugar.
-  await page.getByRole('button', { name: 'Fechar' }).click();
-  await expect(painel).toHaveCount(0);
+  // Fechar volta ao estado vazio — a coluna fica, o quadro não se mexe.
+  await page.getByRole('button', { name: 'Fechar detalhe' }).click();
+  await expect(painel).toContainText('Clique num pedido');
+  await expect(painel).not.toContainText('#1003');
   await expect(page.getByTestId('order-card-1003')).toBeVisible();
 });
 

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { messageFromUnknownError } from '../api/errors';
 import { fetchOrderDetail } from '../api/orders';
 import type { OrderDetail, OrderItem } from '../api/types';
+import { XIcon } from '../ds/icons';
 import { CancelOrderDialog } from './CancelOrderDialog';
 import {
   ORDER_TYPE_LABELS,
@@ -112,21 +113,31 @@ export function OrderDetailPanel({
   }
 
   /*
-   * SEM PEDIDO ABERTO, O PAINEL NÃO EXISTE.
+   * O PAINEL É UMA COLUNA PERMANENTE, e não mais uma gaveta que aparece.
    *
-   * Antes ele ficava montado o tempo todo, ocupando 400px de largura fixa para
-   * mostrar "Nenhum pedido aberto" — um quarto da tela gasto para dizer que não
-   * há nada ali. Quem paga a conta é o quadro: as colunas do kanban não
-   * encolhem (`flex: 1 0 246px`), então a largura que sobra vira rolagem
-   * horizontal no meio do turno.
+   * Ele já foi montado só com pedido aberto, e o argumento era bom: 380px de
+   * largura fixa para dizer "nenhum pedido aberto" é um quarto da tela gasto
+   * com ausência de informação. O que derrubou esse argumento foi o quadro
+   * parar de rolar de lado — sem a rolagem, a largura que o painel toma vira
+   * uma coluna a menos na grade, e não pedido escondido.
    *
-   * O estado vazio some junto: o quadro ocupando a tela inteira já comunica
-   * "nada aberto" sem precisar de uma frase.
+   * O que se ganha é maior: a coluna não muda de lugar ao abrir e ao fechar um
+   * pedido. Com a gaveta, cada clique reflowava o quadro inteiro e o cartão que
+   * a pessoa ia clicar em seguida trocava de posição embaixo do ponteiro.
+   *
+   * ABAIXO DE 1280px ELA NÃO É PERMANENTE: não há largura para dividir a tela
+   * em duas. Lá o painel volta a existir só com pedido aberto, e flutua sobre o
+   * quadro (ver `.panel--flutuante` no CSS) — deixá-lo simplesmente sumir
+   * tiraria o único caminho para mudar o status num laptop de 1200px.
    */
-  if (orderId === null) return null;
+  const vazio = orderId === null;
 
   return (
-    <aside className="panel" aria-label="Detalhe do pedido" data-testid="order-panel">
+    <aside
+      className={`panel${vazio ? ' panel--vazio' : ''}`}
+      aria-label="Detalhe do pedido"
+      data-testid="order-panel"
+    >
       <header className="panel__header">
         <div className="panel__title">
           {detail ? (
@@ -138,15 +149,36 @@ export function OrderDetailPanel({
               <span className="faint">{labelFor(ORDER_TYPE_LABELS, detail.order_type)}</span>
             </>
           ) : (
-            <span className="muted">Pedido</span>
+            <span className="t-label">Pedido</span>
           )}
         </div>
-        <button type="button" className="btn btn--sm" onClick={onClose} aria-label="Fechar">
-          ✕
-        </button>
+        {/* Sem pedido aberto não há o que fechar: o botão sairia mentindo. */}
+        {vazio ? null : (
+          <button
+            type="button"
+            className="btn btn--sm icon-btn"
+            onClick={onClose}
+            aria-label="Fechar detalhe"
+            title="Fechar detalhe"
+          >
+            <XIcon size={14} />
+          </button>
+        )}
       </header>
 
       <div className="panel__body">
+        {/*
+          O ESTADO VAZIO EXPLICA O QUE A COLUNA FAZ. Uma faixa de 380px em
+          branco não é discrição — é uma pergunta sem resposta no meio da tela.
+          Aqui ela cabe porque a coluna é permanente: a frase é lida uma vez, no
+          começo do turno, e some no primeiro clique.
+        */}
+        {vazio ? (
+          <p className="panel__vazio">
+            Clique num pedido para ver os itens, o endereço e o pagamento — e para mudar o status.
+          </p>
+        ) : null}
+
         {loadError ? (
           <p className="alert alert--error" role="alert">
             {loadError}
@@ -159,7 +191,7 @@ export function OrderDetailPanel({
           </p>
         ) : null}
 
-        {!detail && !loadError ? <p className="muted">Carregando…</p> : null}
+        {!detail && !loadError && !vazio ? <p className="muted">Carregando…</p> : null}
 
         {detail ? <DetailBody detail={detail} /> : null}
       </div>

@@ -1,8 +1,14 @@
 /* --- o painel ------------------------------------------------------------ */
 
 /*
- * O detalhe do pedido, à direita do quadro. Ele é um degrau de tom acima do
- * fundo da página — não uma coluna separada por régua.
+ * O DETALHE É UMA COLUNA PERMANENTE À DIREITA DO QUADRO.
+ *
+ * Ela existe com ou sem pedido aberto, e é isso que a torna previsível: o
+ * quadro não muda de largura a cada clique, e o cartão que a pessoa ia clicar
+ * em seguida não troca de posição embaixo do ponteiro.
+ *
+ * Um fio à esquerda a separa do quadro — os dois estão no mesmo plano (`--bg`),
+ * então aqui o tom não basta.
  */
 .panel {
   width: 380px;
@@ -11,13 +17,38 @@
   flex-direction: column;
   min-height: 0;
   background: var(--bg);
-  /*
-   * O painel ENTRA quando um pedido é aberto — é mudança de estado, não
-   * enfeite: sem o deslize, 380px de conteúdo simplesmente surgem e o olho
-   * perde de onde vieram. `--motion-fast` já vira 0s sob prefers-reduced-motion,
-   * mas @keyframes precisa do seu próprio desligamento (abaixo).
-   */
-  animation: panel-enter var(--motion-fast) var(--ease);
+  border-left: 1px solid var(--line);
+}
+
+/*
+ * ABAIXO DE 1280px A COLUNA NÃO CABE, e aí o painel volta a ser sob demanda:
+ * some quando não há pedido aberto, e flutua sobre o quadro quando há.
+ *
+ * Sem véu por cima do quadro: ele continua sendo o que diz o que fazer em
+ * seguida, e escurecê-lo para ler um pedido é trocar o contexto pelo detalhe.
+ * Quem separa os dois planos é a sombra.
+ */
+@media (max-width: 1279px) {
+  .panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-popover);
+    max-width: 100%;
+    background: var(--surface);
+    box-shadow: var(--shadow-pop);
+    /*
+     * Aqui ele ENTRA de verdade, então o deslize volta a ter trabalho: sem
+     * ele, 380px de conteúdo surgem por cima do quadro e o olho perde de onde
+     * vieram. @keyframes precisa do próprio desligamento (abaixo).
+     */
+    animation: panel-enter var(--motion-fast) var(--ease);
+  }
+
+  .panel--vazio {
+    display: none;
+  }
 }
 
 @keyframes panel-enter {
@@ -31,6 +62,13 @@
   .panel {
     animation: none;
   }
+}
+
+/* O estado vazio: uma frase, na tinta de apoio, e nada mais. */
+.panel__vazio {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
 }
 
 .panel__header {
