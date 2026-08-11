@@ -1,18 +1,25 @@
 /*
- * O TICKET — chapa cortada, com o fio do estágio à esquerda.
+ * ============================================================================
+ * O TICKET — chapa cortada, com o filete do estágio à esquerda
+ * ============================================================================
  *
- * SEM SOMBRA. O ticket está parado na página, e sombra é só para o que flutua.
- * O que o separa do fundo da faixa é o degrau de tom (`--surface` sobre
- * `--bg`) mais o fio de 3px do estágio, que é a única coisa colorida da
- * moldura.
- */
-/*
- * O TICKET NÃO DECIDE A PRÓPRIA LARGURA. Quem decide é o container — a faixa,
- * a grade do histórico, a galeria. Ele já teve `width: 236px` fixo aqui, e o
- * preço disso era que toda tela que o usasse precisava desfazer a regra para
- * conseguir encaixá-lo numa grade.
+ * SEM SOMBRA. Ele está parado na página, e sombra é só para o que flutua. O
+ * que o separa do fundo da faixa é o degrau de tom (`--surface` sobre `--bg`)
+ * mais um fio neutro de 1px.
+ *
+ * A BORDA É NEUTRA; O STATUS ENTRA NUM FILETE DE 2px. A moldura já foi pintada
+ * com a cor do estágio, em 3px — num quadro de doze cartões isso dava doze
+ * retângulos coloridos, e a cor perdia o trabalho de dizer "este está em
+ * preparo" para virar o fundo da tela. O filete diz a mesma coisa gastando um
+ * décimo da tinta.
+ *
+ * ELE NÃO DECIDE A PRÓPRIA LARGURA: quem decide é o container — a faixa, a
+ * grade do histórico, a galeria. Já teve `width: 236px` fixo aqui, e o preço
+ * era que toda tela que o usasse precisava desfazer a regra para encaixá-lo
+ * numa grade.
  */
 .ds-ticket {
+  position: relative;
   width: 100%;
   min-width: 0;
   display: flex;
@@ -21,7 +28,6 @@
   padding: 0;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-left: 3px solid var(--st, var(--line-strong));
   border-radius: var(--r-card);
   color: var(--ink);
   overflow: hidden;
@@ -30,11 +36,20 @@
     border-color var(--motion-fast) var(--ease);
 }
 
+/* O filete do estágio, colado na borda esquerda e correndo a altura inteira. */
+.ds-ticket::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--st, var(--line-strong));
+}
+
 .ds-ticket:hover {
   background: var(--hover);
   border-color: var(--line-control);
-  /* A borda do estágio não muda no ponteiro: ela é dado, não estado do mouse. */
-  border-left-color: var(--st, var(--line-strong));
 }
 
 /*
@@ -49,7 +64,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-4);
-  padding: var(--sp-8);
+  /* O recuo à esquerda abre espaço para o filete sem que ele encoste no texto. */
+  padding: var(--sp-8) var(--sp-8) var(--sp-8) var(--sp-12);
   min-width: 0;
 }
 
@@ -137,11 +153,7 @@
   font-weight: var(--w-semibold);
 }
 
-/* De longe, a moldura repete o aviso: é só ela que se vê. */
-.ds-ticket--alerta {
-  border-left-color: var(--st-pendente);
-}
-
-.ds-ticket--alerta:hover {
-  border-left-color: var(--st-pendente);
+/* De longe, o filete repete o aviso: é só ele que se vê. */
+.ds-ticket--alerta::before {
+  background: var(--st-pendente);
 }

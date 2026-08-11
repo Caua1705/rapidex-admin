@@ -24,10 +24,12 @@ brutalismo nem tema de terminal. É **instrumento**.
 As quatro decisões que fazem a direção, e que valem mais que qualquer regra
 específica deste documento:
 
-1. **Escuro é o chão, e o escuro é quente.** Preto de fuligem, com marrom por
-   baixo. Nunca cinza-azulado de editor de código — um `#1a1a1a` ao lado destes
-   tons lê como um buraco azul no meio da tela. O claro existe inteiro e é o
-   modo de dia.
+1. **Escuro é o chão, e o escuro é quente — QUENTE, não marrom.** O viés é de
+   dois pontos de R sobre B: sente-se, não se vê. A primeira versão desta
+   direção pintava o chão em `#0c0a09` e a superfície em `#17130f`, e com o
+   laranja da marca por cima a tela lia como sépia. Cinza-azulado de editor de
+   código continua proibido do outro lado. O claro existe inteiro e é o modo de
+   dia.
 2. **O número é monoespaçado, e isso é o sotaque.** Dinheiro, hora, tempo
    decorrido e nº de pedido, em JetBrains Mono. É a letra da comanda térmica e
    do display do forno, e a continuidade entre a tela e o papel é o que faz o
@@ -180,6 +182,16 @@ página de marketing; aqui embaixo tem fila de pedido.
 
 Mais `--field`, o plano do que se PREENCHE, que afunda.
 
+- **COR DE STATUS É FILETE, NÃO MOLDURA.** A borda do cartão é neutra; o
+  estágio entra num filete de 2px na borda esquerda, ou no ponto do cabeçalho
+  da faixa. O ticket já teve a moldura inteira pintada em 3px da cor do estágio
+  — num quadro de doze cartões isso dava doze retângulos coloridos, e a cor
+  deixava de dizer "este está em preparo" para virar o fundo da tela.
+- **Os washes (`--st-*-wash`) são um SUSSURRO**, a um passo do plano em que se
+  apoiam. Eles dizem "isto é de outra natureza", nunca viram bloco de cor: a
+  faixa de "aguardando pagamento" já dominou o cartão inteiro com um oliva
+  forte, e num quadro em que quase todo pedido de Pix passa por esse estado,
+  metade da tela ficava pintada.
 - **Um bloco que tem tom próprio não leva borda** — com uma exceção: no raio de
   2px, um retângulo só de preenchimento perde a forma contra `--surface` no
   tema claro, então cartão e etiqueta levam um fio de `--line` junto com o tom.

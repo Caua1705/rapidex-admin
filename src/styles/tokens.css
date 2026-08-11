@@ -330,11 +330,11 @@
    * estes. E por isso eles têm pares próprios em check-contrast.mjs — um plano
    * que não inverte precisa ser medido uma vez e valer para os dois temas.
    * ======================================================================= */
-  --console-bg: #14100d;
-  --console-ink: #f2ece2;
-  --console-ink-2: #bcae9a;
-  --console-ink-3: #9b8c79;
-  --console-line: #2a231d;
+  --console-bg: #131312;
+  --console-ink: #efeeeb;
+  --console-ink-2: #b0ada5;
+  --console-ink-3: #928f87;
+  --console-line: #262624;
   --console-hover: rgba(255, 255, 255, 0.06);
   /*
    * O halo do item ativo. Ele NÃO pode ser `--ember-wash`: no tema claro
@@ -342,7 +342,7 @@
    * mancha acesa atrás do texto. Aqui a brasa é vista de dentro do escuro, nos
    * dois temas.
    */
-  --console-active: #3b1b08;
+  --console-active: #2a1509;
 
   /* ==========================================================================
    * 10. ENQUADRAMENTO
@@ -411,48 +411,69 @@
  * ============================================================================
  */
 [data-theme='dark'] {
-  --bg: #0c0a09;
-  --surface: #17130f;
-  --surface-raised: #221c17;
-  --field: #100d0b;
+  /*
+   * OS NEUTROS SÃO QUASE NEUTROS. O viés quente ficou — R uns dois pontos
+   * acima de B —, mas parou de ser marrom: a versão anterior tinha o chão em
+   * #0c0a09 e a superfície em #17130f, e com o laranja da marca por cima a
+   * tela inteira lia como sépia. Quente é o que se sente sem se ver; marrom é
+   * o que se vê.
+   */
+  --bg: #0e0e0d;
+  --surface: #161615;
+  --surface-raised: #201f1e;
+  --field: #111110;
 
-  --line: #2b2520;
-  --line-strong: #443b32;
-  --line-control: #8c7e6c;
+  --line: #272725;
+  --line-strong: #3d3c39;
+  --line-control: #85837c;
 
-  --ink: #f7f2e9;
-  --ink-2: #bfb2a0;
-  --ink-3: #a0927f;
+  --ink: #f2f1ee;
+  --ink-2: #b4b1a9;
+  --ink-3: #97948c;
 
   /* No escuro a brasa acende: é o laranja do selo, sem escurecer. */
   --ember: #ff6a1f;
   --ember-press: #ff8a4d;
-  --ember-wash: #3b1b08;
+  --ember-wash: #2a1509;
   --on-ember: #1a0c03;
   --on-ember-press: #1a0c03;
 
+  /*
+   * `--alert` puxou para o amarelo. Em #f0a63e ele era laranja, e num sistema
+   * em que o laranja é da MARCA um segundo laranja semântico faz o olho ler
+   * "ação" onde está escrito "atenção".
+   */
   --ok: #3fd489;
-  --ok-wash: #12352a;
-  --alert: #f0a63e;
-  --alert-wash: #3a2a0e;
+  --ok-wash: #12241d;
+  --alert: #dfb04a;
+  --alert-wash: #2a220f;
   --danger: #ff6b6b;
-  --danger-wash: #451d1d;
+  --danger-wash: #331b1a;
 
   --st-pendente: #e8b44a;
   --st-aceito: #7fa9e0;
   --st-preparando: #c08ae8;
   --st-pronto: #3fd489;
   --st-entrega: #46c8e0;
-  --st-concluido: #a0927f;
+  --st-concluido: #97948c;
   --st-cancelado: #ff6b6b;
 
-  --st-pendente-wash: #3a2c0e;
-  --st-aceito-wash: #1d2a3d;
-  --st-preparando-wash: #2e2140;
-  --st-pronto-wash: #12352a;
-  --st-entrega-wash: #123239;
-  --st-concluido-wash: #2a2520;
-  --st-cancelado-wash: #451d1d;
+  /*
+   * OS WASHES SÃO UM SUSSURRO, não um preenchimento.
+   *
+   * Eles eram claros e saturados demais: a faixa "aguardando pagamento"
+   * dominava o cartão inteiro com um oliva forte, e num quadro em que quase
+   * todo pedido de Pix passa por esse estado, metade da tela ficava pintada.
+   * Agora eles ficam a um passo do plano em que se apoiam — o suficiente para
+   * dizer "isto é de outra natureza", não para virar bloco de cor.
+   */
+  --st-pendente-wash: #2b2411;
+  --st-aceito-wash: #1b232d;
+  --st-preparando-wash: #251f30;
+  --st-pronto-wash: #12241d;
+  --st-entrega-wash: #14252a;
+  --st-concluido-wash: #242423;
+  --st-cancelado-wash: #331b1a;
 
   --scrim: rgba(0, 0, 0, 0.66);
 
