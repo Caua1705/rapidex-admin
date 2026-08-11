@@ -82,7 +82,7 @@ export function KitchenCard({
             return (
               <li className="kitchen-items__row" key={item.id}>
                 <div className="kitchen-items__main">
-                  <span className="kitchen-items__qty tnum">{item.quantity}×</span>
+                  <span className="kitchen-items__qty">{item.quantity}×</span>
                   <span className="kitchen-items__name">{item.product_name_snapshot}</span>
                 </div>
 

@@ -78,15 +78,20 @@
  *
  * Não é um sexto nível: é o mesmo nível com OUTRA LETRA e outra métrica.
  *
- * A MONO PINTA EXATAMENTE TRÊS COISAS: tempo decorrido, dinheiro e nº de
- * pedido. São os três números que se comparam de linha para linha e que ligam
- * a tela à comanda impressa — o "#1042" da tela é o mesmo "#1042" que sai no
+ * A MONO PINTA EXATAMENTE QUATRO COISAS: dinheiro, hora, tempo decorrido e nº
+ * de pedido. São os números que se comparam de linha para linha e que ligam a
+ * tela à comanda impressa — o "#1042" da tela é o mesmo "#1042" que sai no
  * papel de 48 colunas, e essa continuidade é o que faz o balcão e a cozinha
  * falarem do mesmo pedido.
  *
- * FORA DESSES TRÊS, NÃO USE. Rótulo em mono, frase em mono ou contagem de
- * categoria em mono transformam o painel em estética de terminal, e aí ele
- * deixa de ler. Uma contagem que não se compara com nada é texto, não número.
+ * FORA DESSES QUATRO, NÃO USE — e a lista é literal. Não entram: minuto de
+ * configuração ("25–35 min" do prazo de preparo), quantidade ("2×"),
+ * coordenada, contagem. Todos são números; nenhum se compara descendo uma
+ * coluna, e em mono eles só emprestam ao painel um sotaque de terminal que
+ * custa legibilidade.
+ *
+ * NÃO É A MONO que dá aparência de máquina a uma tela — é o rótulo em caixa
+ * alta com peso alto e espacejamento largo. Ver o nível 3 em `tokens.css`.
  *
  * `.num` acrescenta o alinhamento à direita, que é o que faz uma COLUNA de
  * dinheiro ler como coluna. Número solto dentro de uma frase usa `.tnum`.

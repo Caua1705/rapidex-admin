@@ -28,10 +28,11 @@ específica deste documento:
    baixo. Nunca cinza-azulado de editor de código — um `#1a1a1a` ao lado destes
    tons lê como um buraco azul no meio da tela. O claro existe inteiro e é o
    modo de dia.
-2. **O número é monoespaçado, e isso é o sotaque.** Tempo decorrido, dinheiro e
-   nº de pedido, em JetBrains Mono. É a letra da comanda térmica e do display
-   do forno, e a continuidade entre a tela e o papel é o que faz o balcão e a
-   cozinha falarem do mesmo pedido. **Fora desses três, não.** Ver §1.
+2. **O número é monoespaçado, e isso é o sotaque.** Dinheiro, hora, tempo
+   decorrido e nº de pedido, em JetBrains Mono. É a letra da comanda térmica e
+   do display do forno, e a continuidade entre a tela e o papel é o que faz o
+   balcão e a cozinha falarem do mesmo pedido. **Fora desses quatro, não** — e
+   o que faz uma tela parecer máquina não é ela, é o rótulo. Ver §1.
 3. **A brasa é o único degradê.** Ele pinta a barra de maturação do pedido —
    latão quando entra, brasa quando estoura. É a única escala contínua da tela,
    e ler "está esquentando" de longe é o trabalho dela. Qualquer outro degradê
@@ -72,7 +73,7 @@ neutra, e é ela que dá à tela o ar de placa de equipamento.
 | --- | ---------------- | ------------ | ---------------- | ---- | --------- | --------- | ----------------------------------------------- |
 | 1   | Título de página | `.t-title`   | 19 / 24          | 700  | normal    | `--ink`   | **um por tela**, no alto à esquerda             |
 | 2   | Título de seção  | `.t-section` | 14 / 20          | 600  | normal    | `--ink`   | cartão, faixa, aba, grupo, diálogo              |
-| 3   | Rótulo           | `.t-label`   | 10 / 14          | 700  | MAIÚSCULA | `--ink-3` | nome de campo, cabeçalho de faixa, grupo da nav |
+| 3   | Rótulo           | `.t-label`   | 11 / 14          | 600  | MAIÚSCULA | `--ink-3` | nome de campo, cabeçalho de faixa, grupo da nav |
 | 4   | Corpo            | `.t-body`    | 14 / 20          | 400  | normal    | `--ink`   | o conteúdo                                      |
 | 5   | Auxiliar         | `.t-aux`     | 13 / 18          | 400  | normal    | `--ink-3` | ajuda, meta, hora, contagem, rodapé             |
 
@@ -88,9 +89,12 @@ não der para dizer, o texto está errado — não falta um nível.
 - O contraste entre níveis vem de **corpo + peso + caixa + tinta juntos**, nunca
   de um só. Corpo (14) e auxiliar (13) diferem em 1px porque quem os separa de
   verdade é a tinta.
-- O rótulo é a **etiqueta gravada**: 10px, peso 700, espacejamento de 0,1em.
-  Maiúscula e `--ink-3` fazem parte do nível, não são opção — é o que permite a
-  ele ser 10px sem competir com o valor que nomeia.
+- **UM ELEMENTO POR LINHA CARREGA O PESO.** Nome do produto, preço e rótulo
+  todos em semibold na mesma linha é o mesmo que nenhum em semibold: sem um
+  ponto de entrada, o olho varre a linha inteira. Escolha qual dos três é a
+  resposta da tela e deixe os outros dois em 400.
+- Maiúscula e `--ink-3` fazem parte do nível 3, não são opção — é o que permite
+  a ele ser 11px sem competir com o valor que nomeia.
 - Cada classe declara corpo, entrelinha, peso, espacejamento **e tinta** juntos.
   Meia definição — corpo aqui, cor lá no componente — é como um nível vira
   quatro variantes em quatro telas.
@@ -100,23 +104,30 @@ não der para dizer, o texto está errado — não falta um nível.
 ## A mono, e a coleira dela
 
 **`.tnum` e `.num` trocam a LETRA, não o nível.** Elas pintam JetBrains Mono, e
-pintam exatamente três coisas:
+pintam exatamente quatro coisas:
 
 | O quê           | Por quê                                                             |
 | --------------- | ------------------------------------------------------------------- |
-| tempo decorrido | é o número que decide o que fazer primeiro, comparado linha a linha |
 | dinheiro        | é conferido no caixa, e alinha em coluna                            |
+| hora            | "20:41" é lido contra a hora da linha de cima                       |
+| tempo decorrido | é o número que decide o que fazer primeiro, comparado linha a linha |
 | nº de pedido    | é o mesmo "#1042" que sai na comanda térmica de 48 colunas          |
 
-**Fora desses três, não use.** Rótulo em mono, frase em mono ou contagem de
-categoria em mono transformam o painel em estética de terminal, e aí ele deixa
-de ler.
+**Fora desses quatro, não use — e a lista é literal.** Não entram: minuto de
+configuração ("25–35 min" do prazo de preparo), quantidade ("2×"), telefone,
+CEP, coordenada, quilômetro, contagem. Todos são números; nenhum se compara
+descendo uma coluna, e em mono eles só emprestam ao painel um sotaque de
+terminal que custa legibilidade.
+
+**Não é a mono que dá aparência de máquina a uma tela** — é o rótulo em caixa
+alta com peso alto e espacejamento largo. O nível 3 já foi 10px/700/0.1em e
+imitava tão bem uma monoespaçada que a tela inteira parecia estar nela.
 
 **Contagem não é mono, e não precisa de classe nenhuma:** `reset.css` já liga
 numeral tabular no `body` inteiro. "12 itens" ao lado do nome de uma categoria
 é uma frase com um número dentro — ele alinha e continua na letra da interface.
-Um campo numérico de formulário (preço, coordenada, taxa) leva `.tnum`: ali o
-valor é digitado e conferido dígito a dígito.
+Campo de formulário segue a mesma lista: preço, taxa e valor por km levam
+`.tnum` porque são reais; telefone, CEP e coordenada não levam.
 
 `.num` acrescenta o alinhamento à direita, que é o que faz uma COLUNA de
 dinheiro ler como coluna. Número dentro de uma frase usa `.tnum`.

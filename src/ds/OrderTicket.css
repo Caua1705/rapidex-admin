@@ -79,7 +79,7 @@
 .ds-ticket__total {
   font-size: var(--ts-size);
   line-height: var(--ts-line);
-  font-weight: var(--w-semibold);
+  font-weight: var(--w-regular);
   white-space: nowrap;
 }
 
@@ -108,7 +108,7 @@
 }
 
 .ds-ticket__numero {
-  font-weight: var(--w-bold);
+  font-weight: var(--w-medium);
   color: var(--ink-2);
 }
 

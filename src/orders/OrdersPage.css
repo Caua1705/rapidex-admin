@@ -37,7 +37,7 @@
   background: transparent;
   color: var(--ink-3);
   font-size: var(--tb-size);
-  font-weight: var(--w-medium);
+  font-weight: var(--w-regular);
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   transition: color var(--motion-fast) var(--ease);
@@ -49,7 +49,7 @@
 
 .tab--on {
   color: var(--ink);
-  font-weight: var(--w-bold);
+  font-weight: var(--w-semibold);
   border-bottom-color: var(--ember);
 }
 
@@ -152,25 +152,25 @@
 
 /*
  * A faixa é a informação principal do controle, não um enfeite ao lado dos
- * botões: é o número que se compara com o que o cliente vê na previsão. Ela é
- * mono porque é um número que se compara — a mesma regra do ticket.
+ * botões.
+ *
+ * ELA NÃO É MONO. "25–35 min" é minuto de configuração: não se compara
+ * descendo uma coluna e não sai na comanda impressa. A mono aqui era o que
+ * fazia a barra inteira parecer um terminal, junto com os rótulos ao lado.
+ * O tabular do `body` já a alinha; quem a destaca é o peso e a tinta cheia.
  */
 .prep__range {
-  font-family: var(--font-num);
   font-size: var(--tb-size);
   line-height: var(--tb-line);
-  font-weight: var(--w-bold);
+  font-weight: var(--w-semibold);
   color: var(--ink);
   white-space: nowrap;
-  letter-spacing: -0.02em;
 }
 
-/* Sem faixa gravada a frase é texto, não número: sai da mono e do peso. */
+/* Sem faixa gravada a frase é texto, não número: sai do peso e da tinta. */
 .prep__range--empty {
-  font-family: var(--font-ui);
   font-weight: var(--w-regular);
   color: var(--ink-3);
-  letter-spacing: 0;
 }
 
 .prep__buttons {
@@ -302,7 +302,7 @@
  */
 .faixa__count {
   font-size: var(--ta-size);
-  font-weight: var(--w-bold);
+  font-weight: var(--w-semibold);
   color: var(--ink);
 }
 

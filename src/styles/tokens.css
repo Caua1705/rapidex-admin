@@ -201,14 +201,20 @@
   --ts-track: -0.008em;
 
   /*
-   * 3. Rótulo — a etiqueta gravada: 10px, peso alto, muito espacejada.
-   * Ela é menor e mais espacejada que a anterior de propósito: com o peso 700
-   * da Space Grotesk, 11px começava a competir com o corpo.
+   * 3. Rótulo.
+   *
+   * ERA 10px / 700 / 0.1em, e ESSE era o texto que dava à tela a aparência de
+   * máquina — não a monoespaçada, que nunca encostou em rótulo nenhum. Space
+   * Grotesk em caixa alta, peso 700 e espacejamento de 0.1em imita bem demais
+   * uma mono: as letras ficam com a mesma cor e quase o mesmo passo.
+   *
+   * 11 / 600 / 0.06em continua sendo um rótulo — a caixa alta e a tinta de
+   * apoio fazem o trabalho —, mas volta a parecer letra escrita.
    */
-  --tl-size: 10px;
+  --tl-size: 11px;
   --tl-line: 14px;
-  --tl-weight: 700;
-  --tl-track: 0.1em;
+  --tl-weight: 600;
+  --tl-track: 0.06em;
 
   /*
    * 4. Corpo, e 5. Auxiliar.

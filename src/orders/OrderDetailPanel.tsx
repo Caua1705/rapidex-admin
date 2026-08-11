@@ -255,7 +255,7 @@ function DetailBody({ detail }: { detail: OrderDetail }) {
         <h3 className="detail__heading">Cliente</h3>
         <div className="detail__row">
           <span>{detail.customer_name_snapshot}</span>
-          <span className="tnum">{detail.customer_phone_snapshot}</span>
+          <span>{detail.customer_phone_snapshot}</span>
         </div>
       </section>
 
@@ -372,7 +372,7 @@ function ItemLine({ item }: { item: OrderItem }) {
   return (
     <li className="items__row">
       <div className="items__main">
-        <span className="items__qty tnum">{item.quantity}×</span>
+        <span className="items__qty">{item.quantity}×</span>
         <span className="items__name">{item.product_name_snapshot}</span>
         <span className="items__price num">{formatCurrency(item.total)}</span>
       </div>

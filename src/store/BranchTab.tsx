@@ -167,7 +167,7 @@ export function BranchTab({ branchDetail }: { branchDetail: ReturnType<typeof us
           <label className="field">
             <span className="field__label">Telefone</span>
             <input
-              className="input tnum"
+              className="input"
               inputMode="tel"
               value={draft.phone}
               onChange={(event) => patch({ phone: event.target.value })}
@@ -178,7 +178,7 @@ export function BranchTab({ branchDetail }: { branchDetail: ReturnType<typeof us
           <label className="field">
             <span className="field__label">WhatsApp</span>
             <input
-              className="input tnum"
+              className="input"
               inputMode="tel"
               value={draft.whatsapp}
               onChange={(event) => patch({ whatsapp: event.target.value })}
@@ -247,7 +247,7 @@ export function BranchTab({ branchDetail }: { branchDetail: ReturnType<typeof us
           <label className="field">
             <span className="field__label">CEP</span>
             <input
-              className="input tnum"
+              className="input"
               inputMode="numeric"
               value={draft.zipcode}
               onChange={(event) => patch({ zipcode: event.target.value })}
@@ -273,7 +273,7 @@ export function BranchTab({ branchDetail }: { branchDetail: ReturnType<typeof us
           <label className="field">
             <span className="field__label">Latitude</span>
             <input
-              className="input tnum"
+              className="input"
               inputMode="decimal"
               placeholder="-3.731862"
               value={draft.latitude}
@@ -285,7 +285,7 @@ export function BranchTab({ branchDetail }: { branchDetail: ReturnType<typeof us
           <label className="field">
             <span className="field__label">Longitude</span>
             <input
-              className="input tnum"
+              className="input"
               inputMode="decimal"
               placeholder="-38.526669"
               value={draft.longitude}

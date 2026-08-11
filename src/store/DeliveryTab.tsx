@@ -199,7 +199,7 @@ export function DeliveryTab({
           <label className="field">
             <span className="field__label">Distância máxima (km)</span>
             <input
-              className="input tnum"
+              className="input"
               inputMode="decimal"
               value={draft.maxDistanceKm}
               onChange={(event) => patch({ maxDistanceKm: event.target.value })}
