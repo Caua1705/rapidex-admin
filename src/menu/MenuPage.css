@@ -283,19 +283,30 @@
   padding: 0 var(--sp-12) var(--sp-12);
 }
 
+/*
+ * A LINHA DO CARDÁPIO NÃO É UMA LINHA DE TABELA DENSA.
+ *
+ * A densidade de 32px vale para lista de conferência — o que se percorre com o
+ * olho procurando uma exceção. Esta é a lista que o lojista LÊ: ele vem
+ * procurar um item pelo nome, entre sessenta, muitas vezes com o celular na
+ * outra mão. Comprimida, ela cabia mais itens e nenhum era achado rápido.
+ *
+ * 44px é o alvo de dedo, e não é coincidência: é a mesma medida que a linha
+ * precisa para o nome caber em 16px com respiro em cima e embaixo.
+ */
 .item {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 96px 34px var(--control-h);
+  grid-template-columns: 36px minmax(0, 1fr) 108px minmax(0, 76px) 34px var(--control-h);
   align-items: center;
   gap: var(--sp-12);
-  min-height: var(--sp-32);
-  padding-block: var(--sp-4);
+  min-height: var(--tap-mobile);
+  padding-block: var(--sp-8);
   border-bottom: 1px solid var(--line);
 }
 
 /* Com filial escolhida entra a coluna de setor, entre o preço e o estado. */
 .menu__items--with-sector .item {
-  grid-template-columns: 28px minmax(0, 1fr) 96px 120px 34px var(--control-h);
+  grid-template-columns: 36px minmax(0, 1fr) 108px 132px minmax(0, 76px) 34px var(--control-h);
 }
 
 .item:hover {
@@ -308,8 +319,8 @@
  * coluna de buracos pretos, e a foto é do lojista — não do painel.
  */
 .item__thumb {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--r-chip);
   object-fit: cover;
 }
@@ -331,12 +342,23 @@
   min-width: 0;
 }
 
+/*
+ * O NOME DO PRODUTO É O NÍVEL 2, não o corpo. Ele é a informação que a pessoa
+ * veio procurar nesta tela — em 14px ele tinha o mesmo peso visual do setor e
+ * da descrição, e a lista virava um bloco cinza sem ponto de entrada.
+ *
+ * Ele é o ÚNICO da linha em semibold: o preço fica em 400 e o setor em
+ * auxiliar. Três pesos na mesma linha é o mesmo que nenhum.
+ */
 .item__name {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--tb-size);
+  font-size: var(--ts-size);
+  line-height: var(--ts-line);
+  font-weight: var(--ts-weight);
+  letter-spacing: var(--ts-track);
 }
 
 /*
@@ -377,7 +399,6 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--sp-4);
 }
 
 /*
@@ -385,6 +406,10 @@
  * interruptor ligado, em toda linha, é a mesma informação duas vezes.
  */
 .item__state {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
   font-size: var(--tl-size);
   line-height: var(--tl-line);
   font-weight: var(--tl-weight);
@@ -563,7 +588,7 @@
    */
   .item,
   .menu__items--with-sector .item {
-    grid-template-columns: minmax(0, 1fr) 96px 34px var(--control-h-touch);
+    grid-template-columns: minmax(0, 1fr) 108px minmax(0, 76px) 34px var(--control-h-touch);
     min-height: var(--tap-mobile);
     gap: var(--sp-8);
   }

@@ -69,13 +69,13 @@ solto.
 aberturas fechadas — ela tem desenho próprio, ao contrário de uma neo-grotesca
 neutra, e é ela que dá à tela o ar de placa de equipamento.
 
-| #   | Nível            | Classe       | Corpo/entrelinha | Peso | Caixa     | Tinta     | Onde                                            |
-| --- | ---------------- | ------------ | ---------------- | ---- | --------- | --------- | ----------------------------------------------- |
-| 1   | Título de página | `.t-title`   | 19 / 24          | 700  | normal    | `--ink`   | **um por tela**, no alto à esquerda             |
-| 2   | Título de seção  | `.t-section` | 14 / 20          | 600  | normal    | `--ink`   | cartão, faixa, aba, grupo, diálogo              |
-| 3   | Rótulo           | `.t-label`   | 11 / 14          | 600  | MAIÚSCULA | `--ink-3` | nome de campo, cabeçalho de faixa, grupo da nav |
-| 4   | Corpo            | `.t-body`    | 14 / 20          | 400  | normal    | `--ink`   | o conteúdo                                      |
-| 5   | Auxiliar         | `.t-aux`     | 13 / 18          | 400  | normal    | `--ink-3` | ajuda, meta, hora, contagem, rodapé             |
+| #   | Nível            | Classe       | Corpo/entrelinha | Peso | Caixa     | Tinta     | Onde                                              |
+| --- | ---------------- | ------------ | ---------------- | ---- | --------- | --------- | ------------------------------------------------- |
+| 1   | Título de página | `.t-title`   | 19 / 24          | 700  | normal    | `--ink`   | **um por tela**, no alto à esquerda               |
+| 2   | Título de seção  | `.t-section` | 16 / 22          | 600  | normal    | `--ink`   | cartão, faixa, diálogo, **nome de item de lista** |
+| 3   | Rótulo           | `.t-label`   | 11 / 14          | 600  | MAIÚSCULA | `--ink-3` | nome de campo, cabeçalho de faixa, grupo da nav   |
+| 4   | Corpo            | `.t-body`    | 14 / 20          | 400  | normal    | `--ink`   | o conteúdo                                        |
+| 5   | Auxiliar         | `.t-aux`     | 13 / 18          | 400  | normal    | `--ink-3` | ajuda, meta, hora, contagem, rodapé               |
 
 **A prova: bata o olho em qualquer texto da tela e diga qual nível ele usa.** Se
 não der para dizer, o texto está errado — não falta um nível.
@@ -352,7 +352,12 @@ ao lado de um endereço inteiro.
   lugar diferente conforme o comprimento do nome. **A coluna do nome tem teto**
   (`--page-max` na lista): num monitor de 27", o preço ia parar a 900px do item
   que ele precifica.
-- **Linha de lista densa**: alvo de ~32px. O que estoura essa altura é empilhar
+- **Linha de lista densa é para CONFERÊNCIA** — o que se percorre procurando
+  uma exceção: alvo de ~32px. **Lista que se LÊ é outra coisa**: o cardápio é
+  onde o lojista procura um item pelo nome entre sessenta, então a linha tem
+  44px e o nome sai no nível 2. Comprimida, ela cabia mais itens e nenhum era
+  achado rápido.
+- **Linha densa**: alvo de ~32px. O que estoura essa altura é empilhar
   rótulo em cima de controle — ponha lado a lado. Em `max-width: 720px` a
   densidade cede e a linha vira alvo de dedo.
 - **Ação secundária é ícone SEM CAIXA**, revelada no hover da linha, e

@@ -194,9 +194,16 @@
   --tt-weight: 700;
   --tt-track: -0.015em;
 
-  /* 2. Título de seção. */
-  --ts-size: 14px;
-  --ts-line: 20px;
+  /*
+   * 2. Título de seção.
+   *
+   * 16, NÃO 14. Quando o corpo subiu de 13 para 14, este nível ficou com o
+   * MESMO corpo do corpo — dois níveis separados só por peso, o que não é
+   * separação nenhuma: "subir o nome do produto um nível" não mudava tamanho
+   * algum. O degrau foi restaurado, e a escala volta a ser 19 / 16 / 14 / 13.
+   */
+  --ts-size: 16px;
+  --ts-line: 22px;
   --ts-weight: 600;
   --ts-track: -0.008em;
 

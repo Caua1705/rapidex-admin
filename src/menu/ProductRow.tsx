@@ -108,23 +108,30 @@ export function ProductRow({
       ) : null}
 
       {/*
-        A célula existe sempre, com ou sem interruptor: é a grade que mantém o
-        preço e a ação alinhados de uma linha para a outra.
+        O ESTADO TEM CÉLULA PRÓPRIA, e não divide a do interruptor.
+        Dividindo, "Esgotado" transbordava a coluna de 34px e caía por cima do
+        preço — o mesmo defeito de quem não decide quem cede numa linha.
+
+        Só o estado que NÃO é o normal ganha palavra: ver o comentário do
+        componente. A célula vazia mantém a grade alinhada de linha para linha.
+      */}
+      <span className="item__state">
+        {showsAvailabilityToggle(product) && !available ? 'Esgotado' : ''}
+      </span>
+
+      {/*
+        A célula do interruptor existe sempre, com ou sem controle: é a grade
+        que mantém o preço e a ação alinhados de uma linha para a outra.
       */}
       <span className="item__status">
         {showsAvailabilityToggle(product) ? (
-          <>
-            {/* Só o estado que NÃO é o normal ganha palavra. Ver o comentário
-                do componente. */}
-            {available ? null : <span className="item__state">Esgotado</span>}
-            <Switch
-              hideLabel
-              checked={available}
-              disabled={isSaving}
-              onChange={onToggleAvailability}
-              label={`${available ? 'Marcar como esgotado' : 'Marcar como disponível'}: ${product.name}`}
-            />
-          </>
+          <Switch
+            hideLabel
+            checked={available}
+            disabled={isSaving}
+            onChange={onToggleAvailability}
+            label={`${available ? 'Marcar como esgotado' : 'Marcar como disponível'}: ${product.name}`}
+          />
         ) : null}
       </span>
 
