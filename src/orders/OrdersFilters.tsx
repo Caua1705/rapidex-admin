@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { BellIcon, RefreshIcon, SearchIcon } from '../ds/icons';
 import { datesForPeriod, type OrdersFilterState, type PeriodPreset } from './order-filters';
 import { PrepTimeControl } from './PrepTimeControl';
+import { useDeliveryEstimate } from './useDeliveryEstimate';
 import type { StreamStatus } from './useOrderStream';
 
 const PERIODOS: readonly { value: PeriodPreset; label: string }[] = [
@@ -139,6 +140,20 @@ export function OrdersFilters({
       <div className="filtros__dir">
         <PrepTimeControl branchId={filters.branchId} />
 
+        {/*
+          O TEMPO DE ENTREGA AO LADO DO DE PREPARO. Os dois juntos são a
+          promessa que o cliente vê — preparo é o que a cozinha controla,
+          entrega é o que a rua acrescenta —, e separados em telas diferentes
+          ninguém confere a soma.
+
+          Ele é SÓ LEITURA aqui, e não por economia: `estimated_delivery_time`
+          é do RESTAURANTE (ver `useDeliveryEstimate`), então um botão de +5
+          nesta barra mudaria a previsão de todas as filiais de uma vez.
+          Empurrar o prazo no meio do turno é o que o preparo faz, e ele é por
+          filial. Quem edita este é Minha loja › Geral.
+        */}
+        <DeliveryEstimate />
+
         <span className={`conn conn--${streamStatus}`} data-testid="stream-status">
           <span className="conn__dot" />
           {STREAM_LABELS[streamStatus]}
@@ -173,5 +188,30 @@ export function OrdersFilters({
         </button>
       </div>
     </div>
+  );
+}
+
+/**
+ * O tempo estimado de entrega, no mesmo tratamento do prazo de preparo:
+ * rótulo em nível 3 e o número em mono, porque é um número que se compara —
+ * com o que o cliente vê no aplicativo e com o prazo de preparo ao lado.
+ *
+ * Sem faixa gravada a frase é texto, não número, e sai da mono: é a mesma
+ * regra que `prep__range--empty` já aplicava.
+ */
+function DeliveryEstimate() {
+  const estimate = useDeliveryEstimate();
+
+  return (
+    <span className="prep" data-testid="delivery-estimate">
+      <span className="prep__label">Entrega</span>
+      {estimate ? (
+        <span className="prep__range tnum">
+          {estimate.min}–{estimate.max} min
+        </span>
+      ) : (
+        <span className="prep__range prep__range--empty">sem faixa</span>
+      )}
+    </span>
   );
 }
