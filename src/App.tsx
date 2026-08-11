@@ -9,7 +9,9 @@ import { MenuPage } from './menu/MenuPage';
 import { OrdersPage } from './orders/OrdersPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { LoginPage } from './pages/LoginPage';
-import { StorePage } from './store/StorePage';
+import { StoreLayout } from './store/StoreLayout';
+import { StoreSectionPage } from './store/StoreSectionPage';
+import { STORE_SECTIONS } from './store/store-sections';
 import { UiGalleryPage } from './ui-gallery/UiGalleryPage';
 
 /**
@@ -52,16 +54,30 @@ export function App() {
               </RequireAuth>
             }
           />
+          {/*
+            MINHA LOJA É UM GRUPO DE ROTAS, uma por seção. A lista da esquerda
+            é navegação de verdade — o endereço identifica a tela, o F5 volta
+            onde estava e o botão voltar do navegador funciona entre seções.
+
+            `index` redireciona para Geral: /minha-loja sozinha não é uma tela,
+            é o nome do grupo. Deixá-la renderizar um estado vazio "escolha uma
+            seção" seria uma tela a mais para atravessar toda vez.
+          */}
           <Route
             path="/minha-loja"
             element={
               <RequireAuth>
                 <AppShell>
-                  <StorePage />
+                  <StoreLayout />
                 </AppShell>
               </RequireAuth>
             }
-          />
+          >
+            <Route index element={<Navigate to="geral" replace />} />
+            {STORE_SECTIONS.map((secao) => (
+              <Route key={secao.id} path={secao.id} element={<StoreSectionPage id={secao.id} />} />
+            ))}
+          </Route>
           <Route
             path="/cozinha"
             element={

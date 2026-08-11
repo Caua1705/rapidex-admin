@@ -9,7 +9,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { installFakeApi, FAKE_BRANCH, LOGIN_EMAIL, LOGIN_PASSWORD, type FakeApi } from './fake-api';
-import { escolher } from './seletor';
+import { escolher, escolherFilial as escolherFilialNoTopo } from './seletor';
 
 let api: FakeApi;
 
@@ -30,12 +30,21 @@ async function abrirMinhaLoja(page: Page) {
   await page.getByRole('button', { name: 'Entrar' }).click();
 
   await page.getByRole('link', { name: 'Minha loja' }).click();
-  await expect(page).toHaveURL(/\/minha-loja$/);
+  // /minha-loja é o nome do GRUPO de rotas, não uma tela: ela redireciona para
+  // a primeira seção.
+  await expect(page).toHaveURL(/\/minha-loja\/geral$/);
 }
 
-/** A tela abre com "todas as filiais"; as abas de filial precisam de uma. */
+/**
+ * A tela abre com "todas as filiais"; as seções de filial precisam de uma.
+ *
+ * A escolha passou a sair do seletor do CABEÇALHO, e não do botão dentro da
+ * página: com uma seção por rota, o botão só existe na página de filial que
+ * estiver aberta — e o cabeçalho funciona de qualquer uma delas, que é como o
+ * lojista faz.
+ */
 async function escolherFilial(page: Page) {
-  await page.getByTestId(`store-pick-branch-${FAKE_BRANCH.id}`).click();
+  await escolherFilialNoTopo(page);
 }
 
 test('a sidebar leva a Minha loja e a loja abre e fecha pelo topo', async ({ page }) => {

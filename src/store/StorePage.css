@@ -3,11 +3,11 @@
  * MINHA LOJA — índice grudento à esquerda, coluna única à direita
  * ============================================================================
  *
- * As seis abas saíram. Ver o comentário de `StorePage.tsx` para o porquê; aqui
- * está o que a decisão custa em CSS: a página ficou longa, e por isso o índice
- * é `position: sticky` e o alvo de cada seção tem `scroll-margin-top` — sem
- * ele, clicar numa âncora encostaria o título da seção na borda de cima da
- * área de rolagem.
+ * UMA SEÇÃO, UMA PÁGINA. Ver `StoreLayout.tsx` para o porquê. O que a decisão
+ * custa em CSS é pouco, e é isso que a recomenda: a navegação da esquerda é
+ * grudenta, a coluna rola sozinha, e a barra de salvar fica no rodapé DA
+ * PÁGINA — com uma seção por vez, ela nunca pertence a um formulário que não
+ * está na tela.
  */
 
 .store {
@@ -21,11 +21,15 @@
 }
 
 /* ==========================================================================
- * O ÍNDICE
+ * A NAVEGAÇÃO DA SEÇÃO
  *
- * Ele NÃO imita a lateral: sem ícone, sem caixa, sem plano próprio. A lateral
- * é a navegação do produto; isto é o sumário de uma tela — dois componentes
- * com o mesmo desenho fariam o lojista achar que trocou de seção.
+ * Ela NÃO imita a lateral do produto: sem ícone, sem caixa, sem plano próprio.
+ * A lateral diz em que parte do PRODUTO você está; isto diz em que parte de
+ * UMA tela — dois componentes com o mesmo desenho fariam o lojista achar que
+ * trocou de seção do painel.
+ *
+ * As classes ainda se chamam `__index` e `__anchor` de quando isto era um
+ * sumário de âncoras. O nome ficou; o que elas são hoje é `NavLink`.
  * ======================================================================= */
 .store__index {
   flex: 0 0 148px;
@@ -91,47 +95,14 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-12);
-  /* O clique na âncora não pode encostar o título na borda de cima. */
-  scroll-margin-top: var(--sp-16);
 }
 
-/*
- * O CABEÇALHO INTEIRO É O BOTÃO que abre e fecha a seção — não um chevron de
- * 16px no canto. Numa tela em que metade das seções nasce fechada, o alvo de
- * abrir é o mais clicado dela, e um alvo de 16px para a ação mais comum é o
- * tipo de economia que custa clique errado no meio do turno.
- */
 .store__section-head {
   display: flex;
   align-items: baseline;
   gap: var(--sp-8);
-  width: 100%;
-  padding: 0 0 var(--sp-4);
-  border: 0;
+  padding-bottom: var(--sp-4);
   border-bottom: 1px solid var(--line);
-  background: transparent;
-  text-align: left;
-}
-
-.store__section-head:hover {
-  border-bottom-color: var(--line-strong);
-}
-
-.store__section-head:hover .t-section {
-  color: var(--ink);
-}
-
-/* O chevron acompanha a linha de base do título, não o centro do botão. */
-.store__chevron {
-  display: flex;
-  align-self: center;
-  flex: 0 0 auto;
-  color: var(--ink-3);
-}
-
-/* Fechada, a seção é só a linha de título: sem corpo, sem vão embaixo. */
-.store__section--fechada {
-  gap: 0;
 }
 
 .store__empty {

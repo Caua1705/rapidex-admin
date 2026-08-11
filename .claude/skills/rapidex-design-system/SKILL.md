@@ -346,6 +346,32 @@ um painel parecer quebrado.
 - Verifique em **1440, 1900 e 2560** — `design/shots/enquadramento.spec.ts` mede
   a distância entre a lateral e o conteúdo e falha acima de 100px.
 
+## Tela com muitas seções vira ROTA, não âncora
+
+Uma configuração de seis formulários não cabe numa tela. Minha loja já foi
+**seis abas** (cada uma escondia um formulário atrás de um clique, e conferir
+duas custava perder o contexto), depois **coluna única com âncoras** (tudo na
+página, rolagem longa, e o rodapé de uma seção encostando no cabeçalho da
+seguinte), depois **âncoras com recolhimento** — que era remendo: escondia o
+problema e cobrava um clique para ver o que já estava carregado.
+
+O que resolve é **uma seção, uma rota** (`/minha-loja/entrega`), com a lista da
+esquerda como navegação de verdade:
+
+- o endereço identifica a tela — dá para mandar um link ao suporte, e o F5
+  volta onde estava;
+- o botão voltar do navegador funciona entre seções;
+- cada página monta só o SEU formulário. A coluna única montava seis, com seis
+  leituras de API, para mostrar um.
+
+**O preço, e ele é real:** o Ctrl+F deixa de varrer a configuração inteira. Em
+troca, a navegação da esquerda continua listando as seções o tempo todo — o
+mapa não sumiu, só deixou de ser um sumário de rolagem.
+
+A navegação da seção **não imita a lateral do produto**: sem ícone, sem caixa,
+sem plano próprio. Uma diz em que parte do produto você está; a outra, em que
+parte de uma tela.
+
 ## Truncar
 
 Truncar é legítimo quando falta espaço; o defeito é truncar quando **sobra**.
