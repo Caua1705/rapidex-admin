@@ -73,14 +73,20 @@ neutra, e é ela que dá à tela o ar de placa de equipamento.
 | 1   | Título de página | `.t-title`   | 19 / 24          | 700  | normal    | `--ink`   | **um por tela**, no alto à esquerda             |
 | 2   | Título de seção  | `.t-section` | 14 / 20          | 600  | normal    | `--ink`   | cartão, faixa, aba, grupo, diálogo              |
 | 3   | Rótulo           | `.t-label`   | 10 / 14          | 700  | MAIÚSCULA | `--ink-3` | nome de campo, cabeçalho de faixa, grupo da nav |
-| 4   | Corpo            | `.t-body`    | 13 / 18          | 400  | normal    | `--ink`   | o conteúdo                                      |
-| 5   | Auxiliar         | `.t-aux`     | 12 / 16          | 400  | normal    | `--ink-3` | ajuda, meta, hora, contagem, rodapé             |
+| 4   | Corpo            | `.t-body`    | 14 / 20          | 400  | normal    | `--ink`   | o conteúdo                                      |
+| 5   | Auxiliar         | `.t-aux`     | 13 / 18          | 400  | normal    | `--ink-3` | ajuda, meta, hora, contagem, rodapé             |
 
 **A prova: bata o olho em qualquer texto da tela e diga qual nível ele usa.** Se
 não der para dizer, o texto está errado — não falta um nível.
 
+- **Corpo é 14 e auxiliar é 13 por causa da DISTÂNCIA DE LEITURA.** A escala
+  anterior (13 e 12) foi calibrada olhando um laptop a 50cm; este painel é lido
+  no balcão, muitas vezes de pé, mais longe, e por alguém que pode ter
+  cinquenta anos. Os outros três níveis NÃO subiram junto: se tudo subisse, a
+  hierarquia seria a mesma com a tela mais cheia, e o que se ganha em
+  legibilidade se perderia em quantos pedidos cabem na dobra.
 - O contraste entre níveis vem de **corpo + peso + caixa + tinta juntos**, nunca
-  de um só. Corpo (13) e auxiliar (12) diferem em 1px porque quem os separa de
+  de um só. Corpo (14) e auxiliar (13) diferem em 1px porque quem os separa de
   verdade é a tinta.
 - O rótulo é a **etiqueta gravada**: 10px, peso 700, espacejamento de 0,1em.
   Maiúscula e `--ink-3` fazem parte do nível, não são opção — é o que permite a

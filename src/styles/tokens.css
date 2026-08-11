@@ -210,15 +210,29 @@
   --tl-weight: 700;
   --tl-track: 0.1em;
 
-  /* 4. Corpo. */
-  --tb-size: 13px;
-  --tb-line: 18px;
+  /*
+   * 4. Corpo, e 5. Auxiliar.
+   *
+   * 14 e 13, NÃO 13 e 12. A escala anterior foi calibrada olhando um laptop a
+   * 50cm; este painel é lido no balcão, muitas vezes de pé, mais longe, e por
+   * alguém que pode ter cinquenta anos. Um degrau a mais aqui não é conforto:
+   * é a diferença entre ler o nome do cliente de relance e chegar mais perto.
+   *
+   * Só estes dois subiram. Título, título de seção e rótulo ficaram onde
+   * estavam de propósito — se tudo subisse junto, a hierarquia seria a mesma
+   * com a tela mais cheia, e o que se ganharia em legibilidade se perderia em
+   * quantos pedidos cabem na dobra.
+   *
+   * Eles continuam separados por 1px, porque quem os separa de verdade é a
+   * tinta (`--ink` contra `--ink-3`).
+   */
+  --tb-size: 14px;
+  --tb-line: 20px;
   --tb-weight: 400;
   --tb-track: 0em;
 
-  /* 5. Auxiliar. */
-  --ta-size: 12px;
-  --ta-line: 16px;
+  --ta-size: 13px;
+  --ta-line: 18px;
   --ta-weight: 400;
   --ta-track: 0em;
 

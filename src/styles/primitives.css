@@ -390,7 +390,9 @@
 .tag {
   display: inline-flex;
   align-items: center;
-  height: 18px;
+  /* Subiu de 18 junto com o auxiliar: em 18px, um texto de 13px encostava nas
+     duas bordas e a etiqueta perdia a forma de etiqueta. */
+  height: 20px;
   padding-inline: var(--sp-4);
   border: 1px solid var(--line);
   border-radius: var(--r-chip);
