@@ -447,6 +447,17 @@ export type FakeApi = {
   productSectorCalls: () => { productId: string; printSectorId: string | null }[];
   /** Todos os produtos, para conferir o que o lote gravou. */
   products: () => Product[];
+  /**
+   * Esvazia o quadro, para fotografar o estado sem nenhum pedido.
+   *
+   * É o estado que não aparecia em print nenhum e por isso passou muito tempo
+   * sendo três faixas com zero e mais nada.
+   */
+  clearOrders: () => void;
+  /** Devolve os pedidos iniciais depois de um `clearOrders`. */
+  restoreOrders: () => void;
+  /** Fecha a loja no "banco", como faria o interruptor de Minha loja. */
+  closeStore: () => void;
   /** Empurra um pedido novo pelo SSE, como se outro cliente tivesse comprado. */
   pushNewOrder: (item: OrderListItem) => void;
   /** Muda o status por fora da tela, como faria outro atendente. */
@@ -1069,6 +1080,20 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
 
   return {
     orders: state.orders,
+    /*
+     * Os dois mexem no array NO LUGAR (`splice`), e não trocam a referência:
+     * `api.orders` é o próprio array, e reatribuí-lo deixaria quem já o tem em
+     * mão olhando para a lista velha.
+     */
+    clearOrders() {
+      state.orders.splice(0, state.orders.length);
+    },
+    restoreOrders() {
+      state.orders.splice(0, state.orders.length, ...initialOrders());
+    },
+    closeStore() {
+      state.settings.is_open = false;
+    },
     categories: () => state.categories,
     product: (productId) => state.products.find((item) => item.id === productId),
     reorderCalls: () => state.reorderCalls,

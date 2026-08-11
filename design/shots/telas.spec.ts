@@ -95,13 +95,28 @@ for (const viewport of VIEWPORTS) {
     await page.screenshot({ path: `design/shots/out/${TAG}/item-dialogo-${viewport.name}.png` });
 
     /*
-     * Minha loja é uma COLUNA ÚNICA: as seis seções são formulários inteiros,
-     * cada um com a sua grade, e agora todos estão na mesma página. O print de
-     * cada âncora continua existindo porque a conferência de alinhamento é por
-     * seção — o que mudou é que chegar nelas é rolar, não trocar de aba.
+     * O QUADRO SEM NENHUM PEDIDO. Ele não aparecia em print nenhum, e era
+     * justamente onde a tela não dizia nada: três faixas com zero no meio de
+     * uma tela em branco. Agora tem estado próprio, e ele precisa ser olhado.
+     */
+    api.clearOrders();
+    await page.goto('/pedidos');
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: `design/shots/out/${TAG}/pedidos-vazio-${viewport.name}.png` });
+    api.restoreOrders();
+
+    /*
+     * Minha loja: uma seção, uma rota. O print de cada seção existe porque a
+     * conferência de alinhamento é por formulário.
+     *
+     * SEM `escolherFilial` DE PROPÓSITO — é esta a prova de que a parede sumiu.
+     * As quatro seções de filial respondiam com o mesmo cartão ("Horários de
+     * funcionamento é de uma filial só. Escolha uma:") enquanto o cabeçalho
+     * estivesse em "Todas as filiais"; escolher a filial antes do print
+     * escondia exatamente o defeito. Estes prints saem com o painel no estado
+     * em que ele abre.
      */
     await page.goto('/minha-loja');
-    await escolherFilial(page);
     for (const secao of ['filial', 'horarios', 'entrega', 'pagamento', 'impressao']) {
       await page.getByTestId(`store-anchor-${secao}`).click();
       await page.waitForTimeout(400);

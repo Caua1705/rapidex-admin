@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { useResolvedBranch } from '../auth/use-branch-scope';
 import { formatDelta, formatPrepRange, PREP_TIME_DELTAS } from './prep-time';
 import { usePrepTime } from './usePrepTime';
 
@@ -10,19 +11,32 @@ import { usePrepTime } from './usePrepTime';
  * previsão que o cliente vê acompanha. Por isso são botões de passo fixo e não
  * um campo — no meio do almoço ninguém digita número.
  *
- * O ajuste é POR FILIAL, então com "todas as filiais" escolhidas no cabeçalho
- * não há o que ajustar: os botões ficam travados com o motivo no `title`, em
- * vez de sumirem (um controle que some é um controle que o lojista procura).
+ * O AJUSTE É POR FILIAL DENTRO DE UMA TELA QUE LÊ VÁRIAS, e é isso que o
+ * separa das seções de Minha loja. Ele já respondeu "escolha uma filial" no
+ * lugar do valor, com os botões travados: uma frase que nem fecha em português
+ * ao lado do rótulo ("Preparo escolha uma filial") e um controle que o lojista
+ * não tinha como usar sem antes ir mexer no cabeçalho — e mexer no cabeçalho
+ * filtraria o quadro inteiro para uma loja, que é justamente o que ele não
+ * pediu.
+ *
+ * Hoje ele RESOLVE a filial (a principal, na falta de escolha), opera sobre
+ * ela e DIZ QUAL É, sem tocar no seletor do topo. Com uma filial só o nome não
+ * aparece: não há o que desambiguar.
  */
-export function PrepTimeControl({ branchId }: { branchId: string }) {
+export function PrepTimeControl() {
+  const { branchId, branch, isAutoResolved, hasChoice } = useResolvedBranch();
   const prep = usePrepTime(branchId);
   const [baseMin, setBaseMin] = useState('');
   const [baseMax, setBaseMax] = useState('');
 
-  const semFilial = branchId === '';
-  const motivoTravado = semFilial
-    ? 'Escolha uma filial no topo para ajustar o tempo de preparo.'
-    : undefined;
+  /*
+   * O nome da filial só entra quando ele ACRESCENTA: com "todas" no cabeçalho
+   * e mais de uma loja, o valor na barra é de uma delas e não dizer qual seria
+   * mentir por omissão. Com a filial já escolhida no topo, o cabeçalho já a
+   * nomeia — repetir aqui é a mesma informação duas vezes na mesma tela (§8).
+   */
+  const nomeFilial =
+    isAutoResolved && hasChoice && branch ? (branch.display_name?.trim() || branch.name) : '';
 
   const min = Number(baseMin);
   const max = Number(baseMax);
@@ -54,14 +68,25 @@ export function PrepTimeControl({ branchId }: { branchId: string }) {
       <span className="prep__label">Preparo</span>
 
       {temFaixa ? (
-        <span className="prep__range tnum" data-testid="prep-time-range">
+        <span className="prep__range" data-testid="prep-time-range">
           {formatPrepRange(prep.range)}
         </span>
       ) : (
         <span className="prep__range prep__range--empty" data-testid="prep-time-range">
-          {semFilial ? 'escolha uma filial' : prep.isLoading ? 'carregando…' : 'não definido'}
+          {prep.isLoading ? 'carregando…' : 'não definido'}
         </span>
       )}
+
+      {/*
+        De qual loja é este número. Fica DEPOIS do valor porque é o
+        qualificador dele, não o rótulo do controle — e some quando o
+        cabeçalho já responde a mesma pergunta.
+      */}
+      {nomeFilial ? (
+        <span className="prep__branch" data-testid="prep-time-branch">
+          na {nomeFilial}
+        </span>
+      ) : null}
 
       <span className="prep__buttons">
         {PREP_TIME_DELTAS.map((delta) => (
@@ -69,8 +94,7 @@ export function PrepTimeControl({ branchId }: { branchId: string }) {
             key={delta}
             type="button"
             className="btn btn--sm prep__step"
-            disabled={semFilial || prep.isSaving}
-            title={motivoTravado}
+            disabled={branchId === '' || prep.isSaving}
             onClick={() => void prep.adjust(delta)}
             data-testid={`prep-time-${delta > 0 ? 'mais' : 'menos'}-${Math.abs(delta)}`}
           >

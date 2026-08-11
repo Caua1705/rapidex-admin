@@ -1,25 +1,50 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import type { PrintSector } from '../api/types';
 import { checkSectorName } from '../print-sectors/print-sectors';
+import { formatItemCount } from '../print-sectors/sector-coverage';
 import { usePrintSectors } from '../print-sectors/usePrintSectors';
+import { useSectorCoverage } from '../print-sectors/useSectorCoverage';
 import { EditIcon, PlusIcon } from '../ds/icons';
 import { Switch } from '../ds/Switch';
 
 /**
- * Os setores de impressão da filial.
+ * ============================================================================
+ * IMPRESSÃO — a tela onde a impressora da loja é configurada
+ * ============================================================================
  *
- * Setor é o lugar físico onde o pedido sai impresso — chapa, bar, sobremesa.
- * Ele é POR FILIAL: o "Chapa" da Aldeota e o "Chapa" da Zona Norte são duas
- * linhas diferentes, com impressoras diferentes. Por isso esta aba é de escopo
- * de filial e depende do seletor do cabeçalho.
+ * O QUE ESTA TELA PRECISA DEIXAR ÓBVIO, e que nenhum lojista adivinha: o
+ * navegador NÃO fala com impressora térmica. Quem imprime é um programa
+ * instalado na máquina do balcão (o `print-agent/`, no repositório do
+ * backend), que fica escutando os pedidos e manda as vias para as impressoras
+ * daquela máquina. O painel é o CONTROLE desse programa, não o canal da
+ * impressão. Quem abre esta tela esperando um botão "imprimir" precisa
+ * entender isso na primeira linha, ou vai passar a noite clicando.
  *
- * Desativar em vez de excluir, como no cardápio: os produtos guardam o id do
- * setor, e apagá-lo deixaria o cardápio inteiro apontando para um id órfão.
- * Desativado, ele some das escolhas e continua explicando o que já foi gravado.
+ * ----------------------------------------------------------------------------
+ * O QUE ESTÁ AQUI E O QUE NÃO ESTÁ, E POR QUÊ
+ * ----------------------------------------------------------------------------
+ *
+ * Dos quatro blocos desta tela, só o TERCEIRO tem backend hoje. O programa de
+ * impressão é um consumidor puro da API — ele faz login, abre o stream de
+ * pedidos e busca as vias em `GET /admin/orders/{id}/print-jobs`, e não manda
+ * NADA de volta. Não há heartbeat, não há relato das impressoras da máquina e
+ * não há rota de impressão de teste; as impressoras vivem num `config.ini`
+ * local que mapeia nome de setor → nome da impressora no Windows, e o painel
+ * não o enxerga.
+ *
+ * Então os blocos 1, 2 e 4 mostram o estado honesto do que ainda não existe —
+ * título e uma frase do que vão fazer (§10 da skill de design). NENHUM dado
+ * inventado: sem heartbeat não há "conectado às 20:41" a exibir, e um ponto
+ * verde inventado nesta tela é pior que a ausência dele — ele faria o lojista
+ * parar de procurar o defeito justamente quando a comanda não sai.
+ *
+ * O que falta, com nome, está no relatório entregue junto desta tela.
  */
 export function PrintingTab({ branchId }: { branchId: string }) {
   const printing = usePrintSectors(branchId);
+  const coverage = useSectorCoverage(printing.sectors);
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -48,8 +73,6 @@ export function PrintingTab({ branchId }: { branchId: string }) {
     if (await printing.rename(sector.id, check.name)) setEditingId(null);
   }
 
-  if (printing.isLoading) return <p className="muted store__loading">Carregando os setores…</p>;
-
   return (
     <div className="store-form">
       {(problem ?? printing.errorMessage) ? (
@@ -58,13 +81,65 @@ export function PrintingTab({ branchId }: { branchId: string }) {
         </p>
       ) : null}
 
-      <section className="store-form__section">
+      {/* --- 1. O PROGRAMA DE IMPRESSÃO ------------------------------------ */}
+      <section className="store-form__section" data-testid="print-agent-block">
+        <div className="store-form__section-head">
+          <h2 className="store-form__heading">Programa de impressão</h2>
+        </div>
+
+        {/*
+          A EXPLICAÇÃO É O CONTEÚDO DESTE BLOCO, não um preâmbulo dele. Em
+          linguagem de lojista: sem "agente", sem "daemon", sem "headless" —
+          palavras que não dizem nada a quem tem uma pizzaria e fazem a tela
+          parecer documentação de outra pessoa.
+        */}
+        <p className="field__hint">
+          A comanda não sai do navegador: quem imprime é um programa instalado no computador do
+          balcão, ligado às impressoras daquela máquina. O painel diz o que imprimir; o programa põe
+          no papel. Com o computador desligado, nenhuma comanda sai — mesmo com o painel aberto no
+          celular.
+        </p>
+
+        {/*
+          O ESTADO HONESTO. Sem heartbeat não existe "conectado" a afirmar, e
+          inventar um ponto verde aqui faria o lojista parar de procurar o
+          defeito exatamente quando a comanda não está saindo.
+        */}
+        <p className="field__hint" data-testid="print-agent-status">
+          O painel ainda não mostra se o programa está rodando nesta loja. Enquanto isso, quem
+          confere é quem está no balcão: o programa é instalado junto com o restaurante e registra o
+          que imprimiu num arquivo de log na própria máquina.
+        </p>
+      </section>
+
+      {/* --- 2. AS IMPRESSORAS -------------------------------------------- */}
+      <section className="store-form__section" data-testid="printers-block">
+        <div className="store-form__section-head">
+          <h2 className="store-form__heading">Impressoras</h2>
+        </div>
+
+        {/*
+          Sem lista vazia sem explicação: uma lista de zero impressoras faria o
+          lojista concluir que a máquina não tem nenhuma, quando o que falta é
+          o programa contar quais ele enxerga.
+        */}
+        <p className="field__hint" data-testid="printers-empty">
+          As impressoras que o programa enxerga vão aparecer aqui, com um teste por impressora. Hoje
+          elas são escolhidas na configuração do próprio programa, no computador do balcão: cada
+          setor abaixo é ligado ao nome de uma impressora daquela máquina.
+        </p>
+      </section>
+
+      {/* --- 3. OS SETORES — o bloco que tem backend ----------------------- */}
+      <section className="store-form__section" data-testid="sectors-block">
         <div className="store-form__section-head">
           <h2 className="store-form__heading">Setores de impressão</h2>
           <span className="faint">Onde cada pedido sai impresso nesta filial.</span>
         </div>
 
-        {printing.sectors.length === 0 ? (
+        {printing.isLoading ? (
+          <p className="muted store__loading">Carregando os setores…</p>
+        ) : printing.sectors.length === 0 ? (
           <p className="field__hint">
             Nenhum setor nesta filial ainda. Crie o primeiro — depois é no Cardápio que se diz qual
             produto imprime em qual setor.
@@ -110,10 +185,27 @@ export function PrintingTab({ branchId }: { branchId: string }) {
                   </>
                 )}
 
-                {/* Só o estado que não é o normal ganha palavra — a mesma
-                    regra do "Esgotado" no cardápio e do dia "Fechado" em
-                    Horários. O interruptor já diz o resto. */}
-                <span className="sectors__state">{sector.is_active ? '' : 'Desativado'}</span>
+                {/*
+                  QUANTOS ITENS SAEM POR AQUI — a informação que faz esta lista
+                  valer a leitura. Um setor com "nenhum item" é um setor que
+                  não vai imprimir nada no sábado, e antes disso a linha não
+                  dava como saber.
+
+                  A contagem e o "Desativado" dividem a MESMA célula porque os
+                  dois qualificam a mesma linha, e uma coluna própria para uma
+                  palavra que aparece em uma linha a cada dez seria largura
+                  tirada do nome do setor.
+                */}
+                <span className="sectors__state" data-testid={`print-sector-count-${sector.id}`}>
+                  {coverage.isLoading
+                    ? ''
+                    : [
+                        formatItemCount(coverage.countBySectorId[sector.id] ?? 0),
+                        sector.is_active ? '' : 'Desativado',
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                </span>
 
                 <Switch
                   hideLabel
@@ -126,8 +218,11 @@ export function PrintingTab({ branchId }: { branchId: string }) {
             ))}
           </ul>
         )}
+
+        <SemSetor coverage={coverage} />
       </section>
 
+      {/* --- 3b. NOVO SETOR ----------------------------------------------- */}
       <section className="store-form__section">
         <h2 className="store-form__heading">Novo setor</h2>
 
@@ -164,6 +259,74 @@ export function PrintingTab({ branchId }: { branchId: string }) {
           </button>
         </div>
       </section>
+
+      {/* --- 4. O TESTE DA COMANDA ---------------------------------------- */}
+      <section className="store-form__section" data-testid="test-print-block">
+        <div className="store-form__section-head">
+          <h2 className="store-form__heading">Teste da comanda</h2>
+        </div>
+
+        <p className="field__hint" data-testid="test-print-empty">
+          Um botão aqui vai mandar uma comanda de exemplo, na largura real de 48 colunas, para a
+          impressora do setor escolhido — é o que confere a instalação sem esperar o primeiro pedido
+          de verdade. Hoje esse teste é feito na própria máquina do balcão, junto com a instalação.
+        </p>
+      </section>
+    </div>
+  );
+}
+
+/**
+ * O QUE NÃO IMPRIME EM LUGAR NENHUM.
+ *
+ * É a razão de esta contagem existir: item sem setor não sai na comanda de
+ * produção, e o lojista precisa descobrir isso antes do sábado à noite — não
+ * durante, com o salão cheio e a cozinha perguntando do pedido.
+ *
+ * Os dois casos são separados de propósito e têm PESOS diferentes:
+ *
+ *   - sem setor é ESCOLHA legítima (a bebida que sai do balcão não precisa de
+ *     comanda de cozinha), então é linha neutra: conta, aponta onde arrumar e
+ *     deixa o lojista julgar. Chamar de erro faria a tela gritar em toda loja
+ *     que vende refrigerante;
+ *   - setor de outra filial é INCONSISTÊNCIA — ninguém escolheu isso —, e é o
+ *     único caso que leva `--alert`.
+ */
+function SemSetor({ coverage }: { coverage: ReturnType<typeof useSectorCoverage> }) {
+  if (coverage.errorMessage) {
+    return (
+      <p className="field__hint" data-testid="sector-coverage-error">
+        Não deu para contar os itens de cada setor agora ({coverage.errorMessage}) — os setores
+        acima continuam valendo.
+      </p>
+    );
+  }
+
+  if (coverage.isLoading) {
+    return <p className="field__hint">Contando os itens de cada setor…</p>;
+  }
+
+  return (
+    <div className="sectors__coverage">
+      <p className="field__hint" data-testid="sector-coverage">
+        {coverage.withoutSector === 0 ? (
+          <>Todos os {coverage.total} itens do cardápio têm setor.</>
+        ) : (
+          <>
+            <strong>{formatItemCount(coverage.withoutSector)}</strong> de {coverage.total} não
+            imprime em setor nenhum. Se algum deles precisa sair para a cozinha, o setor se escolhe
+            no <Link to="/cardapio">Cardápio</Link> — item por item, ou de uma vez pela categoria.
+          </>
+        )}
+        {coverage.isPartial ? ' A contagem é dos primeiros 2000 itens do cardápio.' : null}
+      </p>
+
+      {coverage.strangeSector > 0 ? (
+        <p className="alert alert--warn" data-testid="sector-coverage-strange">
+          {formatItemCount(coverage.strangeSector)} aponta para um setor que não é desta filial.
+          A via desses itens cai na impressora de resgate do programa de impressão.
+        </p>
+      ) : null}
     </div>
   );
 }

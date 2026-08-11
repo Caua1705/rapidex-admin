@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import type { OrderListItem } from '../api/types';
 import { useSession } from '../auth/session-context';
+import { useStoreSettings } from '../store/useStoreSettings';
+import { emptyBoardState } from './empty-board';
 import {
   LANES,
   countFor,
@@ -24,6 +27,13 @@ export function OrdersPage() {
   const { activeBranchId } = useSession();
   const board = useOrdersBoard();
   const sound = useNewOrderSound();
+  /*
+   * Só para o estado vazio: "não entrou pedido" e "a loja está fechada" são
+   * respostas diferentes, e sem `is_open` a tela só sabe dizer a primeira —
+   * que é justamente a errada quando o lojista esqueceu a loja fechada. Uma
+   * leitura de `/admin/settings` na abertura, e nada mais.
+   */
+  const settings = useStoreSettings();
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [view, setView] = useState<BoardView>('andamento');
 
@@ -40,6 +50,14 @@ export function OrdersPage() {
    * A janela de preparo da loja é a RÉGUA da barra de maturação: sem ela, a
    * barra mediria o nada e por isso não aparece. É o mesmo número que a
    * Cozinha usa como régua do cronômetro — uma leitura só, um hook só.
+   *
+   * A FILIAL AQUI É A DO FILTRO, NÃO A RESOLVIDA — de propósito, e é a
+   * diferença para o controle de preparo na barra acima. O controle ESCREVE
+   * numa filial, então resolver uma é o que o destrava. A barra MEDE pedidos:
+   * com "todas as filiais", o quadro mistura as duas lojas, e a janela da
+   * principal julgaria o pedido da Zona Norte contra a promessa da Aldeota.
+   * Sem régua da filial certa, a barra não aparece — que é o mesmo critério da
+   * Cozinha (ver `KitchenPage`).
    */
   const { range } = usePrepRange(activeBranchId);
   const windowMinutes = range?.prep_time_max ?? null;
@@ -64,6 +82,22 @@ export function OrdersPage() {
 
   const lanes = groupIntoLanes(board.orders);
   const historico = historyOrders(board.orders);
+
+  /*
+   * Quantos pedidos as três faixas somam. É a soma dos CONTADORES do filtro,
+   * não dos cartões carregados: com a primeira página cheia de concluídos, os
+   * cartões em andamento podem ser zero enquanto o filtro tem pedidos abertos
+   * mais adiante — e o estado vazio afirmaria o contrário.
+   */
+  const emAndamento = LANES.reduce(
+    (total, lane) => total + countFor(lane.statuses, board.counts),
+    0,
+  );
+  const vazio = emptyBoardState({
+    isOpen: settings.settings?.is_open ?? null,
+    period: board.filters.period,
+    search: board.filters.search,
+  });
 
   return (
     /*
@@ -138,6 +172,28 @@ export function OrdersPage() {
                 onOpenOrder={setSelectedOrderId}
               />
             ))}
+
+            {/*
+              O QUADRO INTEIRO VAZIO É OUTRO ESTADO, e não a soma de três
+              faixas vazias. Uma faixa sem pedido continua sem escrever nada —
+              o zero do contador ao lado já diz —, mas as TRÊS zeradas juntas
+              deixavam a tela com três fios e nada mais: nem "está entrando
+              pedido?", nem "estou no dia certo?", nem o que fazer.
+
+              Só depois de carregar: no primeiro quadro, "nenhum pedido" ainda
+              não é uma afirmação — é o esqueleto.
+            */}
+            {!board.isLoading && emAndamento === 0 ? (
+              <div className="quadro-vazio" data-testid="board-empty">
+                <p className="t-section">{vazio.title}</p>
+                <p className="t-aux">{vazio.hint}</p>
+                {vazio.action ? (
+                  <Link className="btn btn--sm" to={vazio.action.to}>
+                    {vazio.action.label}
+                  </Link>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         ) : (
           <Historico

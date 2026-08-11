@@ -1,4 +1,7 @@
+import { useLocation } from 'react-router-dom';
+
 import { Select } from '../ds/Select';
+import { branchScopeForPath } from '../auth/branch-scope';
 import { useSession } from '../auth/session-context';
 import { branchHeading, branchName } from './branch-heading';
 
@@ -15,10 +18,17 @@ import { branchHeading, branchName } from './branch-heading';
  * "Pizzaria do Zé …" ao lado de um endereço inteiro com espaço de sobra. É a
  * prioridade invertida — o endereço existe para desempatar dois nomes, então
  * ele é o que cede.
+ *
+ * "TODAS AS FILIAIS" SÓ APARECE ONDE ELA É UM ESTADO POSSÍVEL. Numa tela que
+ * grava por filial, escolhê-la levaria a um estado que a própria tela desfaz
+ * no efeito seguinte (ver `useAdoptedBranch`), e o lojista veria o seletor
+ * voltar sozinho — um controle que não obedece. Quem decide isso é
+ * `branchScopeForPath`, a mesma tabela que resolve a filial lá dentro.
  */
 export function BranchSelector() {
   const { branches, activeBranchId, selectBranch } = useSession();
   const { name, detail } = branchHeading(branches, activeBranchId);
+  const escopo = branchScopeForPath(useLocation().pathname);
 
   const display = (
     <span className="branch__text">
@@ -46,7 +56,7 @@ export function BranchSelector() {
         aria-label="Filial"
         data-testid="branch-select"
         options={[
-          { value: '', label: 'Todas as filiais' },
+          ...(escopo === 'multi' ? [{ value: '', label: 'Todas as filiais' }] : []),
           ...branches.map((branch) => ({ value: branch.id, label: branchName(branch) })),
         ]}
       />

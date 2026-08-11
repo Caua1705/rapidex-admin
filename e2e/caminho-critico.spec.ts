@@ -8,6 +8,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 
+import { branchName } from '../src/layout/branch-heading';
 import {
   installFakeApi,
   FAKE_BRANCH,
@@ -329,16 +330,57 @@ test('cancelar recusado pelo backend mostra o erro sem fechar a confirmação', 
   await expect(confirmacao).toBeVisible();
 });
 
+/*
+ * O QUADRO VAZIO PRECISA DIZER O QUE ESTÁ ACONTECENDO.
+ *
+ * Sem nenhum pedido, a tela mostrava três faixas com "0" e mais nada — o
+ * lojista ficava sem saber se a loja estava fechada, se o filtro estava num
+ * dia sem movimento, ou se o painel tinha travado.
+ */
+test('o quadro sem pedido nenhum diz o que está acontecendo', async ({ page }) => {
+  await fazerLogin(page);
+  api.clearOrders();
+  await page.getByRole('button', { name: 'Atualizar' }).click();
+
+  const vazio = page.getByTestId('board-empty');
+  // Loja aberta e sem movimento: o que vale dizer é que a tela se atualiza
+  // sozinha — é o que evita o F5 no meio do turno.
+  await expect(vazio).toContainText('nenhum pedido em aberto');
+  await expect(vazio).toContainText('sozinho');
+
+  // As três faixas continuam de pé: o estado vazio se soma a elas, não as
+  // substitui — quem está aprendendo a ler o quadro perderia a estrutura.
+  await expect(page.getByTestId('badge-novos')).toHaveText('0');
+
+  // Com a loja fechada, a resposta é outra — e tem o que fazer. Recarrega a
+  // página porque `is_open` é lido na abertura da tela, não no botão de
+  // atualizar (que recarrega o quadro, não as configurações).
+  api.closeStore();
+  await page.reload();
+  await expect(vazio).toContainText('A loja está fechada');
+  await expect(vazio.getByRole('link', { name: 'Abrir a loja' })).toBeVisible();
+});
+
 test('ajustar o tempo de preparo usa a faixa que a resposta devolveu', async ({ page }) => {
   await fazerLogin(page);
 
-  // Sem filial escolhida não há o que ajustar — os botões ficam travados, e a
-  // barra diz o motivo em vez de mostrar um travessão solto.
-  await expect(page.getByTestId('prep-time-mais-5')).toBeDisabled();
-  await expect(page.getByTestId('prep-time-range')).toHaveText('escolha uma filial');
+  /*
+   * SEM FILIAL ESCOLHIDA O CONTROLE FUNCIONA. Ele já respondeu "escolha uma
+   * filial" no lugar do valor, com os botões travados — o lojista abria
+   * Pedidos e encontrava um controle que não operava, num quadro que estava
+   * mostrando as duas lojas normalmente. Hoje ele resolve a filial principal,
+   * opera sobre ela e diz qual é. Ver `auth/branch-scope.ts`.
+   */
+  await expect(page.getByTestId('prep-time-mais-5')).toBeEnabled();
+  await expect(page.getByTestId('prep-time-range')).toHaveText('25–35 min');
+  await expect(page.getByTestId('prep-time-branch')).toHaveText(`na ${branchName(FAKE_BRANCH)}`);
 
   await escolherFilial(page);
   await expect(page.getByTestId('prep-time-mais-5')).toBeEnabled();
+
+  // Com a filial escolhida no topo, o nome sai daqui: o cabeçalho já a nomeia,
+  // e repetir seria a mesma informação duas vezes na mesma tela.
+  await expect(page.getByTestId('prep-time-branch')).toHaveCount(0);
 
   // A faixa vigente aparece na ABERTURA, lida da semana de funcionamento —
   // antes só existia depois do primeiro ajuste.

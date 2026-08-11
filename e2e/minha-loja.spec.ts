@@ -8,6 +8,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 
+import { branchName } from '../src/layout/branch-heading';
 import { installFakeApi, FAKE_BRANCH, LOGIN_EMAIL, LOGIN_PASSWORD, type FakeApi } from './fake-api';
 import { escolher, escolherFilial as escolherFilialNoTopo } from './seletor';
 
@@ -122,26 +123,45 @@ test('faixa de tempo estimado pela metade é recusada antes de sair da tela', as
   expect(api.settingsPatches()).toHaveLength(0);
 });
 
-test('as abas de filial pedem uma filial em vez de editar "todas"', async ({ page }) => {
+/*
+ * O DEFEITO QUE ESTE TESTE GUARDA.
+ *
+ * As quatro seções de filial respondiam com a MESMA parede — "Horários de
+ * funcionamento é de uma filial só. Escolha uma: [Matriz] [Varjota]" —, texto
+ * idêntico em quatro rotas. A skill de design proíbe a mesma caixa de aviso
+ * repetida em seções de uma página (§8); repetida em rotas inteiras, ela deixa
+ * de ler como regra do sistema e passa a ler como bug.
+ *
+ * Hoje a filial é RESOLVIDA na entrada (a principal, na falta de escolha) e o
+ * que sobra é uma linha auxiliar dizendo de qual filial é o formulário.
+ */
+test('as seções de filial resolvem a filial em vez de pedir uma', async ({ page }) => {
   await abrirMinhaLoja(page);
 
-  // Geral é do restaurante inteiro: funciona sem escolher filial.
+  // Geral é do restaurante inteiro: a linha auxiliar dela diz outra coisa.
   await expect(page.getByTestId('settings-min-order')).toBeVisible();
+  await expect(page.getByTestId('store-branch-note')).toHaveText(
+    'vale para o restaurante inteiro',
+  );
 
+  // Filial abre no FORMULÁRIO, já preenchido com a filial principal — sem
+  // parede, sem botão de escolha, sem bloqueio.
   await page.getByTestId('store-anchor-filial').click();
-  await expect(page.getByTestId('store-branch-required')).toBeVisible();
-  await expect(page.getByTestId('branch-name')).toHaveCount(0);
-
-  // O mesmo vale para horários, entrega e pagamento.
-  for (const aba of ['horarios', 'entrega', 'pagamento']) {
-    await page.getByTestId(`store-anchor-${aba}`).click();
-    await expect(page.getByTestId('store-branch-required')).toBeVisible();
-  }
-
-  // E o estado resolve o problema em vez de só reclamar dele.
-  await page.getByTestId('store-anchor-filial').click();
-  await escolherFilial(page);
+  await expect(page.getByTestId('store-branch-required')).toHaveCount(0);
   await expect(page.getByTestId('branch-name')).toHaveValue(FAKE_BRANCH.name);
+
+  // E o cabeçalho passa a exibir a filial resolvida, em vez de "Todas as
+  // filiais (2)" em cima de um formulário que grava numa só.
+  await expect(page.getByTestId('branch-selector')).toContainText(branchName(FAKE_BRANCH));
+
+  // O mesmo em horários, entrega e pagamento: uma linha auxiliar, não um cartão.
+  for (const secao of ['horarios', 'entrega', 'pagamento']) {
+    await page.getByTestId(`store-anchor-${secao}`).click();
+    await expect(page.getByTestId('store-branch-required')).toHaveCount(0);
+    await expect(page.getByTestId('store-branch-note')).toHaveText(
+      `vale só para a filial ${branchName(FAKE_BRANCH)}`,
+    );
+  }
 });
 
 test('Filial salva cadastro e avisa quando falta a coordenada', async ({ page }) => {

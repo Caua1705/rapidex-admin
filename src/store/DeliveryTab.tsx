@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react';
 
 import type { BranchUpdate } from '../api/types';
 import { formatCurrency } from '../orders/format';
-import { checkDeliveryConfig, estimateDeliveryFee, type DeliveryConfig } from './delivery-config';
+import {
+  DELIVERY_BLOCKED_CONSEQUENCE,
+  checkDeliveryConfig,
+  estimateDeliveryFee,
+  type DeliveryConfig,
+} from './delivery-config';
 import { SaveBar } from './SaveBar';
 import { formatDecimalInput, parseDecimal } from './settings-model';
 import type { useBranchDetail } from './useBranchDetail';
@@ -142,6 +147,17 @@ export function DeliveryTab({
                 <li key={entry.field}>{entry.message}</li>
               ))}
             </ul>
+            {/*
+              A CONSEQUÊNCIA, UMA VEZ SÓ. Ela já esteve dentro de cada item da
+              lista, e com os dois campos vazios o aviso repetia "todo endereço
+              volta como não atendível e a loja não recebe pedido de entrega"
+              duas vezes seguidas — a mesma frase, em duas linhas coladas. O que
+              muda entre os itens é qual campo falta; o que não muda sai da
+              lista e vira o fecho do aviso.
+            */}
+            {configProblems.some((entry) => entry.blocksDelivery) ? (
+              <p>{DELIVERY_BLOCKED_CONSEQUENCE}</p>
+            ) : null}
           </div>
         ) : null}
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { useSession } from '../auth/session-context';
+import { useResolvedBranch } from '../auth/use-branch-scope';
 import { usePrintSectors } from '../print-sectors/usePrintSectors';
 import { ApplySectorDialog } from './ApplySectorDialog';
 import { CategoryActionsMenu } from './CategoryActionsMenu';
@@ -14,16 +14,25 @@ import { useMenu, type CategoryDraft, type ProductDraft } from './useMenu';
 import './MenuPage.css';
 
 export function MenuPage() {
-  const { activeBranchId } = useSession();
   const menu = useMenu();
   /*
-   * Os setores são da FILIAL escolhida no cabeçalho, enquanto o cardápio é do
-   * restaurante inteiro. É o cruzamento que obriga esta tela a saber de filial:
-   * sem uma escolhida, não há como dizer em qual setor um item imprime, porque
-   * a resposta é diferente em cada loja.
+   * Os setores são da FILIAL, enquanto o cardápio é do restaurante inteiro. É
+   * o cruzamento que obriga esta tela a saber de filial: em qual setor um item
+   * imprime é uma resposta diferente em cada loja.
+   *
+   * A COLUNA SUMIA, E ISSO ERA O DEFEITO. Sem filial escolhida a coluna de
+   * setor não era desenhada e "Aplicar setor a todos os itens" ficava
+   * desabilitado — o lojista abria o Cardápio e via uma coluna a menos sem
+   * nada dizendo por quê, mais uma ação travada. Hoje a filial é RESOLVIDA (a
+   * principal, na falta de escolha) e o cabeçalho da coluna diz de qual loja é
+   * a resposta. Ver `auth/branch-scope.ts`.
    */
-  const printing = usePrintSectors(activeBranchId);
-  const branchChosen = activeBranchId !== '';
+  const { branchId, branch, hasChoice } = useResolvedBranch();
+  const printing = usePrintSectors(branchId);
+  const branchChosen = branchId !== '';
+  /* Nomeia a filial só quando há mais de uma: com uma só não desambigua nada. */
+  const sectorBranchLabel =
+    hasChoice && branch ? (branch.display_name?.trim() || branch.name) : '';
 
   const [categoryDraft, setCategoryDraft] = useState<CategoryDraft | null>(null);
   const [productDraft, setProductDraft] = useState<ProductDraft | null>(null);
@@ -106,9 +115,9 @@ export function MenuPage() {
                   {
                     id: 'aplicar-setor',
                     label: 'Aplicar setor a todos os itens',
-                    disabledReason: branchChosen
-                      ? undefined
-                      : 'Setor é por filial: escolha uma no topo para aplicar a esta categoria.',
+                    // Sem `disabledReason`: a filial está resolvida, então a
+                    // ação sempre tem em qual loja aplicar. O diálogo é que
+                    // nomeia a filial antes de confirmar.
                     onSelect: () => setApplyingSector(true),
                     testId: 'apply-sector-open',
                   },
@@ -156,6 +165,19 @@ export function MenuPage() {
               onChange={(event) => menu.setSearchDraft(event.target.value)}
               disabled={!selectedCategory}
             />
+
+            {/*
+              DE QUAL FILIAL É A COLUNA DE SETOR. O cardápio é do restaurante
+              inteiro, mas esta coluna não é — e sem dizer de qual loja ela
+              responde, o lojista de duas lojas leria a resposta da Aldeota
+              achando que vale para as duas. Some com uma filial só: aí não há
+              o que desambiguar.
+            */}
+            {sectorBranchLabel ? (
+              <span className="t-aux menu__sector-scope" data-testid="menu-sector-scope">
+                Setor de impressão: {sectorBranchLabel}
+              </span>
+            ) : null}
           </div>
 
           {menu.isLoadingCategories ? (

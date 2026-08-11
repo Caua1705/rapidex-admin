@@ -901,6 +901,35 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/admin/products/reorder': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Reorder Products
+     * @description Grava a nova ordem dos produtos de uma categoria.
+     *
+     *     Uma chamada para a lista inteira, nao uma por item: arrastar um produto
+     *     do fim para o comeco mexe no `sort_order` de todos os que ficaram no
+     *     meio, e mandar isso item a item deixa o cardapio publico numa ordem
+     *     quebrada entre a primeira e a ultima requisicao.
+     *
+     *     Espera a lista COMPLETA dos produtos DAQUELA categoria, na ordem
+     *     desejada. Faltando algum, responde 400 — ver
+     *     AdminMenuService.reorder_products.
+     */
+    patch: operations['reorder_products_admin_products_reorder_patch'];
+    trace?: never;
+  };
   '/admin/products/{product_id}': {
     parameters: {
       query?: never;
@@ -1381,6 +1410,135 @@ export interface paths {
      *     `excluded_orders_count`.
      */
     get: operations['commission_report_admin_reports_commission_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/admin/reports/summary': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Sales Summary
+     * @description Faturamento, pedidos, ticket medio e divisao entrega/retirada.
+     *
+     *     Traz junto os mesmos numeros do periodo anterior de igual tamanho — sete
+     *     dias comparam com os sete anteriores. `change_percent` vem nulo quando o
+     *     periodo anterior foi zero; nao existe variacao percentual a partir de
+     *     zero.
+     *
+     *     Cancelados, recusados e estornados nao entram no faturamento. Quantos
+     *     foram fica em `excluded_orders_count`, e o detalhe em
+     *     `/reports/cancellations`.
+     */
+    get: operations['sales_summary_admin_reports_summary_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/admin/reports/sales-by-day': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Sales By Day
+     * @description Faturamento e pedidos dia a dia, para o grafico.
+     *
+     *     Devolve TODOS os dias do periodo, inclusive os sem venda, com zero. O
+     *     dia e o dia local (America/Fortaleza): um pedido das 22h de sexta conta
+     *     na sexta, nao no sabado UTC.
+     */
+    get: operations['sales_by_day_admin_reports_sales_by_day_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/admin/reports/payment-methods': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Payment Methods Report
+     * @description Quanto entrou por forma de pagamento no periodo.
+     *
+     *     `payment_method` nulo e pedido sem forma registrada, e continua nulo na
+     *     resposta — nao vira "other", que e uma forma de pagamento de verdade.
+     */
+    get: operations['payment_methods_report_admin_reports_payment_methods_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/admin/reports/products': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Product Sales Report
+     * @description Produtos mais vendidos no periodo, por unidades.
+     *
+     *     Agrupa pelo nome gravado no item do pedido, nao pelo nome atual do
+     *     produto: renomear um produto no meio do periodo o separa em duas linhas,
+     *     que e o correto — foram dois itens diferentes no cardapio de quem
+     *     comprou.
+     *
+     *     `listed_revenue_total` NAO fecha com o faturamento de `/reports/summary`:
+     *     e receita bruta de item, sem cupom, cashback nem taxas. A resposta
+     *     carrega essa ressalva em `revenue_note`.
+     */
+    get: operations['product_sales_report_admin_reports_products_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/admin/reports/cancellations': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Cancellations Report
+     * @description O outro lado do faturamento: o que nao virou venda.
+     *
+     *     Exatamente o complemento do que os outros relatorios excluem —
+     *     cancelados, recusados e estornados. A taxa e sobre TODOS os pedidos do
+     *     periodo (faturados + excluidos), nao so sobre os faturados.
+     */
+    get: operations['cancellations_report_admin_reports_cancellations_get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -2239,6 +2397,18 @@ export interface components {
     /**
      * AdminRestaurantSettingsUpdate
      * @description Edicao parcial das configuracoes do restaurante (BLOCO C5).
+     *
+     *     `default_delivery_fee` NAO e a taxa de entrega do dia a dia — essa sai da
+     *     regra por km da filial (`delivery_base_fee` + `delivery_fee_per_km`, em
+     *     PATCH /admin/branches/{id}/delivery). Este e o valor de contingencia,
+     *     usado quando aquela regra nao pode ser aplicada: rota indisponivel
+     *     (Google fora do ar) ou filial sem base/por-km cadastrados. Ver
+     *     DeliveryEstimateService._configured_fallback_fee.
+     *
+     *     Zero desliga o fallback em vez de significar entrega gratis. A coluna
+     *     tem default 0 e a maior parte das linhas nunca foi tocada; ler esse 0
+     *     como escolha transformaria uma queda do Google em frete gratis para
+     *     todo mundo.
      */
     AdminRestaurantSettingsUpdate: {
       /** Min Order Value */
@@ -2602,6 +2772,36 @@ export interface components {
     CancelOrderRequest: {
       /** Reason */
       reason: string;
+    };
+    /** CancellationBreakdownItem */
+    CancellationBreakdownItem: {
+      /** Status */
+      status: string;
+      /** Payment Status */
+      payment_status: string;
+      /** Orders Count */
+      orders_count: number;
+      /** Amount Total */
+      amount_total: string;
+    };
+    /** CancellationsResponse */
+    CancellationsResponse: {
+      /**
+       * Restaurant Id
+       * Format: uuid
+       */
+      restaurant_id: string;
+      period: components['schemas']['ReportPeriod'];
+      /** Orders Count */
+      orders_count: number;
+      /** Amount Total */
+      amount_total: string;
+      /** Billable Orders Count */
+      billable_orders_count: number;
+      /** Cancellation Rate Percent */
+      cancellation_rate_percent?: string | null;
+      /** Breakdown */
+      breakdown: components['schemas']['CancellationBreakdownItem'][];
     };
     /** CashbackBalanceResponse */
     CashbackBalanceResponse: {
@@ -3418,6 +3618,24 @@ export interface components {
       /** Message */
       message: string;
     };
+    /**
+     * MetricComparison
+     * @description Um numero do periodo atual ao lado do mesmo numero do anterior.
+     *
+     *     `change_percent` e NULO quando `previous` e zero, e nao 100 ou infinito:
+     *     sair de zero pedidos para dez nao e "crescimento de 1000%", e um comeco.
+     *     O painel mostra um travessao nesse caso.
+     */
+    MetricComparison: {
+      /** Current */
+      current: string;
+      /** Previous */
+      previous: string;
+      /** Change */
+      change: string;
+      /** Change Percent */
+      change_percent?: string | null;
+    };
     /** OrderDetailResponse */
     OrderDetailResponse: {
       /**
@@ -3665,6 +3883,17 @@ export interface components {
       /** Jobs */
       jobs: components['schemas']['PrintJobResponse'][];
     };
+    /** OrderTypeSplitItem */
+    OrderTypeSplitItem: {
+      /** Order Type */
+      order_type: string;
+      /** Orders Count */
+      orders_count: number;
+      /** Revenue Total */
+      revenue_total: string;
+      /** Revenue Share Percent */
+      revenue_share_percent?: string | null;
+    };
     /**
      * PaymentErrorCode
      * @description Os desfechos possiveis de uma cobranca que nao pode ser criada.
@@ -3726,12 +3955,16 @@ export interface components {
     PaymentErrorResponse: {
       detail: components['schemas']['PaymentErrorDetail'];
     };
-    /** PaymentMethodsResponse */
-    PaymentMethodsResponse: {
-      /** Online */
-      online: components['schemas']['BranchPaymentMethodResponse'][];
-      /** Delivery */
-      delivery: components['schemas']['BranchPaymentMethodResponse'][];
+    /** PaymentMethodItem */
+    PaymentMethodItem: {
+      /** Payment Method */
+      payment_method?: string | null;
+      /** Orders Count */
+      orders_count: number;
+      /** Revenue Total */
+      revenue_total: string;
+      /** Revenue Share Percent */
+      revenue_share_percent?: string | null;
     };
     /**
      * PaymentWebhookResponse
@@ -3932,6 +4165,32 @@ export interface components {
       /** Printing Sector Name */
       printing_sector_name?: string | null;
     };
+    /**
+     * ProductReorderRequest
+     * @description Nova ordem dos produtos DE UMA CATEGORIA, do primeiro para o ultimo.
+     *
+     *     Tem `category_id` e a reordenacao de categorias nao tem equivalente
+     *     porque `sort_order` de produto so significa alguma coisa dentro da
+     *     categoria: o cardapio publico ordena por
+     *     `Category.sort_order, Product.sort_order, Product.name`
+     *     (src/repositories/menu_repository.py:51). Uma lista "completa do
+     *     restaurante" renumeraria produtos de categorias diferentes numa sequencia
+     *     unica, e a ordem dentro de cada categoria passaria a depender de quantos
+     *     produtos vieram antes dela na lista — que nao e nada que o lojista
+     *     arrastou na tela.
+     *
+     *     Pelo mesmo motivo, a lista completa exigida e a da CATEGORIA, nao a do
+     *     restaurante: e o conjunto que compartilha a numeracao.
+     */
+    ProductReorderRequest: {
+      /**
+       * Category Id
+       * Format: uuid
+       */
+      category_id: string;
+      /** Product Ids */
+      product_ids: string[];
+    };
     /** ProductResponse */
     ProductResponse: {
       /**
@@ -3980,6 +4239,34 @@ export interface components {
       sort_order: number | null;
       /** Option Groups */
       option_groups?: components['schemas']['ProductOptionGroupResponse'][];
+    };
+    /** ProductSalesItem */
+    ProductSalesItem: {
+      /** Product Id */
+      product_id?: string | null;
+      /** Product Name */
+      product_name: string;
+      /** Orders Count */
+      orders_count: number;
+      /** Quantity Total */
+      quantity_total: number;
+      /** Revenue Total */
+      revenue_total: string;
+    };
+    /** ProductSalesResponse */
+    ProductSalesResponse: {
+      /**
+       * Restaurant Id
+       * Format: uuid
+       */
+      restaurant_id: string;
+      period: components['schemas']['ReportPeriod'];
+      /** Products */
+      products: components['schemas']['ProductSalesItem'][];
+      /** Listed Revenue Total */
+      listed_revenue_total: string;
+      /** Revenue Note */
+      revenue_note: string;
     };
     /**
      * PublicCouponResponse
@@ -4049,6 +4336,29 @@ export interface components {
       /** Message */
       message: string;
     };
+    /**
+     * ReportPeriod
+     * @description O recorte que foi efetivamente lido.
+     *
+     *     Devolvido em toda resposta de Desempenho porque o periodo anterior e
+     *     calculado pelo servidor: sem ele na resposta, o painel nao teria como
+     *     rotular a coluna de comparacao ("vs. 01/06 a 30/06") sem refazer a conta
+     *     e arriscar discordar do servidor.
+     */
+    ReportPeriod: {
+      /**
+       * Start Date
+       * Format: date
+       */
+      start_date: string;
+      /**
+       * End Date
+       * Format: date
+       */
+      end_date: string;
+      /** Days */
+      days: number;
+    };
     /** ResendEmailCodeRequest */
     ResendEmailCodeRequest: {
       /** Email */
@@ -4088,7 +4398,7 @@ export interface components {
       branch: components['schemas']['RestaurantInfoBranchResponse'];
       /** Business Hours */
       business_hours: components['schemas']['BusinessHourDayResponse'][];
-      payment_methods: components['schemas']['PaymentMethodsResponse'];
+      payment_methods: components['schemas']['src__schemas__restaurant_schema__PaymentMethodsResponse'];
       /**
        * Timezone
        * @default America/Fortaleza
@@ -4194,6 +4504,83 @@ export interface components {
        * @default true
        */
       is_open: boolean | null;
+    };
+    /**
+     * SalesBreakdown
+     * @description As partes que compoem o faturamento do periodo.
+     *
+     *     Existe para que `revenue_total` tenha uma definicao unica e conferivel.
+     *     A identidade que vale:
+     *
+     *         revenue_total = subtotal + delivery_fee + service_fee - discount
+     *
+     *     `commission_total` NAO entra nessa conta: e o que a plataforma cobra do
+     *     restaurante depois, nao algo que o cliente pagou. Vem junto porque a tela
+     *     de desempenho mostra "quanto sobrou" e sem ele o lojista teria que abrir
+     *     outro relatorio.
+     */
+    SalesBreakdown: {
+      /** Subtotal Total */
+      subtotal_total: string;
+      /** Delivery Fee Total */
+      delivery_fee_total: string;
+      /** Service Fee Total */
+      service_fee_total: string;
+      /** Discount Total */
+      discount_total: string;
+      /** Commission Total */
+      commission_total: string;
+    };
+    /** SalesByDayItem */
+    SalesByDayItem: {
+      /**
+       * Day
+       * Format: date
+       */
+      day: string;
+      /** Orders Count */
+      orders_count: number;
+      /** Revenue Total */
+      revenue_total: string;
+    };
+    /** SalesByDayResponse */
+    SalesByDayResponse: {
+      /**
+       * Restaurant Id
+       * Format: uuid
+       */
+      restaurant_id: string;
+      period: components['schemas']['ReportPeriod'];
+      /** Orders Count */
+      orders_count: number;
+      /** Revenue Total */
+      revenue_total: string;
+      /** Days */
+      days: components['schemas']['SalesByDayItem'][];
+    };
+    /** SalesSummaryResponse */
+    SalesSummaryResponse: {
+      /**
+       * Restaurant Id
+       * Format: uuid
+       */
+      restaurant_id: string;
+      period: components['schemas']['ReportPeriod'];
+      previous_period: components['schemas']['ReportPeriod'];
+      /** Orders Count */
+      orders_count: number;
+      /** Revenue Total */
+      revenue_total: string;
+      /** Average Ticket */
+      average_ticket: string;
+      breakdown: components['schemas']['SalesBreakdown'];
+      /** Order Types */
+      order_types: components['schemas']['OrderTypeSplitItem'][];
+      /** Excluded Orders Count */
+      excluded_orders_count: number;
+      orders_count_comparison: components['schemas']['MetricComparison'];
+      revenue_comparison: components['schemas']['MetricComparison'];
+      average_ticket_comparison: components['schemas']['MetricComparison'];
     };
     /**
      * StartPaymentResponse
@@ -4339,6 +4726,28 @@ export interface components {
     VerifyResetCodeResponse: {
       /** Reset Token */
       reset_token: string;
+    };
+    /** PaymentMethodsResponse */
+    src__schemas__admin_report_schema__PaymentMethodsResponse: {
+      /**
+       * Restaurant Id
+       * Format: uuid
+       */
+      restaurant_id: string;
+      period: components['schemas']['ReportPeriod'];
+      /** Orders Count */
+      orders_count: number;
+      /** Revenue Total */
+      revenue_total: string;
+      /** Payment Methods */
+      payment_methods: components['schemas']['PaymentMethodItem'][];
+    };
+    /** PaymentMethodsResponse */
+    src__schemas__restaurant_schema__PaymentMethodsResponse: {
+      /** Online */
+      online: components['schemas']['BranchPaymentMethodResponse'][];
+      /** Delivery */
+      delivery: components['schemas']['BranchPaymentMethodResponse'][];
     };
   };
   responses: never;
@@ -6013,6 +6422,39 @@ export interface operations {
       };
     };
   };
+  reorder_products_admin_products_reorder_patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ProductReorderRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminProductResponse'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   get_product_admin_products__product_id__get: {
     parameters: {
       query?: never;
@@ -6951,6 +7393,178 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['CommissionReportResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  sales_summary_admin_reports_summary_get: {
+    parameters: {
+      query: {
+        /** @description Primeiro dia do periodo (inclusive) */
+        start_date: string;
+        /** @description Ultimo dia do periodo (inclusive) */
+        end_date: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SalesSummaryResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  sales_by_day_admin_reports_sales_by_day_get: {
+    parameters: {
+      query: {
+        /** @description Primeiro dia do periodo (inclusive) */
+        start_date: string;
+        /** @description Ultimo dia do periodo (inclusive) */
+        end_date: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SalesByDayResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  payment_methods_report_admin_reports_payment_methods_get: {
+    parameters: {
+      query: {
+        /** @description Primeiro dia do periodo (inclusive) */
+        start_date: string;
+        /** @description Ultimo dia do periodo (inclusive) */
+        end_date: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['src__schemas__admin_report_schema__PaymentMethodsResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  product_sales_report_admin_reports_products_get: {
+    parameters: {
+      query: {
+        /** @description Primeiro dia do periodo (inclusive) */
+        start_date: string;
+        /** @description Ultimo dia do periodo (inclusive) */
+        end_date: string;
+        /** @description Quantos produtos o ranking devolve */
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProductSalesResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  cancellations_report_admin_reports_cancellations_get: {
+    parameters: {
+      query: {
+        /** @description Primeiro dia do periodo (inclusive) */
+        start_date: string;
+        /** @description Ultimo dia do periodo (inclusive) */
+        end_date: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CancellationsResponse'];
         };
       };
       /** @description Validation Error */

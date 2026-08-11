@@ -38,6 +38,15 @@ export function KitchenPage() {
    * a hora em que cada card montou.
    */
   const now = useNow();
+  /*
+   * A RÉGUA NÃO É RESOLVIDA, e esta é a diferença para o controle de preparo do
+   * quadro de pedidos. Lá a filial resolvida é para ESCREVER numa loja; aqui
+   * ela seria para MEDIR pedidos de várias. Com "todas as filiais" na sessão, a
+   * fila mistura as duas lojas, e usar a janela da principal como régua julgaria
+   * o pedido da Zona Norte contra a promessa da Aldeota — um atraso declarado
+   * contra um prazo que não é o daquele pedido. Sem faixa da filial certa, o
+   * cronômetro conta e não acusa. Ver `auth/branch-scope.ts`.
+   */
   const prep = usePrepRange(activeBranchId);
 
   const { applyStreamEvent, reload } = kitchen;

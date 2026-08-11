@@ -15,11 +15,26 @@ import type { StoreOutletContext } from './StoreLayout';
  * O corpo é montado SÓ para a seção aberta. A coluna única montava os seis ao
  * mesmo tempo — seis formulários com estado sujo próprio e seis leituras de
  * API para mostrar um.
+ *
+ * A LINHA AUXILIAR DO CABEÇALHO É O QUE SOBROU DA PAREDE. Onde havia um cartão
+ * com título em negrito, um parágrafo explicando o modelo de dados e um botão
+ * por filial, hoje há uma frase no mesmo lugar em que Geral já dizia "vale para
+ * o restaurante inteiro" — e ela é o par exato daquela: uma diz até onde a
+ * configuração alcança, a outra também. Trocar de filial é no seletor do topo,
+ * que é onde o lojista já espera, e que agora exibe a filial resolvida.
+ *
+ * Com uma filial só, `branchLabel` vem vazio e a linha não aparece: não há
+ * escolha a fazer, e nomear a única filial seria escrever na tela uma palavra
+ * que não distingue nada.
  */
 export function StoreSectionPage({ id }: { id: StoreSectionId }) {
   const context = useOutletContext<StoreOutletContext>();
   const secao = STORE_SECTIONS.find((candidate) => candidate.id === id)!;
-  const semFilial = context.activeBranchId === '';
+
+  const nota =
+    secao.scope === 'branch'
+      ? context.branchLabel && `vale só para a filial ${context.branchLabel}`
+      : secao.nota;
 
   return (
     <section className="store__section" aria-labelledby={`${id}-titulo`}>
@@ -27,18 +42,14 @@ export function StoreSectionPage({ id }: { id: StoreSectionId }) {
         <h2 className="t-section" id={`${id}-titulo`}>
           {secao.titulo}
         </h2>
-        {secao.nota ? <span className="t-aux">{secao.nota}</span> : null}
+        {nota ? (
+          <span className="t-aux" data-testid="store-branch-note">
+            {nota}
+          </span>
+        ) : null}
       </div>
 
-      {secao.scope === 'branch' && semFilial ? (
-        <BranchRequired
-          titulo={secao.titulo}
-          branches={context.branches}
-          onSelect={context.selectBranch}
-        />
-      ) : (
-        <Corpo id={id} context={context} />
-      )}
+      <Corpo id={id} context={context} />
     </section>
   );
 }
@@ -46,55 +57,8 @@ export function StoreSectionPage({ id }: { id: StoreSectionId }) {
 function Corpo({ id, context }: { id: StoreSectionId; context: StoreOutletContext }) {
   if (id === 'geral') return <GeneralTab settings={context.settings} />;
   if (id === 'filial') return <BranchTab branchDetail={context.branchDetail} />;
-  if (id === 'horarios') return <HoursTab branchId={context.activeBranchId} />;
+  if (id === 'horarios') return <HoursTab branchId={context.branchId} />;
   if (id === 'entrega') return <DeliveryTab branchDetail={context.branchDetail} />;
-  if (id === 'pagamento') return <PaymentMethodsTab branchId={context.activeBranchId} />;
-  return <PrintingTab branchId={context.activeBranchId} />;
-}
-
-/**
- * O que falta, na página que precisa dele.
- *
- * "Todas as filiais" é um filtro legítimo no quadro de pedidos, mas aqui não
- * tem sentido: endereço, horário, entrega, formas de pagamento e setores são
- * de UMA loja, e salvar "todas" gravaria a mesma coisa em lojas diferentes.
- *
- * Ele nomeia a seção em que está — com uma página por seção, "esta seção" não
- * seria ambíguo, mas nomear é o que faz a frase servir também para quem chegou
- * pelo endereço direto. E já oferece as filiais como botão, para a escolha ser
- * feita daqui e não lá no topo.
- */
-function BranchRequired({
-  titulo,
-  branches,
-  onSelect,
-}: {
-  titulo: string;
-  branches: readonly { id: string; name: string }[];
-  onSelect: (branchId: string) => void;
-}) {
-  return (
-    <div className="store__empty" data-testid="store-branch-required">
-      <p className="t-body">
-        <strong>{titulo} é de uma filial só.</strong>
-      </p>
-      <p className="faint">
-        Com “Todas as filiais” escolhida no topo não há o que editar aqui — o mesmo valor iria para
-        lojas diferentes. Escolha uma:
-      </p>
-      <div className="store__empty-actions">
-        {branches.map((branch) => (
-          <button
-            key={branch.id}
-            type="button"
-            className="btn"
-            onClick={() => onSelect(branch.id)}
-            data-testid={`store-pick-branch-${branch.id}`}
-          >
-            {branch.name}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+  if (id === 'pagamento') return <PaymentMethodsTab branchId={context.branchId} />;
+  return <PrintingTab branchId={context.branchId} />;
 }

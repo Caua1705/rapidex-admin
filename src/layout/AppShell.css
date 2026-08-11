@@ -371,7 +371,19 @@
     /* Alvo de 32px: no mouse, a densidade sobe. */
     min-height: var(--sp-32);
     justify-content: flex-start;
-    gap: var(--sp-12);
+    /*
+     * `--sp-8`, e não `--sp-12`: dentro de um item de navegação o ícone e o
+     * rótulo são UM elemento (§2 põe ícone↔texto no degrau de baixo), e os
+     * 4px de cada vão fazer falta na única linha que não cabia.
+     *
+     * A CONTA, medida: a área útil do item é 179px (212 da lateral, menos o
+     * fio e o padding). "Desempenho" (88) + "Em breve" (57) + o ícone (18)
+     * pedem 187px com dois vãos de 12 — 8px a mais do que existe, e era por
+     * isso que o selo saía como "Em br…". Com dois vãos de 8 são 179, e a
+     * linha fecha. Nenhum outro item chega perto: "Integrações", o segundo
+     * mais longo, sobra 10px.
+     */
+    gap: var(--sp-8);
     padding-inline: var(--sp-8);
     font-size: var(--tb-size);
     font-weight: var(--tb-weight);

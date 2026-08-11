@@ -29,8 +29,31 @@ export type DeliveryConfig = Pick<
 export type DeliveryProblem = {
   /** O campo que está faltando ou incoerente. */
   field: keyof DeliveryConfig;
+  /**
+   * O que há de errado com ESTE campo, e só isso.
+   *
+   * A consequência ("todo endereço volta como não atendível…") NÃO entra aqui:
+   * ela é a mesma para os dois campos que faltam, e escrita nos dois a caixa de
+   * erro repetia a frase inteira duas vezes, palavra por palavra — o defeito de
+   * repetição da §8 dentro de um aviso de quatro linhas. Ela é dita uma vez, no
+   * cabeçalho do aviso, por quem mostra a lista.
+   */
   message: string;
+  /**
+   * Sem este campo o cálculo do frete não roda — a entrega fica desligada.
+   *
+   * Distingue os dois erros de configuração das incoerências (mínima maior que
+   * máxima), que dão preço estranho mas não derrubam a entrega, e por isso não
+   * dividem a mesma consequência.
+   */
+  blocksDelivery?: true;
 };
+
+/**
+ * A consequência que os dois campos obrigatórios compartilham, escrita uma vez.
+ */
+export const DELIVERY_BLOCKED_CONSEQUENCE =
+  'Sem os dois, o frete não tem como ser estimado: todo endereço volta como não atendível e a loja fica aberta sem receber um pedido de entrega sequer.';
 
 function isMissing(value: number | null | undefined): boolean {
   return value === null || value === undefined;
@@ -49,16 +72,16 @@ export function checkDeliveryConfig(config: DeliveryConfig): DeliveryProblem[] {
   if (isMissing(config.delivery_base_fee)) {
     problems.push({
       field: 'delivery_base_fee',
-      message:
-        'Sem taxa base não há como estimar o frete: todo endereço volta como não atendível e a loja não recebe pedido de entrega.',
+      message: 'Falta a taxa base.',
+      blocksDelivery: true,
     });
   }
 
   if (isMissing(config.delivery_fee_per_km)) {
     problems.push({
       field: 'delivery_fee_per_km',
-      message:
-        'Sem valor por km não há como estimar o frete: todo endereço volta como não atendível e a loja não recebe pedido de entrega.',
+      message: 'Falta o valor por km.',
+      blocksDelivery: true,
     });
   }
 

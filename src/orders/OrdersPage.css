@@ -133,12 +133,24 @@
  * disputava atenção com os pedidos. O que agrupa o controle é o vão ao redor e
  * o rótulo à esquerda.
  */
+/*
+ * ELE QUEBRA EM LINHAS, PORQUE PEDIDOS NÃO ROLA DE LADO (§8).
+ *
+ * Com o nome da filial ao lado da faixa ("Preparo 25–35 min na Pizzaria do Zé
+ * — Aldeota"), o controle passou a ser largo demais para 390px: sem quebrar,
+ * ele empurrava os botões +5/+10/−5 para fora da tela — e o botão que sai pela
+ * direita é um botão que ninguém encontra num sábado cheio.
+ *
+ * `min-height` no lugar de `height`: com altura fixa, a segunda linha ficaria
+ * por baixo da barra em vez de empurrá-la.
+ */
 .prep {
   position: relative;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--sp-8);
-  height: var(--field-h);
+  min-height: var(--field-h);
 }
 
 /* Rótulo de contexto, não nível 3: ver o comentário sobre `.field__label` em
@@ -154,10 +166,10 @@
  * A faixa é a informação principal do controle, não um enfeite ao lado dos
  * botões.
  *
- * ELA NÃO É MONO. "25–35 min" é minuto de configuração: não se compara
- * descendo uma coluna e não sai na comanda impressa. A mono aqui era o que
- * fazia a barra inteira parecer um terminal, junto com os rótulos ao lado.
- * O tabular do `body` já a alinha; quem a destaca é o peso e a tinta cheia.
+ * ELA NÃO É TABULAR. "25–35 min" é minuto de configuração: está na lista
+ * literal do que NÃO leva `.tnum` (§1), porque não se compara descendo uma
+ * coluna — é um valor único numa barra, sem linha de cima contra a qual ler.
+ * Quem a destaca é o peso e a tinta cheia.
  */
 .prep__range {
   font-size: var(--tb-size);
@@ -170,6 +182,25 @@
 /* Sem faixa gravada a frase é texto, não número: sai do peso e da tinta. */
 .prep__range--empty {
   font-weight: var(--w-regular);
+  color: var(--ink-3);
+}
+
+/*
+ * DE QUAL FILIAL É ESTE NÚMERO.
+ *
+ * Só aparece com "todas as filiais" no cabeçalho e mais de uma loja: aí o
+ * valor é de uma delas e omitir qual seria mentir por omissão. Auxiliar, não
+ * rótulo — ele qualifica a faixa à esquerda, e ler mais forte que ela
+ * inverteria a hierarquia do controle.
+ */
+.prep__branch {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
   color: var(--ink-3);
 }
 
@@ -266,6 +297,27 @@
   gap: var(--sp-20);
   padding: var(--sp-12) var(--page-pad) var(--page-pad);
   overflow-y: auto;
+}
+
+/*
+ * O QUADRO INTEIRO VAZIO.
+ *
+ * Ele fica ABAIXO das três faixas, não no lugar delas: os cabeçalhos com o
+ * contador zerado continuam sendo a resposta de "o quadro está de pé e as três
+ * faixas existem", e trocá-los por um bloco escondería a estrutura da tela
+ * justamente para quem ainda está aprendendo a lê-la.
+ *
+ * Sem caixa e sem tom próprio — não é aviso, é a tela dizendo o que está
+ * acontecendo. `--sp-32` é o único degrau generoso da escala, e estado vazio é
+ * o lugar dele.
+ */
+.quadro-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-8);
+  padding: var(--sp-32) 0;
+  max-width: 52ch;
 }
 
 .faixa {

@@ -46,7 +46,14 @@ export function HoursTab({ branchId }: { branchId: string }) {
       }}
     >
       <section className="store-form__section">
-        <h2 className="store-form__heading">Horário de funcionamento</h2>
+        {/*
+          SEM TÍTULO DE BLOCO AQUI. A página já se chama "Horários de
+          funcionamento" três centímetros acima, e "Horário de funcionamento"
+          logo abaixo dela era a mesma informação duas vezes na mesma tela — o
+          singular a distinguia do plural, e nada mais. Esta seção é a única da
+          página; um título de bloco só faz sentido quando há um segundo bloco
+          do qual se distinguir (ver Entrega e Impressão, que têm vários).
+        */}
         <p className="field__hint">
           Salvar grava a semana inteira: o que estiver marcado como fechado aqui fica fechado no
           app.

@@ -138,7 +138,14 @@ export function OrdersFilters({
       </label>
 
       <div className="filtros__dir">
-        <PrepTimeControl branchId={filters.branchId} />
+        {/*
+          Sem `branchId`: o controle resolve a própria filial. O filtro da
+          barra é de LEITURA e aceita vazio ("todas as que eu enxergo"); o
+          ajuste de preparo é ESCRITA e precisa de uma. Passar o filtro para
+          dentro dele era o que fazia o controle travar com "escolha uma
+          filial" no lugar do valor. Ver `auth/branch-scope.ts`.
+        */}
+        <PrepTimeControl />
 
         {/*
           O TEMPO DE ENTREGA AO LADO DO DE PREPARO. Os dois juntos são a
@@ -192,12 +199,13 @@ export function OrdersFilters({
 }
 
 /**
- * O tempo estimado de entrega, no mesmo tratamento do prazo de preparo:
- * rótulo em nível 3 e o número em mono, porque é um número que se compara —
- * com o que o cliente vê no aplicativo e com o prazo de preparo ao lado.
+ * O tempo estimado de entrega, no mesmo tratamento do prazo de preparo.
  *
- * Sem faixa gravada a frase é texto, não número, e sai da mono: é a mesma
- * regra que `prep__range--empty` já aplicava.
+ * SEM `.tnum`, e o de preparo ao lado também não tem mais: minuto de
+ * configuração está na lista literal do que NÃO leva a classe (§1 da skill de
+ * design). "25–35 min" não se compara com o número da linha de cima — não há
+ * linha de cima; é um valor único numa barra. A classe documenta "isto se
+ * compara descendo uma coluna", e aqui isso não é verdade.
  */
 function DeliveryEstimate() {
   const estimate = useDeliveryEstimate();
@@ -206,7 +214,7 @@ function DeliveryEstimate() {
     <span className="prep" data-testid="delivery-estimate">
       <span className="prep__label">Entrega</span>
       {estimate ? (
-        <span className="prep__range tnum">
+        <span className="prep__range">
           {estimate.min}–{estimate.max} min
         </span>
       ) : (

@@ -9,6 +9,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 
+import { branchName } from '../src/layout/branch-heading';
 import { installFakeApi, FAKE_BRANCH, LOGIN_EMAIL, LOGIN_PASSWORD, type FakeApi } from './fake-api';
 import { escolher, escolherFilial, opcoesDe } from './seletor';
 
@@ -46,22 +47,81 @@ async function abrirMenuDaCategoria(page: Page) {
 
 // --- a aba em Minha loja --------------------------------------------------
 
-test('a aba Impressão lista os setores da filial e pede uma quando não há', async ({ page }) => {
+test('a tela Impressão lista os setores da filial resolvida', async ({ page }) => {
   await fazerLogin(page);
   await abrirAbaImpressao(page);
 
-  // Setor é por filial: com "todas" não há o que listar.
-  await expect(page.getByTestId('store-branch-required')).toBeVisible();
-
-  await page.getByTestId(`store-pick-branch-${FAKE_BRANCH.id}`).click();
-  // Impressão nasce recolhida: a âncora é o que a abre, e ela só destrava
-  // depois que existe filial.
-  await page.getByTestId('store-anchor-impressao').click();
+  // Setor é por filial, e com "todas" no topo a tela resolve a principal em
+  // vez de pedir uma — a lista aparece sem nenhum clique a mais, e a linha
+  // auxiliar diz de qual filial ela é.
+  await expect(page.getByTestId('store-branch-required')).toHaveCount(0);
+  await expect(page.getByTestId('store-branch-note')).toHaveText(
+    `vale só para a filial ${branchName(FAKE_BRANCH)}`,
+  );
 
   await expect(page.getByTestId('print-sector-sec-chapa')).toContainText('Chapa');
   // O desativado continua na lista: o que some da tela ninguém reativa.
   await expect(page.getByTestId('print-sector-sec-bar')).toContainText('Bar');
   await expect(page.getByTestId('print-sector-sec-bar')).toContainText('Desativado');
+});
+
+/*
+ * A TELA DE IMPRESSÃO INTEIRA, e o contrato dela com a honestidade.
+ *
+ * Três dos quatro blocos não têm backend: o programa de impressão não manda
+ * heartbeat, não relata as impressoras da máquina e não tem rota de impressão
+ * de teste. Eles mostram o estado honesto do que ainda não existe — e este
+ * teste guarda justamente o que NÃO pode aparecer: nenhum ponto verde de
+ * "conectado", nenhuma lista de impressoras fabricada, nenhum botão de teste
+ * que não vai a lugar nenhum.
+ */
+test('Impressão explica o programa local sem inventar estado de conexão', async ({ page }) => {
+  await fazerLogin(page);
+  await abrirAbaImpressao(page);
+
+  // O que a tela precisa ensinar a quem nunca ouviu falar do programa.
+  await expect(page.getByTestId('print-agent-block')).toContainText(
+    'A comanda não sai do navegador',
+  );
+  await expect(page.getByTestId('print-agent-status')).toContainText(
+    'ainda não mostra se o programa está rodando',
+  );
+
+  // Sem jargão: o lojista não tem por que saber o que é um agente ou um daemon.
+  const texto = (await page.getByTestId('print-agent-block').innerText()).toLowerCase();
+  expect(texto).not.toContain('daemon');
+  expect(texto).not.toContain('agente');
+  expect(texto).not.toContain('headless');
+
+  // O bloco de impressoras EXPLICA a ausência da lista em vez de mostrar uma
+  // lista vazia sem motivo.
+  await expect(page.getByTestId('printers-empty')).toContainText(
+    'vão aparecer aqui, com um teste por impressora',
+  );
+
+  await expect(page.getByTestId('test-print-block')).toContainText('48 colunas');
+});
+
+/*
+ * O NÚMERO QUE FAZ ESTA TELA VALER A ABERTURA: item sem setor não sai na
+ * comanda de produção, e hoje o lojista só descobre isso no sábado à noite,
+ * quando a cozinha não recebe o pedido.
+ */
+test('Impressão mostra quantos itens tem cada setor e quantos ficaram sem', async ({ page }) => {
+  await fazerLogin(page);
+  await abrirAbaImpressao(page);
+
+  // No falso, só prod-1 aponta para a Chapa; os outros três estão sem setor.
+  await expect(page.getByTestId('print-sector-count-sec-chapa')).toHaveText('1 item');
+  // Setor vazio E desativado: os dois qualificadores dividem a mesma célula.
+  await expect(page.getByTestId('print-sector-count-sec-bar')).toHaveText(
+    'nenhum item · Desativado',
+  );
+
+  await expect(page.getByTestId('sector-coverage')).toContainText('3 itens');
+  await expect(page.getByTestId('sector-coverage')).toContainText(
+    'não imprime em setor nenhum',
+  );
 });
 
 test('cria, renomeia e desativa um setor', async ({ page }) => {
@@ -124,17 +184,25 @@ test('a lista de produtos mostra o setor de cada item', async ({ page }) => {
   await expect(page.getByTestId('product-sector-prod-3')).toHaveText('');
 });
 
-test('sem filial escolhida, a coluna de setor não aparece', async ({ page }) => {
+/*
+ * A COLUNA SUMIA E A AÇÃO FICAVA TRAVADA. Sem filial escolhida, o Cardápio
+ * deixava de desenhar a coluna de setor e desabilitava "Aplicar setor a todos
+ * os itens" — uma coluna a menos sem nada dizendo por quê, mais um controle
+ * que o lojista não tinha como usar dali. Hoje a filial é resolvida e a coluna
+ * DIZ de qual loja ela responde, que era a informação que faltava.
+ */
+test('sem filial escolhida, a coluna de setor diz de qual filial ela é', async ({ page }) => {
   await fazerLogin(page);
   await page.getByRole('link', { name: 'Cardápio' }).click();
 
-  // Setor é por filial: sem uma escolhida, a resposta seria diferente em cada
-  // loja — e mostrar a de uma delas seria mentir.
   await expect(page.getByTestId('product-row-prod-1')).toBeVisible();
-  await expect(page.getByTestId('product-sector-prod-1')).toHaveCount(0);
+  await expect(page.getByTestId('product-sector-prod-1')).toBeVisible();
+  await expect(page.getByTestId('menu-sector-scope')).toHaveText(
+    `Setor de impressão: ${branchName(FAKE_BRANCH)}`,
+  );
 
   await abrirMenuDaCategoria(page);
-  await expect(page.getByTestId('apply-sector-open')).toBeDisabled();
+  await expect(page.getByTestId('apply-sector-open')).toBeEnabled();
 });
 
 test('o campo de setor no produto oferece só os ativos, com "Não imprimir"', async ({ page }) => {

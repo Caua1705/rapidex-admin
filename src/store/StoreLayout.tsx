@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 
-import { useSession } from '../auth/session-context';
+import { useAdoptedBranch } from '../auth/use-branch-scope';
 import { StoreStatusCard } from './StoreStatusCard';
 import { STORE_SECTIONS } from './store-sections';
 import { useBranchDetail } from './useBranchDetail';
@@ -33,32 +33,35 @@ import './StorePage.css';
  * Os dois hooks compartilhados ficam AQUI e descem pelo contexto do `Outlet`:
  * Filial e Entrega salvam pelo MESMO PATCH, e duas cópias da filial
  * divergiriam assim que uma das páginas gravasse.
+ *
+ * A FILIAL É RESOLVIDA, NÃO PEDIDA. Cinco destas seis seções gravam por
+ * filial, e com "Todas as filiais" no topo elas mostravam a mesma parede
+ * ("Horários de funcionamento é de uma filial só. Escolha uma:") — a mesma
+ * frase em quatro rotas, que é o defeito de repetição da §8 em escala de tela.
+ * Hoje `useAdoptedBranch()` escolhe a principal e o cabeçalho passa a exibi-la;
+ * o que sobra na página é uma linha auxiliar dizendo de qual filial é aquele
+ * formulário. Ver `auth/branch-scope.ts`.
  */
 export type StoreOutletContext = {
   settings: ReturnType<typeof useStoreSettings>;
   branchDetail: ReturnType<typeof useBranchDetail>;
-  activeBranchId: string;
-  branches: readonly { id: string; name: string }[];
-  selectBranch: (branchId: string) => void;
+  /** A filial resolvida. Vazia só quando o lojista não enxerga filial nenhuma. */
+  branchId: string;
+  /** Nome dela, para a linha auxiliar. Vazio quando não há escolha a fazer. */
+  branchLabel: string;
 };
 
 export function StoreLayout() {
-  const { branches, activeBranchId, selectBranch } = useSession();
+  const { branch, branchId, hasChoice } = useAdoptedBranch();
 
   const settings = useStoreSettings();
-  const branchDetail = useBranchDetail(activeBranchId);
-
-  const semFilial = activeBranchId === '';
+  const branchDetail = useBranchDetail(branchId);
 
   const context: StoreOutletContext = {
     settings,
     branchDetail,
-    activeBranchId,
-    branches: branches.map((branch) => ({
-      id: branch.id,
-      name: branch.display_name?.trim() || branch.name,
-    })),
-    selectBranch,
+    branchId,
+    branchLabel: hasChoice && branch ? (branch.display_name?.trim() || branch.name) : '',
   };
 
   return (
@@ -70,33 +73,26 @@ export function StoreLayout() {
         mesmo desenho fariam o lojista achar que trocou de seção do painel.
       */}
       <nav className="store__index" aria-label="Seções de Minha loja">
-        {STORE_SECTIONS.map((secao) => {
-          /*
-            Sem filial, as seções de filial ficam atenuadas — mas CLICÁVEIS. A
-            página delas explica o que falta e oferece as filiais; um link
-            morto seria pior que a atenuação.
-          */
-          const travada = semFilial && secao.scope === 'branch';
-          return (
-            <NavLink
-              key={secao.id}
-              to={secao.id}
-              className={({ isActive }) =>
-                [
-                  'store__anchor',
-                  isActive ? 'store__anchor--on' : '',
-                  travada ? 'store__anchor--locked' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')
-              }
-              title={travada ? 'Depende da filial escolhida no topo' : undefined}
-              data-testid={`store-anchor-${secao.id}`}
-            >
-              {secao.label}
-            </NavLink>
-          );
-        })}
+        {/*
+          NENHUMA SEÇÃO FICA ATENUADA. As de filial já ficaram, quando abri-las
+          sem filial escolhida levava a um bloco que pedia uma — a atenuação era
+          o aviso de que o clique não ia dar em nada. Com a filial resolvida na
+          entrada, todas as seis abrem no formulário delas, e um item de
+          navegação a meio tom passaria a mentir sobre o que vem depois do
+          clique.
+        */}
+        {STORE_SECTIONS.map((secao) => (
+          <NavLink
+            key={secao.id}
+            to={secao.id}
+            className={({ isActive }) =>
+              `store__anchor${isActive ? ' store__anchor--on' : ''}`
+            }
+            data-testid={`store-anchor-${secao.id}`}
+          >
+            {secao.label}
+          </NavLink>
+        ))}
       </nav>
 
       <div className="store__col">

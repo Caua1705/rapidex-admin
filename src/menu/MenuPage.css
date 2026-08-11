@@ -260,6 +260,28 @@
   padding-left: calc(var(--sp-8) + var(--sp-16) + var(--sp-8));
 }
 
+/*
+ * De qual filial responde a coluna de setor. Ela desempata a leitura da lista,
+ * então fica no fim da linha da busca — do lado da coluna que qualifica, e
+ * fora do caminho do campo. Trunca antes de empurrar a busca: quem identifica
+ * a linha é o campo, e este texto é o que cede (§7).
+ */
+.menu__sector-scope {
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-left: var(--sp-12);
+}
+
+@media (max-width: 900px) {
+  /* Em 390px a linha da busca não tem largura para os dois: o campo fica. */
+  .menu__sector-scope {
+    display: none;
+  }
+}
+
 .menu__empty {
   padding: var(--sp-32) var(--sp-12);
   font-size: var(--ta-size);
@@ -580,15 +602,59 @@
 
 @media (max-width: 720px) {
   /*
+   * A LINHA VIRA DUAS, E É O NOME QUE GANHA A PRIMEIRA.
+   *
+   * Em uma linha só, as cinco células fixas (preço 108, estado 76, o
+   * interruptor, a ação e os vãos) somavam 294px dos ~342 disponíveis em
+   * 390px: sobravam 48px para o nome, e a lista virava "X-Bu…", "X-Sal…" —
+   * com um item inativo saindo SEM NOME NENHUM, porque a etiqueta "Inativo"
+   * comia o que restava. O nome é o que identifica a linha e é exatamente o
+   * que o lojista veio procurar; ele não pode ser o que cede (§7).
+   *
+   * Então a densidade cede de outro jeito: o nome ocupa a primeira linha
+   * inteira, e preço e estado descem para uma segunda, embaixo dele. O
+   * interruptor e a ação atravessam as duas — eles são o alvo de dedo da
+   * linha, e parti-los em dois seria pior que a altura extra.
+   *
    * Saem a foto e o setor. A AÇÃO DE EDITAR FICA: no celular ela é o único
    * caminho para o formulário do item, e escondê-la deixaria a tela em
    * somente-leitura sem avisar ninguém.
    */
   .item,
   .menu__items--with-sector .item {
-    grid-template-columns: minmax(0, 1fr) 108px minmax(0, 76px) 34px var(--control-h-touch);
+    grid-template-columns: minmax(0, 1fr) 76px 34px var(--control-h-touch);
+    grid-template-areas:
+      'nome  nome   status acao'
+      'preco estado status acao';
+    align-items: center;
+    column-gap: var(--sp-8);
+    row-gap: var(--sp-4);
     min-height: var(--tap-mobile);
-    gap: var(--sp-8);
+  }
+
+  .item__main {
+    grid-area: nome;
+  }
+
+  /*
+   * O preço perde o alinhamento à direita: embaixo do nome ele é o começo da
+   * linha de meta, não uma coluna de dinheiro a conferir de cima a baixo.
+   */
+  .item__price {
+    grid-area: preco;
+    text-align: left;
+  }
+
+  .item__state {
+    grid-area: estado;
+  }
+
+  .item__status {
+    grid-area: status;
+  }
+
+  .item__edit {
+    grid-area: acao;
   }
 
   .item__thumb,

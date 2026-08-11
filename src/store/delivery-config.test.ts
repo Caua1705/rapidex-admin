@@ -28,12 +28,20 @@ describe('checkDeliveryConfig', () => {
    * cliente volta como não atendível e a loja fica aberta sem receber nenhum
    * pedido de entrega. Isso é ERRO DE CONFIGURAÇÃO, não campo opcional vazio.
    */
+  /*
+   * A MENSAGEM DIZ SÓ O QUE FALTA. A consequência ("todo endereço volta como
+   * não atendível…") é a mesma para os dois campos e saiu daqui: escrita nos
+   * dois, ela aparecia duas vezes seguidas dentro do mesmo aviso. Quem a diz,
+   * uma vez, é `DELIVERY_BLOCKED_CONSEQUENCE` no rodapé do aviso — e é
+   * `blocksDelivery` que marca quais problemas a compartilham.
+   */
   it('taxa base nula é erro de configuração', () => {
     const problems = checkDeliveryConfig(config({ delivery_base_fee: null }));
 
     expect(problems).toHaveLength(1);
     expect(problems[0]?.field).toBe('delivery_base_fee');
-    expect(problems[0]?.message).toContain('não atendível');
+    expect(problems[0]?.message).toBe('Falta a taxa base.');
+    expect(problems[0]?.blocksDelivery).toBe(true);
   });
 
   it('valor por km nulo é erro de configuração', () => {
@@ -41,7 +49,22 @@ describe('checkDeliveryConfig', () => {
 
     expect(problems).toHaveLength(1);
     expect(problems[0]?.field).toBe('delivery_fee_per_km');
-    expect(problems[0]?.message).toContain('não atendível');
+    expect(problems[0]?.message).toBe('Falta o valor por km.');
+    expect(problems[0]?.blocksDelivery).toBe(true);
+  });
+
+  /*
+   * A incoerência de mínima/máxima NÃO derruba a entrega: ela dá preço
+   * estranho. Marcá-la como bloqueante faria o aviso afirmar que a loja não
+   * recebe pedido nenhum quando ela recebe.
+   */
+  it('mínima acima da máxima não bloqueia a entrega', () => {
+    const problems = checkDeliveryConfig(
+      config({ delivery_min_fee: 20, delivery_max_fee: 10 }),
+    );
+
+    expect(problems).toHaveLength(1);
+    expect(problems[0]?.blocksDelivery).toBeUndefined();
   });
 
   it('os dois nulos reclamam dos dois, não de um só', () => {

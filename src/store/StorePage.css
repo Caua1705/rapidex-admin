@@ -64,13 +64,12 @@
 }
 
 /*
- * Âncora travada: a seção existe no mapa, mas depende da filial escolhida no
- * topo. Ela continua CLICÁVEL — leva ao bloco que explica o que falta e
- * oferece as filiais. Um link morto seria pior que a atenuação.
+ * NÃO EXISTE MAIS ÂNCORA TRAVADA. `.store__anchor--locked` atenuava as seções
+ * de filial enquanto o cabeçalho estava em "Todas as filiais" — era o aviso de
+ * que o clique não ia dar em formulário nenhum, e sim num bloco pedindo uma
+ * filial. Com a filial resolvida na entrada da seção (ver `auth/branch-scope.ts`),
+ * as seis abrem no formulário delas e nenhuma tem por que ler a meio tom.
  */
-.store__anchor--locked {
-  opacity: var(--disabled-opacity);
-}
 
 /* ==========================================================================
  * A COLUNA
@@ -103,22 +102,6 @@
   gap: var(--sp-8);
   padding-bottom: var(--sp-4);
   border-bottom: 1px solid var(--line);
-}
-
-.store__empty {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-12);
-  padding: var(--sp-16);
-  background: var(--surface);
-  border-radius: var(--r-field);
-  font-size: var(--tb-size);
-}
-
-.store__empty-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-8);
 }
 
 .store__loading {
@@ -362,9 +345,18 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, 132px) minmax(0, 104px) 34px auto;
 }
 
-/* nome · renomear · estado · interruptor */
+/*
+ * nome · renomear · (contagem · estado) · interruptor
+ *
+ * A terceira coluna cresceu de 96 para 150px porque passou a carregar DUAS
+ * coisas na mesma célula: quantos itens saem por aquele setor e, quando é o
+ * caso, "Desativado". Elas dividem a célula em vez de terem colunas próprias
+ * porque as duas qualificam a MESMA linha — e uma coluna dedicada a uma
+ * palavra que aparece numa linha a cada dez seria largura tirada do nome do
+ * setor, que é o que se procura aqui.
+ */
 .sectors__row {
-  grid-template-columns: minmax(0, 1fr) var(--control-h) minmax(0, 96px) 34px;
+  grid-template-columns: minmax(0, 1fr) var(--control-h) minmax(0, 200px) 34px;
 }
 
 .methods__row:hover,
@@ -451,6 +443,21 @@
   min-width: 0;
 }
 
+/*
+ * O QUE NÃO IMPRIME EM LUGAR NENHUM — logo abaixo da lista que ele qualifica.
+ *
+ * Fora da lista e não numa linha dela: é um total do CARDÁPIO inteiro, não o
+ * qualificador de um setor, e dentro da lista ele leria como mais uma linha de
+ * setor. Colado embaixo, ele fecha a leitura "estes são os setores → e isto
+ * sobra deles".
+ */
+.sectors__coverage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  padding-top: var(--sp-8);
+}
+
 .sectors__new {
   display: flex;
   align-items: flex-end;
@@ -514,18 +521,49 @@
  * CELULAR
  * ======================================================================= */
 @media (max-width: 900px) {
+  /*
+   * `overflow-x: clip` NÃO É PRECAUÇÃO: sem ele, a página inteira escorregava
+   * para a esquerda ao abrir "Impressão" em 390px — título, formulário e tudo,
+   * com a primeira coluna de letras cortada pela borda.
+   *
+   * São duas causas, e as duas precisam de conserto. A primeira está abaixo, em
+   * `.store__index`. A segunda é uma regra do CSS que quase não se vê: com
+   * `overflow-y: auto` e `overflow-x: visible`, o eixo visível vira `auto`
+   * sozinho. `.store` virava um scroller horizontal, e clicar na ÚLTIMA aba do
+   * índice fazia o navegador rolar o ancestral para trazer o link ao campo de
+   * visão — arrastando o conteúdo junto.
+   *
+   * E é `clip`, não `hidden`, de propósito: `hidden` ainda CRIA um contêiner de
+   * rolagem — ele só tira a barra do usuário. O scroll por foco continuava
+   * acontecendo, e a tela continuava torta. `clip` não cria contêiner nenhum,
+   * então não há o que rolar.
+   */
   .store {
     flex-direction: column;
     gap: var(--sp-16);
     padding-inline: var(--page-pad-mobile);
+    overflow-x: clip;
   }
 
   /*
    * O índice vira uma fita rolável no topo. Ele NÃO some: numa página desta
    * altura, sem índice o lojista rola às cegas procurando "Impressão".
    */
+  /*
+   * `width: 100%` + `min-width: 0` é o que PRENDE a fita à largura da tela.
+   *
+   * Sem eles, o `flex: 0 0 148px` herdado do desktop passa a valer no eixo
+   * VERTICAL (a coluna virou linha, e a base do flex segue o eixo principal do
+   * pai), e a largura fica livre para acompanhar o conteúdo: as seis seções
+   * lado a lado mediam 460px numa tela de 390. O `overflow-x: auto` daqui não
+   * adiantava nada — um elemento que já tem a largura do próprio conteúdo não
+   * tem o que rolar; quem transbordava era a página inteira.
+   */
   .store__index {
     position: static;
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
     flex-direction: row;
     gap: var(--sp-4);
     overflow-x: auto;
@@ -553,6 +591,21 @@
     max-width: none;
   }
 
+  /*
+   * Título e nota EMPILHAM no celular. Lado a lado, os dois dividiam uma linha
+   * de 366px e nenhum dos dois cabia: "Setores de impressão" quebrava em duas
+   * linhas à esquerda enquanto "Onde cada pedido sai impresso nesta filial"
+   * quebrava em duas à direita — quatro linhas desalinhadas para dizer o que
+   * cabe em duas empilhadas. `baseline` também deixa de fazer sentido quando
+   * cada lado tem altura diferente.
+   */
+  .store__section-head,
+  .store-form__section-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-4);
+  }
+
   .hours__row {
     grid-template-columns: 88px 40px 1fr;
   }
@@ -575,8 +628,20 @@
     display: none;
   }
 
-  /* No setor nada sai: "Desativado" é o estado que não é o normal. */
+  /*
+   * No setor nada sai: a contagem de itens é justamente o que se veio ver
+   * nesta tela, e "Desativado" é o estado que não é o normal.
+   *
+   * Em 390px os dois não cabem numa linha de 116px, então a célula QUEBRA em
+   * duas linhas em vez de cortar — "nenhum item · Desativ…" não é uma
+   * informação a menos, é uma informação estragada. A linha cresce um pouco, e
+   * no celular ela já é alvo de dedo.
+   */
   .sectors__row {
-    grid-template-columns: minmax(0, 1fr) var(--control-h-touch) minmax(0, 96px) 34px;
+    grid-template-columns: minmax(0, 1fr) var(--control-h-touch) minmax(0, 116px) 34px;
+  }
+
+  .sectors__state {
+    white-space: normal;
   }
 }
