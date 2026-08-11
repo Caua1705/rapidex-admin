@@ -317,12 +317,27 @@
   background: var(--line);
 }
 
-/* Os cartões correm na horizontal dentro da faixa. */
+/*
+ * A FAIXA QUEBRA EM LINHAS. NÃO ROLA.
+ *
+ * Ela já rolou na horizontal, e o defeito era grave: com treze pedidos em
+ * "Novos", sete apareciam e o resto saía pela direita — inclusive o MAIS
+ * ANTIGO, que é exatamente o que precisa ser visto primeiro. E ninguém arrasta
+ * uma faixa para o lado num sábado cheio: o pedido não some por bug, some por
+ * ninguém ter procurado.
+ *
+ * Grade com `auto-fill` resolve sem escolher um número de colunas: os cartões
+ * mantêm a largura mínima de leitura e ocupam quantas linhas precisarem. Em
+ * 390px isso dá uma coluna sozinha, sem nenhuma regra a mais.
+ *
+ * NENHUM SCROLL HORIZONTAL EM PEDIDOS. Se um dia faltar largura, o que cede é
+ * a quantidade de colunas, nunca a visibilidade de um pedido.
+ */
 .faixa__cards {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(244px, 1fr));
   gap: var(--sp-8);
-  overflow-x: auto;
-  padding-bottom: var(--sp-4);
+  align-items: start;
 }
 
 /* ==========================================================================
@@ -341,15 +356,9 @@
 
 .historico__grade {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(236px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(244px, 1fr));
   gap: var(--sp-8);
   align-items: start;
-}
-
-/* No histórico o cartão preenche a célula da grade, em vez de ter largura fixa. */
-.historico__grade .ds-ticket {
-  flex: 1 1 auto;
-  width: auto;
 }
 
 .historico__rodape {
@@ -369,16 +378,5 @@
 
   .orders__alert {
     margin-inline: var(--page-pad-mobile);
-  }
-
-  /* No celular a faixa vira coluna: rolar de lado com o dedo esconde pedido. */
-  .faixa__cards {
-    flex-direction: column;
-    overflow-x: visible;
-  }
-
-  .faixa__cards .ds-ticket {
-    flex: 1 1 auto;
-    width: auto;
   }
 }

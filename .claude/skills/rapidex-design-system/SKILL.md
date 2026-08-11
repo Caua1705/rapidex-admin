@@ -317,8 +317,9 @@ um painel parecer quebrado.
   (`--sidebar-rail`); abaixo de 640px sai da tela e vira barra inferior.
 - **Barra do topo de `--topbar-h` (46px)**, com o seletor de filial sempre
   visível, mesmo com uma filial só.
-- **Exceções propositais ao teto**: o quadro de pedidos e a Cozinha, que rolam
-  na horizontal e usam a tela toda.
+- **Exceções propositais ao teto**: o quadro de pedidos e a Cozinha usam a tela
+  toda — quanto mais largura, mais pedidos na dobra. Só a Cozinha rola na
+  horizontal; o quadro de pedidos não rola de lado em largura nenhuma (§8).
 - Verifique em **1440, 1900 e 2560** — `design/shots/enquadramento.spec.ts` mede
   a distância entre a lateral e o conteúdo e falha acima de 100px.
 
@@ -362,9 +363,17 @@ ao lado de um endereço inteiro.
 - **Faixa/lista vazia não escreve nada** quando o contador ao lado já diz zero.
   O fio da faixa já mostra que ela existe. O "Carregando…" fica: aí a lista
   vazia ainda não é uma afirmação.
-- **O quadro é de faixas, não de colunas**: três faixas horizontais, cartões de
-  236px correndo na horizontal dentro de cada uma. Abaixo de 720px a faixa vira
-  coluna — rolar de lado com o dedo esconde pedido.
+- **O quadro é de faixas, não de colunas**, e **a faixa quebra em linhas, não
+  rola.** Grade com `auto-fill` e largura mínima de leitura: os cartões ocupam
+  quantas linhas precisarem, e em 390px isso dá uma coluna sem nenhuma regra a
+  mais. **Nenhum scroll horizontal em Pedidos** — a faixa já rolou, e com treze
+  pedidos em "Novos" sete apareciam e o resto saía pela direita, inclusive o
+  mais antigo, que é justamente o que precisa ser visto primeiro. Ninguém
+  arrasta uma faixa para o lado num sábado cheio. Se faltar largura, o que cede
+  é a quantidade de colunas, nunca a visibilidade de um pedido.
+- **Componente de conteúdo não decide a própria largura**; quem decide é o
+  container. `ds/OrderTicket` já teve `width: 236px` fixo, e o preço era que
+  toda tela que o usasse precisava desfazer a regra para encaixá-lo numa grade.
 
 ---
 

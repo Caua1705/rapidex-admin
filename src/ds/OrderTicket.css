@@ -6,9 +6,15 @@
  * `--bg`) mais o fio de 3px do estágio, que é a única coisa colorida da
  * moldura.
  */
+/*
+ * O TICKET NÃO DECIDE A PRÓPRIA LARGURA. Quem decide é o container — a faixa,
+ * a grade do histórico, a galeria. Ele já teve `width: 236px` fixo aqui, e o
+ * preço disso era que toda tela que o usasse precisava desfazer a regra para
+ * conseguir encaixá-lo numa grade.
+ */
 .ds-ticket {
-  flex: 0 0 236px;
-  width: 236px;
+  width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   text-align: left;
