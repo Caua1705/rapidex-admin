@@ -1,11 +1,13 @@
 /* --- o painel ------------------------------------------------------------ */
 
 /*
- * O DETALHE É UMA COLUNA PERMANENTE À DIREITA DO QUADRO.
+ * O DETALHE É UMA COLUNA À DIREITA DO QUADRO, MAS SÓ QUANDO HÁ O QUE MOSTRAR.
  *
- * Ela existe com ou sem pedido aberto, e é isso que a torna previsível: o
- * quadro não muda de largura a cada clique, e o cartão que a pessoa ia clicar
- * em seguida não troca de posição embaixo do ponteiro.
+ * Sem pedido aberto, ela colapsa: reservar um terço da largura da tela para
+ * uma frase era gastar espaço com ausência de informação, e a grade de faixas
+ * (`auto-fill`) já resolve as próprias colunas sozinha quando ganha a largura
+ * de volta. Ao selecionar um pedido, ela entra com a mesma transição que
+ * qualquer painel do sistema usa para comunicar mudança de estado (§9).
  *
  * Um fio à esquerda a separa do quadro — os dois estão no mesmo plano (`--bg`),
  * então aqui o tom não basta.
@@ -18,6 +20,16 @@
   min-height: 0;
   background: var(--bg);
   border-left: 1px solid var(--line);
+  overflow: hidden;
+  transition:
+    width var(--motion-base) var(--ease),
+    border-color var(--motion-base) var(--ease);
+}
+
+/* Acima de 1280px (ver a exceção abaixo), sem pedido a coluna some de largura. */
+.panel--vazio {
+  width: 0;
+  border-left-color: transparent;
 }
 
 /*
@@ -37,7 +49,7 @@
     z-index: var(--z-popover);
     max-width: 100%;
     background: var(--surface);
-    box-shadow: var(--shadow-pop);
+    box-shadow: var(--shadow-raised);
     /*
      * Aqui ele ENTRA de verdade, então o deslize volta a ter trabalho: sem
      * ele, 380px de conteúdo surgem por cima do quadro e o olho perde de onde
@@ -358,6 +370,6 @@
     bottom: 0;
     z-index: 40;
     width: min(380px, 92vw);
-    box-shadow: var(--shadow-pop);
+    box-shadow: var(--shadow-raised);
   }
 }

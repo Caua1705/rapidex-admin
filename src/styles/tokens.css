@@ -12,36 +12,20 @@
  * contraste medido — não vira número solto no componente.
  *
  * ============================================================================
- * A DIREÇÃO: BRASA
+ * A DIREÇÃO
  * ============================================================================
  *
- * A COZINHA ÀS 22H, VISTA DE DENTRO. A referência não é software: é o
- * equipamento da cozinha — o forno combinado, a impressora térmica, o display
- * do timer, a etiqueta gravada na chapa de aço.
+ * APLICAÇÃO DE ADMINISTRAÇÃO: clara, familiar, sem sotaque industrial. O
+ * lojista já usa três ou quatro sistemas de gestão no dia a dia — este painel
+ * fala o vocabulário que ele já reconhece de qualquer um deles, não o de um
+ * equipamento de cozinha.
  *
- *   1. ESCURO É O CHÃO, E O ESCURO É QUENTE. Preto de fuligem, com marrom por
- *      baixo — nunca cinza-azulado de editor de código. O claro existe inteiro
- *      e é o modo de dia; a tela do balcão no sábado à noite é a escura.
- *
- *   2. O NÚMERO É TABULAR, NÃO MONOESPAÇADO. Tempo decorrido, dinheiro e nº de
- *      pedido levam `font-variant-numeric: tabular-nums` na MESMA Space
- *      Grotesk do resto da tela — nunca uma segunda família. Uma mono à parte
- *      já foi o sotaque desta direção; na prática ela lia como terminal de
- *      servidor, não como equipamento de cozinha. O alinhamento em coluna
- *      continua (é o tabular que faz esse trabalho); a letra não muda.
- *      PROIBIDO: qualquer `font-family` monoespaçada em qualquer tela. Ver o
- *      bloco do número em `styles/typography.css`.
- *
- *   3. A BRASA É O ÚNICO DEGRADÊ. Ele pinta a barra de maturação do pedido —
- *      latão quando entra, brasa quando estoura. Não é enfeite: é a única
- *      escala contínua da tela, e ler "está esquentando" de longe é o trabalho
- *      dela. Qualquer outro degradê no sistema é erro.
- *
- *   4. A LATERAL É UM CONSOLE, e fica escura NOS DOIS TEMAS. A navegação é
- *      equipamento, não página. Ver o bloco 9b.
- *
- * PRECISÃO CONTINUA SENDO O QUE FAZ A TELA PARECER ACABADA: alinhamento, ritmo
- * e contraste. O que mudou é que agora ela também tem sotaque.
+ * "Premium" continua significando PRECISÃO — alinhamento, ritmo, contraste —
+ * e padding decorativo continua proibido. O que mudou é que a tela não tenta
+ * mais soar como chapa de aço: uma direção anterior (Brasa) tentou isso de
+ * propósito e o resultado lia como instrumento industrial, não como o software
+ * de gestão que o lojista abre todo dia. Ver o histórico completo em
+ * `.claude/skills/rapidex-design-system/SKILL.md`.
  */
 
 :root,
@@ -50,11 +34,6 @@
    * 1. MARCA — a brasa
    *
    * Só ação primária, item ativo da navegação e anel de foco.
-   *
-   * NO CLARO ELA É MAIS ESCURA QUE A DO SELO, e isso é medido, não gosto:
-   * sobre o bege da página, o laranja do selo dá 2,2:1 e reprova nos 3:1 que o
-   * anel de foco precisa (WCAG 1.4.11). O selo continua o mesmo; o token da
-   * interface diverge dele. No escuro os dois se reencontram.
    * ======================================================================= */
   --ember: #c24507;
   --ember-press: #a63a05;
@@ -63,21 +42,21 @@
   --on-ember-press: #fff3ea;
 
   /* ==========================================================================
-   * 2. OS QUATRO PLANOS — papel pardo, nunca branco de escritório
+   * 2. OS QUATRO PLANOS — neutros quase-brancos, com um sopro mínimo de calor
    *
    *   --bg               o chão: área de trabalho e barra do topo
    *   --surface          onde o trabalho acontece: cartão, coluna, lista
    *   --surface-raised   o que SOBE mais um degrau: menu, diálogo, folha
    *   --line             a régua, quando o tom não basta
    *
-   * `--field` é o plano do que se PREENCHE, e afunda. Fora de um cartão ele
-   * some no fundo — e é por isso que campo é o único componente do sistema que
-   * leva contorno sempre.
+   * `--field` é o plano do que se PREENCHE. Fora de um cartão ele some no
+   * fundo — e é por isso que campo é o único componente do sistema que leva
+   * contorno sempre.
    * ======================================================================= */
-  --bg: #eae3d6;
-  --surface: #fbf7f0;
+  --bg: #fafaf9;
+  --surface: #ffffff;
   --surface-raised: #ffffff;
-  --field: #f2ebdf;
+  --field: #ffffff;
 
   /*
    * Três linhas, três trabalhos — e só uma precisa passar em contraste.
@@ -85,20 +64,16 @@
    * WCAG 1.4.11 não os alcança. `--line-control` CONTORNA o que se opera, e é
    * ele que é medido contra as superfícies.
    */
-  --line: #dcd2c0;
-  --line-strong: #c0b4a0;
-  --line-control: #837664;
+  --line: #e7e5e4;
+  --line-strong: #d6d3d1;
+  --line-control: #78716c;
 
   /*
    * A MARCA DE SELEÇÃO — checkbox e rádio marcados.
    *
    * Fixa nos dois temas, como os tokens do console: um quadrado escuro com o
    * traço em quase-branco, sempre — nunca a brasa. A brasa é avara (§4); um
-   * checkbox marcado não é ação primária nem item ativo de navegação, e pintar
-   * ele de laranja gastava a cor num lugar que não precisa dela. Hoje os
-   * valores espelham `--console-*` (mesma ideia: um plano que não inverte),
-   * mas como token próprio — um checkbox não é a lateral, e um leitor futuro
-   * não devia precisar saber disso para usá-lo.
+   * checkbox marcado não é ação primária nem item ativo de navegação.
    */
   --mark-bg: var(--console-bg);
   --mark-ink: var(--console-ink);
@@ -109,9 +84,9 @@
    *   --ink-2  o que acompanha o dado (nome do cliente, descrição)
    *   --ink-3  o que só existe para localizar: rótulo, meta, hora, contagem
    * ======================================================================= */
-  --ink: #16120e;
-  --ink-2: #564b3d;
-  --ink-3: #6a5d4d;
+  --ink: #1c1917;
+  --ink-2: #57534e;
+  --ink-3: #78716c;
 
   /* ==========================================================================
    * 4. SEMÂNTICA DE ESTADO — os três únicos usos de cor fora da marca e do
@@ -129,14 +104,12 @@
   --danger-wash: #f9e4e1;
 
   /* ==========================================================================
-   * 5. STATUS DO PEDIDO — 7 estágios em METAL E CHAMA.
-   *
-   * A escala EVITA O LARANJA de propósito: o laranja é da marca, e um status
-   * laranja disputaria com o botão primário na mesma tela.
+   * 5. STATUS DO PEDIDO — 7 estágios. As matizes são intocáveis: carregam
+   * significado, não gosto — só as superfícies em volta delas mudaram.
    *
    *   pendente    latão     — parado, esperando alguém
-   *   aceito      aço       — na fila da máquina
-   *   preparando  ametista  — dentro da chapa
+   *   aceito      aço       — na fila
+   *   preparando  ametista  — em preparo
    *   pronto      verde     — saiu
    *   entrega     ciano     — na rua
    *   concluído   neutro    — arquivo
@@ -165,10 +138,6 @@
 
   /* ==========================================================================
    * 6. ESTADOS INTERATIVOS — valem para TODO elemento operável, e saem daqui.
-   *
-   * Ponteiro e pressão são derivados da TINTA, então funcionam nos dois temas
-   * com uma regra só: no claro escurecem, no escuro clareiam, porque `--ink`
-   * já inverteu. Nenhum componente escolhe o seu próprio realce.
    * ======================================================================= */
   --hover: color-mix(in oklab, var(--ink) 7%, transparent);
   --active: color-mix(in oklab, var(--ink) 13%, transparent);
@@ -178,19 +147,16 @@
   --focus-width: 2px;
   --focus-offset: 2px;
 
-  --scrim: rgba(22, 18, 14, 0.55);
+  --scrim: rgba(28, 25, 23, 0.5);
 
   /* ==========================================================================
-   * 7. TIPOGRAFIA — CINCO NÍVEIS, e só cinco. Mais a mono do número.
+   * 7. TIPOGRAFIA — CINCO NÍVEIS, e só cinco.
    *
-   * SPACE GROTESK na interface: grotesca com terminais cortados na diagonal e
-   * aberturas fechadas. Tem desenho próprio, ao contrário de uma neo-grotesca
-   * neutra — é ela que dá à tela o ar de placa de equipamento.
-   *
-   * NÃO HÁ SEGUNDA FAMÍLIA. O número que precisa alinhar em coluna (tempo
-   * decorrido, dinheiro, nº de pedido) leva `.tnum`/`.num`, que ligam
-   * `font-variant-numeric: tabular-nums` na MESMA Space Grotesk — nunca uma
-   * mono à parte. Ver o bloco em `styles/typography.css`.
+   * INTER na interface: neo-grotesca neutra de UI, sem desenho próprio. É
+   * exatamente o oposto do que uma direção anterior (Space Grotesk) buscava —
+   * e é isso que faz a tela ler como aplicação de administração comum, não
+   * como equipamento com identidade própria. Autohospedada via
+   * @fontsource-variable/inter, sem CDN.
    *
    *   1 --tt-*   título de página   um por rota, no alto à esquerda
    *   2 --ts-*   título de seção    cartão, coluna, aba, grupo, diálogo
@@ -203,59 +169,39 @@
    * um nível.
    * ======================================================================= */
   --font-ui:
-    'Space Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    sans-serif;
+    'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
   /* 1. Título de página. */
-  --tt-size: 19px;
-  --tt-line: 24px;
-  --tt-weight: 700;
-  --tt-track: -0.015em;
+  --tt-size: 20px;
+  --tt-line: 28px;
+  --tt-weight: 600;
+  --tt-track: 0em;
 
-  /*
-   * 2. Título de seção.
-   *
-   * 16, NÃO 14. Quando o corpo subiu de 13 para 14, este nível ficou com o
-   * MESMO corpo do corpo — dois níveis separados só por peso, o que não é
-   * separação nenhuma: "subir o nome do produto um nível" não mudava tamanho
-   * algum. O degrau foi restaurado, e a escala volta a ser 19 / 16 / 14 / 13.
-   */
-  --ts-size: 16px;
+  /* 2. Título de seção. */
+  --ts-size: 15px;
   --ts-line: 22px;
   --ts-weight: 600;
-  --ts-track: -0.008em;
+  --ts-track: 0em;
 
   /*
    * 3. Rótulo.
    *
-   * ERA 10px / 700 / 0.1em, e ESSE era o texto que dava à tela a aparência de
-   * máquina — não a monoespaçada, que nunca encostou em rótulo nenhum. Space
-   * Grotesk em caixa alta, peso 700 e espacejamento de 0.1em imita bem demais
-   * uma mono: as letras ficam com a mesma cor e quase o mesmo passo.
-   *
-   * 11 / 600 / 0.06em continua sendo um rótulo — a caixa alta e a tinta de
-   * apoio fazem o trabalho —, mas volta a parecer letra escrita.
+   * CAIXA ALTA COM TRACKING SAI DO SISTEMA POR COMPLETO — nem na sidebar, nem
+   * no cabeçalho de faixa. O separador de grupo e o cabeçalho de faixa passam
+   * a usar este nível em caixa de FRASE, na tinta `--ink-3`: a distinção vem
+   * do peso e da tinta, não de gritar em maiúscula.
    */
-  --tl-size: 11px;
-  --tl-line: 14px;
+  --tl-size: 12px;
+  --tl-line: 16px;
   --tl-weight: 600;
-  --tl-track: 0.06em;
+  --tl-track: 0em;
 
   /*
    * 4. Corpo, e 5. Auxiliar.
    *
-   * 14 e 13, NÃO 13 e 12. A escala anterior foi calibrada olhando um laptop a
-   * 50cm; este painel é lido no balcão, muitas vezes de pé, mais longe, e por
-   * alguém que pode ter cinquenta anos. Um degrau a mais aqui não é conforto:
-   * é a diferença entre ler o nome do cliente de relance e chegar mais perto.
-   *
-   * Só estes dois subiram. Título, título de seção e rótulo ficaram onde
-   * estavam de propósito — se tudo subisse junto, a hierarquia seria a mesma
-   * com a tela mais cheia, e o que se ganharia em legibilidade se perderia em
-   * quantos pedidos cabem na dobra.
-   *
-   * Eles continuam separados por 1px, porque quem os separa de verdade é a
-   * tinta (`--ink` contra `--ink-3`).
+   * 14 e 13 — a distância de leitura continua a mesma (balcão, de pé, muitas
+   * vezes mais longe que um laptop a 50cm), e a proporção com título e rótulo
+   * também.
    */
   --tb-size: 14px;
   --tb-line: 20px;
@@ -287,49 +233,57 @@
   --k-meta-line: 20px;
 
   /* ==========================================================================
-   * 8. ESPAÇAMENTO — SEIS degraus, e nada fora deles.
+   * 8. ESPAÇAMENTO — SETE degraus, e nada fora deles.
    *
    *   4    dentro de um controle: ícone ↔ texto, rótulo ↔ campo
    *   8    entre controles irmãos; padding de linha densa
-   *   12   padding de cartão; entre campos de uma mesma linha
-   *   16   entre blocos de uma seção; respiro lateral da tela
+   *   12   entre campos de uma mesma linha
+   *   16   padding de cartão
+   *   20   entre blocos de uma seção; respiro lateral da tela
    *   24   entre seções
    *   32   topo de tela e estado vazio — o único degrau generoso
-   *
-   * ESCOLHA O DEGRAU ABAIXO DO QUE O INSTINTO PEDE. O instinto foi treinado em
-   * página de marketing; aqui embaixo tem fila de pedido.
    * ======================================================================= */
   --sp-4: 4px;
   --sp-8: 8px;
   --sp-12: 12px;
   --sp-16: 16px;
+  --sp-20: 20px;
   --sp-24: 24px;
   --sp-32: 32px;
 
   /* ==========================================================================
-   * 9. RAIO E ELEVAÇÃO — chapa cortada
+   * 9. RAIO E ELEVAÇÃO
    *
-   * 2 / 3 / 4. Quase quadrado, e mais apertado do que já era: canto redondo em
-   * tudo é o que faz uma ferramenta parecer aplicativo de consumo.
-   *
-   * SOMBRA SÓ NO QUE FLUTUA sobre a tela. Cartão parado na página não tem
-   * sombra em tema nenhum — quem o separa do fundo é o tom.
+   * 6 / 8 / 10 — o vocabulário de uma aplicação comum, não de wireframe nem de
+   * terminal. Mais aberto do que a versão anterior (2 / 3 / 4), que lia como
+   * canto quase vivo.
    * ======================================================================= */
-  --r-chip: 2px;
-  --r-field: 3px;
-  --r-card: 4px;
+  --r-chip: 6px;
+  --r-field: 8px;
+  --r-card: 10px;
   --r-round: 999px;
 
+  /* A caixa de marcar — pequena o bastante (18px) para pedir um raio próprio. */
+  --r-xs: 4px;
+
   /*
-   * A ÚNICA EXCEÇÃO AO RAIO APERTADO: o segmentado e o stepper (o período do
-   * quadro de pedidos, o +5/+10/−5 do preparo). Uma fileira de botões colados
-   * em 2px de raio lê como tecla de teclado numérico; em 8px ela lê como grupo
-   * de opções. Não é para o resto do sistema — `.btn`, `.tag` e o campo
-   * continuam em `--r-chip`/`--r-field`.
+   * O segmentado e o stepper (o período do quadro de pedidos, o +5/+10/−5 do
+   * preparo) continuam no mesmo raio aberto que já tinham — não precisam de
+   * exceção nova, porque `--r-control` já é 8px, igual a `--r-field`.
    */
   --r-control: 8px;
 
-  --shadow-pop: 0 16px 40px rgba(22, 18, 14, 0.18), 0 2px 4px rgba(22, 18, 14, 0.1);
+  /* O que sobe mais um degrau que o cartão: diálogo, folha lateral, menu. */
+  --r-sheet: 12px;
+
+  /*
+   * ELEVAÇÃO — a escala que a direção anterior não tinha. Cartão parado na
+   * página agora leva uma sombra muito sutil JUNTO com a borda, não no lugar
+   * dela: é o que tira a tela do registro de wireframe sem precisar de peso
+   * visual nenhum.
+   */
+  --shadow-card: 0 1px 2px rgba(28, 25, 23, 0.06);
+  --shadow-raised: 0 16px 40px rgba(28, 25, 23, 0.14), 0 2px 8px rgba(28, 25, 23, 0.08);
 
   /*
    * O ÚNICO DEGRADÊ DO SISTEMA: a barra de maturação do pedido, de latão a
@@ -348,38 +302,25 @@
   /* ==========================================================================
    * 9b. O CONSOLE — a lateral é escura NOS DOIS TEMAS
    *
-   * É a decisão de enquadramento desta direção: a navegação não é página, é
-   * equipamento. Ela fica escura de dia e de noite, e o conteúdo é o que troca
-   * de tema. Sem isto, no claro a lateral vira mais uma faixa bege e o painel
-   * perde a moldura que o faz parecer instrumento.
-   *
-   * Por isso estes tokens NÃO são redefinidos no bloco escuro: lá eles já são
-   * estes. E por isso eles têm pares próprios em check-contrast.mjs — um plano
-   * que não inverte precisa ser medido uma vez e valer para os dois temas.
+   * A navegação continua sendo o plano mais escuro da tela, nos dois temas —
+   * mas agora TEM UM VALOR POR TEMA, e não um só compartilhado. Compartilhar
+   * um valor entre os dois temas é o que já causou o defeito real: subir
+   * `--console-bg` para resolver o salto de tom no claro deixou o console mais
+   * CLARO que o chão do tema escuro, e a moldura sumiu lá. Cada tema declara o
+   * seu, sempre mais escuro que a própria `--bg` daquele tema.
    * ======================================================================= */
-  /*
-   * CARVÃO QUENTE, NÃO FULIGEM. Era `#131312` — quase preto puro —, e ao lado
-   * do bege do conteúdo no tema claro o salto de tom lia como dois produtos
-   * colados, não como console e página do mesmo instrumento. Mais claro
-   * aproxima os dois planos sem abrir mão da decisão de enquadramento (§3): o
-   * console continua sensivelmente mais escuro que qualquer superfície de
-   * conteúdo, nos dois temas — só não é mais o fundo mais escuro da tela
-   * inteira. `--console-line` e `--console-active` subiram na mesma proporção,
-   * senão a régua e o halo do item ativo desapareciam contra o fundo novo.
-   */
-  --console-bg: #221d19;
-  --console-ink: #efeeeb;
-  --console-ink-2: #b0ada5;
-  --console-ink-3: #928f87;
-  --console-line: #332e28;
+  --console-bg: #211e1b;
+  --console-ink: #f0eeea;
+  --console-ink-2: #b3aea6;
+  --console-ink-3: #948e85;
+  --console-line: #34302b;
   --console-hover: rgba(255, 255, 255, 0.06);
   /*
    * O halo do item ativo. Ele NÃO pode ser `--ember-wash`: no tema claro
    * aquele token é um pêssego claro, e sobre o console escuro ele viraria uma
-   * mancha acesa atrás do texto. Aqui a brasa é vista de dentro do escuro, nos
-   * dois temas.
+   * mancha acesa atrás do texto.
    */
-  --console-active: #3d2414;
+  --console-active: #3a2415;
 
   /* ==========================================================================
    * 10. ENQUADRAMENTO
@@ -392,7 +333,7 @@
   --sidebar-rail: 52px;
   --topbar-h: 46px;
   --bottombar-h: 56px;
-  --page-pad: var(--sp-16);
+  --page-pad: var(--sp-20);
   --page-pad-mobile: var(--sp-12);
   --page-max: 1280px;
   --form-max: 820px;
@@ -405,11 +346,6 @@
   /*
    * Altura dos controles. Um botão com padding próprio é como a densidade
    * começa a desandar — estas alturas valem para o painel inteiro.
-   *
-   * `--control-h` é 32, não 28: é o mesmo alvo de "linha densa" que `--sp-32`
-   * já dá às linhas de lista (§8) — dois números para a mesma ideia de altura
-   * mínima era o tipo de inconsistência que fazia um controle parecer menor
-   * que o resto sem motivo.
    */
   --control-h: 32px;
   --control-h-sm: 24px;
@@ -417,8 +353,12 @@
   --field-h: 30px;
   --field-h-touch: 40px;
 
+  /* Alvo de linha de lista: densa (conferência) e de leitura (cardápio). */
+  --row-dense-h: 36px;
+  --row-read-h: 48px;
+
   /* ==========================================================================
-   * 11. MOVIMENTO — curto e seco, como relé.
+   * 11. MOVIMENTO
    * Estes dois tokens viram 0s sob prefers-reduced-motion (no fim do arquivo).
    * ======================================================================= */
   --motion-fast: 100ms;
@@ -444,34 +384,26 @@
  * específica de tema: se você precisou de `[data-theme="dark"] .minha-classe`,
  * o token que você usou é o errado.
  *
- * PRETO DE FULIGEM: todo neutro tem marrom por baixo. Um cinza puro (#1a1a1a)
- * ao lado destes tons lê como um buraco azul no meio da tela.
- *
- * A escada de tom aqui é MAIS aberta que no claro de propósito: no claro o
- * papel do cartão já se destaca sozinho; no escuro, dois tons a 4% de
- * distância viram um borrão e o cartão desaparece.
+ * DEGRAUS PERCEPTÍVEIS, não fuligem quase-preta uniforme: cada plano precisa
+ * se distinguir do vizinho sem depender de sombra, que no escuro quase não
+ * aparece. Os neutros mantêm o mesmo viés quente do claro — um a dois pontos
+ * de R sobre B, sente-se e não se vê — só não é mais marrom de propósito.
  * ============================================================================
  */
 [data-theme='dark'] {
-  /*
-   * OS NEUTROS SÃO QUASE NEUTROS. O viés quente ficou — R uns dois pontos
-   * acima de B —, mas parou de ser marrom: a versão anterior tinha o chão em
-   * #0c0a09 e a superfície em #17130f, e com o laranja da marca por cima a
-   * tela inteira lia como sépia. Quente é o que se sente sem se ver; marrom é
-   * o que se vê.
-   */
-  --bg: #0e0e0d;
-  --surface: #161615;
-  --surface-raised: #201f1e;
-  --field: #111110;
+  --console-bg: #0b0a09;
+  --bg: #161513;
+  --surface: #1d1c19;
+  --surface-raised: #262521;
+  --field: #131211;
 
-  --line: #272725;
-  --line-strong: #3d3c39;
-  --line-control: #85837c;
+  --line: #322f2a;
+  --line-strong: #454037;
+  --line-control: #8a8377;
 
-  --ink: #f2f1ee;
-  --ink-2: #b4b1a9;
-  --ink-3: #97948c;
+  --ink: #f2f0ec;
+  --ink-2: #b7b0a5;
+  --ink-3: #928c80;
 
   /* No escuro a brasa acende: é o laranja do selo, sem escurecer. */
   --ember: #ff6a1f;
@@ -497,33 +429,46 @@
   --st-preparando: #c08ae8;
   --st-pronto: #3fd489;
   --st-entrega: #46c8e0;
-  --st-concluido: #97948c;
+  --st-concluido: #928c80;
   --st-cancelado: #ff6b6b;
 
   /*
-   * OS WASHES SÃO UM SUSSURRO, não um preenchimento.
-   *
-   * Eles eram claros e saturados demais: a faixa "aguardando pagamento"
-   * dominava o cartão inteiro com um oliva forte, e num quadro em que quase
-   * todo pedido de Pix passa por esse estado, metade da tela ficava pintada.
-   * Agora eles ficam a um passo do plano em que se apoiam — o suficiente para
-   * dizer "isto é de outra natureza", não para virar bloco de cor.
+   * OS WASHES SÃO UM SUSSURRO, não um preenchimento — a um passo do plano em
+   * que se apoiam, o suficiente para dizer "isto é de outra natureza".
    */
   --st-pendente-wash: #2b2411;
   --st-aceito-wash: #1b232d;
   --st-preparando-wash: #251f30;
   --st-pronto-wash: #12241d;
   --st-entrega-wash: #14252a;
-  --st-concluido-wash: #242423;
+  --st-concluido-wash: #242422;
   --st-cancelado-wash: #331b1a;
 
   --scrim: rgba(0, 0, 0, 0.66);
 
-  /* Sombra sobre quase-preto quase não aparece: quem levanta o que flutua é o
-     degrau para `--surface-raised`, e a sombra só aprofunda a separação. */
-  --shadow-pop: 0 16px 40px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.45);
+  /*
+   * No escuro a sombra quase não aparece: quem separa o que flutua do resto é
+   * o degrau de tom até `--surface-raised`, e a sombra só aprofunda isso.
+   * Cartão parado leva uma sombra ainda mais discreta que no claro.
+   */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-raised: 0 16px 40px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
 
   --grad-brasa: linear-gradient(90deg, #e8b44a 0%, #ff8a3d 55%, #ff4d1a 100%);
+
+  /*
+   * O console continua escuro NOS DOIS TEMAS, mas aqui ele tem o seu PRÓPRIO
+   * valor — mais escuro que a `--bg` deste tema, nunca mais claro. É a
+   * correção do defeito real: um console que só existia no bloco claro ficava
+   * mais claro que o chão escuro assim que o tema virava, e a moldura sumia.
+   */
+  --console-bg: #0b0a09;
+  --console-ink: #f0eeea;
+  --console-ink-2: #b3aea6;
+  --console-ink-3: #928c80;
+  --console-line: #262320;
+  --console-hover: rgba(255, 255, 255, 0.06);
+  --console-active: #3a2415;
 
   color-scheme: dark;
 }

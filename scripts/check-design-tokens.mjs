@@ -43,8 +43,9 @@ const FORBIDDEN = [
     pattern: /font-size\s*:\s*[^;]*\b\d*\.?\d+(px|pt|rem|em)\b/g,
   },
   /*
-   * Raio solto. A escala tem três degraus (--r-chip, --r-field, --r-card) mais
-   * o --r-round; um quarto valor escrito à mão é como ela começa a desandar.
+   * Raio solto. A escala tem os degraus declarados em tokens.css (--r-xs,
+   * --r-chip, --r-field, --r-card, --r-control, --r-sheet, --r-round); um
+   * valor extra escrito à mão é como ela começa a desandar.
    */
   {
     name: 'raio solto',
@@ -53,15 +54,27 @@ const FORBIDDEN = [
   /*
    * FAMÍLIA DE FONTE MONOESPAÇADA — proibida em qualquer tela.
    *
-   * A direção usava JetBrains Mono para tempo decorrido, dinheiro e nº de
-   * pedido; isso saiu (ver o bloco do número em styles/typography.css). O
-   * painel inteiro é uma letra só, Space Grotesk, com `tabular-nums` onde
-   * precisa alinhar em coluna. Esta regra fecha a porta para a mono voltar
-   * escondida num componente novo.
+   * Uma direção anterior chegou a usar JetBrains Mono para tempo decorrido,
+   * dinheiro e nº de pedido; isso saiu (ver o bloco do número em
+   * styles/typography.css). O painel inteiro é uma letra só, Inter, com
+   * `tabular-nums` onde precisa alinhar em coluna. Esta regra fecha a porta
+   * para a mono voltar escondida num componente novo.
    */
   {
     name: 'família de fonte monoespaçada (proibida)',
     pattern: /font-family\s*:\s*[^;]*(mono|jetbrains|menlo|consolas|courier|sf mono)/gi,
+  },
+  /*
+   * CAIXA ALTA COM TRACKING — saiu do sistema por completo (ver "A direção"
+   * no SKILL.md). Ela é o que dava à tela o ar de placa de equipamento; hoje
+   * nem a sidebar nem o cabeçalho de faixa a usam. `.t-label` em
+   * styles/typography.css é caixa de frase, e é o único lugar que decide isso
+   * — um componente que escreve `text-transform: uppercase` por conta própria
+   * é exatamente como ela voltaria escondida.
+   */
+  {
+    name: 'caixa alta com tracking (proibida fora de tokens.css)',
+    pattern: /text-transform\s*:\s*uppercase/gi,
   },
 ];
 

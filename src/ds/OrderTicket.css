@@ -1,17 +1,18 @@
 /*
  * ============================================================================
- * O TICKET — chapa cortada, com o filete do estágio à esquerda
+ * O TICKET — cartão comum, com o filete do estágio à esquerda
  * ============================================================================
  *
- * SEM SOMBRA. Ele está parado na página, e sombra é só para o que flutua. O
- * que o separa do fundo da faixa é o degrau de tom (`--surface` sobre `--bg`)
- * mais um fio neutro de 1px.
+ * SOMBRA SUTIL, JUNTO com a borda — não no lugar dela. É a mesma elevação de
+ * qualquer cartão parado do sistema (`--shadow-card`): o que separa o ticket
+ * do fundo da faixa não é só o degrau de tom, é também esse traço de
+ * profundidade quase imperceptível.
  *
- * A BORDA É NEUTRA; O STATUS ENTRA NUM FILETE DE 2px. A moldura já foi pintada
- * com a cor do estágio, em 3px — num quadro de doze cartões isso dava doze
- * retângulos coloridos, e a cor perdia o trabalho de dizer "este está em
- * preparo" para virar o fundo da tela. O filete diz a mesma coisa gastando um
- * décimo da tinta.
+ * A BORDA É NEUTRA; O STATUS ENTRA NUM FILETE DE 2px. A moldura inteira
+ * pintada com a cor do estágio já foi tentada, em 3px — num quadro de doze
+ * cartões isso dava doze retângulos coloridos, e a cor perdia o trabalho de
+ * dizer "este está em preparo" para virar o fundo da tela. O filete diz a
+ * mesma coisa gastando um décimo da tinta.
  *
  * ELE NÃO DECIDE A PRÓPRIA LARGURA: quem decide é o container — a faixa, a
  * grade do histórico, a galeria. Já teve `width: 236px` fixo aqui, e o preço
@@ -29,6 +30,7 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-card);
+  box-shadow: var(--shadow-card);
   color: var(--ink);
   overflow: hidden;
   transition:
@@ -65,7 +67,7 @@
   flex-direction: column;
   gap: var(--sp-4);
   /* O recuo à esquerda abre espaço para o filete sem que ele encoste no texto. */
-  padding: var(--sp-8) var(--sp-8) var(--sp-8) var(--sp-12);
+  padding: var(--sp-12) var(--sp-12) var(--sp-12) var(--sp-16);
   min-width: 0;
 }
 

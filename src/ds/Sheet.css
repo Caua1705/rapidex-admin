@@ -16,8 +16,8 @@
   display: flex;
   flex-direction: column;
   background: var(--surface);
-  border-radius: var(--r-card) var(--r-card) 0 0;
-  box-shadow: var(--shadow-pop);
+  border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+  box-shadow: var(--shadow-raised);
   animation: ds-sheet-sobe var(--motion-base) var(--ease);
 }
 

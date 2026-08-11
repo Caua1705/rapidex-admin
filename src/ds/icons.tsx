@@ -6,10 +6,10 @@
  * desenhos diferentes. Isso é exatamente o que a regra do sistema proíbe — se
  * há dois nomes para a mesma coisa, um dos dois é para apagar.
  *
- * O TRAÇO DESTA DIREÇÃO (Brasa): grade de 24, **traço 1,75, ponta reta
- * (`square`) e canto vivo (`miter`)**. É desenho de chapa cortada e de placa
- * gravada, não de aplicativo — a ponta redonda que o conjunto anterior usava
- * é o que dava a ele o ar simpático que a direção nova não quer.
+ * O TRAÇO DESTA DIREÇÃO: grade de 24, **traço 1,5, ponta arredondada
+ * (`round`) e junta arredondada (`round`)**. É o vocabulário de ícone de
+ * aplicação comum — a ponta reta e o canto vivo que a direção anterior usava
+ * liam como desenho de chapa cortada, sotaque que este painel não quer mais.
  *
  * REGRAS QUE VALEM PARA TODO ÍCONE DAQUI:
  *   - `stroke="currentColor"` e `fill="none"`: quem decide a cor é o texto ao
@@ -31,9 +31,9 @@ function Icon({ size = 16, children }: IconProps & { children: ReactNode }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="square"
-      strokeLinejoin="miter"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
     >
       {children}

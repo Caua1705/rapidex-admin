@@ -76,7 +76,7 @@
   padding: var(--sp-16);
   background: var(--surface);
   border-radius: var(--r-card);
-  box-shadow: var(--shadow-pop);
+  box-shadow: var(--shadow-raised);
 }
 
 .gal__row {

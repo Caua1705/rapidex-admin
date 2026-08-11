@@ -25,11 +25,6 @@ body {
   letter-spacing: var(--tb-track);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  /*
-   * Números em lista precisam alinhar em coluna. Global, não por classe: o
-   * caso em que NÃO se quer tabular é raro o bastante para ser a exceção.
-   */
-  font-variant-numeric: tabular-nums;
 }
 
 h1,

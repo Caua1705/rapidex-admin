@@ -139,12 +139,11 @@ const PAIRS = [
   { fg: '--ink', bg: '--ember-wash', min: 4.5, use: 'texto selecionado (::selection)' },
 
   /*
-   * O CONSOLE (a lateral), que é escuro nos DOIS temas.
-   *
-   * Ele não inverte, então estes pares medem o mesmo valor duas vezes — e é de
-   * propósito: um plano que não acompanha o tema é exatamente o que costuma
-   * escapar da revisão de contraste, porque ninguém pensa nele ao trocar a
-   * paleta do claro.
+   * O CONSOLE (a lateral), que é escuro nos DOIS temas — mas com um valor
+   * PRÓPRIO por tema, não compartilhado. Continua tendo pares dedicados aqui
+   * por um motivo diferente agora: um plano que só é redefinido num lugar do
+   * arquivo é o que mais costuma escapar da revisão quando alguém mexe só no
+   * bloco do tema escuro ou só no do claro.
    */
   { fg: '--console-ink', bg: '--console-bg', min: 4.5, use: 'item da navegação' },
   { fg: '--console-ink-2', bg: '--console-bg', min: 4.5, use: 'item inativo da navegação' },

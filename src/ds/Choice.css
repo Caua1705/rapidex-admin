@@ -22,7 +22,7 @@
 
 @media (min-width: 1024px) {
   .ds-choice {
-    min-height: var(--sp-32);
+    min-height: var(--row-dense-h);
   }
 }
 
@@ -47,7 +47,7 @@
 }
 
 .ds-choice__box--check {
-  border-radius: var(--r-chip);
+  border-radius: var(--r-xs);
 }
 
 .ds-choice__box--radio {

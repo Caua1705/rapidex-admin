@@ -119,8 +119,6 @@
   font-size: var(--tb-size);
   line-height: var(--tb-line);
   font-weight: var(--w-bold);
-  letter-spacing: var(--tl-track);
-  text-transform: uppercase;
   color: var(--ink-2);
 }
 

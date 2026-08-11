@@ -81,8 +81,8 @@
   padding: var(--sp-4);
   background: var(--surface-raised);
   border: 1px solid var(--line);
-  border-radius: var(--r-card);
-  box-shadow: var(--shadow-pop);
+  border-radius: var(--r-sheet);
+  box-shadow: var(--shadow-raised);
 }
 
 .ds-select__option {

@@ -377,14 +377,19 @@
     font-weight: var(--tb-weight);
   }
 
+  /*
+   * O RÓTULO IDENTIFICA O ITEM — ele não cede (§7): "Desempen…" ao lado de um
+   * selo "Em breve" inteiro, com espaço sobrando, era o defeito de truncar
+   * quando sobra. Quem desempata, se algum dia faltar espaço de verdade, é o
+   * selo — por isso é ele, e não o rótulo, que leva `min-width: 0`.
+   */
   .shell__link-label {
     position: static;
     width: auto;
     height: auto;
     margin: 0;
     clip: auto;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    flex: 0 0 auto;
     white-space: nowrap;
   }
 
@@ -404,6 +409,11 @@
     height: auto;
     margin-left: auto;
     clip: auto;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: var(--ta-size);
     line-height: 1;
     color: var(--console-ink-3);

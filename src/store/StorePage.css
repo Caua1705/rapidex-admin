@@ -171,7 +171,7 @@
 .store-form {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-16);
+  gap: var(--sp-20);
 }
 
 .store-form__section {
@@ -244,7 +244,7 @@
   background: var(--surface-raised);
   border: 1px solid var(--line);
   border-radius: var(--r-field);
-  box-shadow: var(--shadow-pop);
+  box-shadow: var(--shadow-raised);
 }
 
 .store-form__buttons {
@@ -292,7 +292,7 @@
   grid-template-columns: 104px 40px 1fr;
   align-items: center;
   gap: var(--sp-12);
-  min-height: var(--sp-32);
+  min-height: var(--row-dense-h);
 }
 
 .hours__day {
@@ -352,7 +352,7 @@
   display: grid;
   align-items: center;
   gap: var(--sp-12);
-  min-height: var(--sp-32);
+  min-height: var(--row-dense-h);
   padding-block: var(--sp-4);
   border-bottom: 1px solid var(--line);
 }

@@ -2,8 +2,9 @@
   display: flex;
   flex-direction: column;
   background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: var(--r-card);
-  box-shadow: var(--shadow-pop);
+  box-shadow: var(--shadow-card);
 }
 
 .ds-card__cab {
@@ -151,8 +152,8 @@
 }
 
 @media (min-width: 1024px) {
-  /* No mouse a densidade sobe: 44px por linha, ~16 itens numa tela de 900. */
+  /* No mouse a densidade sobe: 48px por linha, ~14 itens numa tela de 900. */
   .ds-item {
-    min-height: 44px;
+    min-height: 48px;
   }
 }

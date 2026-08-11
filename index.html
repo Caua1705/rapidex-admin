@@ -9,27 +9,12 @@
     <!--
       UMA LETRA SÓ, EM TODA A TELA.
 
-      SPACE GROTESK na interface. Grotesca com terminais cortados na diagonal e
-      aberturas fechadas — ela tem desenho próprio, ao contrário da Inter, que
-      é justamente uma neo-grotesca sem opinião. É o que dá à tela o ar de
-      placa de equipamento em vez de dashboard de qualquer coisa.
-
-      NÃO HÁ SEGUNDA FAMÍLIA PARA NÚMERO. Tempo decorrido, dinheiro e nº de
-      pedido levam `font-variant-numeric: tabular-nums` na mesma Space
-      Grotesk — uma mono à parte já foi o sotaque desta direção, e na prática
-      lia como terminal de servidor. Ver o bloco do número em
-      styles/typography.css.
-
-      Vem por <link> e não por @import no CSS porque @import serializa o
-      download atrás da folha de estilo; os fallbacks de sistema em `--font-ui`
-      seguram o painel enquanto ela não chega.
+      INTER na interface: neo-grotesca neutra de UI, sem desenho próprio — é
+      isso que faz o painel ler como aplicação de administração comum, não
+      como instrumento com sotaque. Autohospedada via
+      @fontsource-variable/inter (importada em src/main.tsx), sem CDN: nenhum
+      <link> de fonte aqui.
     -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
-    />
 
     <title>Rapidex — Painel do lojista</title>
 

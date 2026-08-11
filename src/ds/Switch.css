@@ -32,16 +32,16 @@
  * elemento mais pesado e mais colorido da linha inteira. O alvo de toque
  * continua sendo o padding do botão em volta.
  *
- * O TRILHO E O BOTÃO SÃO RETANGULARES (`--r-chip`, 2px), não cápsulas. É a
- * chapa cortada da direção: numa tela em que nada mais é redondo, uma cápsula
- * verde por linha era a única forma arredondada do cardápio inteiro.
+ * O TRILHO E O BOTÃO SÃO CÁPSULAS (`--r-round`) — o desenho que qualquer
+ * aplicação comum já usa para interruptor, e que o resto do produto reconhece
+ * de outros sistemas.
  */
 .ds-switch__track {
   position: relative;
   display: block;
   width: 28px;
   height: 16px;
-  border-radius: var(--r-chip);
+  border-radius: var(--r-round);
   background: var(--line-control);
   transition: background var(--motion-base) var(--ease);
 }
@@ -56,7 +56,7 @@
   left: 2px;
   width: 12px;
   height: 12px;
-  border-radius: var(--r-chip);
+  border-radius: var(--r-round);
   background: var(--surface);
   transition: transform var(--motion-base) var(--ease);
 }

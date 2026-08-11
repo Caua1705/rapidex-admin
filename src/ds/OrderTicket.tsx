@@ -35,8 +35,8 @@ import './OrderTicket.css';
  *
  * Tempo, dinheiro e nº levam `.tnum`: são os três números que se comparam
  * descendo a fila, e o "#1042" da tela é o mesmo que sai na comanda térmica.
- * A letra continua sendo a mesma Space Grotesk do resto do cartão — só o
- * alinhamento em coluna (`tabular-nums`) muda.
+ * A letra continua sendo a mesma Inter do resto do cartão — só o alinhamento
+ * em coluna (`tabular-nums`) muda.
  *
  * O ticket inteiro é um `<button>`: abrir o detalhe é UMA ação, e um card
  * clicável feito de <div> com onClick é a forma mais comum de uma tela perder

@@ -39,18 +39,20 @@
 }
 
 /*
- * 3. Rótulo — nome de campo, cabeçalho de coluna, título de grupo do console.
+ * 3. Rótulo — nome de campo, cabeçalho de coluna, título de grupo do console,
+ * separador de grupo da sidebar, cabeçalho de faixa do quadro de pedidos.
  *
- * É a ETIQUETA GRAVADA NA CHAPA: 10px, peso 700, muito espacejada, em tinta de
- * apoio. Maiúscula e `--ink-3` fazem parte do nível, não são opção — é o que
- * permite ao rótulo ser 10px sem competir com o valor que ele nomeia.
+ * CAIXA DE FRASE, não caixa alta: a distinção vem do peso e da tinta de
+ * apoio, não de gritar em maiúscula. Caixa alta com tracking saiu do sistema
+ * por completo — era o que mais dava à tela o ar de placa de equipamento, não
+ * a letra em si (`scripts/check-design-tokens.mjs` barra `text-transform:
+ * uppercase` fora deste arquivo).
  */
 .t-label {
   font-size: var(--tl-size);
   line-height: var(--tl-line);
   font-weight: var(--tl-weight);
   letter-spacing: var(--tl-track);
-  text-transform: uppercase;
   color: var(--ink-3);
 }
 
@@ -73,20 +75,18 @@
 
 /*
  * ============================================================================
- * O NÚMERO É TABULAR — não é mais mono, e nunca mais é uma segunda letra
+ * O NÚMERO É TABULAR — só onde a classe está aplicada
  * ============================================================================
  *
- * Não é um sexto nível: é o mesmo nível, na MESMA Space Grotesk, só com a
- * métrica travada. `.tnum`/`.num` existiam para trocar a fonte inteira por uma
- * monoespaçada — isso saiu. Uma letra à parte para "dinheiro, hora, tempo
- * decorrido e nº de pedido" lia como terminal de servidor, não como
- * equipamento de cozinha, e o ganho de alinhamento nunca dependeu da mono: é o
- * `font-variant-numeric: tabular-nums` sozinho que faz cada dígito ocupar a
- * mesma largura e alinhar em coluna.
+ * Não é um sexto nível: é o mesmo nível, na MESMA Inter, só com a métrica
+ * travada. `font-variant-numeric: tabular-nums` NÃO está mais ligado no
+ * `body` inteiro — isso fazia todo dígito da tela ocupar largura uniforme,
+ * inclusive em texto corrido, e era metade do que dava à interface a
+ * sensação de painel de instrumento. Hoje ele vale só nos quatro lugares que
+ * precisam comparar um número com o de cima ou de baixo: dinheiro, hora,
+ * tempo decorrido e nº de pedido.
  *
- * AS DUAS CLASSES FICAM, como marcador semântico — "este número se compara
- * com o de cima ou de baixo" — mas não pintam mais uma família diferente. Um
- * `font-family` monoespaçada em qualquer arquivo fora deste é erro de lint
+ * Um `font-family` monoespaçada em qualquer arquivo fora deste é erro de lint
  * (`scripts/check-design-tokens.mjs`).
  *
  * `.num` acrescenta o alinhamento à direita, que é o que faz uma COLUNA de
@@ -104,10 +104,10 @@
 }
 
 /*
- * A CONTAGEM NÃO É MONO, e não precisa de classe nenhuma: `reset.css` já liga
- * numeral tabular no `body` inteiro. "12 itens" ao lado do nome de uma
- * categoria é uma frase com um número dentro, não um valor que se compara com
- * o da linha de baixo — ele alinha, e continua na letra da interface.
+ * A CONTAGEM NÃO LEVA `.tnum`. "12 itens" ao lado do nome de uma categoria é
+ * uma frase com um número dentro, não um valor que se compara com o da linha
+ * de baixo — a lista dos quatro casos (dinheiro, hora, tempo decorrido, nº de
+ * pedido) continua sendo literal.
  */
 
 /*

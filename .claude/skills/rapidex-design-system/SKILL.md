@@ -1,6 +1,6 @@
 ---
 name: rapidex-design-system
-description: Regras visuais do painel do lojista Rapidex — a direção Brasa, os cinco níveis de tipografia mais o número tabular (sem mono), a escala de seis degraus, os quatro planos, o console, cor (a brasa é avara — nunca em checkbox/rádio), densidade, enquadramento e movimento. Leia ANTES de escrever qualquer tela, componente ou CSS novo em src/, e antes de mexer em src/styles/tokens.css. Também aplicável ao revisar uma tela existente ou ao decidir uma cor, um espaçamento, um raio ou uma animação.
+description: Regras visuais do painel do lojista Rapidex — aplicação de administração clara e familiar (Inter, sem caixa alta, raio 6/8/10/12, elevação sutil), os cinco níveis de tipografia mais o número tabular por classe (sem mono), a escala de sete degraus, os quatro planos, o console, cor (a brasa é avara — nunca em checkbox/rádio), densidade, enquadramento e movimento. Leia ANTES de escrever qualquer tela, componente ou CSS novo em src/, e antes de mexer em src/styles/tokens.css. Também aplicável ao revisar uma tela existente ou ao decidir uma cor, um espaçamento, um raio ou uma animação.
 ---
 
 # Design system do Rapidex
@@ -9,51 +9,76 @@ Rapidex é uma plataforma white-label de pedidos online. Este sistema cobre o
 **painel do lojista** (`admin.pederapidex.com`): quadro de pedidos em tempo
 real, cardápio, configurações e a tela de cozinha.
 
-## A direção: BRASA
+## A direção: APLICAÇÃO DE ADMINISTRAÇÃO
 
-**A COZINHA ÀS 22H, VISTA DE DENTRO.** A referência não é software: é o
-equipamento da cozinha — o forno combinado, a impressora térmica, o display do
-timer, a etiqueta gravada na chapa de aço. Um lojista abre isto no sábado à
-noite com a cozinha cheia, no desktop do balcão e no celular no meio do salão.
+**O VOCABULÁRIO QUE UM DONO DE RESTAURANTE JÁ RECONHECE.** A referência não é
+equipamento, não é papel, não é sinalização de transporte: é o software de
+gestão que o lojista já abre todo dia — o PDV, o ERP, a planilha da
+contabilidade. Ele abre este painel no sábado à noite com a cozinha cheia, no
+desktop do balcão e no celular no meio do salão, e não deveria precisar
+decifrar um sotaque visual para achar o botão de aceitar um pedido.
 
-**O que este painel não é:** dashboard de SaaS genérico. Padding generoso,
-cinza-azulado neutro e raio grande em tudo são "seguros" — e seguro é
-exatamente a sensação de inacabado. Também não é o oposto disso: não é
-brutalismo nem tema de terminal. É **instrumento**.
+**O que este painel não é:** um instrumento com identidade própria. Uma
+direção anterior (Brasa) tentou exatamente isso de propósito — "a cozinha às
+22h, vista de dentro", com referência em equipamento — e o resultado foi
+preciso mas errado de alvo: cinco decisões, cada uma defensável sozinha
+(tipografia de display, raio quase reto, superfície sem sombra, paleta
+bege/marrom, ícone de traço reto com ponta cortada), somaram o efeito de placa
+gravada em chapa de aço. Nenhuma delas é ruim isolada; a soma é que lê como
+máquina. Este painel também não é o oposto disso — não é brutalismo nem tema
+de terminal, e "clara e familiar" não é sinônimo de "sem cuidado": um painel
+com padding decorativo, hierarquia solta ou contraste frouxo é tão errado
+quanto um que grita "equipamento".
 
-As quatro decisões que fazem a direção, e que valem mais que qualquer regra
+As decisões que fazem a direção, e que valem mais que qualquer regra
 específica deste documento:
 
-1. **Escuro é o chão, e o escuro é quente — QUENTE, não marrom.** O viés é de
-   dois pontos de R sobre B: sente-se, não se vê. A primeira versão desta
-   direção pintava o chão em `#0c0a09` e a superfície em `#17130f`, e com o
-   laranja da marca por cima a tela lia como sépia. Cinza-azulado de editor de
-   código continua proibido do outro lado. O claro existe inteiro e é o modo de
-   dia.
-2. **O número é tabular, e a letra é uma só.** Dinheiro, hora, tempo decorrido
-   e nº de pedido levam `.tnum`/`.num` — `font-variant-numeric: tabular-nums`
-   na MESMA Space Grotesk do resto da tela, nunca uma mono à parte. Já foi
-   JetBrains Mono nesses quatro lugares; na prática lia como terminal de
-   servidor, não como equipamento de cozinha, e o alinhamento em coluna nunca
-   dependeu da mono — é o tabular sozinho que faz isso. **Nenhuma
-   `font-family` monoespaçada sobrevive em lugar nenhum do painel** (é erro de
-   lint, `scripts/check-design-tokens.mjs`). O que faz uma tela parecer
-   máquina não é uma letra, é o rótulo em caixa alta fora de lugar. Ver §1.
-3. **A brasa é o único degradê.** Ele pinta a barra de maturação do pedido —
-   latão quando entra, brasa quando estoura. É a única escala contínua da tela,
-   e ler "está esquentando" de longe é o trabalho dela. Qualquer outro degradê
-   no projeto é erro, inclusive um segundo uso deste.
-4. **A lateral é um console, e ele é escuro nos dois temas.** A navegação é
-   equipamento, não página. Ver §3.
+1. **A letra é Inter — uma neo-grotesca de UI sem desenho próprio.** É
+   exatamente o oposto do critério da direção anterior, que buscava uma letra
+   com sotaque de propósito. Autohospedada (`@fontsource-variable/inter`),
+   sem CDN.
+2. **Caixa alta com tracking saiu do sistema por completo.** Nem na sidebar,
+   nem no cabeçalho de faixa do quadro de pedidos — os dois únicos lugares que
+   ainda a usavam. O rótulo (nível 3) é caixa de frase em toda parte. Ver §1.
+3. **O raio é 6 / 8 / 10 / 12, não 2 / 3 / 4.** Canto quase vivo é vocabulário
+   de wireframe e de terminal — e era o menos suspeito dos cinco culpados
+   originais, porque cada tela isolada parecia "só precisa". Ver §3.
+4. **Cartão parado tem sombra sutil, junto com a borda.** "Sombra só no que
+   flutua" fazia todo cartão em repouso ler como caixa contornada e plana —
+   wireframe, não produto acabado. A sombra nova é quase imperceptível; o que
+   ela resolve é a textura, não o peso. Ver §3.
+5. **O número é tabular só onde precisa comparar.** Dinheiro, hora, tempo
+   decorrido e nº de pedido levam `.tnum`/`.num` — a mesma Inter, só com
+   `font-variant-numeric: tabular-nums`. Fora desses quatro lugares, não há
+   mais numeral tabular ligado por padrão: ele saiu do `body` inteiro em
+   `reset.css`, porque todo dígito da tela com largura uniforme — inclusive em
+   texto corrido — também é parte do que lia como painel de instrumento.
+   **Nenhuma `font-family` monoespaçada sobrevive em lugar nenhum do painel**
+   (é erro de lint, `scripts/check-design-tokens.mjs`). Ver §1.
+6. **A brasa é o único degradê.** Ele pinta a barra de maturação do pedido —
+   latão quando entra, brasa quando estoura. É a única escala contínua da
+   tela, e ler "está esquentando" de longe é o trabalho dela. Qualquer outro
+   degradê no projeto é erro, inclusive um segundo uso deste.
+7. **A lateral continua um console escuro nos dois temas** — a única peça da
+   direção anterior que sobrevive por inteiro. Uma navegação escura ao lado de
+   conteúdo claro é um padrão comum de aplicação de administração (editor de
+   código, várias ferramentas internas), não um sinal de "equipamento". Ver
+   §3.
 
-**"Premium" aqui continua significando PRECISÃO** — alinhamento, ritmo,
-contraste. O que mudou é que agora a tela também tem sotaque.
+**"Premium" continua significando PRECISÃO** — alinhamento, ritmo, contraste —
+e padding decorativo continua proibido. O que mudou é o alvo: a tela não tenta
+mais soar como chapa de aço, tenta soar como o melhor sistema de gestão que o
+lojista já usou.
 
 Intocável: a **escala de sete status de pedido** carrega significado e não
 matiz de gosto. Todo o resto deste documento pode ser rediscutido com uma tela
-na mão. As três direções que disputaram esta (Brasa, Papel, Sinal) estão em
-`design/direcoes/`, completas e medidas — trocar é uma conversa, não um
-recomeço.
+na mão. As duas direções alternativas que disputaram esta (Papel, Sinal) estão
+em `design/direcoes/`, completas e medidas — nenhuma das duas atendia à
+maioria dos critérios desta troca (tipografia neutra, raio de aplicação,
+superfície neutra, elevação sutil, ícone de traço suave): Papel tem raio ZERO
+(mais reto que a Brasa, não menos) e título em serifa de display; Sinal tem
+neutro frio (quebra o viés quente que este sistema preserva) e chip em cápsula
+total. A base desta direção é a Brasa, com os cinco pontos acima trocados.
 
 ## A regra que vale mais que as outras
 
@@ -69,19 +94,28 @@ solto.
 
 ---
 
-# 1. Tipografia: cinco níveis, mais a mono do número
+# 1. Tipografia: cinco níveis, mais o número tabular
 
-**Space Grotesk na interface.** Grotesca com terminais cortados na diagonal e
-aberturas fechadas — ela tem desenho próprio, ao contrário de uma neo-grotesca
-neutra, e é ela que dá à tela o ar de placa de equipamento.
+**Inter na interface.** Neo-grotesca de UI, sem desenho próprio — ao contrário
+de uma grotesca de display, ela não empresta sotaque a nada que renderiza
+nela. É esse anonimato que faz a tela ler como aplicação comum. Autohospedada
+via `@fontsource-variable/inter` (importada em `src/main.tsx`), sem CDN.
 
-| #   | Nível            | Classe       | Corpo/entrelinha | Peso | Caixa     | Tinta     | Onde                                              |
-| --- | ---------------- | ------------ | ---------------- | ---- | --------- | --------- | ------------------------------------------------- |
-| 1   | Título de página | `.t-title`   | 19 / 24          | 700  | normal    | `--ink`   | **um por tela**, no alto à esquerda               |
-| 2   | Título de seção  | `.t-section` | 16 / 22          | 600  | normal    | `--ink`   | cartão, faixa, diálogo, título de bloco, **nome de item de lista** |
-| 3   | Rótulo           | `.t-label`   | 11 / 14          | 600  | MAIÚSCULA | `--ink-3` | **só** separador de grupo da sidebar e cabeçalho de faixa do quadro de pedidos |
-| 4   | Corpo            | `.t-body`    | 14 / 20          | 400  | normal    | `--ink`   | o conteúdo                                        |
-| 5   | Auxiliar         | `.t-aux`     | 13 / 18          | 400  | normal    | `--ink-3` | ajuda, meta, hora, contagem, rodapé               |
+| #   | Nível            | Classe       | Corpo/entrelinha | Peso | Caixa   | Tinta     | Onde                                              |
+| --- | ---------------- | ------------ | ---------------- | ---- | ------- | --------- | ------------------------------------------------- |
+| 1   | Título de página | `.t-title`   | 20 / 28          | 600  | normal  | `--ink`   | **um por tela**, no alto à esquerda               |
+| 2   | Título de seção  | `.t-section` | 15 / 22          | 600  | normal  | `--ink`   | cartão, faixa, diálogo, título de bloco, **nome de item de lista** |
+| 3   | Rótulo           | `.t-label`   | 12 / 16          | 600  | normal  | `--ink-3` | separador de grupo da sidebar, cabeçalho de faixa do quadro de pedidos |
+| 4   | Corpo            | `.t-body`    | 14 / 20          | 400  | normal  | `--ink`   | o conteúdo                                        |
+| 5   | Auxiliar         | `.t-aux`     | 13 / 18          | 400  | normal  | `--ink-3` | ajuda, meta, hora, contagem, rodapé               |
+
+**CAIXA ALTA COM TRACKING SAIU DO SISTEMA POR COMPLETO.** Os dois únicos
+lugares que ainda a usavam — o separador de grupo da sidebar e o cabeçalho de
+faixa do quadro de pedidos — passaram a usar o nível 3 em caixa de FRASE, como
+qualquer outro rótulo. A distinção continua vindo do peso e da tinta de apoio,
+não de gritar em maiúscula. `scripts/check-design-tokens.mjs` varre todo
+`.css` fora de `tokens.css` atrás de `text-transform: uppercase` — é erro de
+lint, igual à mono.
 
 **Rótulo de campo de formulário não é o nível 3.** Ele já foi — caixa alta,
 muito espaçado — e era metade do que dava a um formulário de sete campos ar de
@@ -114,28 +148,33 @@ não der para dizer, o texto está errado — não falta um nível.
   todos em semibold na mesma linha é o mesmo que nenhum em semibold: sem um
   ponto de entrada, o olho varre a linha inteira. Escolha qual dos três é a
   resposta da tela e deixe os outros dois em 400.
-- Maiúscula e `--ink-3` fazem parte do nível 3, não são opção — é o que permite
-  a ele ser 11px sem competir com o valor que nomeia.
+- `--ink-3` faz parte do nível 3, não é opção — é o que permite a ele ser 12px
+  sem competir com o valor que nomeia. Caixa alta NÃO faz mais parte dele: ela
+  saiu do sistema por completo (ver "A direção").
 - Cada classe declara corpo, entrelinha, peso, espacejamento **e tinta** juntos.
   Meia definição — corpo aqui, cor lá no componente — é como um nível vira
   quatro variantes em quatro telas.
 - **Nunca escolha tamanho e peso caso a caso.** É exatamente isso que dá a
   sensação de inacabado: quatro tamanhos de "título" em quatro telas.
 
-## O número é tabular, e não há mais mono
+## O número é tabular só onde a classe está aplicada
 
-**`.tnum` e `.num` travam a MÉTRICA, não trocam a letra.** Elas eram
-JetBrains Mono; hoje são `font-variant-numeric: tabular-nums` na mesma Space
-Grotesk do resto da tela. Uma mono à parte já foi o sotaque desta direção —
-na prática lia como terminal de servidor, não como equipamento de cozinha, e
-o alinhamento em coluna nunca dependeu dela: é o tabular sozinho que faz cada
-dígito ocupar a mesma largura. **Nenhum `font-family` monoespaçada sobrevive
-em lugar nenhum do painel** — é erro de lint (`scripts/check-design-tokens.mjs`
-varre todo `.css` fora de `tokens.css` atrás de `mono|jetbrains|menlo|consolas`
-em `font-family`).
+**`.tnum` e `.num` travam a MÉTRICA, não trocam a letra.** Uma direção
+anterior chegou a usar JetBrains Mono para dinheiro, hora, tempo decorrido e
+nº de pedido; isso saiu — na prática lia como terminal de servidor. Hoje as
+duas classes são só `font-variant-numeric: tabular-nums` na mesma Inter do
+resto da tela. **Nenhum `font-family` monoespaçada sobrevive em lugar nenhum
+do painel** — é erro de lint (`scripts/check-design-tokens.mjs` varre todo
+`.css` fora de `tokens.css` atrás de `mono|jetbrains|menlo|consolas` em
+`font-family`).
 
-As duas classes continuam marcando exatamente quatro coisas — o que muda é só
-a letra, não a lista:
+**`font-variant-numeric: tabular-nums` NÃO está mais ligado no `body`
+inteiro.** Ele já foi global em `reset.css`, e isso fazia todo dígito da
+tela — inclusive em texto corrido, uma quantidade, um CEP — ocupar largura
+uniforme. Era parte do que dava à interface a sensação de painel de
+instrumento, mesmo sem nenhuma mono à vista. Hoje ele vale só onde `.tnum`/
+`.num` estão aplicadas, e a lista de onde aplicá-las continua sendo
+exatamente quatro coisas:
 
 | O quê           | Por quê                                                             |
 | --------------- | ------------------------------------------------------------------- |
@@ -147,24 +186,23 @@ a letra, não a lista:
 **Fora desses quatro, não use — e a lista é literal.** Não entram: minuto de
 configuração ("25–35 min" do prazo de preparo), quantidade ("2×"), telefone,
 CEP, coordenada, quilômetro, contagem. Todos são números; nenhum se compara
-descendo uma coluna. Sem uma mono para emprestar sotaque de terminal, aplicar
-`.tnum` fora da lista não é mais um erro visível — é só uma classe sem
-efeito —, mas continua sendo a classe errada: ela documenta "este número se
-compara com o de cima ou de baixo", e um minuto de configuração não se
-compara.
+descendo uma coluna. Aplicar `.tnum` fora da lista não faz mais nada visível
+hoje que o tabular não está ligado no `body` inteiro — o número volta a ler
+como texto comum —, mas continua sendo a classe errada: ela documenta "este
+número se compara com o de cima ou de baixo", e um minuto de configuração
+não se compara.
 
-**Não é a mono que dá aparência de máquina a uma tela — nunca foi.** É o
-rótulo em caixa alta com peso alto e espacejamento largo, fora dos dois
-lugares em que isso é permitido (separador de grupo da sidebar, cabeçalho de
-faixa do quadro de pedidos). O nível 3 já foi 10px/700/0.1em e imitava tão
-bem uma monoespaçada que a tela inteira parecia estar nela.
+**Nunca foi a mono que dava aparência de máquina a uma tela.** Era o rótulo
+em caixa alta com peso alto e espacejamento largo — e essa caixa alta saiu do
+sistema por completo, não só dos dois lugares que ainda a usavam (separador
+de grupo da sidebar, cabeçalho de faixa do quadro de pedidos). Ver "A
+direção".
 
-**Contagem não é tabular por classe própria, e não precisa:** `reset.css` já
-liga numeral tabular no `body` inteiro. "12 itens" ao lado do nome de uma
-categoria é uma frase com um número dentro — ele alinha e continua na letra
-da interface. Campo de formulário segue a mesma lista: preço, taxa e valor
-por km levam `.tnum` porque são reais e comparáveis; telefone, CEP e
-coordenada não levam.
+**Contagem não leva `.tnum`.** "12 itens" ao lado do nome de uma categoria é
+uma frase com um número dentro, não um valor que se compara com o de baixo —
+a lista dos quatro casos continua sendo literal. Campo de formulário segue a
+mesma lista: preço, taxa e valor por km levam `.tnum` porque são reais e
+comparáveis; telefone, CEP e coordenada não levam.
 
 `.num` acrescenta o alinhamento à direita, que é o que faz uma COLUNA de
 dinheiro ler como coluna. Número dentro de uma frase usa `.tnum`.
@@ -181,25 +219,30 @@ declarados como exceção em `tokens.css`.
 
 ---
 
-# 2. Espaçamento: seis degraus e nenhum valor solto
+# 2. Espaçamento: sete degraus e nenhum valor solto
 
 | Token     | Valor | Trabalho                                              |
 | --------- | ----- | ----------------------------------------------------- |
 | `--sp-4`  | 4px   | dentro de um controle: ícone ↔ texto, rótulo ↔ campo  |
 | `--sp-8`  | 8px   | entre controles irmãos; padding de linha densa        |
-| `--sp-12` | 12px  | padding de cartão; entre campos de uma mesma linha    |
-| `--sp-16` | 16px  | entre blocos de uma seção; respiro lateral da tela    |
+| `--sp-12` | 12px  | entre campos de uma mesma linha                       |
+| `--sp-16` | 16px  | padding de cartão                                     |
+| `--sp-20` | 20px  | entre blocos de uma seção; respiro lateral da tela    |
 | `--sp-24` | 24px  | entre seções                                          |
 | `--sp-32` | 32px  | topo de tela e estado vazio — o único degrau generoso |
 
-**Escolha o degrau abaixo do que o instinto pede.** O instinto foi treinado em
-página de marketing; aqui embaixo tem fila de pedido.
+**`--sp-20` é novo.** A instrução que ocupava este lugar — "escolha o degrau
+abaixo do que o instinto pede" — saiu: ela foi calibrada para uma direção que
+mirava instrumento, onde apertar um degrau sempre lia como mais preciso. Uma
+aplicação de administração comum tem mais fôlego: o padding de cartão subiu
+de 12 para 16, e o respiro entre blocos de seção (e `--page-pad`) subiu de 16
+para 20 — o degrau novo existe para não confundir os dois usos.
 
 - **Nenhum número solto em `padding`, `margin` ou `gap`.** As únicas exceções são
   larguras de coluna de grade (que são medida de conteúdo) e as alturas de
   controle declaradas em `tokens.css`.
-- **Não existe `--sp-2`, `--sp-20` nem `--sp-40`**, e a falta deles é
-  proposital: eram exatamente por onde cada bloco escolhia o próprio ritmo.
+- **Não existe `--sp-2` nem `--sp-40`**, e a falta deles é proposital: eram
+  exatamente por onde cada bloco escolhia o próprio ritmo.
 - **Campo, rótulo e ajuda têm espaçamento idêntico em toda tela**: `.field` (ou
   `.ds-field`) já entrega isso. Não recomponha um campo à mão, e **não invente
   um segundo nome de classe para a ajuda** — é `.field__hint`, em todo lugar.
@@ -227,53 +270,69 @@ Mais `--field`, o plano do que se PREENCHE, que afunda.
   faixa de "aguardando pagamento" já dominou o cartão inteiro com um oliva
   forte, e num quadro em que quase todo pedido de Pix passa por esse estado,
   metade da tela ficava pintada.
-- **Um bloco que tem tom próprio não leva borda** — com uma exceção: no raio de
-  2px, um retângulo só de preenchimento perde a forma contra `--surface` no
-  tema claro, então cartão e etiqueta levam um fio de `--line` junto com o tom.
-  Contornar tudo continua sendo o que faz a tela parecer wireframe.
+- **Um bloco que tem tom próprio não leva borda** — com uma exceção: cartão e
+  etiqueta levam um fio de `--line` junto com o tom, porque um preenchimento
+  sozinho contra `--surface` no tema claro (as duas superfícies quase brancas)
+  ainda perde a forma sem ele. Contornar tudo continua sendo o que faz a tela
+  parecer wireframe — a diferença é que agora a sombra sutil do cartão (ver
+  abaixo) também ajuda a separá-lo do fundo, então a borda não carrega o
+  trabalho sozinha.
 - **A exceção declarada é o campo de texto.** Fora de um cartão ele some no
   fundo, então ele — e só ele — leva contorno de `--line-control`, o único da
   paleta que passa dos 3:1 da WCAG 1.4.11.
 - **Sem blur, sem glassmorphism.** Overlay é véu sólido semi-opaco (`--scrim`).
 - **Um degradê no sistema inteiro**, e é a barra de maturação (`--grad-brasa`).
   Um segundo uso dele é erro.
-- **Sombra só no que flutua** — menu, diálogo, folha lateral, barra de salvar.
-  Cartão parado na página não tem sombra em tema nenhum.
+- **CARTÃO PARADO TEM SOMBRA SUTIL, JUNTO COM A BORDA — não no lugar dela.**
+  "Sombra só no que flutua" já foi a regra, e o preço era todo cartão em
+  repouso ler como caixa contornada e plana: exatamente o registro de
+  wireframe que esta direção quer evitar. `--shadow-card` é quase
+  imperceptível de propósito — o que ela resolve é a textura da superfície,
+  não o peso dela. O que flutua (menu, diálogo, folha, barra de salvar) segue
+  levando `--shadow-raised`, visivelmente mais forte: a hierarquia entre
+  "parado" e "flutuando" continua existindo, só que os dois agora têm alguma
+  sombra, não um com e outro sem.
 - **Sem ilustração, imagem de fundo ou foto.** O único elemento pictórico é o
   logo. Foto de prato é conteúdo do lojista: o slot fica como contorno
   tracejado até haver foto — nunca como bloco preenchido, que numa lista sem
   fotos vira uma coluna de buracos.
 - **Uma textura, e ela não se vê:** `--hachura`, a 45° e a 2% de opacidade, no
-  console. Ela dá matéria à chapa sem virar desenho atrás do texto.
-- **Raio apertado**: `--r-chip` (2px) no que é controle, `--r-field` (3px) no que
-  é superfície, `--r-card` (4px) no que flutua. `--r-round` só em ponto de
-  status e ponto de conexão — o interruptor é retangular.
-- **Uma exceção declarada ao raio apertado: `--r-control` (8px), só no
-  segmentado (`.seg`) e no stepper (os botões +5/+10/−5 do preparo).** Uma
-  fileira de botões colados em 2px lê como tecla de teclado numérico; em 8px
-  lê como grupo de opções. Não é para mais nada — `.btn`, `.tag` e o campo
-  continuam em `--r-chip`/`--r-field`. Os dois controles também perderam a
-  borda de repouso: o que os separa do fundo agora é `--field` (o mesmo plano
-  que os campos afundam), não uma linha.
+  console. Ela dá matéria ao plano sem virar desenho atrás do texto.
+- **Raio de aplicação, não de wireframe**: `--r-chip` (6px) no que é controle,
+  `--r-field` (8px) no que é superfície interna, `--r-card` (10px) no que
+  descansa na página, `--r-sheet` (12px) no que sobe mais um degrau (diálogo,
+  folha, menu). `--r-xs` (4px) é a única exceção menor, só na caixa do
+  checkbox (18px — pequena demais para o raio de chip). `--r-round` é a
+  cápsula: ponto de status, ponto de conexão, e o interruptor (trilho e
+  botão) inteiro. A escala anterior (2 / 3 / 4) era canto quase vivo — o
+  culpado mais forte e o menos suspeito do efeito de instrumento, porque cada
+  tela isolada parecia "só precisa de um pouco mais apertado".
+- **`--r-control` (8px) não é mais exceção** — hoje ele coincide com
+  `--r-field`. O segmentado (`.seg`) e o stepper (os botões +5/+10/−5 do
+  preparo) continuam sem borda de repouso: o que os separa do fundo é
+  `--field` (o mesmo plano que os campos afundam), não uma linha.
 
 ### O console
 
 **A lateral (e, no celular, a barra inferior) é escura nos DOIS temas.** É a
-decisão de enquadramento desta direção: a navegação é equipamento, não página.
-No claro, uma lateral bege ao lado de uma área bege faz o painel perder a
-moldura que o faz parecer instrumento.
+única peça inteira que sobrevive da direção anterior: uma navegação escura ao
+lado de conteúdo claro é um padrão comum de aplicação de administração — não
+é, sozinha, o que lia como instrumento.
 
-Ela tem tokens próprios (`--console-*`, bloco 9b de `tokens.css`) que **não são
-redefinidos no tema escuro** — lá eles já são aqueles. E eles têm pares próprios
-em `check-contrast.mjs`: um plano que não inverte é justamente o que escapa da
-revisão de contraste, porque ninguém pensa nele ao mexer na paleta do claro.
+Ela tem tokens próprios (`--console-*`, bloco 9b de `tokens.css`) **com um
+valor por tema**, não compartilhado entre os dois. Isso é uma correção, não só
+uma preferência: um console que só existia no bloco claro (raiz `:root`) e
+nunca era redefinido no escuro herdava o MESMO valor nos dois temas — e o dia
+em que esse valor subiu para resolver o salto de tom no claro, ele passou a
+ficar mais CLARO que o chão do tema escuro, e a moldura sumiu lá sem que
+ninguém tocasse no bloco escuro. Cada tema declara o seu, sempre mais escuro
+que a própria `--bg` daquele tema, e os dois têm pares próprios em
+`check-contrast.mjs`.
 
-**`--console-bg` é carvão quente (`#221d19`), não fuligem quase-preta.** Já foi
-`#131312`, e no tema claro o salto do console para o bege do conteúdo lia como
-dois produtos colados, não como console e página do mesmo instrumento. Mais
-claro aproxima os dois planos sem abrir mão da decisão de enquadramento acima:
-o console continua sensivelmente mais escuro que qualquer superfície de
-conteúdo, nos dois temas — só não é mais o ponto mais escuro da tela inteira.
+**No claro, o console é carvão neutro-quente — não sépia.** Uma versão
+anterior chegou a `#221d19`, e por cima do laranja da marca aquele tanto de
+marrom lia como sépia; o valor atual mantém o mesmo grau de escurecimento com
+menos saturação de marrom.
 
 O item ativo leva **tinta cheia + trilho de brasa de 2px + halo curto**
 (`--console-active`). Três sinais, e o laranja em nenhum deles é texto.
@@ -310,9 +369,9 @@ Se a resposta for "fica bonito" ou "diferencia visualmente", a cor sai.
    varre `.ds-choice__box:checked` nos dois temas atrás desse vazamento
    especificamente.
    **No tema claro ela é mais escura que a do selo, e isso é medido, não gosto:**
-   sobre o bege da página, o laranja do selo dá 2,2:1 e reprova nos 3:1 do anel
-   de foco. O selo continua o mesmo; o token da interface diverge dele. No
-   escuro os dois se reencontram.
+   sobre o fundo claro da página, o laranja do selo reprova nos 3:1 do anel de
+   foco. O selo continua o mesmo; o token da interface diverge dele. No escuro
+   os dois se reencontram.
    **A brasa nunca é TEXTO sobre `--ember-wash`**: não existe um laranja que
    passe em AA nos dois temas sem deixar de ser o laranja da marca.
 2. **A escala de status pinta status de pedido e mais nada.** Ela é de METAL E
@@ -367,7 +426,10 @@ existe: ele não aceita a tipografia, nem o raio, nem o tom das superfícies.
   é `ds/Select`: um segmentado de doze teclas vira uma parede.
 - **Caixa de marcar e rádio**: `ds/Checkbox` e `ds/Radio`. O `<input>` continua
   nativo — teclado e leitor de tela vêm dele — mas com `appearance: none` ele
-  não desenha nada, e o `accent-color` do sistema some.
+  não desenha nada, e o `accent-color` do sistema some. A caixa leva `--r-xs`
+  (4px): pequena demais (18px) para o raio de chip parecer proporcional.
+- **Interruptor**: `ds/Switch`. Trilho e botão em `--r-round` — a cápsula que
+  qualquer aplicação comum já usa para este controle, não mais um retângulo.
 - **Barra de rolagem**: fina, do tom da linha, revelada no ponteiro
   (`reset.css`).
 - **Hora e data** continuam sendo campo nativo, e é a única concessão: o seletor
@@ -447,20 +509,20 @@ ao lado de um endereço inteiro.
   (`--page-max` na lista): num monitor de 27", o preço ia parar a 900px do item
   que ele precifica.
 - **Linha de lista densa é para CONFERÊNCIA** — o que se percorre procurando
-  uma exceção: alvo de ~32px. **Lista que se LÊ é outra coisa**: o cardápio é
-  onde o lojista procura um item pelo nome entre sessenta, então a linha tem
-  44px e o nome sai no nível 2. Comprimida, ela cabia mais itens e nenhum era
-  achado rápido.
-- **Linha densa**: alvo de ~32px. O que estoura essa altura é empilhar
-  rótulo em cima de controle — ponha lado a lado. Em `max-width: 720px` a
-  densidade cede e a linha vira alvo de dedo.
+  uma exceção: alvo de `--row-dense-h` (36px). **Lista que se LÊ é outra
+  coisa**: o cardápio é onde o lojista procura um item pelo nome entre
+  sessenta, então a linha tem `--row-read-h` (48px) e o nome sai no nível 2.
+  Comprimida, ela cabia mais itens e nenhum era achado rápido.
+- **Linha densa**: alvo de `--row-dense-h` (36px). O que estoura essa altura é
+  empilhar rótulo em cima de controle — ponha lado a lado. Em
+  `max-width: 720px` a densidade cede e a linha vira alvo de dedo.
 - **Ação secundária é ícone SEM CAIXA**, revelada no hover da linha, e
   **continua visível no foco de teclado** (`:focus-within`). No toque ela é
   permanente. Revele por `@media (hover: none), (max-width: 900px)` — só
   `hover: none` não dispara no Chromium sem emulação de toque, e a régua de
   alvo mede por largura.
 - **O interruptor indica estado; ele não é a ação da página.** Trilho de 28×16,
-  retangular, com o alvo de toque inteiro no botão em volta.
+  em cápsula (`--r-round`), com o alvo de toque inteiro no botão em volta.
 - **Nada de informação duas vezes na mesma tela.** Se o contador está no
   cabeçalho da faixa, ele não está também num resumo em cima — e um total que é
   a SOMA de contadores visíveis na mesma dobra também é a mesma informação.
@@ -491,6 +553,16 @@ ao lado de um endereço inteiro.
 - **Componente de conteúdo não decide a própria largura**; quem decide é o
   container. `ds/OrderTicket` já teve `width: 236px` fixo, e o preço era que
   toda tela que o usasse precisava desfazer a regra para encaixá-lo numa grade.
+- **COLUNA DE DETALHE VAZIA COLAPSA, NÃO RESERVA ESPAÇO PARA UMA FRASE.** O
+  painel de detalhe de Pedidos (`OrderDetailPanel`) já reservou 380px —
+  perto de um terço da tela em 1280px — só para explicar o que a coluna faz,
+  antes de qualquer pedido selecionado. Sem seleção, ela vai a `width: 0` e a
+  grade de faixas ao lado (`auto-fill`) usa a largura inteira sozinha; ao
+  selecionar um pedido, ela entra com a mesma transição de largura que
+  qualquer painel do sistema usa para comunicar mudança de estado (§9). A
+  regra vale para qualquer coluna de detalhe futura no mesmo formato: o
+  estado vazio de uma coluna lateral permanente não é o lugar para uma frase
+  de ajuda — é o lugar para não estar lá.
 
 ---
 
@@ -528,11 +600,12 @@ inventado, sem barra de progresso.
 nomes repetidos e desenhos diferentes; se você encontrar dois nomes para a mesma
 coisa, um dos dois é para apagar.
 
-O traço desta direção: **grade de 24, traço 1,75, ponta reta (`square`), canto
-vivo (`miter`)**, `stroke="currentColor"`, `fill="none"`, `aria-hidden="true"`.
-É desenho de chapa cortada — a ponta redonda é o que dava ao conjunto anterior o
-ar simpático que esta direção não quer. Ícone é `--ink-3` e **não tem caixa**;
-só o hover ou o foco desenham fundo.
+O traço desta direção: **grade de 24, traço 1,5, ponta arredondada (`round`),
+junta arredondada (`round`)**, `stroke="currentColor"`, `fill="none"`,
+`aria-hidden="true"`. É o vocabulário de ícone de aplicação comum — a ponta
+reta e o canto vivo que uma direção anterior usava liam como desenho de chapa
+cortada, sotaque que este painel não quer mais. Ícone é `--ink-3` e **não tem
+caixa**; só o hover ou o foco desenham fundo.
 
 **Ícone desenhado dentro de uma tela é o começo de um segundo conjunto.** Se
 falta um, ele nasce no arquivo de ícones.
@@ -564,7 +637,7 @@ DataTable, Sheet, Tabs, **OrderTicket**, MaturationBar, icons), `src/ui/`
 | Classe                                                                            | O quê                                                              |
 | --------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | `.t-title` `.t-section` `.t-label` `.t-body` `.t-aux`                             | os cinco níveis de tipografia                                      |
-| `.tnum` `.num`                                                                    | a mono do número (tempo, dinheiro, nº) / com alinhamento à direita |
+| `.tnum` `.num`                                                                    | o número tabular (tempo, dinheiro, nº) / com alinhamento à direita |
 | `.btn` `.btn--primary` `.btn--danger` `.btn--ghost` `.btn--sm` `.icon-btn`        | botões (`--control-h`; `--sm` menor)                               |
 | `.seg` `.seg__opt`                                                                | segmentado, para 2–5 opções fixas                                  |
 | `.field` `.field__label` `.field__hint` `.field__error-text` `.input` `.textarea` | formulário                                                         |
@@ -597,9 +670,9 @@ Qualquer "não" é conserto, não ressalva.
 - [ ] **Dá para nomear qual dos cinco níveis tipográficos cada texto usa?**
 - [ ] **Sobrou algum `font-family` monoespaçada em algum lugar?** (não deveria
       sobreviver ao lint, mas confira num componente novo antes de rodar)
-- [ ] **A caixa alta com tracking está SÓ na sidebar e no cabeçalho de faixa
-      do quadro de pedidos?** Rótulo de campo, título de cartão e badge são
-      frase comum.
+- [ ] **Sobrou algum `text-transform: uppercase` em algum lugar?** Caixa alta
+      saiu do sistema por completo — nem a sidebar nem o cabeçalho de faixa a
+      usam mais (não deveria sobreviver ao lint, mesma régua da mono).
 - [ ] **Alguma cor está lá por decoração, e não por significado?** Checkbox e
       rádio marcados incluídos — a marca é `--mark-bg`/`--mark-ink`, nunca a
       brasa.
@@ -635,9 +708,31 @@ npx playwright test -c design/shots/dev.config.ts
 
 Os prints saem em `design/shots/out/<SHOT_TAG>/`.
 
-## As outras duas direções
+## As outras duas direções, e por que nenhuma virou a base
 
 `design/direcoes/papel/` e `design/direcoes/sinal/` continuam completas —
-tokens, componentes e as três telas nos dois temas, cada uma medida nos mesmos
-106 pares de contraste. Elas não são rascunho: são a alternativa pronta se esta
-direção não se sustentar com o painel em uso.
+tokens, componentes e as três telas nos dois temas. Quando esta direção trocou
+de alvo (instrumento → aplicação de administração), as duas foram avaliadas
+contra os cinco critérios da troca antes de qualquer linha de código mudar:
+
+- **Papel** falha em quatro dos cinco: raio **ZERO** ("papel cortado não tem
+  canto arredondado") é mais reto que a Brasa que estava saindo, não menos;
+  título em Fraunces é serifa de DISPLAY, o oposto de tipografia neutra;
+  superfície é bege/marrom de novo, o mesmo problema que esta troca resolve;
+  e a regra "sombra só no que flutua" também é dela — sem elevação sutil no
+  cartão parado. Só o traço do ícone (1,25, ponta redonda) já apontava na
+  direção certa.
+- **Sinal** também falha em quatro: tipografia é a família Barlow inteira —
+  "desenhada a partir de letreiro de transporte", uma voz própria, não uma
+  neo-grotesca neutra; o neutro é **frio de propósito** ("quebra a regra
+  antiga de nada de cinza-azulado"), o oposto do viés quente que este sistema
+  preserva; o raio do chip é **999px** (cápsula total), mais arredondado do
+  que o vocabulário de aplicação comum pede; e o ícone tem traço 2,5, ponta
+  reta, geométrico — o oposto de suave. Só a elevação (`--shadow-pop` em vários
+  componentes) e o branco de verdade na superfície já apontavam certo.
+
+Nenhuma das duas atendia à maioria dos cinco critérios, então a base desta
+direção continuou sendo a Brasa, com os cinco pontos de "A direção" trocados —
+não um recomeço a partir de Papel ou Sinal. As duas continuam medidas nos
+mesmos 106 pares de contraste de então e continuam sendo a alternativa pronta
+se um dia fizer sentido trocar de direção outra vez.

@@ -12,14 +12,14 @@
 }
 
 /*
- * O diálogo é o que FLUTUA sobre a tela inteira: é o único lugar do painel que
- * ganha o raio grande e sombra de verdade.
+ * O diálogo é o que FLUTUA sobre a tela inteira: leva `--r-sheet`, o raio mais
+ * aberto que só o que sobe um degrau além do cartão usa, e sombra de verdade.
  */
 .modal {
   background: var(--surface-raised);
   border: 1px solid var(--line);
-  border-radius: var(--r-card);
-  box-shadow: var(--shadow-pop);
+  border-radius: var(--r-sheet);
+  box-shadow: var(--shadow-raised);
   width: 100%;
   max-width: 680px;
   display: flex;
