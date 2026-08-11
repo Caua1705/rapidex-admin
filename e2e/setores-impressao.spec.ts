@@ -54,6 +54,9 @@ test('a aba Impressão lista os setores da filial e pede uma quando não há', a
   await expect(page.getByTestId('store-branch-required')).toBeVisible();
 
   await page.getByTestId(`store-pick-branch-${FAKE_BRANCH.id}`).click();
+  // Impressão nasce recolhida: a âncora é o que a abre, e ela só destrava
+  // depois que existe filial.
+  await page.getByTestId('store-anchor-impressao').click();
 
   await expect(page.getByTestId('print-sector-sec-chapa')).toContainText('Chapa');
   // O desativado continua na lista: o que some da tela ninguém reativa.

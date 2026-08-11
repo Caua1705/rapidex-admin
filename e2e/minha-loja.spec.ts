@@ -170,8 +170,8 @@ test('latitude fora da faixa do planeta não chega ao backend', async ({ page })
 
 test('Horários manda os sete dias, e não só os que foram mexidos', async ({ page }) => {
   await abrirMinhaLoja(page);
-  await page.getByTestId('store-anchor-horarios').click();
   await escolherFilial(page);
+  await page.getByTestId('store-anchor-horarios').click();
 
   // Segunda a sexta abertas no falso; sábado e domingo nunca vieram.
   await expect(page.getByTestId('hours-opens-0')).toHaveValue('18:00');
@@ -196,8 +196,8 @@ test('Horários manda os sete dias, e não só os que foram mexidos', async ({ p
 
 test('dia aberto sem horário completo trava o salvamento', async ({ page }) => {
   await abrirMinhaLoja(page);
-  await page.getByTestId('store-anchor-horarios').click();
   await escolherFilial(page);
+  await page.getByTestId('store-anchor-horarios').click();
 
   // Abre o sábado e não informa a hora.
   await page.getByRole('switch', { name: 'Sábado: abrir' }).click();
@@ -245,8 +245,8 @@ test('formas de pagamento: cria, desativa e exclui — sem trocar fluxo nem tipo
   page,
 }) => {
   await abrirMinhaLoja(page);
-  await page.getByTestId('store-anchor-pagamento').click();
   await escolherFilial(page);
+  await page.getByTestId('store-anchor-pagamento').click();
 
   await expect(page.getByTestId('payment-method-pay-pix')).toContainText('Pix');
   await expect(page.getByTestId('payment-method-pay-dinheiro')).toContainText('Dinheiro');

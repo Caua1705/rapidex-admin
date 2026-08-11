@@ -95,12 +95,43 @@
   scroll-margin-top: var(--sp-16);
 }
 
+/*
+ * O CABEÇALHO INTEIRO É O BOTÃO que abre e fecha a seção — não um chevron de
+ * 16px no canto. Numa tela em que metade das seções nasce fechada, o alvo de
+ * abrir é o mais clicado dela, e um alvo de 16px para a ação mais comum é o
+ * tipo de economia que custa clique errado no meio do turno.
+ */
 .store__section-head {
   display: flex;
   align-items: baseline;
   gap: var(--sp-8);
-  padding-bottom: var(--sp-4);
+  width: 100%;
+  padding: 0 0 var(--sp-4);
+  border: 0;
   border-bottom: 1px solid var(--line);
+  background: transparent;
+  text-align: left;
+}
+
+.store__section-head:hover {
+  border-bottom-color: var(--line-strong);
+}
+
+.store__section-head:hover .t-section {
+  color: var(--ink);
+}
+
+/* O chevron acompanha a linha de base do título, não o centro do botão. */
+.store__chevron {
+  display: flex;
+  align-self: center;
+  flex: 0 0 auto;
+  color: var(--ink-3);
+}
+
+/* Fechada, a seção é só a linha de título: sem corpo, sem vão embaixo. */
+.store__section--fechada {
+  gap: 0;
 }
 
 .store__empty {
@@ -193,9 +224,16 @@
   color: var(--ink-3);
 }
 
+/*
+ * A GRADE DO FORMULÁRIO. `minmax(220px, 1fr)` e não `180px`: com 180 a coluna
+ * de 820px cabia quatro campos apertados, e um campo de 180px é estreito
+ * demais para um endereço — o valor ficava cortado dentro do próprio campo.
+ * Com 220 são DOIS campos de largura confortável no estreito, e três ou quatro
+ * quando a coluna abre (abaixo).
+ */
 .store-form__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--sp-12);
 }
 
@@ -478,6 +516,25 @@
   letter-spacing: -0.02em;
   font-weight: var(--w-semibold);
   color: var(--ink);
+}
+
+/* ==========================================================================
+ * TELA LARGA — a coluna abre, e o formulário deixa de ser uma fila
+ *
+ * `--form-max` (820px) é a medida de um formulário LIDO, e continua valendo
+ * onde a tela é apertada. Acima de 1100px ela vira desperdício: o console e o
+ * índice já comeram 360px, sobra mais de meia tela em branco à direita, e cada
+ * grade fica presa em dois campos — o que faz Filial e Entrega serem duas
+ * telas de rolagem para dez campos.
+ *
+ * A conta do teto: um formulário de campos de 220px lê bem até umas quatro
+ * colunas. Além disso o rótulo e o valor se afastam do campo seguinte e a
+ * grade deixa de ler como grade.
+ * ======================================================================= */
+@media (min-width: 1100px) {
+  .store__col {
+    max-width: 1180px;
+  }
 }
 
 /* ==========================================================================

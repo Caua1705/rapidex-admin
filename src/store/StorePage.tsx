@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import { ChevronDownIcon, ChevronUpIcon } from '../ds/icons';
 import { useSession } from '../auth/session-context';
 import { BranchTab } from './BranchTab';
 import { DeliveryTab } from './DeliveryTab';
@@ -9,6 +10,7 @@ import { PaymentMethodsTab } from './PaymentMethodsTab';
 import { PrintingTab } from './PrintingTab';
 import { StoreStatusCard } from './StoreStatusCard';
 import { useActiveSection } from './useActiveSection';
+import { useCollapsedSections } from './useCollapsedSections';
 import { useBranchDetail } from './useBranchDetail';
 import { useStoreSettings } from './useStoreSettings';
 import './StorePage.css';
@@ -22,6 +24,9 @@ import './StorePage.css';
  * que faz a seção pedir uma filial em vez de mostrar um formulário que não
  * salva.
  */
+/** As que nascem fechadas. As outras três são as que mudam com o negócio. */
+const PADRAO_RECOLHIDAS = ['horarios', 'pagamento', 'impressao'];
+
 const SECOES: readonly {
   id: string;
   label: string;
@@ -94,6 +99,13 @@ export function StorePage() {
   /** Onde uma âncora de filial leva enquanto não há filial: o bloco do aviso. */
   const ALVO_TRAVADO = 'filial';
 
+  /*
+   * Horários, Pagamento e Impressão nascem recolhidas: são as que se
+   * configuram uma vez e não se toca mais, e eram elas que ficavam entre o
+   * lojista e o que ele voltou para mexer. Ver `useCollapsedSections`.
+   */
+  const { recolhidas, alternar, abrir } = useCollapsedSections(PADRAO_RECOLHIDAS);
+
   const active = useActiveSection(secoesVisiveis.map((secao) => secao.id));
 
   const corpo: Record<string, ReactNode> = {
@@ -129,6 +141,14 @@ export function StorePage() {
               aria-current={active === secao.id && !travada ? 'true' : undefined}
               /* Diz POR QUE está atenuada — a cor sozinha não explica nada. */
               title={travada ? 'Depende da filial escolhida no topo' : undefined}
+              /*
+                A âncora ABRE a seção antes de levar até ela. Sem isto, clicar
+                em "Horários" no índice rolaria até um título fechado — o
+                lojista pediu a seção e receberia a tampa dela.
+              */
+              onClick={() => {
+                if (!travada) abrir(secao.id);
+              }}
               data-testid={`store-anchor-${secao.id}`}
             >
               {secao.label}
@@ -153,23 +173,47 @@ export function StorePage() {
           />
         </header>
 
-        {secoesVisiveis.map((secao) => (
-          <section
-            key={secao.id}
-            id={secao.id}
-            className="store__section"
-            aria-labelledby={`${secao.id}-titulo`}
-          >
-            <div className="store__section-head">
-              <h2 className="t-section" id={`${secao.id}-titulo`}>
-                {secao.titulo}
-              </h2>
-              {secao.nota ? <span className="t-aux">{secao.nota}</span> : null}
-            </div>
+        {secoesVisiveis.map((secao) => {
+          const fechada = recolhidas.includes(secao.id);
+          return (
+            <section
+              key={secao.id}
+              id={secao.id}
+              className={`store__section${fechada ? ' store__section--fechada' : ''}`}
+              aria-labelledby={`${secao.id}-titulo`}
+            >
+              {/*
+                O cabeçalho INTEIRO é o botão que abre e fecha — não um chevron
+                de 16px no canto. Numa tela em que a maioria das seções nasce
+                fechada, o alvo de abrir é o mais clicado dela.
+              */}
+              <button
+                type="button"
+                className="store__section-head"
+                aria-expanded={!fechada}
+                aria-controls={`${secao.id}-corpo`}
+                onClick={() => alternar(secao.id)}
+                data-testid={`store-toggle-${secao.id}`}
+              >
+                <span className="store__chevron" aria-hidden="true">
+                  {fechada ? <ChevronDownIcon size={14} /> : <ChevronUpIcon size={14} />}
+                </span>
+                <h2 className="t-section" id={`${secao.id}-titulo`}>
+                  {secao.titulo}
+                </h2>
+                {secao.nota ? <span className="t-aux">{secao.nota}</span> : null}
+              </button>
 
-            {corpo[secao.id]}
-          </section>
-        ))}
+              {/*
+                Fechada, ela sai do DOM em vez de ficar com `display: none`.
+                Cada seção tem o próprio formulário com estado sujo e a própria
+                leitura da API; mantê-las montadas faria a tela disparar seis
+                requisições para mostrar duas.
+              */}
+              {fechada ? null : <div id={`${secao.id}-corpo`}>{corpo[secao.id]}</div>}
+            </section>
+          );
+        })}
 
         {semFilial ? (
           <BranchRequired
