@@ -315,15 +315,41 @@
   flex-direction: column;
 }
 
+/*
+ * AS DUAS LISTAS TÊM GRADES DIFERENTES, e é por isso que elas não compartilham
+ * a declaração de colunas.
+ *
+ * Elas já compartilharam, com quatro colunas para as duas — e a linha de
+ * pagamento tem CINCO células (rótulo · tipo · gateway · interruptor ·
+ * excluir). A quinta não cabia: "Exige gateway" caía na coluna de 34px do
+ * interruptor, transbordava dela (era `nowrap` sem `min-width: 0`) e ficava
+ * POR BAIXO do controle, enquanto o botão Excluir descia para uma segunda
+ * linha implícita.
+ *
+ * A regra que resolve é a mesma do cabeçalho: decidir QUEM cede. O que
+ * identifica a linha (o rótulo) é fluido e trunca por último; os
+ * qualificadores têm largura própria e `min-width: 0`, então encolhem e
+ * cortam dentro da célula deles em vez de invadir a do vizinho; e o que é
+ * controle tem largura fixa e não cede nunca.
+ */
 .methods__row,
 .sectors__row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 132px 34px var(--control-h);
   align-items: center;
   gap: var(--sp-12);
   min-height: var(--sp-32);
   padding-block: var(--sp-4);
   border-bottom: 1px solid var(--line);
+}
+
+/* rótulo · tipo · gateway · interruptor · excluir */
+.methods__row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 132px) minmax(0, 104px) 34px auto;
+}
+
+/* nome · renomear · estado · interruptor */
+.sectors__row {
+  grid-template-columns: minmax(0, 1fr) var(--control-h) minmax(0, 96px) 34px;
 }
 
 .methods__row:hover,
@@ -340,11 +366,19 @@
   font-size: var(--tb-size);
 }
 
+/*
+ * Os qualificadores. `min-width: 0` é o que os prende à própria célula — sem
+ * ele, `white-space: nowrap` faz o texto vazar por cima do vizinho em vez de
+ * cortar, que é exatamente o defeito que existia aqui.
+ */
 .methods__type,
 .methods__gateway {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--ta-size);
   color: var(--ink-3);
-  white-space: nowrap;
 }
 
 /* Linha desativada esmaece — desativar não é erro, então não é vermelho. */
@@ -353,15 +387,17 @@
   color: var(--ink-3);
 }
 
-.methods__row--off .sectors__state,
 .sectors__state {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--tl-size);
   line-height: var(--tl-line);
   font-weight: var(--tl-weight);
   letter-spacing: var(--tl-track);
   text-transform: uppercase;
   color: var(--ink-3);
-  white-space: nowrap;
 }
 
 /* A ação destrutiva de linha: sem caixa, revelada no ponteiro e no foco. */
@@ -385,7 +421,13 @@
   }
 }
 
+/*
+ * Renomeando, o campo ocupa o lugar do nome E o do botão de renomear — que é
+ * justamente o botão que sumiu para dar lugar a ele. Sem o `grid-column`, o
+ * campo ficaria espremido na coluna do nome com uma célula vazia ao lado.
+ */
 .sectors__edit {
+  grid-column: 1 / 3;
   display: flex;
   align-items: center;
   gap: var(--sp-8);
@@ -487,12 +529,24 @@
 
   .methods__row,
   .sectors__row {
-    grid-template-columns: minmax(0, 1fr) 34px var(--control-h-touch);
     min-height: var(--tap-mobile);
+  }
+
+  /*
+   * No celular saem os qualificadores do pagamento — o rótulo é o que o
+   * lojista procura. Sobram rótulo · interruptor · excluir.
+   */
+  .methods__row {
+    grid-template-columns: minmax(0, 1fr) 34px auto;
   }
 
   .methods__type,
   .methods__gateway {
     display: none;
+  }
+
+  /* No setor nada sai: "Desativado" é o estado que não é o normal. */
+  .sectors__row {
+    grid-template-columns: minmax(0, 1fr) var(--control-h-touch) minmax(0, 96px) 34px;
   }
 }
