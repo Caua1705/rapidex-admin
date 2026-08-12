@@ -130,7 +130,24 @@ export function OrdersPage() {
               data-testid={`orders-tab-${aba.key}`}
             >
               {aba.label}
-              <span className="tab__count">{countForView(aba.key, board.counts)}</span>
+              {/*
+                O CONTADOR DIZ O QUE HÁ DO OUTRO LADO — por isso ele fica na
+                aba FECHADA, e sai da aberta.
+
+                Na aba aberta ele é a mesma informação duas vezes na mesma
+                dobra (§8): "Em andamento 3" em cima de faixas que já dizem
+                "Novos 2 · Em preparo 1 · Prontos e na rua 0" é exatamente o
+                "total que é a SOMA de contadores visíveis" que a regra
+                nomeia. No Histórico é o mesmo caso, com o rodapé de
+                paginação no lugar das faixas — e é o mesmo motivo pelo qual
+                aquele rodapé já só aparece quando há o que carregar.
+
+                Fechada, ela não repete nada: é o único jeito de saber que
+                entraram três pedidos enquanto se consultava o histórico.
+              */}
+              {view === aba.key ? null : (
+                <span className="tab__count">{countForView(aba.key, board.counts)}</span>
+              )}
             </button>
           ))}
         </div>
