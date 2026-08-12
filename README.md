@@ -321,3 +321,42 @@ mesmo com o backend fora do ar — e, como as respostas falsas são tipadas com 
 
 Não há nada de servidor neste projeto: o build é estático. Não existe segredo
 para configurar na Vercel além da URL da API.
+
+---
+
+## Cabeçalhos de segurança
+
+O `vercel.json` serve CSP, HSTS, `X-Frame-Options`, `nosniff`,
+`Referrer-Policy` e `Permissions-Policy`. Até 12/08/2026 não servia nenhum
+deles — a auditoria de segurança registrou isso como o achado A6.
+
+**O que está em jogo.** O token de 12h do lojista mora no `localStorage`
+(`src/auth/session-storage.ts`), porque o painel fica aberto o dia todo e o
+lojista abre pedido em aba nova. A consequência é que qualquer script que
+consiga rodar neste domínio lê esse token e abre o painel inteiro do
+restaurante: pedidos, faturamento, cardápio, lista de clientes com telefone.
+A CSP é o que impede um script injetado de rodar.
+
+**Por que `script-src` não tem `'unsafe-inline'`.** Seria o caminho fácil e
+desmontaria a defesa principal. O único script inline do projeto é o do tema,
+no `index.html`, liberado por hash `sha256-`.
+
+> **Editou o script do tema? O hash mudou.** O navegador passa a **bloquear**
+> o script, o tema escuro volta a piscar branco a cada F5, e o único aviso é
+> uma linha no console. `scripts/check-csp-hash.mjs` roda no `npm run lint`,
+> compara os dois e imprime o hash novo pronto para colar.
+
+O que cada folga da política compra:
+
+| Diretiva | Por que não é mais apertada |
+|---|---|
+| `style-src 'unsafe-inline'` | O Vite injeta estilo por JS e há dois `style={{…}}` em componentes. Não dá execução de código. |
+| `img-src https://*.supabase.co` | A miniatura do produto (`src/menu/ProductRow.tsx`) vem do bucket público de imagens. |
+| `connect-src https://api.pederapidex.com` | Cobre o `fetch` da API **e** o `EventSource` do stream de pedidos — SSE é `connect-src`, não `media-src`. |
+| `font-src 'self'` | A Inter é autohospedada por `@fontsource-variable/inter`. Nenhum CDN de fonte. |
+
+O som de pedido novo não aparece na política: ele é sintetizado na Web Audio
+API (`src/orders/useNewOrderSound.ts`), sem arquivo para carregar.
+
+**Se a URL da API mudar**, `connect-src` muda junto — senão o painel carrega e
+nenhuma chamada sai, com erro só no console.

@@ -20,23 +20,66 @@ import prettier from 'eslint-config-prettier';
  * A metade CSS desta mesma regra está em scripts/check-design-tokens.mjs, que
  * roda no mesmo `npm run lint` — o ESLint não olha dentro de arquivo .css.
  */
-const adherenceRules = {
-  'no-restricted-syntax': [
-    'error',
-    {
-      selector: 'Literal[value=/#[0-9a-fA-F]{3,8}\\b/]',
-      message: 'Cor literal — use um token de cor via var(), de src/styles/tokens.css.',
-    },
-    {
-      selector: 'Literal[value=/\\b\\d+px\\b/]',
-      message: 'Valor em px solto — use um token (--sp-*, --t-*, --r-*) via var().',
-    },
-    {
-      selector: 'Literal[value=/font-family\\s*:\\s*(?![\'\\"]?(?:Archivo|JetBrains Mono))/i]',
-      message: 'Fonte fora do design system. Disponíveis: Archivo, JetBrains Mono.',
-    },
-  ],
-};
+const adherenceSelectors = [
+  {
+    selector: 'Literal[value=/#[0-9a-fA-F]{3,8}\\b/]',
+    message: 'Cor literal — use um token de cor via var(), de src/styles/tokens.css.',
+  },
+  {
+    selector: 'Literal[value=/\\b\\d+px\\b/]',
+    message: 'Valor em px solto — use um token (--sp-*, --t-*, --r-*) via var().',
+  },
+  {
+    selector: 'Literal[value=/font-family\\s*:\\s*(?![\'\\"]?(?:Archivo|JetBrains Mono))/i]',
+    message: 'Fonte fora do design system. Disponíveis: Archivo, JetBrains Mono.',
+  },
+];
+
+/*
+ * OS CAMINHOS QUE DEVOLVEM HTML AO NAVEGADOR.
+ *
+ * O painel mostra texto escrito pelo CLIENTE FINAL — observação do item, nota
+ * do pedido, nome e endereço. É um estranho escrevendo na tela de quem tem, no
+ * `localStorage`, um token de 12h que abre o restaurante inteiro. React escapa
+ * filho de JSX por padrão, então hoje esse caminho é seguro; cada selector
+ * abaixo é uma forma de ANULAR esse padrão.
+ *
+ * Nenhum deles tem uso legítimo neste projeto: a auditoria de 12/08/2026 não
+ * encontrou nenhuma ocorrência em `src/`. A regra existe para que a primeira
+ * ocorrência seja um erro de build e não uma linha revisada às pressas —
+ * `dangerouslySetInnerHTML` para renderizar uma quebra de linha numa
+ * observação é exatamente o patch de boa-fé que abriria isto.
+ *
+ * `src/orders/OrderDetailPanel.xss.test.tsx` guarda o outro lado: que o texto
+ * do cliente continua chegando como TEXTO.
+ *
+ * Se algum dia um destes for mesmo necessário, o desvio é explícito, com o
+ * motivo escrito na linha — não afrouxando a regra para o projeto inteiro.
+ */
+const xssSinkSelectors = [
+  {
+    selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+    message:
+      'dangerouslySetInnerHTML anula o escape do React — e o painel mostra texto escrito pelo cliente final. Renderize como filho de JSX.',
+  },
+  {
+    selector:
+      "AssignmentExpression[left.type='MemberExpression'][left.property.name=/^(innerHTML|outerHTML)$/]",
+    message: 'Atribuir innerHTML/outerHTML injeta HTML. Use texto (textContent) ou JSX.',
+  },
+  {
+    selector: "CallExpression[callee.property.name='insertAdjacentHTML']",
+    message: 'insertAdjacentHTML injeta HTML. Use insertAdjacentText ou JSX.',
+  },
+  {
+    selector: "CallExpression[callee.property.name=/^(write|writeln)$/][callee.object.name='document']",
+    message: 'document.write injeta HTML e reescreve o documento.',
+  },
+  {
+    selector: "NewExpression[callee.name='Function']",
+    message: 'new Function é eval com outro nome.',
+  },
+];
 
 export default tseslint.config(
   {
@@ -82,6 +125,25 @@ export default tseslint.config(
   },
   {
     /*
+     * Os caminhos de HTML valem em TODO o `src/`, teste incluído: um helper de
+     * teste que monta HTML vira, mais cedo ou mais tarde, um helper de tela.
+     *
+     * Este bloco vem antes do de aderência de propósito. `no-restricted-syntax`
+     * não acumula entre blocos — o último que casa com o arquivo substitui o
+     * anterior —, então o bloco seguinte repete os seletores de XSS junto com
+     * os de aderência. Para arquivo de teste, que o bloco seguinte não alcança,
+     * este aqui é o que vale.
+     */
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': ['error', ...xssSinkSelectors],
+      'no-eval': 'error',
+      'no-implied-eval': 'error',
+      'no-script-url': 'error',
+    },
+  },
+  {
+    /*
      * Aderência só no código de produto.
      *
      * Fora os testes porque a regra de hexadecimal casa com qualquer string
@@ -89,10 +151,15 @@ export default tseslint.config(
      * número de pedido numa asserção, é exatamente isso. Barrar cor solta na
      * tela é o objetivo; barrar número de pedido em teste seria ruído que
      * acabaria fazendo alguém desligar a regra inteira.
+     *
+     * Os seletores de XSS voltam aqui porque `no-restricted-syntax` substitui
+     * em vez de acumular (ver o bloco acima).
      */
     files: ['src/**/*.{ts,tsx}'],
     ignores: ['src/**/*.test.{ts,tsx}'],
-    rules: adherenceRules,
+    rules: {
+      'no-restricted-syntax': ['error', ...xssSinkSelectors, ...adherenceSelectors],
+    },
   },
   prettier,
 );
