@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
 
+import { XIcon } from '../ds/icons';
 import './Modal.css';
 
 /**
@@ -39,8 +40,21 @@ export function Modal({
       >
         <header className="modal__header">
           <div className="modal__title">{title}</div>
-          <button type="button" className="btn btn--sm" onClick={onClose} aria-label="Fechar">
-            ✕
+          {/*
+            O X SAI DE `ds/icons`, como todo ícone do sistema. Ele já foi o
+            caractere "✕" escrito aqui dentro — que é o mesmo defeito do sol e
+            da lua desenhados dentro do ThemeToggle: um segundo conjunto de
+            ícones começando. E como caractere ele nem seguia o traço do
+            sistema, porque quem o desenhava era a fonte.
+          */}
+          <button
+            type="button"
+            className="btn btn--sm icon-btn"
+            onClick={onClose}
+            aria-label="Fechar"
+            title="Fechar"
+          >
+            <XIcon size={14} />
           </button>
         </header>
         <div className="modal__body">{children}</div>
