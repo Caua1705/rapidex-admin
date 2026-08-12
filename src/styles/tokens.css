@@ -391,7 +391,12 @@
  * ============================================================================
  */
 [data-theme='dark'] {
-  --console-bg: #0b0a09;
+  /*
+   * `--console-bg` NÃO entra aqui: ele é declarado uma vez só, no bloco 9b
+   * deste mesmo tema, junto com o resto da família `--console-*`. Declarar
+   * duas vezes é como o valor volta a divergir de dentro do bloco — que é
+   * exatamente o defeito que a separação por tema veio consertar.
+   */
   --bg: #161513;
   --surface: #1d1c19;
   --surface-raised: #262521;

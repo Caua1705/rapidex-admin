@@ -29,9 +29,15 @@ const adherenceSelectors = [
     selector: 'Literal[value=/\\b\\d+px\\b/]',
     message: 'Valor em px solto — use um token (--sp-*, --t-*, --r-*) via var().',
   },
+  /*
+   * A lista já foi `Archivo|JetBrains Mono` — as duas famílias de uma direção
+   * que saiu. A mono saiu do sistema POR COMPLETO (lia como terminal de
+   * servidor), e o número tabular hoje é `.tnum`/`.num` na mesma Inter. Manter
+   * a mono na lista de permitidas era o caminho aberto para ela voltar.
+   */
   {
-    selector: 'Literal[value=/font-family\\s*:\\s*(?![\'\\"]?(?:Archivo|JetBrains Mono))/i]',
-    message: 'Fonte fora do design system. Disponíveis: Archivo, JetBrains Mono.',
+    selector: 'Literal[value=/font-family\\s*:\\s*(?![\'\\"]?Inter)/i]',
+    message: 'Fonte fora do design system. A interface inteira é Inter, e não há mono.',
   },
 ];
 

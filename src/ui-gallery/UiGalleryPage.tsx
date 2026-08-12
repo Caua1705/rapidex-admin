@@ -180,7 +180,17 @@ export function UiGalleryPage() {
           </Amostra>
 
           <Amostra rotulo="Desabilitado">
-            <Field label="Filial" disabled hint="Escolha uma filial no topo.">
+            {/*
+              O MOTIVO AQUI É AMOSTRA DE PADRÃO, NÃO REGRA DO PRODUTO: o que
+              esta célula demonstra é a §5 — desabilitado não esconde o
+              controle, e diz por quê.
+
+              Ele já foi "Escolha uma filial no topo.", que era o eco da parede
+              que o painel removeu: as seções de filial não pedem mais filial
+              nenhuma, elas resolvem (ver `auth/branch-scope.ts`). Copiar aquela
+              frase para a galeria a mantinha viva como se fosse padrão.
+            */}
+            <Field label="Filial" disabled hint="Disponível depois de salvar as alterações abertas.">
               <Select value="" onChange={() => {}} options={categorias} disabled />
             </Field>
           </Amostra>
