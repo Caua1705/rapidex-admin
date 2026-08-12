@@ -580,9 +580,38 @@
   color: var(--ink);
 }
 
+/*
+ * As opções deixaram de ser uma frase separada por " · " e viraram uma linha
+ * por opção, com interruptor. O motivo é operacional: desligar uma opção
+ * ("acabou o cheddar") é ação de todo dia, e antes o lojista precisava sair
+ * daqui e ir a outro lugar — que não existia — para fazê-la.
+ */
 .groups__options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.groups__option {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  min-height: var(--row-dense-h);
   font-size: var(--ta-size);
-  color: var(--ink-3);
+  color: var(--ink-2);
+}
+
+/* O nome cede a largura; o preço, que identifica o valor, não encolhe. */
+.groups__option-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.groups__option-price {
+  flex: 0 0 auto;
 }
 
 /* ==========================================================================

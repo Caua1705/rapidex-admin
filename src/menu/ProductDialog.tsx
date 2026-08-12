@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
-import { fetchProductDetail } from '../api/menu';
+import { messageFromUnknownError } from '../api/errors';
+import { fetchProductDetail, setOptionActive } from '../api/menu';
 import type { Category, PrintSector, ProductOptionGroup } from '../api/types';
 import { Select } from '../ds/Select';
 import { formatCurrency } from '../orders/format';
@@ -8,6 +9,8 @@ import { activeSectors, NO_SECTOR_LABEL, sectorLabelFor } from '../print-sectors
 import { Modal } from '../ui/Modal';
 import { Switch } from '../ds/Switch';
 import { parsePriceInput } from './menu-model';
+import { ProductImageField } from './ProductImageField';
+import { blockingRequiredGroup, groupEmptiedByDeactivating } from './required-groups';
 import type { ProductDraft } from './useMenu';
 
 /**
@@ -43,11 +46,26 @@ export function ProductDialog({
   const [draft, setDraft] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [optionGroups, setOptionGroups] = useState<ProductOptionGroup[] | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  /** A opção que espera confirmação por tirar o item de venda. */
+  const [confirmando, setConfirmando] = useState<{
+    optionId: string;
+    optionName: string;
+    groupName: string;
+  } | null>(null);
+  const [alternando, setAlternando] = useState<string | null>(null);
+  const [erroOpcao, setErroOpcao] = useState<string | null>(null);
 
   const isEdit = initial.id !== null;
   const price = parsePriceInput(draft.price);
   const priceIsInvalid = draft.price.trim() !== '' && price === null;
   const canSave = draft.name.trim().length > 0 && price !== null && !saving;
+
+  const carregarDetalhe = useCallback(async (productId: string) => {
+    const detail = await fetchProductDetail(productId);
+    setOptionGroups(detail.option_groups ?? []);
+    setImageUrl(detail.image_url ?? null);
+  }, []);
 
   useEffect(() => {
     if (!initial.id) return;
@@ -56,7 +74,9 @@ export function ProductDialog({
     void (async () => {
       try {
         const detail = await fetchProductDetail(initial.id as string);
-        if (!cancelled) setOptionGroups(detail.option_groups ?? []);
+        if (cancelled) return;
+        setOptionGroups(detail.option_groups ?? []);
+        setImageUrl(detail.image_url ?? null);
       } catch {
         // Os complementos são informação de apoio: não conseguir lê-los não
         // pode impedir a edição do nome e do preço, que é o que trouxe o
@@ -70,12 +90,97 @@ export function ProductDialog({
     };
   }, [initial.id]);
 
+  /**
+   * Liga/desliga uma opção de complemento.
+   *
+   * DEPOIS DO PATCH, RELÊ O PRODUTO. A resposta do PATCH é a OPÇÃO
+   * (`AdminOptionResponse`) e não diz nada sobre o produto — se a tela
+   * confiasse nela, o aviso de "saiu de venda" nunca apareceria, porque o
+   * dado que o carrega não está ali.
+   */
+  async function alternarOpcao(optionId: string, isActive: boolean) {
+    if (!initial.id) return;
+
+    setAlternando(optionId);
+    setErroOpcao(null);
+    setConfirmando(null);
+    try {
+      await setOptionActive(optionId, isActive);
+      await carregarDetalhe(initial.id);
+    } catch (error) {
+      setErroOpcao(messageFromUnknownError(error));
+    } finally {
+      setAlternando(null);
+    }
+  }
+
+  /**
+   * O clique no interruptor da opção: às vezes pergunta antes.
+   *
+   * Só quando desativar ESTA opção deixa um grupo obrigatório sem nenhuma
+   * ativa. Perguntar em todo clique é o que ensina o lojista a confirmar sem
+   * ler — e é justamente este aviso que ele precisa ler.
+   */
+  function pedirAlternancia(optionId: string, optionName: string, isActive: boolean) {
+    if (!optionGroups) return;
+
+    if (!isActive) {
+      const grupo = groupEmptiedByDeactivating(optionGroups, optionId);
+      if (grupo) {
+        setConfirmando({ optionId, optionName, groupName: grupo.name });
+        return;
+      }
+    }
+    void alternarOpcao(optionId, isActive);
+  }
+
+  const grupoBloqueador = optionGroups ? blockingRequiredGroup(optionGroups) : null;
+
   async function handleSave() {
     if (price === null) return;
     setSaving(true);
     const saved = await onSave(draft, price);
     setSaving(false);
     if (saved) onClose();
+  }
+
+  /*
+   * A CONFIRMAÇÃO É UM DIÁLOGO PRÓPRIO, e não um `confirm()` do navegador: o
+   * nativo não aceita a tipografia nem o tom do sistema, e some atrás da
+   * janela num segundo monitor — que é onde o painel costuma ficar no balcão.
+   */
+  if (confirmando) {
+    return (
+      <Modal
+        title="Isto tira o item de venda"
+        onClose={() => setConfirmando(null)}
+        footer={
+          <>
+            <button type="button" className="btn" onClick={() => setConfirmando(null)}>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn btn--danger"
+              data-testid="confirm-deactivate-option"
+              onClick={() => void alternarOpcao(confirmando.optionId, false)}
+            >
+              Desativar mesmo assim
+            </button>
+          </>
+        }
+      >
+        <p className="t-body">
+          “{confirmando.optionName}” é a última opção ativa do grupo obrigatório “
+          {confirmando.groupName}”.
+        </p>
+        <p className="t-body">
+          Sem nenhuma opção nesse grupo, <strong>{draft.name}</strong> sai do cardápio do cliente e
+          os pedidos que já o tinham no carrinho são recusados. O item continua ativo aqui — ele só
+          não tem como ser vendido.
+        </p>
+      </Modal>
+    );
   }
 
   return (
@@ -227,9 +332,30 @@ export function ProductDialog({
           </div>
         </div>
 
+        <ProductImageField
+          productId={initial.id}
+          currentImageUrl={imageUrl}
+          onUploaded={(url) => setImageUrl(url)}
+        />
+
         {isEdit ? (
           <section className="form__section">
             <h3 className="form__section-title">Grupos de complemento</h3>
+
+            {/*
+              POR QUE O ITEM SUMIU DO CARDÁPIO SEM NINGUÉM DESLIGÁ-LO. Um grupo
+              obrigatório sem nenhuma opção ativa tira o item de venda:
+              `is_active` continua ligado, `is_available` continua ligado, e o
+              cliente simplesmente não o vê. Sem esta faixa, a venda se perde
+              em silêncio.
+            */}
+            {grupoBloqueador ? (
+              <p className="alert alert--warn" data-testid="product-blocked-warning">
+                Este item está fora de venda: o grupo obrigatório “{grupoBloqueador.name}” está sem
+                nenhuma opção ativa. Reative uma opção dele para voltar ao cardápio.
+              </p>
+            ) : null}
+
             {optionGroups === null ? (
               <p className="faint">Carregando…</p>
             ) : optionGroups.length === 0 ? (
@@ -244,23 +370,45 @@ export function ProductDialog({
                         {' '}
                         · {group.is_required ? 'obrigatório' : 'opcional'} · escolhe de{' '}
                         {group.min_select} a {group.max_select}
+                        {group.is_active ? '' : ' · grupo desativado'}
                       </span>
                     </div>
-                    <div className="groups__options faint">
-                      {(group.options ?? [])
-                        .map((option) =>
-                          option.additional_price > 0
-                            ? `${option.name} (+${formatCurrency(option.additional_price)})`
-                            : option.name,
-                        )
-                        .join(' · ')}
-                    </div>
+
+                    <ul className="groups__options">
+                      {(group.options ?? []).map((option) => (
+                        <li key={option.id} className="groups__option">
+                          <Switch
+                            hideLabel
+                            checked={option.is_active}
+                            disabled={alternando !== null}
+                            onChange={(isActive) =>
+                              pedirAlternancia(option.id, option.name, isActive)
+                            }
+                            label={`${option.name} ativa`}
+                          />
+                          <span className="groups__option-name">{option.name}</span>
+                          {option.additional_price > 0 ? (
+                            <span className="groups__option-price tnum faint">
+                              +{formatCurrency(option.additional_price)}
+                            </span>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
                   </li>
                 ))}
               </ul>
             )}
+
+            {erroOpcao ? (
+              <p className="alert alert--error" role="alert">
+                {erroOpcao}
+              </p>
+            ) : null}
+
             <p className="field__hint">
-              Complementos têm rotas próprias e não são editados junto do preço.
+              Nome, preço e ordem dos complementos têm rotas próprias e não são editados junto do
+              preço do item.
             </p>
           </section>
         ) : null}

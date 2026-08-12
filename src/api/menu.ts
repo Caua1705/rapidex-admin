@@ -7,7 +7,9 @@ import type {
   Product,
   ProductCreate,
   ProductDetail,
+  ProductImage,
   ProductListResponse,
+  ProductOption,
   ProductUpdate,
 } from './types';
 
@@ -86,6 +88,61 @@ export async function updateProduct(productId: string, body: ProductUpdate): Pro
     await apiClient.PATCH('/admin/products/{product_id}', {
       params: { path: { product_id: productId } },
       body,
+    }),
+  );
+}
+
+/**
+ * Sobe a foto do produto.
+ *
+ * MULTIPART, e por isso o `bodySerializer` próprio: o padrão do `openapi-fetch`
+ * é JSON, e serializar um `FormData` como JSON manda `{}` — o backend
+ * responderia 422 reclamando de campo obrigatório com o arquivo na mão. O
+ * `Content-Type` sai de propósito: quem precisa escrevê-lo é o navegador, que
+ * é o único que conhece o `boundary` do corpo.
+ *
+ * O QUE SOBE JÁ VEM PRONTO. O backend não converte nem redimensiona (confere
+ * os bytes, o tamanho, e grava como veio), então quem recorta, reduz e
+ * recodifica em WebP é o painel — ver `menu/product-image.ts`.
+ *
+ * A FOTO ANTERIOR NÃO É APAGADA, e isso é decisão do backend, não esquecimento
+ * nosso: o objeto novo nasce com sufixo aleatório e o antigo fica no bucket,
+ * porque apagar na hora deixaria o cardápio sem imagem enquanto o CDN ainda
+ * serve a URL velha em cache. Sobra lixo no bucket — o preço por nunca mostrar
+ * imagem quebrada ao cliente.
+ */
+export async function uploadProductImage(
+  productId: string,
+  file: Blob,
+  fileName: string,
+): Promise<ProductImage> {
+  const form = new FormData();
+  form.append('file', file, fileName);
+
+  return unwrap(
+    await apiClient.POST('/admin/products/{product_id}/image', {
+      params: { path: { product_id: productId } },
+      body: form as unknown as { file: string },
+      bodySerializer: (body: unknown) => body as FormData,
+    }),
+  );
+}
+
+/**
+ * Liga ou desliga uma opção de complemento.
+ *
+ * A resposta é a OPÇÃO (`AdminOptionResponse`) — ela não diz nada sobre o
+ * produto. Quem precisa saber se o produto saiu de venda por causa desta
+ * mudança relê o produto depois; ver `menu/required-groups.ts`.
+ */
+export async function setOptionActive(
+  optionId: string,
+  isActive: boolean,
+): Promise<ProductOption> {
+  return unwrap(
+    await apiClient.PATCH('/admin/options/{option_id}', {
+      params: { path: { option_id: optionId } },
+      body: { is_active: isActive },
     }),
   );
 }

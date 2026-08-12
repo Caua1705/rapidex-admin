@@ -75,6 +75,11 @@ export type ProductDetail = Schemas['AdminProductDetailResponse'];
 export type ProductListResponse = Schemas['AdminProductListResponse'];
 /** O grupo que vem no detalhe do produto — não o do cardápio público. */
 export type ProductOptionGroup = Schemas['AdminOptionGroupResponse'];
+/** Uma opção de um grupo de complemento. */
+export type ProductOption = Schemas['AdminOptionResponse'];
+export type ProductOptionUpdate = Schemas['AdminOptionUpdate'];
+/** O caminho e a URL da foto recém-enviada. */
+export type ProductImage = Schemas['ProductImageResponse'];
 
 // --- setores de impressão -----------------------------------------------
 
