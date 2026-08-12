@@ -66,10 +66,10 @@ function detalhe(groups: ProductOptionGroup[]): ProductDetail {
   };
 }
 
-function renderDialog() {
+function renderDialog(initial: ProductDraft = draft) {
   return render(
     <ProductDialog
-      initial={draft}
+      initial={initial}
       categories={[{ id: 'cat-1', name: 'Carnes' } as never]}
       sectors={[]}
       branchChosen={false}
@@ -170,5 +170,49 @@ describe('ProductDialog · opção que tira o item de venda', () => {
     expect(await screen.findByTestId('product-blocked-warning')).toHaveTextContent(
       /Ponto da carne/,
     );
+  });
+});
+
+/**
+ * O bloco da foto está montado NOS DOIS diálogos.
+ *
+ * Ele nasceu dentro do `isEdit ?` de "Grupos de complemento" no rascunho e sair
+ * de lá foi uma linha — é o tipo de coisa que volta sem ninguém perceber, e o
+ * sintoma (campo que some no "Novo item") só aparece abrindo a tela. Os grupos
+ * de complemento continuam SÓ na edição, e o segundo teste prende os dois
+ * fatos de uma vez: a foto aparece, os grupos não.
+ *
+ * No item novo o bloco aparece SEM o botão de escolher: `POST
+ * /admin/products/{id}/image` precisa do id, e um item que ainda não foi criado
+ * não tem id. O que está lá é a frase que diz isso.
+ */
+describe('ProductDialog · o bloco da foto nos dois modos', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('no "Editar item", com o botão de escolher', async () => {
+    vi.mocked(fetchProductDetail).mockResolvedValue(detalhe([]));
+
+    renderDialog();
+
+    expect(await screen.findByRole('heading', { name: 'Foto do item' })).toBeInTheDocument();
+    expect(screen.getByTestId('product-image-choose')).toBeInTheDocument();
+  });
+
+  it('no "Novo item", com a frase de que a foto entra depois de salvar', async () => {
+    renderDialog({ ...draft, id: null });
+
+    expect(await screen.findByRole('heading', { name: 'Foto do item' })).toBeInTheDocument();
+    expect(screen.getByText(/A foto entra depois de salvar/)).toBeInTheDocument();
+
+    // Sem id não há rota: o botão não é oferecido para não responder 404.
+    expect(screen.queryByTestId('product-image-choose')).not.toBeInTheDocument();
+
+    // E o item novo não lê detalhe nenhum — não há o que ler.
+    expect(fetchProductDetail).not.toHaveBeenCalled();
+
+    // Os grupos de complemento seguem só na edição.
+    expect(screen.queryByRole('heading', { name: 'Grupos de complemento' })).not.toBeInTheDocument();
   });
 });
