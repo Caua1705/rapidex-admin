@@ -66,15 +66,25 @@ function detalhe(groups: ProductOptionGroup[]): ProductDetail {
   };
 }
 
-function renderDialog(initial: ProductDraft = draft) {
+function renderDialog(
+  initial: ProductDraft = draft,
+  overrides: {
+    onClose?: () => void;
+    onSave?: (draft: ProductDraft, price: number) => Promise<string | null>;
+    onImageUploaded?: () => void;
+  } = {},
+) {
   return render(
     <ProductDialog
       initial={initial}
       categories={[{ id: 'cat-1', name: 'Carnes' } as never]}
       sectors={[]}
       branchChosen={false}
-      onClose={() => {}}
-      onSave={async () => true}
+      onClose={overrides.onClose ?? (() => {})}
+      // Devolve o id salvo, e não um `true`: é o id que permite pôr foto sem
+      // fechar o diálogo.
+      onSave={overrides.onSave ?? (async () => 'prod-1')}
+      onImageUploaded={overrides.onImageUploaded ?? (() => {})}
     />,
   );
 }
@@ -184,7 +194,7 @@ describe('ProductDialog · opção que tira o item de venda', () => {
  *
  * No item novo o bloco aparece SEM o botão de escolher: `POST
  * /admin/products/{id}/image` precisa do id, e um item que ainda não foi criado
- * não tem id. O que está lá é a frase que diz isso.
+ * não tem id. O que está lá é o botão que PEDE a foto — ver o describe seguinte.
  */
 describe('ProductDialog · o bloco da foto nos dois modos', () => {
   beforeEach(() => {
@@ -200,13 +210,13 @@ describe('ProductDialog · o bloco da foto nos dois modos', () => {
     expect(screen.getByTestId('product-image-choose')).toBeInTheDocument();
   });
 
-  it('no "Novo item", com a frase de que a foto entra depois de salvar', async () => {
+  it('no "Novo item", com o botão que PEDE a foto no lugar do de escolher', async () => {
     renderDialog({ ...draft, id: null });
 
     expect(await screen.findByRole('heading', { name: 'Foto do item' })).toBeInTheDocument();
-    expect(screen.getByText(/A foto entra depois de salvar/)).toBeInTheDocument();
+    expect(screen.getByTestId('product-image-intent')).toHaveTextContent('Adicionar foto');
 
-    // Sem id não há rota: o botão não é oferecido para não responder 404.
+    // Sem id não há rota: o escolhedor não é oferecido para não responder 404.
     expect(screen.queryByTestId('product-image-choose')).not.toBeInTheDocument();
 
     // E o item novo não lê detalhe nenhum — não há o que ler.
@@ -214,5 +224,83 @@ describe('ProductDialog · o bloco da foto nos dois modos', () => {
 
     // Os grupos de complemento seguem só na edição.
     expect(screen.queryByRole('heading', { name: 'Grupos de complemento' })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * QUEM DECIDE SE O DIÁLOGO FICA ABERTO É O PEDIDO DE FOTO.
+ *
+ * Cadastrar cardápio é trabalho em série — vinte itens seguidos —, e um
+ * diálogo que sempre fica aberto depois de salvar cobra um fechamento manual em
+ * cada um deles. Ficar aberto é o favor de UM caso: o da foto, que precisa do
+ * id que só existe depois de criar. Estes testes prendem os dois desfechos e a
+ * frase que impede o lojista de cadastrar o mesmo item duas vezes.
+ */
+describe('ProductDialog · salvar um item novo', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const novo: ProductDraft = { ...draft, id: null };
+
+  it('sem pedir foto: salva e FECHA', async () => {
+    const onClose = vi.fn();
+    renderDialog(novo, { onClose });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it('com foto pedida: NÃO fecha, vira edição e diz que o item foi criado', async () => {
+    vi.mocked(fetchProductDetail).mockResolvedValue(detalhe([]));
+    const onClose = vi.fn();
+    renderDialog(novo, { onClose, onSave: async () => 'prod-9' });
+
+    await userEvent.click(screen.getByTestId('product-image-intent'));
+    // O rodapé passa a anunciar o que vai acontecer, antes de acontecer.
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar e pôr foto' }));
+
+    // A frase é o que separa "salvou e continuou" de "não salvou": sem ela, a
+    // mesma janela aberta depois do clique lê como falha.
+    expect(await screen.findByTestId('product-created-notice')).toHaveTextContent(/foi criado/);
+    expect(onClose).not.toHaveBeenCalled();
+
+    // Virou edição do item que acabou de nascer: título, escolhedor de foto
+    // (agora há id) e a releitura do detalhe, que traz grupos e foto vazios.
+    // O título do Modal é o nome acessível do diálogo, não um heading.
+    expect(screen.getByRole('dialog', { name: 'Editar item' })).toBeInTheDocument();
+    expect(await screen.findByTestId('product-image-choose')).toBeInTheDocument();
+    await waitFor(() => expect(fetchProductDetail).toHaveBeenCalledWith('prod-9'));
+
+    // E "Cancelar" saiu: não há como cancelar um item que já existe.
+    expect(screen.getByRole('button', { name: 'Concluir' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument();
+  });
+
+  it('desistir da foto antes de salvar volta a fechar', async () => {
+    const onClose = vi.fn();
+    renderDialog(novo, { onClose });
+
+    await userEvent.click(screen.getByTestId('product-image-intent'));
+    await userEvent.click(screen.getByRole('button', { name: 'Não adicionar foto' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it('falha ao salvar não fecha nem promete um item que não existe', async () => {
+    const onClose = vi.fn();
+    renderDialog(novo, { onClose, onSave: async () => null });
+
+    await userEvent.click(screen.getByTestId('product-image-intent'));
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar e pôr foto' }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Salvar e pôr foto' })).toBeEnabled(),
+    );
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('product-created-notice')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Novo item' })).toBeInTheDocument();
   });
 });

@@ -429,6 +429,8 @@ export type FakeApi = {
   prepTimeOf: (branchId: string) => { min: number; max: number } | null;
   /** Cada PATCH /admin/products/{id}/availability que chegou. */
   availabilityCalls: () => { productId: string; isAvailable: boolean }[];
+  /** Cada POST /admin/products/{id}/image que chegou, com o peso do corpo. */
+  imageUploads: () => { productId: string; bytes: number }[];
   /** Configurações do restaurante como o "banco" as tem agora. */
   settings: () => RestaurantSettings;
   /** Corpo de cada PATCH /admin/settings, para conferir o que a tela mandou. */
@@ -498,6 +500,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     products: initialProducts(),
     reorderCalls: [] as string[][],
     availabilityCalls: [] as { productId: string; isAvailable: boolean }[],
+    imageUploads: [] as { productId: string; bytes: number }[],
     cancelReasons: [] as { orderId: string; reason: string }[],
     // A matriz já tem faixa gravada; a segunda filial não, para o teste do 409.
     prepTime: {
@@ -1054,6 +1057,35 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       });
     }
 
+    /*
+     * A foto do produto, também antes de /admin/products/{id}.
+     *
+     * MULTIPART: nada de `postDataJSON()` aqui, que estouraria no corpo binário.
+     * O que se guarda é de quem é a foto e que chegou byte — provar o conteúdo
+     * do WebP é trabalho de `product-image.test.ts`, que testa a geometria pura.
+     *
+     * A URL devolvida é do MESMO domínio (o backend real devolve CDN): assim o
+     * E2E não dispara uma requisição externa por uma imagem que não existe em
+     * lugar nenhum. Ela carrega o id do produto porque é isso que o teste
+     * confere — que a foto foi parar no item certo.
+     */
+    const imageMatch = /^\/admin\/products\/([^/]+)\/image$/.exec(path);
+    if (method === 'POST' && imageMatch?.[1]) {
+      const found = state.products.find((item) => item.id === imageMatch[1]);
+      if (!found) return json(route, 404, { detail: 'Produto não encontrado.' });
+
+      state.imageUploads.push({
+        productId: found.id,
+        bytes: request.postDataBuffer()?.length ?? 0,
+      });
+
+      // Sufixo por envio, como o backend faz: é o que distingue a foto nova da
+      // anterior, que continua no bucket.
+      const imagePath = `produtos/${found.id}-${state.imageUploads.length}.webp`;
+      found.image_url = `/media/${imagePath}`;
+      return json(route, 200, { image_path: imagePath, image_url: found.image_url });
+    }
+
     const productMatch = /^\/admin\/products\/([^/]+)$/.exec(path);
     if (productMatch?.[1]) {
       const found = state.products.find((item) => item.id === productMatch[1]);
@@ -1098,6 +1130,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     product: (productId) => state.products.find((item) => item.id === productId),
     reorderCalls: () => state.reorderCalls,
     availabilityCalls: () => state.availabilityCalls,
+    imageUploads: () => state.imageUploads,
     cancelReasons: () => state.cancelReasons,
     settings: () => state.settings,
     settingsPatches: () => state.settingsPatches,

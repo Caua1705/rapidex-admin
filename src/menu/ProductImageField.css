@@ -56,6 +56,19 @@
   min-width: 0;
 }
 
+/*
+ * O pedido de foto no item novo. Mesma coluna do `.foto__acao` — e pela mesma
+ * razão de `align-items`: um botão esticado na linha inteira lê como banner.
+ * Sem o alvo tracejado, que aqui não teria o que receber: não há arquivo a
+ * escolher enquanto o item não existe.
+ */
+.foto__intencao {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-4);
+}
+
 /* --- o recorte ----------------------------------------------------------- */
 
 .foto__editor {

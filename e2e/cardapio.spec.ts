@@ -186,6 +186,73 @@ test('trocar de categoria troca a lista de itens', async ({ page }) => {
 });
 
 /*
+ * CADASTRAR COM FOTO, DE PONTA A PONTA — e é o único teste que percorre isto.
+ *
+ * O caminho tem três juntas que o compilador não vê, porque nenhuma delas é
+ * questão de tipo, e as três já falharam em silêncio:
+ *
+ *   1. o diálogo só continua aberto se o lojista PEDIU a foto; quem cadastra em
+ *      série não pode ganhar um fechamento manual por item;
+ *   2. `POST /admin/products/{id}/image` precisa do id do item recém-criado —
+ *      quem lê `initial.id` em vez do rascunho manda a foto para lugar nenhum;
+ *   3. a foto sobe por ROTA PRÓPRIA, sem passar por `saveProduct`, então a
+ *      lista atrás do diálogo não sabe dela. Sem reler, a linha fica com a
+ *      miniatura vazia e o lojista — que enviou a foto há dois segundos — lê
+ *      isso como falha e envia de novo.
+ *
+ * O arquivo é um PNG de verdade (160×100, `e2e/fixtures/prato.png`): tem que
+ * decodificar no Chromium para o `image.onload` disparar, e é retangular de
+ * propósito, porque o recorte 1:1 só tem o que fazer quando a foto não é
+ * quadrada.
+ */
+test('cadastrar um item com foto: o diálogo fica aberto e a lista mostra a miniatura', async ({
+  page,
+}) => {
+  await abrirCardapio(page);
+
+  await page.getByRole('button', { name: 'Novo item' }).click();
+  await page.getByLabel('Nome do item').fill('X-Tudo');
+  await page.getByLabel('Preço').fill('32,00');
+
+  // Sem este clique, salvar fecharia — que é o comportamento do item sem foto.
+  await page.getByTestId('product-image-intent').click();
+  await page.getByRole('button', { name: 'Salvar e pôr foto' }).click();
+
+  // Salvou e NÃO fechou. A frase é o que separa isso de "não salvou": sem ela,
+  // a mesma janela aberta depois do clique lê como falha.
+  const dialogo = page.getByRole('dialog');
+  await expect(page.getByTestId('product-created-notice')).toContainText('foi criado');
+  await expect(dialogo).toHaveAttribute('aria-label', 'Editar item');
+
+  // O item existe, então o campo agora oferece o escolhedor no lugar do pedido.
+  await page.getByTestId('product-image-input').setInputFiles('e2e/fixtures/prato.png');
+  await expect(page.getByTestId('product-image-frame')).toBeVisible();
+  await page.getByTestId('product-image-send').click();
+
+  // Chegou multipart com bytes de verdade, no item que acabou de nascer.
+  await expect.poll(() => api.imageUploads().length).toBe(1);
+  const enviada = api.imageUploads()[0];
+  if (!enviada) throw new Error('O upload não chegou ao backend falso.');
+  expect(enviada.bytes).toBeGreaterThan(0);
+  expect(api.product(enviada.productId)?.name).toBe('X-Tudo');
+
+  /*
+   * O PONTO DESTE TESTE. A linha da lista mostra a miniatura SEM fechar o
+   * diálogo e sem trocar de categoria — só a releitura que o envio dispara põe
+   * a foto ali. Este é o passo que o typecheck não pega e que já se perdeu.
+   */
+  const linha = page.getByTestId(`product-row-${enviada.productId}`);
+  await expect(linha.locator('img.item__thumb')).toHaveAttribute(
+    'src',
+    new RegExp(enviada.productId),
+  );
+
+  // E o rodapé não oferece mais "Cancelar": o item já existe.
+  await dialogo.getByRole('button', { name: 'Concluir' }).click();
+  await expect(dialogo).toHaveCount(0);
+});
+
+/*
  * O tema tem três camadas de decisão, e o teste cobre as três:
  *   1. sem escolha, vale a preferência do sistema (aqui, claro);
  *   2. o alternador escreve a escolha;

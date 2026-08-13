@@ -262,6 +262,10 @@ export function MenuPage() {
           branchChosen={branchChosen}
           onClose={() => setProductDraft(null)}
           onSave={menu.saveProduct}
+          // A foto sobe por rota própria, sem passar por `saveProduct`: sem
+          // reler a lista, a linha do item fica sem miniatura até a próxima
+          // troca de categoria — e quem acabou de enviá-la lê isso como falha.
+          onImageUploaded={() => void menu.refreshProducts()}
         />
       ) : null}
 

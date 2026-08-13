@@ -33,10 +33,13 @@ type Escolhida = { url: string; image: HTMLImageElement; natural: NaturalSize };
  * atributo do item como preço e categoria são; uma tela separada faria o
  * lojista salvar duas vezes para cadastrar uma coisa só.
  *
- * SÓ NA EDIÇÃO, e isso não é limitação de tela: `POST /admin/products/{id}/image`
- * precisa do id, e um item que ainda não foi criado não tem id. Ao criar, o
- * campo explica que a foto entra depois de salvar — em vez de oferecer um
- * botão que responderia 404.
+ * O ENVIO SÓ EXISTE COM ID: `POST /admin/products/{id}/image` precisa dele, e um
+ * item que ainda não foi criado não tem. No "Novo item", então, o campo não
+ * oferece o escolhedor de arquivo — que responderia 404 —, e sim um botão que
+ * REGISTRA A INTENÇÃO: quem o clica avisa que quer pôr foto, e o diálogo trata
+ * de manter-se aberto depois de salvar, já em modo edição, para que o envio
+ * aconteça sem recomeçar. Quem não clica salva e fecha, que é o que cadastrar
+ * cardápio em série pede.
  *
  * O RECORTE É OBRIGATÓRIO e a proporção é fixa em 1:1. A miniatura da lista é
  * quadrada e a foto do cardápio é maior, mas as duas saem do mesmo objeto no
@@ -47,11 +50,16 @@ export function ProductImageField({
   productId,
   currentImageUrl,
   onUploaded,
+  wantsPhoto,
+  onWantsPhotoChange,
 }: {
   /** `null` num item que ainda não foi criado: a rota exige o id. */
   productId: string | null;
   currentImageUrl: string | null | undefined;
   onUploaded: (imageUrl: string) => void;
+  /** Só vale com `productId` nulo: o lojista já pediu para pôr foto. */
+  wantsPhoto: boolean;
+  onWantsPhotoChange: (wants: boolean) => void;
 }) {
   const [escolhida, setEscolhida] = useState<Escolhida | null>(null);
   const [crop, setCrop] = useState<CropState>(INITIAL_CROP);
@@ -160,9 +168,29 @@ export function ProductImageField({
       <h3 className="form__section-title">Foto do item</h3>
 
       {productId === null ? (
-        <p className="field__hint">
-          A foto entra depois de salvar: ela é enviada para o item, e o item ainda não existe.
-        </p>
+        /*
+          O BOTÃO NÃO ABRE O ESCOLHEDOR DE ARQUIVO: ele diz ao diálogo que esta
+          criação termina na foto, e não no fechamento. É uma alternância porque
+          desistir precisa ser tão barato quanto pedir — sem ela, um clique por
+          engano obriga a salvar, fechar e reabrir o item para sair do caminho
+          da foto.
+        */
+        <div className="foto__intencao">
+          <button
+            type="button"
+            className={`btn btn--sm${wantsPhoto ? ' btn--ghost' : ''}`}
+            onClick={() => onWantsPhotoChange(!wantsPhoto)}
+            data-testid="product-image-intent"
+            aria-pressed={wantsPhoto}
+          >
+            {wantsPhoto ? 'Não adicionar foto' : 'Adicionar foto'}
+          </button>
+          <p className="field__hint">
+            {wantsPhoto
+              ? 'Ao salvar, o item é criado e este diálogo continua aberto para você enviar a foto.'
+              : 'A foto é enviada para o item, e o item ainda não existe. Peça-a aqui para não precisar reabrir o cadastro depois de salvar.'}
+          </p>
+        </div>
       ) : escolhida === null ? (
         <>
           {/*

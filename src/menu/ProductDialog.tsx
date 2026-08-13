@@ -33,6 +33,7 @@ export function ProductDialog({
   branchChosen,
   onClose,
   onSave,
+  onImageUploaded,
 }: {
   initial: ProductDraft;
   categories: Category[];
@@ -41,7 +42,13 @@ export function ProductDialog({
   /** Falso com "Todas as filiais": não há de qual filial oferecer setor. */
   branchChosen: boolean;
   onClose: () => void;
-  onSave: (draft: ProductDraft, price: number) => Promise<boolean>;
+  /** Devolve o id salvo — é o que permite pôr foto sem fechar. `null` é falha. */
+  onSave: (draft: ProductDraft, price: number) => Promise<string | null>;
+  /**
+   * A foto subiu. A rota é própria e não passa por `onSave`, então a lista
+   * atrás do diálogo continuaria mostrando a miniatura vazia sem este aviso.
+   */
+  onImageUploaded: () => void;
 }) {
   const [draft, setDraft] = useState(initial);
   const [saving, setSaving] = useState(false);
@@ -55,8 +62,27 @@ export function ProductDialog({
   } | null>(null);
   const [alternando, setAlternando] = useState<string | null>(null);
   const [erroOpcao, setErroOpcao] = useState<string | null>(null);
+  /**
+   * No item novo: o lojista pediu para pôr foto, então salvar NÃO fecha.
+   *
+   * O padrão é falso de propósito. Quem sobe cardápio faz em série — vinte
+   * itens seguidos —, e um diálogo que sempre fica aberto cobra um fechamento
+   * manual em cada um deles. A foto é o caso em que ficar aberto é o favor, e
+   * é ele que o botão marca.
+   */
+  const [querFoto, setQuerFoto] = useState(false);
 
-  const isEdit = initial.id !== null;
+  /*
+   * O ID VEM DO RASCUNHO, não de `initial`. São a mesma coisa até o lojista
+   * pedir a foto num item novo: ali o item passa a existir e o diálogo vira
+   * edição SEM FECHAR, porque a foto precisa do id que acabou de nascer. Se
+   * `isEdit` continuasse lendo `initial.id`, o diálogo seguiria se dizendo
+   * "Novo item" com um item já criado atrás dele — e o campo da foto
+   * continuaria oferecendo o botão de PEDIR foto, no lugar do de enviá-la.
+   */
+  const isEdit = draft.id !== null;
+  /** Nasceu neste diálogo: o rodapé não pode mais oferecer "Cancelar". */
+  const criadoAqui = initial.id === null && draft.id !== null;
   const price = parsePriceInput(draft.price);
   const priceIsInvalid = draft.price.trim() !== '' && price === null;
   const canSave = draft.name.trim().length > 0 && price !== null && !saving;
@@ -67,13 +93,16 @@ export function ProductDialog({
     setImageUrl(detail.image_url ?? null);
   }, []);
 
+  // Segue `draft.id` para também correr no item recém-criado: ele volta com
+  // zero grupos e sem foto, e é esse vazio que a tela precisa mostrar.
   useEffect(() => {
-    if (!initial.id) return;
+    const productId = draft.id;
+    if (!productId) return;
     let cancelled = false;
 
     void (async () => {
       try {
-        const detail = await fetchProductDetail(initial.id as string);
+        const detail = await fetchProductDetail(productId);
         if (cancelled) return;
         setOptionGroups(detail.option_groups ?? []);
         setImageUrl(detail.image_url ?? null);
@@ -88,7 +117,7 @@ export function ProductDialog({
     return () => {
       cancelled = true;
     };
-  }, [initial.id]);
+  }, [draft.id]);
 
   /**
    * Liga/desliga uma opção de complemento.
@@ -99,14 +128,17 @@ export function ProductDialog({
    * dado que o carrega não está ali.
    */
   async function alternarOpcao(optionId: string, isActive: boolean) {
-    if (!initial.id) return;
+    // `draft.id` pelo mesmo motivo de `isEdit`: depois de criar aqui, é ele que
+    // aponta para o item que existe.
+    const productId = draft.id;
+    if (!productId) return;
 
     setAlternando(optionId);
     setErroOpcao(null);
     setConfirmando(null);
     try {
       await setOptionActive(optionId, isActive);
-      await carregarDetalhe(initial.id);
+      await carregarDetalhe(productId);
     } catch (error) {
       setErroOpcao(messageFromUnknownError(error));
     } finally {
@@ -136,12 +168,28 @@ export function ProductDialog({
 
   const grupoBloqueador = optionGroups ? blockingRequiredGroup(optionGroups) : null;
 
+  /**
+   * Salvar. FECHA, menos quando o lojista pediu a foto de um item novo.
+   *
+   * `onSave` devolve o id porque é ele que decide o desfecho: sem id não houve
+   * gravação e o diálogo fica onde está, com o erro que `useMenu` já pôs na
+   * tela; com id e com foto pedida, o rascunho ADOTA esse id e o diálogo vira
+   * edição no lugar de fechar — é a única forma de a rota da foto ter a quem
+   * enviar sem obrigar o lojista a reabrir o item que ele acabou de cadastrar.
+   */
   async function handleSave() {
     if (price === null) return;
+    const criando = draft.id === null;
     setSaving(true);
     const saved = await onSave(draft, price);
     setSaving(false);
-    if (saved) onClose();
+    if (!saved) return;
+
+    if (criando && querFoto) {
+      setDraft((atual) => ({ ...atual, id: saved }));
+      return;
+    }
+    onClose();
   }
 
   /*
@@ -189,8 +237,14 @@ export function ProductDialog({
       onClose={onClose}
       footer={
         <>
+          {/*
+            "Cancelar" VIRA "Concluir" depois de criar aqui: o item já existe e
+            não há mais o que cancelar. Oferecer a palavra antiga prometeria
+            desfazer uma criação que este diálogo não desfaz — e não existe
+            excluir item no sistema.
+          */}
           <button type="button" className="btn" onClick={onClose}>
-            Cancelar
+            {criadoAqui ? 'Concluir' : 'Cancelar'}
           </button>
           <button
             type="button"
@@ -198,12 +252,25 @@ export function ProductDialog({
             disabled={!canSave}
             onClick={() => void handleSave()}
           >
-            {saving ? 'Salvando…' : 'Salvar'}
+            {saving ? 'Salvando…' : querFoto && !isEdit ? 'Salvar e pôr foto' : 'Salvar'}
           </button>
         </>
       }
     >
       <div className="form">
+        {/*
+          O ITEM FOI CRIADO, E A TELA PRECISA DIZER ISSO. Este é o único lugar do
+          sistema onde salvar não fecha o diálogo: sem uma frase afirmando a
+          criação, o lojista vê a mesma janela aberta depois de clicar em salvar
+          e conclui que não salvou — e cadastra o item de novo.
+        */}
+        {criadoAqui ? (
+          <p className="alert alert--info" role="status" data-testid="product-created-notice">
+            <strong>{draft.name}</strong> foi criado. Envie a foto abaixo — o item já está no
+            cardápio, com ou sem ela.
+          </p>
+        ) : null}
+
         <label className="field">
           <span className="field__label">Nome do item</span>
           <input
@@ -333,9 +400,14 @@ export function ProductDialog({
         </div>
 
         <ProductImageField
-          productId={initial.id}
+          productId={draft.id}
           currentImageUrl={imageUrl}
-          onUploaded={(url) => setImageUrl(url)}
+          onUploaded={(url) => {
+            setImageUrl(url);
+            onImageUploaded();
+          }}
+          wantsPhoto={querFoto}
+          onWantsPhotoChange={setQuerFoto}
         />
 
         {isEdit ? (

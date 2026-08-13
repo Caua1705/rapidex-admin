@@ -289,14 +289,23 @@ export function useMenu() {
     [categories.length, loadCategories],
   );
 
-  /** Criar ou editar item. Também sem excluir — `is_active: false` é a saída. */
+  /**
+   * Criar ou editar item. Também sem excluir — `is_active: false` é a saída.
+   *
+   * DEVOLVE O ID em vez de um `true`, e é o que permite "Salvar e pôr foto":
+   * `POST /admin/products/{id}/image` precisa do id, e no item recém-criado o
+   * único lugar do sistema que o conhece é aqui dentro. Devolvendo-o, o diálogo
+   * vira modo edição sem fechar. `null` é a falha — quem chama não fecha.
+   */
   const saveProduct = useCallback(
-    async (draft: ProductDraft, price: number) => {
+    async (draft: ProductDraft, price: number): Promise<string | null> => {
       const name = draft.name.trim();
-      if (!name) return false;
+      if (!name) return null;
 
+      let savedId: string;
       try {
         if (draft.id) {
+          savedId = draft.id;
           await updateProduct(draft.id, {
             category_id: draft.categoryId,
             name,
@@ -325,6 +334,7 @@ export function useMenu() {
             is_available: draft.isAvailable,
             sort_order: products.length,
           });
+          savedId = created.id;
 
           // Item novo nasce sem setor, então só há o que gravar se o lojista
           // escolheu um. "Não imprimir" já é o estado do recém-criado — mandar
@@ -339,13 +349,29 @@ export function useMenu() {
         // sozinha pelo `total` da listagem, então aqui vale re-sondar.
         void loadProductCounts(categories);
         setErrorMessage(null);
-        return true;
+        return savedId;
       } catch (error) {
         setErrorMessage(messageFromUnknownError(error));
-        return false;
+        return null;
       }
     },
     [categories, loadProductCounts, loadProducts, products, search, selectedCategoryId],
+  );
+
+  /**
+   * Relê a lista da categoria aberta, com a busca em vigor.
+   *
+   * EXISTE PARA QUEM MUDA UM PRODUTO POR FORA DE `saveProduct` — hoje só o
+   * envio da foto, que tem rota própria (`POST /admin/products/{id}/image`) e
+   * nunca passa por aqui. Sem isto, o item que acabou de receber foto volta
+   * para a lista com a miniatura vazia, e quem enviou a foto há dois segundos
+   * lê isso como falha e envia de novo.
+   *
+   * Não re-sonda as contagens: foto não muda quantos itens a categoria tem.
+   */
+  const refreshProducts = useCallback(
+    () => loadProducts(selectedCategoryId, search),
+    [loadProducts, search, selectedCategoryId],
   );
 
   /**
@@ -405,6 +431,7 @@ export function useMenu() {
     clearError: () => setErrorMessage(null),
     clearMovedCategory,
     loadMoreProducts,
+    refreshProducts,
     reorderCategory,
     saveCategory,
     saveProduct,
