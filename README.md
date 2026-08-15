@@ -360,3 +360,8 @@ API (`src/orders/useNewOrderSound.ts`), sem arquivo para carregar.
 
 **Se a URL da API mudar**, `connect-src` muda junto — senão o painel carrega e
 nenhuma chamada sai, com erro só no console.
+
+## Branches
+
+O trabalho acontece na `dev`; a `main` só recebe merge. A regra completa está
+em `CLAUDE.md`. Cada push na `dev` gera um preview na Vercel.
