@@ -39,7 +39,25 @@ export function datesForPeriod(
   if (period === 'last7') {
     return { startDate: daysAgoInOperationTimezone(6), endDate: todayInOperationTimezone() };
   }
-  return current;
+
+  /*
+   * "Escolher…" DEVOLVE UM OBJETO NOVO COM AS DUAS CHAVES, e não `current`
+   * inteiro. Isto era um bug de verdade, e ele estava em produção.
+   *
+   * `OrdersFilters` chama `onChange({ period: periodo.value, ...datesForPeriod(
+   * periodo.value, filters) })`, passando o estado INTEIRO como `current`. Com
+   * `return current`, o spread vinha depois de `period` e reintroduzia o
+   * `period` ANTIGO por cima do novo: clicar em "Escolher…" no quadro de
+   * pedidos não abria os campos de data e o segmentado voltava sozinho para a
+   * opção anterior.
+   *
+   * Nada acusava. O tipo de retorno declarado é `{startDate, endDate}`, e o
+   * objeto devolvido tem essas duas chaves — o TypeScript aceita as chaves
+   * extras que vêm de carona. E o teste de unidade passava porque chamava a
+   * função com um objeto que só tinha as duas chaves, e não com o estado
+   * inteiro que a tela passa.
+   */
+  return { startDate: current.startDate, endDate: current.endDate };
 }
 
 const dayFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: OPERATION_TIMEZONE });

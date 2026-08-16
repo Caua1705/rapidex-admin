@@ -34,6 +34,7 @@ const TELAS = [
   { slug: 'minha-loja', path: '/minha-loja' },
   { slug: 'cozinha', path: '/cozinha' },
   { slug: 'clientes', path: '/clientes' },
+  { slug: 'desempenho', path: '/desempenho' },
 ];
 
 let api: FakeApi;
@@ -93,6 +94,23 @@ for (const viewport of VIEWPORTS) {
     await page.getByRole('button', { name: 'Editar X-Burger Clássico' }).click();
     await page.waitForTimeout(400);
     await page.screenshot({ path: `design/shots/out/${TAG}/item-dialogo-${viewport.name}.png` });
+
+    /*
+     * DESEMPENHO INTEIRO, e não só a dobra.
+     *
+     * São sete seções numa coluna: o print de viewport mostra o resumo e a
+     * primeira metade do gráfico, e deixa fora justamente o que mais tem
+     * texto de ressalva — a nota do total de produtos, a taxa de cancelamento
+     * e o recorte da comissão. Uma tela que se julga pela dobra é uma tela em
+     * que a metade de baixo nunca é olhada.
+     */
+    await page.goto('/desempenho');
+    await page.waitForLoadState('networkidle').catch(() => undefined);
+    await page.waitForTimeout(600);
+    await page.screenshot({
+      path: `design/shots/out/${TAG}/desempenho-inteiro-${viewport.name}.png`,
+      fullPage: true,
+    });
 
     /*
      * O QUADRO SEM NENHUM PEDIDO. Ele não aparecia em print nenhum, e era

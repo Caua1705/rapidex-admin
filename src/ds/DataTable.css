@@ -108,7 +108,20 @@
     content: none;
   }
 
-  .ds-tabela__fim {
+  /*
+   * O CABEÇALHO DE UMA COLUNA ALINHADA À DIREITA TAMBÉM VAI À DIREITA.
+   *
+   * Isto era um bug, e ele só apareceu quando uma tela usou três colunas
+   * `align: 'end'` de uma vez (Desempenho): `.ds-tabela th` acima declara
+   * `text-align: left` e tem especificidade (0,1,1) contra os (0,1,0) de
+   * `.ds-tabela__fim` — então o `th` ganhava, e a régua da coluna ficava com o
+   * rótulo na esquerda e os números na direita, cada um numa abscissa
+   * diferente. O `td` obedecia; o `th`, não.
+   *
+   * Qualificar os dois seletores empata a conta e faz a coluna inteira alinhar.
+   */
+  .ds-tabela th.ds-tabela__fim,
+  .ds-tabela td.ds-tabela__fim {
     text-align: right;
   }
 

@@ -8,6 +8,7 @@ import { AppShell } from './layout/AppShell';
 import { PENDING_ENTRIES } from './layout/nav';
 import { MenuPage } from './menu/MenuPage';
 import { OrdersPage } from './orders/OrdersPage';
+import { PerformancePage } from './performance/PerformancePage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { LoginPage } from './pages/LoginPage';
 import { StoreLayout } from './store/StoreLayout';
@@ -61,6 +62,16 @@ export function App() {
               <RequireAuth>
                 <AppShell>
                   <CustomersPage />
+                </AppShell>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/desempenho"
+            element={
+              <RequireAuth>
+                <AppShell>
+                  <PerformancePage />
                 </AppShell>
               </RequireAuth>
             }

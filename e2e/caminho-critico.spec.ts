@@ -447,3 +447,25 @@ test('401 em qualquer chamada limpa a sessão e volta ao login', async ({ page }
   await page.goto('/pedidos');
   await expect(page).toHaveURL(/\/login$/);
 });
+
+/*
+ * "ESCOLHER…" ABRE OS CAMPOS DE DATA — e este teste não existia.
+ *
+ * `datesForPeriod('custom', …)` devolvia o estado INTEIRO de volta, e o ponto
+ * de chamada faz `{ period: novo, ...datesForPeriod(novo, filters) }`: o
+ * `period` antigo vinha de carona no spread e sobrescrevia o novo. Clicar em
+ * "Escolher…" não abria nada e o segmentado voltava sozinho para a opção
+ * anterior — em produção, sem nada acusando, porque o teste de unidade
+ * chamava a função com um objeto de duas chaves e não com o estado da tela.
+ */
+test('"Escolher…" abre os campos de data e o segmentado fica nele', async ({ page }) => {
+  await fazerLogin(page);
+
+  await expect(page.getByLabel('Data inicial')).toHaveCount(0);
+
+  await page.getByTestId('orders-period-custom').click();
+
+  await expect(page.getByTestId('orders-period-custom')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByLabel('Data inicial')).toBeVisible();
+  await expect(page.getByLabel('Data final')).toBeVisible();
+});

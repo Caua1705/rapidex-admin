@@ -86,12 +86,19 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         Icon: CashbackIcon,
         soon: 'Devolver parte do pedido em crédito e acompanhar quanto disso volta em compra.',
       },
-      {
-        to: '/desempenho',
-        label: 'Desempenho',
-        Icon: PerformanceIcon,
-        soon: 'Faturamento, ticket médio e horários de pico, por filial e por período.',
-      },
+      /*
+       * A FRASE DESTE ITEM SAIU DAQUI, e não porque virou obsoleta: `soon` é o
+       * mecanismo, não um texto de apoio. Enquanto ele existe, a rota cai na
+       * página "em breve" e a tela construída fica inalcançável — o campo
+       * decide as duas coisas ao mesmo tempo.
+       *
+       * A frase antiga prometia "horários de pico, por filial", e nenhuma das
+       * duas tem rota no contrato. A descrição do que a tela REALMENTE faz
+       * passou para o cabeçalho de `PerformancePage`, que é onde ela continua
+       * sendo lida depois de a tela existir — e onde o escopo de filial é dito
+       * por escrito em vez de prometido.
+       */
+      { to: '/desempenho', label: 'Desempenho', Icon: PerformanceIcon },
     ],
   },
   {

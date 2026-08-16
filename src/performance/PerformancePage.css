@@ -1,0 +1,497 @@
+/*
+ * ============================================================================
+ * DESEMPENHO — sete seções numa coluna, e um gráfico
+ * ============================================================================
+ *
+ * A tela é longa por natureza: são seis relatórios. O que a mantém legível é o
+ * ritmo único — toda seção tem o mesmo cabeçalho, o mesmo vão e a mesma
+ * largura —, não um cartão decorado por bloco.
+ */
+
+.perf {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-16);
+  padding: var(--page-pad);
+  overflow-y: auto;
+  background: var(--bg);
+  max-width: var(--page-max);
+}
+
+.perf__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.perf__nota {
+  margin: 0;
+  max-width: 68ch;
+}
+
+/* --- a barra de período --------------------------------------------------- */
+
+.perf__barra {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  flex-wrap: wrap;
+}
+
+.perf__datas {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.perf__datas .input {
+  width: 148px;
+}
+
+/*
+ * O AVISO DE ESCOPO.
+ *
+ * Ele não é `.alert--warn`: nada está errado, e uma tarja âmbar ao lado do
+ * período leria como problema a resolver. É a legenda do recorte — mesma
+ * tinta de apoio de qualquer meta —, e o que o destaca é o negrito em "todas
+ * as filiais", que é a palavra que muda a leitura de todos os números abaixo.
+ *
+ * Ele ocupa a linha inteira quando a barra quebra: espremido ao lado do
+ * segmentado ele viraria três linhas de duas palavras.
+ */
+.perf__escopo {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+.perf__escopo strong {
+  font-weight: var(--w-semibold);
+  color: var(--ink-2);
+}
+
+.perf__alerta,
+.perf__estado {
+  margin: 0;
+}
+
+.perf__estado {
+  padding: var(--sp-32) 0;
+  font-size: var(--ta-size);
+}
+
+/* --- as seções ------------------------------------------------------------ */
+
+.perf__secoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-24);
+}
+
+.perf__secao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+}
+
+.perf__secao-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.perf__ressalva {
+  margin: 0;
+  max-width: 72ch;
+}
+
+/* Forma de pagamento que ninguém registrou: é o que se vai investigar. */
+.perf__sem-registro {
+  color: var(--alert);
+}
+
+/*
+ * Uma linha de total: a frase à esquerda, o número à direita. Ela é o resumo
+ * da seção, então lê mais forte que a tabela abaixo — sem virar cartão.
+ */
+.perf__resumo-linha,
+.perf__total-linha {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-12);
+  margin: 0;
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+}
+
+.perf__resumo-linha > :last-child,
+.perf__total-linha > :last-child {
+  font-weight: var(--w-semibold);
+  color: var(--ink);
+}
+
+.perf__total-ressalvado {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding-top: var(--sp-8);
+  border-top: 1px solid var(--line);
+}
+
+/* --- os tiles do resumo --------------------------------------------------- */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--sp-12);
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-16);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-card);
+}
+
+.tile__rotulo {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+/*
+ * O VALOR USA OS TOKENS DO NÍVEL 1.
+ *
+ * Não é um sexto nível de tipografia inventado: é o nível 1 reusado, porque
+ * dentro do tile este número É o título — o rótulo acima o nomeia, e o delta
+ * abaixo o qualifica. Escolher "só um pouco maior" caso a caso é exatamente o
+ * que a §1 proíbe.
+ *
+ * SEM `.tnum` de propósito: a classe documenta "isto se compara descendo uma
+ * coluna", e três tiles lado a lado, de grandezas diferentes, não são coluna.
+ * No corpo maior o tabular ainda deixa o número frouxo, porque dá a cada
+ * dígito a largura de um "0". Dinheiro EM COLUNA (as tabelas) continua tabular.
+ */
+.tile__valor {
+  font-size: var(--tt-size);
+  line-height: var(--tt-line);
+  font-weight: var(--tt-weight);
+  letter-spacing: var(--tt-track);
+  color: var(--ink);
+}
+
+/*
+ * O delta é NEUTRO, e isso é decisão de cor, não descuido.
+ *
+ * Queda de faturamento não é `--danger` (perigo é cancelar, excluir, pagamento
+ * recusado) e alta não é `--ok` ("no ar / à venda / confirmado"). Pintar as
+ * duas gastaria duas matizes com significado firmado no sistema para dizer o
+ * que o sinal de menos já diz — e num painel em que vermelho quer dizer
+ * "cuidado", um mês 2% abaixo do anterior pareceria incidente.
+ */
+.tile__delta {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-2);
+}
+
+/* Sem comparação possível: a frase é mais longa e mais fraca que um número. */
+.tile__delta--vazio {
+  color: var(--ink-3);
+}
+
+/* --- a composição do faturamento ------------------------------------------ */
+
+.composicao {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+/*
+ * Rótulo de contexto pequeno fora de formulário — 13px, peso 500, sem caixa
+ * alta, na tinta de apoio (§1). Não é o nível 3 nem um sexto nível: é o mesmo
+ * tratamento do "Preparo"/"Entrega" da barra de filtro.
+ */
+.composicao__titulo {
+  padding-bottom: var(--sp-8);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-weight: var(--w-medium);
+  color: var(--ink-2);
+}
+
+.composicao__linha {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-12);
+  min-height: var(--row-dense-h);
+  border-bottom: 1px solid var(--line);
+}
+
+.composicao__linha:last-child {
+  border-bottom: none;
+}
+
+.composicao__rotulo {
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink-2);
+}
+
+.composicao__valor {
+  margin: 0;
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink);
+}
+
+/* ==========================================================================
+ * O GRÁFICO DE DIAS
+ *
+ * Série única, marca neutra, sem legenda. Ver o bloco de comentário de
+ * `DayChart.tsx` para o porquê de cada uma dessas três coisas.
+ * ======================================================================= */
+
+.grafico {
+  margin: 0;
+}
+
+.grafico__vazio {
+  font-size: var(--ta-size);
+}
+
+.grafico__plot {
+  position: relative;
+  padding-top: var(--sp-24);
+}
+
+/*
+ * A RÉGUA DO TOPO: hairline, sólida e recessiva — nunca tracejada.
+ *
+ * SEM VALOR ESCRITO. Ela já teve "R$ 1.240,00" à direita, e o rótulo direto do
+ * dia de pico dizia o mesmo número na mesma linha: o teto da escala É o maior
+ * dia, então eram a mesma informação duas vezes (§8). Quem carrega o número é
+ * o rótulo do pico, que ainda diz de qual dia ele é.
+ *
+ * Ela acompanha a largura das COLUNAS, não a da seção — por isso mora dentro
+ * de `.grafico__barras`, que encolhe para o conteúdo.
+ */
+.grafico__teto {
+  display: none;
+}
+
+.grafico__barras {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: flex-end;
+  /*
+   * O VÃO DE 2px É A SUPERFÍCIE SEPARANDO AS COLUNAS — não uma borda desenhada
+   * em volta de cada uma. Borda acrescentaria tinta que não é dado.
+   */
+  gap: var(--chart-gap);
+  height: var(--chart-h);
+  /*
+   * A LARGURA SAI DA QUANTIDADE DE DIAS, e isso veio do print.
+   *
+   * Com `flex: 1` puro, sete dias dividiam os 1190px da seção em faixas de
+   * 170px para colunas de 24 — 146px de ar por faixa, e o gráfico lia como
+   * sete palitos espalhados em vez de uma série. A regra de "a coluna não
+   * preenche a faixa; a sobra é ar" vale para a proporção dentro da faixa, não
+   * para deixar a faixa crescer sem limite.
+   *
+   * `--dias` vem do componente. Com 30 dias a conta passa dos 100% e o
+   * `max-width` devolve o comportamento elástico de antes.
+   */
+  width: calc(var(--dias, 7) * (var(--chart-band) + var(--chart-gap)));
+  max-width: 100%;
+}
+
+/* A régua vive na largura das colunas, não na da seção. */
+.grafico__barras::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--line);
+}
+
+.grafico__dia {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: var(--chart-band);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.grafico__coluna {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+/*
+ * A COLUNA.
+ *
+ * `max-width` de 24px: a marca não preenche a faixa: a sobra da faixa é ar. Em
+ * sete dias, sem o teto, cada coluna teria 100px de largura e o gráfico leria
+ * como um bloco de cor, não como uma medida.
+ *
+ * Canto arredondado SÓ NO TOPO (a ponta do dado), quadrado na base (a linha de
+ * origem). É o que faz a coluna crescer de uma linha de base em vez de flutuar.
+ */
+.grafico__barra {
+  width: 100%;
+  max-width: var(--chart-bar-max);
+  height: var(--h, 0%);
+  background: var(--ink-2);
+  border-radius: var(--r-xs) var(--r-xs) 0 0;
+  transition: background var(--motion-fast) var(--ease);
+}
+
+.grafico__dia:hover .grafico__barra {
+  background: var(--ink);
+}
+
+/* O rótulo direto do dia de pico — o extremo é o que o olho procura primeiro. */
+.grafico__pico {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: var(--sp-4);
+  font-size: var(--ta-size);
+  line-height: 1;
+  color: var(--ink-2);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* --- o balão do ponteiro -------------------------------------------------- */
+
+/*
+ * Nada existe SÓ aqui: a tabela equivalente em `DayChart` tem os mesmos
+ * números, para quem não tem ponteiro. Este é o atalho, não a fonte.
+ */
+.grafico__balao {
+  position: absolute;
+  bottom: calc(100% + var(--sp-8));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-popover);
+  display: none;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-8);
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-field);
+  box-shadow: var(--shadow-raised);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.grafico__dia:hover .grafico__balao {
+  display: flex;
+}
+
+.grafico__balao-dia {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+.grafico__balao-valor {
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-semibold);
+  color: var(--ink);
+}
+
+.grafico__balao-pedidos {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-2);
+}
+
+/*
+ * O rótulo do eixo. Ele tem altura fixa mesmo vazio: sem isso, as colunas com
+ * rótulo ficariam mais baixas que as sem, e a linha de base do gráfico
+ * deixaria de ser uma linha.
+ */
+.grafico__rotulo {
+  flex: 0 0 auto;
+  padding-top: var(--sp-4);
+  min-height: var(--sp-16);
+  text-align: center;
+  font-size: var(--ta-size);
+  line-height: 1;
+  color: var(--ink-3);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+ * CELULAR
+ * ======================================================================= */
+
+@media (max-width: 720px) {
+  .perf {
+    padding: var(--page-pad-mobile);
+  }
+
+  .perf__datas {
+    flex: 1 1 100%;
+  }
+
+  .perf__datas .input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+
+  /*
+   * Em 390px, trinta colunas de 2px com vão de 2px não cabem — e uma coluna
+   * de meio pixel não é um dado legível. O gráfico ganha rolagem horizontal
+   * PRÓPRIA, com largura mínima por dia.
+   *
+   * É a única rolagem lateral fora da Cozinha, e ela é do gráfico, não da
+   * página: o §8 proíbe o quadro de pedidos rolar de lado porque lá o que sai
+   * da tela é um PEDIDO que ninguém vai procurar. Aqui o que sai é um dia de
+   * uma série cujo total já está escrito acima, e cujos números estão todos na
+   * tabela equivalente. Nada fica inalcançável.
+   */
+  .grafico__plot {
+    overflow-x: auto;
+  }
+
+  .grafico__barras {
+    min-width: 100%;
+  }
+
+  .grafico__dia {
+    flex: 0 0 auto;
+    min-width: var(--sp-24);
+  }
+}

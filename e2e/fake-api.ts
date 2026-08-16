@@ -29,6 +29,12 @@ type BusinessHour = Schemas['BusinessHourResponse'];
 type BusinessHourInput = Schemas['BusinessHourInput'];
 type PaymentMethod = Schemas['AdminPaymentMethodResponse'];
 type CustomerListItem = Schemas['AdminCustomerListItem'];
+type SalesSummary = Schemas['SalesSummaryResponse'];
+type SalesByDay = Schemas['SalesByDayResponse'];
+type ReportPaymentMethods = Schemas['src__schemas__admin_report_schema__PaymentMethodsResponse'];
+type ProductSales = Schemas['ProductSalesResponse'];
+type Cancellations = Schemas['CancellationsResponse'];
+type CommissionReport = Schemas['CommissionReportResponse'];
 
 export const LOGIN_EMAIL = 'dono@pizzaria.com';
 export const LOGIN_PASSWORD = 'senha-certa';
@@ -458,6 +464,144 @@ function initialCustomers(): CustomerListItem[] {
   ];
 }
 
+/* ==========================================================================
+ * RELATÓRIOS (Desempenho)
+ *
+ * Os números são fixos e escolhidos para cobrir os casos que a tela precisa
+ * saber desenhar — não para parecer uma loja real:
+ *
+ * - `change_percent` NULO no ticket médio: é o caso de "o período anterior foi
+ *   zero", e é onde a tela tem que escrever "sem comparação" em vez de 0%.
+ * - `payment_method` NULO numa linha: pedido sem forma registrada, que não
+ *   pode virar "Outro".
+ * - um dia com faturamento ZERO no meio da série: barra de altura zero, não um
+ *   mínimo decorativo.
+ * - `'9.00'` e `'10.00'` na mesma série: se alguém comparar as strings em vez
+ *   dos números, o pico sai no dia errado e o print mostra.
+ * ======================================================================= */
+
+const PERIODO_DIAS = 7;
+
+/** Os sete dias do período padrão da tela, terminando hoje. */
+function reportDays(): Schemas['SalesByDayItem'][] {
+  const dias: Schemas['SalesByDayItem'][] = [];
+  const valores = ['420.00', '9.00', '10.00', '0.00', '880.50', '1240.00', '610.00'];
+
+  for (let i = PERIODO_DIAS - 1; i >= 0; i -= 1) {
+    const dia = new Date(Date.now() - i * 86_400_000).toISOString().slice(0, 10);
+    const valor = valores[PERIODO_DIAS - 1 - i] ?? '0.00';
+    dias.push({
+      day: dia,
+      orders_count: valor === '0.00' ? 0 : Math.max(1, Math.round(Number(valor) / 60)),
+      revenue_total: valor,
+    });
+  }
+  return dias;
+}
+
+function reportPeriod(start: string, end: string): Schemas['ReportPeriod'] {
+  return { start_date: start, end_date: end, days: PERIODO_DIAS };
+}
+
+function initialSalesSummary(start: string, end: string): SalesSummary {
+  return {
+    restaurant_id: RESTAURANT_ID,
+    period: reportPeriod(start, end),
+    previous_period: reportPeriod(start, end),
+    orders_count: 54,
+    revenue_total: '3169.50',
+    average_ticket: '58.69',
+    breakdown: {
+      subtotal_total: '2980.00',
+      delivery_fee_total: '240.00',
+      service_fee_total: '108.00',
+      discount_total: '158.50',
+      commission_total: '316.95',
+    },
+    order_types: [
+      { order_type: 'delivery', orders_count: 41, revenue_total: '2510.00', revenue_share_percent: '79.2' },
+      { order_type: 'pickup', orders_count: 13, revenue_total: '659.50', revenue_share_percent: '20.8' },
+    ],
+    excluded_orders_count: 3,
+    orders_count_comparison: { current: '54', previous: '48', change: '6', change_percent: '12.5' },
+    revenue_comparison: {
+      current: '3169.50',
+      previous: '3402.00',
+      change: '-232.50',
+      change_percent: '-6.8',
+    },
+    /*
+     * O NULO. Sem período anterior com movimento não existe variação percentual
+     * — e é aqui que um `?? 0` escreveria "0%" e diria que o ticket ficou igual.
+     */
+    average_ticket_comparison: {
+      current: '58.69',
+      previous: '0.00',
+      change: '58.69',
+      change_percent: null,
+    },
+  };
+}
+
+function initialPaymentsReport(start: string, end: string): ReportPaymentMethods {
+  return {
+    restaurant_id: RESTAURANT_ID,
+    period: reportPeriod(start, end),
+    orders_count: 54,
+    revenue_total: '3169.50',
+    payment_methods: [
+      { payment_method: 'pix', orders_count: 30, revenue_total: '1820.00', revenue_share_percent: '57.4' },
+      { payment_method: 'cash', orders_count: 18, revenue_total: '1049.50', revenue_share_percent: '33.1' },
+      /* Sem forma registrada. NÃO é "Outro" — ver `paymentMethodLabel`. */
+      { payment_method: null, orders_count: 6, revenue_total: '300.00', revenue_share_percent: '9.5' },
+    ],
+  };
+}
+
+function initialProductSales(start: string, end: string): ProductSales {
+  return {
+    restaurant_id: RESTAURANT_ID,
+    period: reportPeriod(start, end),
+    products: [
+      { product_id: 'prod-1', product_name: 'Pizza Calabresa G', orders_count: 22, quantity_total: 26, revenue_total: '1170.00' },
+      { product_id: 'prod-2', product_name: 'X-Burger Clássico', orders_count: 19, quantity_total: 24, revenue_total: '597.60' },
+      /* Produto apagado depois da venda: `product_id` nulo é caso do contrato. */
+      { product_id: null, product_name: 'Combo de inverno (fora do cardápio)', orders_count: 4, quantity_total: 4, revenue_total: '180.00' },
+    ],
+    listed_revenue_total: '1947.60',
+    revenue_note:
+      'Receita bruta dos itens, sem cupom, cashback nem taxas — não fecha com o faturamento do resumo.',
+  };
+}
+
+function initialCancellations(start: string, end: string): Cancellations {
+  return {
+    restaurant_id: RESTAURANT_ID,
+    period: reportPeriod(start, end),
+    orders_count: 3,
+    amount_total: '186.00',
+    billable_orders_count: 54,
+    cancellation_rate_percent: '5.3',
+    breakdown: [
+      { status: 'cancelled', payment_status: 'refunded', orders_count: 2, amount_total: '141.00' },
+      { status: 'rejected', payment_status: 'pending', orders_count: 1, amount_total: '45.00' },
+    ],
+  };
+}
+
+function initialCommission(start: string, end: string): CommissionReport {
+  return {
+    restaurant_id: RESTAURANT_ID,
+    start_date: start,
+    end_date: end,
+    orders_count: 54,
+    excluded_orders_count: 3,
+    commission_base_total: '3169.50',
+    commission_total: '316.95',
+    orders: [],
+  };
+}
+
 /** Espelho enxuto da máquina de estados do backend, só para recusar o inválido. */
 const TRANSICOES: Record<string, string[]> = {
   pending: ['accepted', 'rejected', 'cancelled'],
@@ -693,6 +837,56 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         (item) => (!branchId || item.branch_id === branchId) && (!status || item.status === status),
       );
       return json(route, 200, { items, total: items.length, limit: 100, offset: 0 });
+    }
+
+    // --- relatórios (Desempenho) -------------------------------------------
+
+    /*
+     * As seis rotas recebem `start_date` e `end_date` e MAIS NADA — nenhuma
+     * aceita `branch_id`. O falso não filtra por filial de propósito: filtrar
+     * aqui esconderia justamente o que a tela precisa avisar ao lojista.
+     */
+    if (method === 'GET' && path.startsWith('/admin/reports/')) {
+      const query = new URL(request.url()).searchParams;
+      const inicio = query.get('start_date') ?? '';
+      const fim = query.get('end_date') ?? '';
+
+      if (!inicio || !fim) {
+        return json(route, 422, {
+          detail: [{ loc: ['query', 'start_date'], msg: 'campo obrigatório', type: 'missing' }],
+        });
+      }
+
+      if (path === '/admin/reports/summary') {
+        return json(route, 200, initialSalesSummary(inicio, fim));
+      }
+
+      if (path === '/admin/reports/sales-by-day') {
+        const dias = reportDays();
+        return json(route, 200, {
+          restaurant_id: RESTAURANT_ID,
+          period: reportPeriod(inicio, fim),
+          orders_count: dias.reduce((soma, dia) => soma + dia.orders_count, 0),
+          revenue_total: '3169.50',
+          days: dias,
+        } satisfies SalesByDay);
+      }
+
+      if (path === '/admin/reports/payment-methods') {
+        return json(route, 200, initialPaymentsReport(inicio, fim));
+      }
+
+      if (path === '/admin/reports/products') {
+        return json(route, 200, initialProductSales(inicio, fim));
+      }
+
+      if (path === '/admin/reports/cancellations') {
+        return json(route, 200, initialCancellations(inicio, fim));
+      }
+
+      if (path === '/admin/reports/commission') {
+        return json(route, 200, initialCommission(inicio, fim));
+      }
     }
 
     // --- clientes ----------------------------------------------------------

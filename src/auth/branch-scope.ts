@@ -61,6 +61,24 @@ export const ROUTE_BRANCH_SCOPE = {
   // Aceita `branch_id` em QUERY, então o seletor do topo funciona nela de
   // verdade: vazio lista todas as filiais que o token alcança.
   '/admin/customers': 'multi',
+
+  /*
+   * OS RELATÓRIOS SÃO 'multi' POR UM MOTIVO DIFERENTE DAS DE CIMA.
+   *
+   * As outras aceitam `branch_id` e entendem vazio como "todas". Estas seis
+   * NÃO TÊM O PARÂMETRO: elas somam todas as filiais do token, sempre, e não
+   * há como pedir uma. Para a tabela o efeito é o mesmo ('multi' = a tela
+   * funciona com "todas as filiais" escolhida), mas a diferença importa na
+   * tela: o seletor do topo continua visível e não muda nada nela, e é por
+   * isso que `PerformancePage` escreve o escopo em vez de deixar o lojista
+   * concluir que o filtro pegou.
+   */
+  '/admin/reports/summary': 'multi',
+  '/admin/reports/sales-by-day': 'multi',
+  '/admin/reports/payment-methods': 'multi',
+  '/admin/reports/products': 'multi',
+  '/admin/reports/cancellations': 'multi',
+  '/admin/reports/commission': 'multi',
   // Estas três são do RESTAURANTE inteiro — não têm recorte de filial nenhum,
   // o que as deixa do lado que funciona com "todas" escolhida.
   '/admin/settings': 'multi',

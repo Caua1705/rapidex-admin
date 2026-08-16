@@ -358,6 +358,36 @@
   --row-read-h: 48px;
 
   /* ==========================================================================
+   * 10b. GRÁFICO — especificação de marca, NÃO degrau de espaçamento
+   *
+   * As três medidas abaixo pertencem ao desenho do dado, não ao ritmo da
+   * página, e é por isso que elas moram num bloco próprio em vez de virarem
+   * `--sp-2` e amigos: `--sp-2` não existe DE PROPÓSITO (§2), porque um degrau
+   * de 2px é por onde cada bloco começa a escolher o próprio ritmo. Um vão
+   * entre colunas de gráfico não é ritmo de bloco — é a superfície separando
+   * duas marcas, e ele tem um valor certo.
+   *
+   * `--chart-gap`: a superfície entre colunas vizinhas. É a superfície que
+   *   separa, nunca uma borda desenhada em volta da marca — contorno
+   *   acrescentaria tinta que não é dado.
+   * `--chart-bar-max`: a coluna não preenche a faixa dela; a sobra é ar. Sem
+   *   teto, sete dias dariam colunas de 100px e o gráfico leria como bloco de
+   *   cor, não como medida.
+   * `--chart-h`: a altura do plot. É medida de conteúdo, como largura de
+   *   coluna de tabela.
+   * ======================================================================= */
+  --chart-gap: 2px;
+  --chart-bar-max: 24px;
+  --chart-h: 180px;
+  /*
+   * A faixa de um ponto da série. A coluna (`--chart-bar-max`) ocupa parte
+   * dela e a sobra é ar — mas a FAIXA também tem teto: sem ele, uma série de
+   * sete dias numa seção larga dava faixas de 170px e o gráfico lia como
+   * palitos espalhados em vez de uma série.
+   */
+  --chart-band: 56px;
+
+  /* ==========================================================================
    * 11. MOVIMENTO
    * Estes dois tokens viram 0s sob prefers-reduced-motion (no fim do arquivo).
    * ======================================================================= */

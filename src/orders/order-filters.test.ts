@@ -89,4 +89,31 @@ describe('datesForPeriod', () => {
   it('personalizado preserva o que o usuário digitou', () => {
     expect(datesForPeriod('custom', atual)).toEqual(atual);
   });
+
+  /*
+   * O TESTE QUE FALTAVA, E QUE DEIXOU UM BUG PASSAR PARA PRODUÇÃO.
+   *
+   * A tela chama a função com o ESTADO INTEIRO, não com um objeto de duas
+   * chaves — e `return current` devolvia esse estado inteiro de volta. Como o
+   * ponto de chamada faz `{ period: novo, ...datesForPeriod(novo, filters) }`,
+   * o `period` ANTIGO vinha de carona no spread e sobrescrevia o novo: clicar
+   * em "Escolher…" não abria os campos de data.
+   *
+   * O teste acima não pegava porque `atual` só tem as duas chaves. Este passa
+   * o estado inteiro, que é o que a tela faz de verdade.
+   */
+  it('devolve SÓ as duas datas, sem carregar de volta o resto do estado', () => {
+    const estadoInteiro: OrdersFilterState = {
+      branchId: 'filial-1',
+      period: 'today',
+      startDate: '2026-01-01',
+      endDate: '2026-01-31',
+      search: 'ana',
+    };
+
+    const devolvido = datesForPeriod('custom', estadoInteiro);
+
+    expect(Object.keys(devolvido).sort()).toEqual(['endDate', 'startDate']);
+    expect(devolvido).not.toHaveProperty('period');
+  });
 });

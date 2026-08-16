@@ -92,6 +92,28 @@ export type ProductImage = Schemas['ProductImageResponse'];
 export type CustomerListItem = Schemas['AdminCustomerListItem'];
 export type CustomerListResponse = Schemas['AdminCustomerListResponse'];
 
+// --- relatórios (Desempenho) ----------------------------------------------
+
+/*
+ * NENHUMA destas rotas aceita `branch_id`: elas somam todas as filiais que o
+ * token alcança. É por isso que a tela diz isso por escrito — ver
+ * `PerformancePage`.
+ *
+ * `PaymentMethodsResponse` vem com o namespace inteiro no nome porque existem
+ * DUAS respostas com esse nome no contrato (a do relatório e a da configuração
+ * de formas de pagamento da filial), e o gerador desempata pelo caminho do
+ * módulo Python. Encurtar aqui é justamente o trabalho deste arquivo.
+ */
+export type SalesSummary = Schemas['SalesSummaryResponse'];
+export type SalesByDay = Schemas['SalesByDayResponse'];
+export type SalesByDayItem = Schemas['SalesByDayItem'];
+export type MetricComparison = Schemas['MetricComparison'];
+export type OrderTypeSplitItem = Schemas['OrderTypeSplitItem'];
+export type ReportPaymentMethods = Schemas['src__schemas__admin_report_schema__PaymentMethodsResponse'];
+export type ProductSales = Schemas['ProductSalesResponse'];
+export type Cancellations = Schemas['CancellationsResponse'];
+export type CommissionReport = Schemas['CommissionReportResponse'];
+
 // --- setores de impressão -----------------------------------------------
 
 /*

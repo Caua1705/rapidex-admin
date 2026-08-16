@@ -18,7 +18,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { installFakeApi, LOGIN_EMAIL, LOGIN_PASSWORD, type FakeApi } from '../../e2e/fake-api';
 import { escolherFilial } from '../../e2e/seletor';
 
-const ROTAS = ['/pedidos', '/cardapio', '/minha-loja', '/cozinha', '/clientes'];
+const ROTAS = ['/pedidos', '/cardapio', '/minha-loja', '/cozinha', '/clientes', '/desempenho'];
 
 let api: FakeApi;
 

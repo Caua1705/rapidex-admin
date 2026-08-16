@@ -29,6 +29,7 @@ const TELAS = [
   { slug: 'cardapio', path: '/cardapio', conteudo: '.rail' },
   { slug: 'minha-loja', path: '/minha-loja', conteudo: '.store__index' },
   { slug: 'clientes', path: '/clientes', conteudo: 'main h1' },
+  { slug: 'desempenho', path: '/desempenho', conteudo: 'main h1' },
 ];
 
 /** Acima disto o vão entre a lateral e o conteúdo lê como tela quebrada. */
