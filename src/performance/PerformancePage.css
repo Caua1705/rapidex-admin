@@ -1,11 +1,15 @@
 /*
  * ============================================================================
- * DESEMPENHO — sete seções numa coluna, e um gráfico
+ * DESEMPENHO — uma frase, cinco seções e um gráfico
  * ============================================================================
  *
- * A tela é longa por natureza: são seis relatórios. O que a mantém legível é o
- * ritmo único — toda seção tem o mesmo cabeçalho, o mesmo vão e a mesma
- * largura —, não um cartão decorado por bloco.
+ * A tela é longa por natureza. O que a mantém legível é o ritmo único — toda
+ * seção tem o mesmo cabeçalho, o mesmo vão e a mesma largura —, não um cartão
+ * decorado por bloco.
+ *
+ * A EXCEÇÃO DE RITMO É A PRIMEIRA COISA DA PÁGINA, e ela é proposital: a frase
+ * de resposta não tem cabeçalho de seção, não tem cartão e respira mais que
+ * tudo abaixo dela. É o que a distingue de "mais um bloco de relatório".
  */
 
 .perf {
@@ -26,9 +30,46 @@
   gap: var(--sp-4);
 }
 
-.perf__nota {
+/* --- a frase ---------------------------------------------------------------
+ *
+ * A PRIMEIRA COISA DA TELA É UMA FRASE, NÃO UM NÚMERO.
+ *
+ * Ela reusa os tokens do nível 1 de corpo e entrelinha — não é um sexto nível
+ * inventado, é o mesmo tratamento que o valor de destaque já usava, pelo mesmo
+ * motivo: dentro deste bloco a frase É o título, e o resto (os três números, a
+ * ressalva) a qualifica.
+ *
+ * O PESO É `--w-medium` E NÃO O 600 DO NÍVEL 1, e esta é a única divergência:
+ * o nível 1 é calibrado para duas ou três palavras no alto da tela ("Cardápio",
+ * "Minha loja"). Uma frase de vinte palavras em semibold no corpo 20 lê como
+ * grito, não como resposta — e a hierarquia aqui não precisa do peso, porque
+ * nada em volta dela disputa esse corpo.
+ */
+.perf__resposta,
+.perf__vazio {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+}
+
+.perf__vazio {
+  padding: var(--sp-32) 0;
+}
+
+.perf__frase {
   margin: 0;
-  max-width: 68ch;
+  max-width: 64ch;
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink-2);
+}
+
+.perf__frase--topo {
+  font-size: var(--tt-size);
+  line-height: var(--tt-line);
+  font-weight: var(--w-medium);
+  letter-spacing: var(--tt-track);
+  color: var(--ink);
 }
 
 /* --- a barra de período --------------------------------------------------- */
@@ -111,11 +152,6 @@
   max-width: 72ch;
 }
 
-/* Forma de pagamento que ninguém registrou: é o que se vai investigar. */
-.perf__sem-registro {
-  color: var(--alert);
-}
-
 /*
  * Uma linha de total: a frase à esquerda, o número à direita. Ela é o resumo
  * da seção, então lê mais forte que a tabela abaixo — sem virar cartão.
@@ -145,49 +181,46 @@
   border-top: 1px solid var(--line);
 }
 
-/* --- os tiles do resumo --------------------------------------------------- */
+/* --- os três números crus -------------------------------------------------
+ *
+ * ELES NÃO SÃO MAIS CARTÃO, e a mudança é a própria premissa da tela: três
+ * caixas com borda e sombra logo abaixo da frase competiriam com ela e
+ * devolveriam a página ao formato de painel de indicadores. Aqui eles são a
+ * CONFERÊNCIA da frase — quem quiser o número que a gerou o encontra em
+ * seguida, sem que ele dispute a primeira leitura.
+ */
 
-.tiles {
+.numeros {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--sp-12);
+  grid-template-columns: repeat(auto-fit, minmax(180px, auto));
+  justify-content: start;
+  gap: var(--sp-20);
+  margin: 0;
 }
 
-.tile {
+.numeros__item {
   display: flex;
   flex-direction: column;
   gap: var(--sp-4);
-  padding: var(--sp-16);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-card);
-  box-shadow: var(--shadow-card);
 }
 
-.tile__rotulo {
+.numeros__rotulo {
   font-size: var(--ta-size);
   line-height: var(--ta-line);
   color: var(--ink-3);
 }
 
 /*
- * O VALOR USA OS TOKENS DO NÍVEL 1.
- *
- * Não é um sexto nível de tipografia inventado: é o nível 1 reusado, porque
- * dentro do tile este número É o título — o rótulo acima o nomeia, e o delta
- * abaixo o qualifica. Escolher "só um pouco maior" caso a caso é exatamente o
- * que a §1 proíbe.
- *
- * SEM `.tnum` de propósito: a classe documenta "isto se compara descendo uma
- * coluna", e três tiles lado a lado, de grandezas diferentes, não são coluna.
- * No corpo maior o tabular ainda deixa o número frouxo, porque dá a cada
- * dígito a largura de um "0". Dinheiro EM COLUNA (as tabelas) continua tabular.
+ * O valor é o nível 2 — não o nível 1. Ele deixou de ser o texto mais forte da
+ * tela no dia em que a frase passou a ser: dois corpos de 20 na mesma dobra
+ * fariam a frase e o número disputarem a mesma leitura, e a premissa desta tela
+ * já decidiu quem ganha.
  */
-.tile__valor {
-  font-size: var(--tt-size);
-  line-height: var(--tt-line);
-  font-weight: var(--tt-weight);
-  letter-spacing: var(--tt-track);
+.numeros__valor {
+  margin: 0;
+  font-size: var(--ts-size);
+  line-height: var(--ts-line);
+  font-weight: var(--w-semibold);
   color: var(--ink);
 }
 
@@ -200,14 +233,15 @@
  * que o sinal de menos já diz — e num painel em que vermelho quer dizer
  * "cuidado", um mês 2% abaixo do anterior pareceria incidente.
  */
-.tile__delta {
+.numeros__delta {
+  margin: 0;
   font-size: var(--ta-size);
   line-height: var(--ta-line);
   color: var(--ink-2);
 }
 
 /* Sem comparação possível: a frase é mais longa e mais fraca que um número. */
-.tile__delta--vazio {
+.numeros__delta--vazio {
   color: var(--ink-3);
 }
 
@@ -220,18 +254,12 @@
 }
 
 /*
- * Rótulo de contexto pequeno fora de formulário — 13px, peso 500, sem caixa
- * alta, na tinta de apoio (§1). Não é o nível 3 nem um sexto nível: é o mesmo
- * tratamento do "Preparo"/"Entrega" da barra de filtro.
+ * O BLOCO NÃO TEM MAIS TÍTULO PRÓPRIO. Ele já teve ("De onde vem o
+ * faturamento"), quando morava embaixo do resumo e cinco linhas de dinheiro
+ * sem rótulo pareciam mais cinco números soltos. Hoje ele é o conteúdo da
+ * seção "O que sai do faturamento", e o cabeçalho da seção já o nomeia — um
+ * título dentro do outro seria a mesma informação duas vezes (§8).
  */
-.composicao__titulo {
-  padding-bottom: var(--sp-8);
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-  font-weight: var(--w-medium);
-  color: var(--ink-2);
-}
-
 .composicao__linha {
   display: flex;
   align-items: baseline;

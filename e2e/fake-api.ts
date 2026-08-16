@@ -482,21 +482,68 @@ function initialCustomers(): CustomerListItem[] {
 
 const PERIODO_DIAS = 7;
 
-/** Os sete dias do período padrão da tela, terminando hoje. */
-function reportDays(): Schemas['SalesByDayItem'][] {
-  const dias: Schemas['SalesByDayItem'][] = [];
-  const valores = ['420.00', '9.00', '10.00', '0.00', '880.50', '1240.00', '610.00'];
+/** O período que a tela está vendo agora. */
+const VALORES_PERIODO = ['420.00', '9.00', '10.00', '0.00', '880.50', '1240.00', '610.00'];
 
-  for (let i = PERIODO_DIAS - 1; i >= 0; i -= 1) {
-    const dia = new Date(Date.now() - i * 86_400_000).toISOString().slice(0, 10);
-    const valor = valores[PERIODO_DIAS - 1 - i] ?? '0.00';
+/*
+ * O MESMO RELATÓRIO NO PERÍODO ANTERIOR — e ele existe para uma frase só.
+ *
+ * A tela pede `sales-by-day` DUAS vezes (período atual e anterior) para dizer
+ * quais dias explicam a variação. Com o fake devolvendo a mesma série para
+ * qualquer intervalo, a diferença dia a dia seria zero e a frase de causa nunca
+ * apareceria no e2e — o teste passaria sem nunca ter exercitado a segunda
+ * chamada.
+ *
+ * O segundo dia é muito maior aqui, e é o único que muda: assim a queda do
+ * período tem UM culpado, e a frase tem de nomeá-lo. O total anterior
+ * (R$ 4.560,50) é maior que o atual, coerente com o `-6,8%` que o resumo
+ * devolve — se os dois discordassem, a tela descartaria a causa, que é
+ * justamente a proteção que este fixture não pode mascarar.
+ */
+const VALORES_ANTERIORES = ['420.00', '1400.00', '10.00', '0.00', '880.50', '1240.00', '610.00'];
+
+/**
+ * Os sete dias de um período, a partir da data inicial pedida.
+ *
+ * QUAL DAS DUAS SÉRIES SAI depende de quão longe no passado o período termina:
+ * o período que a tela está vendo inclui hoje, o anterior termina dias antes.
+ * É uma heurística de fixture, não uma regra do backend — o backend responde
+ * pelo intervalo que recebe, e é isso que ela imita com dois valores possíveis.
+ */
+function reportDays(inicio: string, fim: string): Schemas['SalesByDayItem'][] {
+  const hoje = Date.parse(`${new Date().toISOString().slice(0, 10)}T12:00:00Z`);
+  const fimDoPeriodo = Date.parse(`${fim}T12:00:00Z`);
+  const anterior =
+    Number.isFinite(fimDoPeriodo) && hoje - fimDoPeriodo >= 2 * 86_400_000;
+
+  const valores = anterior ? VALORES_ANTERIORES : VALORES_PERIODO;
+  const primeiroDia = Date.parse(`${inicio}T12:00:00Z`);
+  const base = Number.isFinite(primeiroDia)
+    ? primeiroDia
+    : hoje - (PERIODO_DIAS - 1) * 86_400_000;
+
+  const dias: Schemas['SalesByDayItem'][] = [];
+  for (let i = 0; i < PERIODO_DIAS; i += 1) {
+    const valor = valores[i] ?? '0.00';
     dias.push({
-      day: dia,
+      day: new Date(base + i * 86_400_000).toISOString().slice(0, 10),
       orders_count: valor === '0.00' ? 0 : Math.max(1, Math.round(Number(valor) / 60)),
       revenue_total: valor,
     });
   }
   return dias;
+}
+
+/** O mesmo período, sem venda nenhuma — para o estado vazio da tela. */
+function emptyReportDays(inicio: string): Schemas['SalesByDayItem'][] {
+  const primeiroDia = Date.parse(`${inicio}T12:00:00Z`);
+  const base = Number.isFinite(primeiroDia) ? primeiroDia : Date.now();
+
+  return Array.from({ length: PERIODO_DIAS }, (_, i) => ({
+    day: new Date(base + i * 86_400_000).toISOString().slice(0, 10),
+    orders_count: 0,
+    revenue_total: '0.00',
+  }));
 }
 
 function reportPeriod(start: string, end: string): Schemas['ReportPeriod'] {
@@ -541,6 +588,96 @@ function initialSalesSummary(start: string, end: string): SalesSummary {
       change_percent: null,
     },
   };
+}
+
+/**
+ * A resposta de cada relatório num período sem venda.
+ *
+ * `excluded_orders_count` NÃO é zero de propósito: zero faturado com dois
+ * pedidos excluídos é exatamente o caso em que o lojista precisa saber que os
+ * dois existem — e é a linha que a tela mantém mesmo no estado vazio.
+ */
+function emptyReport(path: string, start: string, end: string): unknown {
+  const semComparacao = { current: '0.00', previous: '0.00', change: '0.00', change_percent: null };
+
+  if (path === '/admin/reports/summary') {
+    return {
+      restaurant_id: RESTAURANT_ID,
+      period: reportPeriod(start, end),
+      previous_period: reportPeriod(start, end),
+      orders_count: 0,
+      revenue_total: '0.00',
+      average_ticket: '0.00',
+      breakdown: {
+        subtotal_total: '0.00',
+        delivery_fee_total: '0.00',
+        service_fee_total: '0.00',
+        discount_total: '0.00',
+        commission_total: '0.00',
+      },
+      order_types: [],
+      excluded_orders_count: 2,
+      orders_count_comparison: semComparacao,
+      revenue_comparison: semComparacao,
+      average_ticket_comparison: semComparacao,
+    } satisfies SalesSummary;
+  }
+
+  if (path === '/admin/reports/sales-by-day') {
+    return {
+      restaurant_id: RESTAURANT_ID,
+      period: reportPeriod(start, end),
+      orders_count: 0,
+      revenue_total: '0.00',
+      days: emptyReportDays(start),
+    } satisfies SalesByDay;
+  }
+
+  if (path === '/admin/reports/payment-methods') {
+    return {
+      restaurant_id: RESTAURANT_ID,
+      period: reportPeriod(start, end),
+      orders_count: 0,
+      revenue_total: '0.00',
+      payment_methods: [],
+    } satisfies ReportPaymentMethods;
+  }
+
+  if (path === '/admin/reports/products') {
+    return {
+      restaurant_id: RESTAURANT_ID,
+      period: reportPeriod(start, end),
+      products: [],
+      listed_revenue_total: '0.00',
+      revenue_note:
+        'Receita bruta dos itens, sem cupom, cashback nem taxas — não fecha com o faturamento do resumo.',
+    } satisfies ProductSales;
+  }
+
+  if (path === '/admin/reports/cancellations') {
+    return {
+      restaurant_id: RESTAURANT_ID,
+      period: reportPeriod(start, end),
+      orders_count: 2,
+      amount_total: '96.00',
+      billable_orders_count: 0,
+      cancellation_rate_percent: '100.0',
+      breakdown: [
+        { status: 'cancelled', payment_status: 'refunded', orders_count: 2, amount_total: '96.00' },
+      ],
+    } satisfies Cancellations;
+  }
+
+  return {
+    restaurant_id: RESTAURANT_ID,
+    start_date: start,
+    end_date: end,
+    orders_count: 0,
+    excluded_orders_count: 2,
+    commission_base_total: '0.00',
+    commission_total: '0.00',
+    orders: [],
+  } satisfies CommissionReport;
 }
 
 function initialPaymentsReport(start: string, end: string): ReportPaymentMethods {
@@ -642,6 +779,8 @@ export type FakeApi = {
   clearPrepTimeBase: (branchId: string) => void;
   /** Fecha a filial: qualquer ajuste responde 409 de loja fechada. */
   closeBranch: (branchId: string) => void;
+  /** Zera os relatórios: o período passa a não ter venda nenhuma. */
+  emptyReports: () => void;
   /** Faixa que o "banco" tem agora para a filial. */
   prepTimeOf: (branchId: string) => { min: number; max: number } | null;
   /** Cada PATCH /admin/products/{id}/availability que chegou. */
@@ -724,6 +863,8 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       [BRANCH_ID]: { min: 25, max: 35 },
     } as Record<string, { min: number; max: number } | null>,
     closedBranches: new Set<string>(),
+    /** Ligado por `emptyReports()`: os relatórios passam a responder zerados. */
+    reportsEmpty: false,
     // Minha loja. As filiais são cópias, e não as constantes exportadas: os
     // PATCH da tela gravam nelas, e mutar a constante vazaria de um teste para
     // o outro.
@@ -857,17 +998,29 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         });
       }
 
+      /*
+       * PERÍODO SEM VENDA NENHUMA. É um caso de verdade — loja que abriu esta
+       * semana, período escolhido antes da primeira venda — e a tela tem uma
+       * resposta própria para ele (uma frase, não seis seções zeradas). Sem
+       * este interruptor não haveria como exercitá-la no e2e.
+       */
+      if (state.reportsEmpty) {
+        return json(route, 200, emptyReport(path, inicio, fim));
+      }
+
       if (path === '/admin/reports/summary') {
         return json(route, 200, initialSalesSummary(inicio, fim));
       }
 
       if (path === '/admin/reports/sales-by-day') {
-        const dias = reportDays();
+        const dias = reportDays(inicio, fim);
         return json(route, 200, {
           restaurant_id: RESTAURANT_ID,
           period: reportPeriod(inicio, fim),
           orders_count: dias.reduce((soma, dia) => soma + dia.orders_count, 0),
-          revenue_total: '3169.50',
+          revenue_total: String(
+            dias.reduce((soma, dia) => soma + Number(dia.revenue_total), 0).toFixed(2),
+          ),
           days: dias,
         } satisfies SalesByDay);
       }
@@ -1446,6 +1599,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     },
     closeBranch(branchId) {
       state.closedBranches.add(branchId);
+    },
+    emptyReports() {
+      state.reportsEmpty = true;
     },
     prepTimeOf: (branchId) => state.prepTime[branchId] ?? null,
     makeOrder: order,

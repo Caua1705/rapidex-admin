@@ -18,7 +18,13 @@ import type {
   SalesByDay,
   SalesSummary,
 } from '../api/types';
-import { datesForPreset, rangeProblem, type PerformancePreset, type PerformanceRange } from './report-model';
+import {
+  datesForPreset,
+  previousRange,
+  rangeProblem,
+  type PerformancePreset,
+  type PerformanceRange,
+} from './report-model';
 
 /** Quantos produtos o ranking pede. A tela escreve esse número na seção. */
 export const RANKING_SIZE = 10;
@@ -26,6 +32,17 @@ export const RANKING_SIZE = 10;
 type Reports = {
   summary: SalesSummary | null;
   byDay: SalesByDay | null;
+  /**
+   * O MESMO RELATÓRIO, NO PERÍODO ANTERIOR — e ele é a única coisa desta tela
+   * que pode faltar sem consequência.
+   *
+   * Ele existe para uma frase só: a causa por dia ("puxado por terça e
+   * sábado"), que precisa comparar o dia a dia dos dois períodos. Por isso ele
+   * NÃO tem entrada em `errors`: quando falha, a frase de causa some e o resto
+   * da tela — inclusive o veredito, que sai do `summary` — continua inteiro.
+   * Uma tarja de erro por um enfeite ausente seria pior que o enfeite.
+   */
+  byDayPrevious: SalesByDay | null;
   payments: ReportPaymentMethods | null;
   products: ProductSales | null;
   cancellations: Cancellations | null;
@@ -35,6 +52,7 @@ type Reports = {
 const VAZIO: Reports = {
   summary: null,
   byDay: null,
+  byDayPrevious: null,
   payments: null,
   products: null,
   cancellations: null,
@@ -74,10 +92,22 @@ export function usePerformance() {
     const requestId = ++requestRef.current;
     setIsLoading(true);
 
-    const [summary, byDay, payments, products, cancellations, commission] =
+    /*
+     * A SÉTIMA CHAMADA É A MESMA ROTA COM OUTRO INTERVALO, e ela vai no mesmo
+     * `allSettled` — em paralelo, não depois. Em série, a frase do topo (que é
+     * a primeira coisa da tela) esperaria dois tempos de rede para aparecer.
+     *
+     * `previousRange` devolve `null` se o par de datas for ilegível; aí a
+     * promessa nem é criada e `byDayPrevious` fica nulo, que é exatamente o que
+     * `diasQueExplicam` já trata.
+     */
+    const anterior = previousRange(janela);
+
+    const [summary, byDay, byDayPrevious, payments, products, cancellations, commission] =
       await Promise.allSettled([
         fetchSalesSummary(janela),
         fetchSalesByDay(janela),
+        anterior ? fetchSalesByDay(anterior) : Promise.resolve(null),
         fetchPaymentMethodsReport(janela),
         fetchProductSales(janela, RANKING_SIZE),
         fetchCancellations(janela),
@@ -96,6 +126,9 @@ export function usePerformance() {
     setReports({
       summary: ler(summary, 'summary'),
       byDay: ler(byDay, 'byDay'),
+      // Sem `ler`: a falha dele não vira erro de seção nenhuma — ver o
+      // comentário do campo em `Reports`.
+      byDayPrevious: byDayPrevious.status === 'fulfilled' ? byDayPrevious.value : null,
       payments: ler(payments, 'payments'),
       products: ler(products, 'products'),
       cancellations: ler(cancellations, 'cancellations'),

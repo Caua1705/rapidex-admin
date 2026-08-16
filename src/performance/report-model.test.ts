@@ -7,6 +7,7 @@ import {
   dayLabel,
   maxRevenue,
   paymentMethodLabel,
+  previousRange,
   rangeProblem,
   readChange,
   toNumber,
@@ -239,5 +240,39 @@ describe('maxRevenue e barRatio', () => {
   it('a proporção sai entre 0 e 1', () => {
     expect(barRatio('250.00', 500)).toBe(0.5);
     expect(barRatio('500.00', 500)).toBe(1);
+  });
+});
+
+/*
+ * O PERÍODO ANTERIOR — o par de datas da segunda chamada de `sales-by-day`,
+ * que é o que permite a frase de causa ("puxado por terça e sábado").
+ */
+describe('previousRange', () => {
+  it('devolve o mesmo tamanho, terminando na véspera do início', () => {
+    expect(previousRange({ startDate: '2026-08-10', endDate: '2026-08-16' })).toEqual({
+      startDate: '2026-08-03',
+      endDate: '2026-08-09',
+    });
+  });
+
+  it('atravessa a virada do mês sem perder um dia', () => {
+    expect(previousRange({ startDate: '2026-03-01', endDate: '2026-03-07' })).toEqual({
+      startDate: '2026-02-22',
+      endDate: '2026-02-28',
+    });
+  });
+
+  it('funciona no período de um dia só', () => {
+    expect(previousRange({ startDate: '2026-08-16', endDate: '2026-08-16' })).toEqual({
+      startDate: '2026-08-15',
+      endDate: '2026-08-15',
+    });
+  });
+
+  /* Data ilegível não vira requisição: a promessa nem é criada, e a tela fica
+     sem a frase de causa em vez de pedir um intervalo sem sentido. */
+  it('devolve null no par ilegível ou invertido', () => {
+    expect(previousRange({ startDate: '', endDate: '2026-08-16' })).toBeNull();
+    expect(previousRange({ startDate: '2026-08-20', endDate: '2026-08-10' })).toBeNull();
   });
 });

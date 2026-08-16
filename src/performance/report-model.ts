@@ -205,6 +205,42 @@ export function rangeProblem(range: PerformanceRange): string | null {
   return null;
 }
 
+/**
+ * O período imediatamente anterior, do mesmo tamanho.
+ *
+ * PARA QUE ELE EXISTE: a frase de causa ("puxado por terça e sábado") compara
+ * o dia a dia do período atual com o do anterior, e `/reports/sales-by-day` só
+ * responde pelo intervalo que recebe — é preciso pedir duas vezes. O `summary`
+ * devolve `previous_period`, mas ele chega junto com os outros relatórios; usar
+ * aquele valor obrigaria a segunda chamada a esperar a primeira, em série, para
+ * uma frase que é enfeite. A conta é a mesma do backend: mesmo tamanho,
+ * terminando no dia anterior ao início.
+ *
+ * A ARITMÉTICA É EM UTC de propósito, e não no fuso da operação. Estas são
+ * datas de CALENDÁRIO (AAAA-MM-DD), não instantes: somar 86.400.000 ms num
+ * fuso com horário de verão pularia ou repetiria um dia. Em UTC não há salto,
+ * e o resultado volta a ser texto antes de qualquer outra coisa tocar nele.
+ */
+export function previousRange(range: { startDate: string; endDate: string }): {
+  startDate: string;
+  endDate: string;
+} | null {
+  const inicio = Date.parse(`${range.startDate}T12:00:00Z`);
+  const fim = Date.parse(`${range.endDate}T12:00:00Z`);
+  if (Number.isNaN(inicio) || Number.isNaN(fim) || fim < inicio) return null;
+
+  const dia = 86_400_000;
+  const dias = Math.round((fim - inicio) / dia) + 1;
+  const fimAnterior = inicio - dia;
+  const inicioAnterior = fimAnterior - (dias - 1) * dia;
+
+  return { startDate: isoDay(inicioAnterior), endDate: isoDay(fimAnterior) };
+}
+
+function isoDay(timestamp: number): string {
+  return new Date(timestamp).toISOString().slice(0, 10);
+}
+
 /* ==========================================================================
  * 5. O RÓTULO DO DIA — E A ARMADILHA DE FUSO QUE ELE EVITA
  * ======================================================================= */
