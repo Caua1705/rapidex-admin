@@ -109,6 +109,32 @@ export function ChevronUpIcon(props: IconProps) {
   );
 }
 
+/*
+ * A DIREÇÃO DE UMA VARIAÇÃO — a seta que acompanha o percentual em Desempenho.
+ *
+ * Ela existe para que a leitura "subiu" / "caiu" não dependa SÓ da cor (WCAG
+ * 1.4.1): quem não distingue o verde do vermelho lê a mesma coisa pela
+ * inclinação da seta. O sinal de menos continua no texto; a seta é o terceiro
+ * canal, não o único.
+ */
+export function TrendUpIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m4 16.5 5.5-5.5 3.5 3.5L20 7" />
+      <path d="M15 7h5v5" />
+    </Icon>
+  );
+}
+
+export function TrendDownIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m4 7.5 5.5 5.5 3.5-3.5L20 17" />
+      <path d="M15 17h5v-5" />
+    </Icon>
+  );
+}
+
 /** Triângulo de atenção. O único ícone que carrega semântica de estado. */
 export function AlertIcon(props: IconProps) {
   return (

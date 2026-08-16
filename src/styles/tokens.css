@@ -377,15 +377,29 @@
    *   coluna de tabela.
    * ======================================================================= */
   --chart-gap: 2px;
-  --chart-bar-max: 24px;
-  --chart-h: 180px;
+  --chart-bar-max: 36px;
+  /*
+   * A ALTURA CAIU DE 180 PARA 120. Sete números não justificam meia dobra de
+   * altura: a série continua legível — o que se lê nela é a PROPORÇÃO entre os
+   * dias, e proporção não depende do tamanho do desenho — e a seção seguinte
+   * passa a caber na mesma tela, que é o que faz a página ser percorrida.
+   */
+  --chart-h: 120px;
   /*
    * A faixa de um ponto da série. A coluna (`--chart-bar-max`) ocupa parte
    * dela e a sobra é ar — mas a FAIXA também tem teto: sem ele, uma série de
    * sete dias numa seção larga dava faixas de 170px e o gráfico lia como
    * palitos espalhados em vez de uma série.
    */
-  --chart-band: 56px;
+  --chart-band: 96px;
+  /*
+   * A FAIXA NO CELULAR. Em 390px, sete faixas de 96 não cabem e o gráfico
+   * passaria a rolar de lado; com faixa livre, os rótulos de data (13px,
+   * "10/08") encostam um no outro e a régua de acabamento reprova texto
+   * cortado. 48px é a menor faixa em que sete rótulos ainda cabem inteiros na
+   * largura de um cartão de celular.
+   */
+  --chart-band-mobile: 48px;
 
   /* ==========================================================================
    * 11. MOVIMENTO

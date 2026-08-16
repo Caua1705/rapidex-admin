@@ -3,13 +3,15 @@
  * DESEMPENHO — uma frase, cinco seções e um gráfico
  * ============================================================================
  *
- * A tela é longa por natureza. O que a mantém legível é o ritmo único — toda
- * seção tem o mesmo cabeçalho, o mesmo vão e a mesma largura —, não um cartão
- * decorado por bloco.
+ * A tela é longa por natureza. O que a mantém legível é o RITMO: cada pergunta
+ * é um cartão, todos com o mesmo cabeçalho, o mesmo raio e o mesmo vão entre
+ * si. Cartão aqui não é decoração — é o que dá começo e fim a cada bloco. Sem
+ * ele, título de seção, parágrafo e tabela tinham a mesma presença e a página
+ * lia como documento de texto corrido.
  *
- * A EXCEÇÃO DE RITMO É A PRIMEIRA COISA DA PÁGINA, e ela é proposital: a frase
- * de resposta não tem cabeçalho de seção, não tem cartão e respira mais que
- * tudo abaixo dela. É o que a distingue de "mais um bloco de relatório".
+ * A EXCEÇÃO DE RITMO É A PRIMEIRA COISA DA PÁGINA, e ela é proposital: o bloco
+ * da frase não tem cabeçalho de seção e respira mais que todos os outros. É o
+ * que o distingue de "mais um bloco de relatório".
  */
 
 .perf {
@@ -30,30 +32,30 @@
   gap: var(--sp-4);
 }
 
-/* --- a frase ---------------------------------------------------------------
+/* --- a frase e o bloco que a carrega ---------------------------------------
  *
- * A PRIMEIRA COISA DA TELA É UMA FRASE, NÃO UM NÚMERO.
+ * O BLOCO DA RESPOSTA — o único com padding generoso da página.
  *
- * Ela reusa os tokens do nível 1 de corpo e entrelinha — não é um sexto nível
- * inventado, é o mesmo tratamento que o valor de destaque já usava, pelo mesmo
- * motivo: dentro deste bloco a frase É o título, e o resto (os três números, a
- * ressalva) a qualifica.
- *
- * O PESO É `--w-medium` E NÃO O 600 DO NÍVEL 1, e esta é a única divergência:
- * o nível 1 é calibrado para duas ou três palavras no alto da tela ("Cardápio",
- * "Minha loja"). Uma frase de vinte palavras em semibold no corpo 20 lê como
- * grito, não como resposta — e a hierarquia aqui não precisa do peso, porque
- * nada em volta dela disputa esse corpo.
+ * Ele é cartão como as seções, mas respira mais: `--sp-20` contra os `--sp-16`
+ * das outras. É a diferença de presença que faz a frase ler como resposta e
+ * não como o primeiro de seis blocos iguais — e ela vem do espaço, não de uma
+ * cor de fundo própria, que gastaria tinta sem carregar informação (§4).
  */
 .perf__resposta,
 .perf__vazio {
   display: flex;
   flex-direction: column;
   gap: var(--sp-12);
+  padding: var(--sp-20);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-card);
 }
 
 .perf__vazio {
-  padding: var(--sp-32) 0;
+  gap: var(--sp-16);
+  padding: var(--sp-32) var(--sp-20);
 }
 
 .perf__frase {
@@ -64,6 +66,19 @@
   color: var(--ink-2);
 }
 
+/*
+ * A PRIMEIRA COISA DA TELA É UMA FRASE, NÃO UM NÚMERO.
+ *
+ * Ela reusa os tokens do nível 1 de corpo e entrelinha — não é um sexto nível
+ * inventado: dentro deste bloco a frase É o título, e o resto (os três
+ * números, as ressalvas) a qualifica.
+ *
+ * O PESO É `--w-medium` E NÃO O 600 DO NÍVEL 1, e esta é a única divergência:
+ * o nível 1 é calibrado para duas ou três palavras no alto da tela ("Cardápio",
+ * "Minha loja"). Uma frase de vinte palavras em semibold no corpo 20 lê como
+ * grito, não como resposta — e a hierarquia aqui não precisa do peso, porque
+ * nada em volta dela disputa esse corpo.
+ */
 .perf__frase--topo {
   font-size: var(--tt-size);
   line-height: var(--tt-line);
@@ -94,17 +109,19 @@
 /*
  * O AVISO DE ESCOPO.
  *
- * Ele não é `.alert--warn`: nada está errado, e uma tarja âmbar ao lado do
- * período leria como problema a resolver. É a legenda do recorte — mesma
- * tinta de apoio de qualquer meta —, e o que o destaca é o negrito em "todas
- * as filiais", que é a palavra que muda a leitura de todos os números abaixo.
+ * Ele não é `.alert--warn`: nada está errado, e uma tarja âmbar leria como
+ * problema a resolver. É a legenda do recorte — mesma tinta de apoio de
+ * qualquer meta —, e o que o destaca é o negrito em "todas as filiais", que é
+ * a palavra que muda a leitura de todos os números acima.
  *
- * Ele ocupa a linha inteira quando a barra quebra: espremido ao lado do
- * segmentado ele viraria três linhas de duas palavras.
+ * ELE MORA NO PÉ DO BLOCO DA FRASE, separado por um fio. Ao lado do período,
+ * onde já esteve, ele era a primeira tinta da página e a frase virava a
+ * segunda coisa a ser lida.
  */
 .perf__escopo {
-  flex: 1 1 100%;
   margin: 0;
+  padding-top: var(--sp-12);
+  border-top: 1px solid var(--line);
   font-size: var(--ta-size);
   line-height: var(--ta-line);
   color: var(--ink-3);
@@ -130,21 +147,39 @@
 .perf__secoes {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-24);
+  gap: var(--sp-20);
 }
 
+/*
+ * CADA SEÇÃO É UM CARTÃO — e isso é conserto de um defeito real: com tudo
+ * solto na página, título de seção, parágrafo e tabela tinham quase a mesma
+ * presença, e a tela lia como documento de texto corrido. O cartão dá a cada
+ * pergunta uma borda de começo e fim, e o vão entre eles (`--sp-20`) faz o
+ * ritmo que a rolagem precisa.
+ *
+ * Cartão parado leva borda E sombra sutil (§3): a sombra resolve a textura, a
+ * borda resolve a forma no tema claro, onde as duas superfícies são quase
+ * brancas.
+ */
 .perf__secao {
   display: flex;
   flex-direction: column;
   gap: var(--sp-12);
+  padding: var(--sp-16);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-card);
 }
 
+/*
+ * O cabeçalho da seção perde o fio: dentro de um cartão ele seria uma segunda
+ * régua a um vão da borda de cima. O que separa o título do conteúdo é o vão.
+ */
 .perf__secao-head {
   display: flex;
   align-items: baseline;
   gap: var(--sp-8);
-  padding-bottom: var(--sp-4);
-  border-bottom: 1px solid var(--line);
 }
 
 .perf__ressalva {
@@ -225,22 +260,44 @@
 }
 
 /*
- * O delta é NEUTRO, e isso é decisão de cor, não descuido.
+ * O DELTA CARREGA A DIREÇÃO EM COR, e ela é a cor semântica que o sistema já
+ * tem — `--ok` e `--danger`, nenhuma matiz nova.
  *
- * Queda de faturamento não é `--danger` (perigo é cancelar, excluir, pagamento
- * recusado) e alta não é `--ok` ("no ar / à venda / confirmado"). Pintar as
- * duas gastaria duas matizes com significado firmado no sistema para dizer o
- * que o sinal de menos já diz — e num painel em que vermelho quer dizer
- * "cuidado", um mês 2% abaixo do anterior pareceria incidente.
+ * Este bloco já foi neutro de propósito, com o argumento de que queda de
+ * faturamento não é perigo e alta não é "no ar". O argumento tinha um furo na
+ * prática: com +62,2% e -30,5% no mesmo cinza, a informação que decide o humor
+ * da semana só existia depois de o olho achar o sinal de menos. Aqui a cor tem
+ * função — é a leitura de relance —, que é exatamente o teste que a §4 pede
+ * antes de pintar qualquer coisa.
+ *
+ * Os dois pares (`--ok` e `--danger` sobre `--surface`) já são medidos a 4,5:1
+ * nos dois temas por `check-contrast.mjs`. E a cor NÃO é o único canal: a seta
+ * e o sinal no texto dizem o mesmo (WCAG 1.4.1).
  */
 .numeros__delta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
   margin: 0;
   font-size: var(--ta-size);
   line-height: var(--ta-line);
   color: var(--ink-2);
 }
 
-/* Sem comparação possível: a frase é mais longa e mais fraca que um número. */
+.numeros__delta--up {
+  color: var(--ok);
+}
+
+.numeros__delta--down {
+  color: var(--danger);
+}
+
+/*
+ * Variação exatamente zero e ausência de comparação ficam na tinta de apoio:
+ * não há direção a anunciar, e pintar de verde ou vermelho o que a rota diz
+ * não saber seria afirmar mais do que os dados sustentam.
+ */
+.numeros__delta--none,
 .numeros__delta--vazio {
   color: var(--ink-3);
 }
@@ -284,6 +341,73 @@
   font-size: var(--tb-size);
   line-height: var(--tb-line);
   color: var(--ink);
+}
+
+/* --- as fatias (entrega × retirada) ---------------------------------------
+ *
+ * DUAS LINHAS NÃO SÃO UMA TABELA. Quatro colunas com cabeçalho para dois
+ * valores gastam mais tinta em moldura do que em dado — e a pergunta da seção
+ * ("qual dos dois?") se responde melhor com a barra de proporção do que com
+ * dois números de quatro dígitos a comparar.
+ */
+
+.fatias {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+  margin: 0;
+}
+
+.fatias__linha {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: var(--sp-4) var(--sp-12);
+}
+
+.fatias__rotulo {
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink);
+}
+
+.fatias__valor {
+  margin: 0;
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-semibold);
+  color: var(--ink);
+  text-align: right;
+}
+
+.fatias__meta {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+/*
+ * A BARRA É NEUTRA, como a coluna do gráfico e pelo mesmo motivo: quem carrega
+ * a informação é o COMPRIMENTO. Cor aqui não diria nada que a largura já não
+ * diga, e a brasa tem três lugares no sistema — nenhum deles é este (§4).
+ */
+.fatias__barra {
+  grid-column: 1 / -1;
+  height: var(--sp-4);
+  background: var(--field);
+  border-radius: var(--r-round);
+  overflow: hidden;
+}
+
+.fatias__barra::after {
+  content: '';
+  display: block;
+  width: var(--fatia, 0%);
+  height: 100%;
+  background: var(--ink-2);
+  border-radius: var(--r-round);
 }
 
 /* ==========================================================================
@@ -489,6 +613,47 @@
     padding: var(--page-pad-mobile);
   }
 
+  /*
+   * O CARTÃO APERTA NO CELULAR. Em 390px, `--sp-20` de padding dos dois lados
+   * come 40 dos 366 disponíveis — e o que cede é a largura da tabela, que é
+   * onde o dado está.
+   */
+  .perf__secao,
+  .perf__resposta {
+    padding: var(--sp-12);
+  }
+
+  .perf__vazio {
+    padding: var(--sp-24) var(--sp-12);
+  }
+
+  /*
+   * OS TRÊS NÚMEROS EM DUAS LINHAS, NÃO EM TRÊS.
+   *
+   * Empilhados (rótulo, valor, variação), os três ocupavam nove linhas e
+   * empurravam o gráfico inteiro para fora da primeira tela do celular — que é
+   * o aparelho em que esta tela mais é aberta. Rótulo e valor dividem a linha;
+   * a variação, que é a mais longa das três, fica com a linha inteira.
+   */
+  .numeros {
+    gap: var(--sp-12);
+  }
+
+  .numeros__item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    gap: 0 var(--sp-12);
+  }
+
+  .numeros__valor {
+    text-align: right;
+  }
+
+  .numeros__delta {
+    grid-column: 1 / -1;
+  }
+
   .perf__datas {
     flex: 1 1 100%;
   }
@@ -518,8 +683,15 @@
     min-width: 100%;
   }
 
+  /*
+   * A FAIXA MÍNIMA NO CELULAR É A DO RÓTULO, não a da coluna: com 24px, sete
+   * datas de cinco caracteres se encostavam e a série virava uma tarja de
+   * texto. Com `--chart-band-mobile`, os sete dias do período padrão cabem na
+   * largura do cartão sem rolagem nenhuma; um período de 30 dias continua
+   * rolando de lado, que é o caso para o qual a rolagem existe.
+   */
   .grafico__dia {
     flex: 0 0 auto;
-    min-width: var(--sp-24);
+    min-width: var(--chart-band-mobile);
   }
 }

@@ -299,13 +299,29 @@ export function maxRevenue(days: readonly { revenue_total: string }[]): number {
 }
 
 /**
+ * O piso da coluna de um dia QUE VENDEU.
+ *
+ * Ele existe porque a escala linear tem um defeito real quando um dia domina: com
+ * R$ 1.240 no sábado e R$ 9 na terça, a terça vira 0,7% da altura — meio pixel,
+ * indistinguível de um dia fechado. A escala continua linear e verdadeira em
+ * tudo o que se compara; o piso só garante que "vendeu pouquíssimo" não seja
+ * desenhado como "não vendeu", que é outra afirmação.
+ */
+export const MIN_BAR_RATIO = 0.06;
+
+/**
  * A altura da barra de um dia, de 0 a 1.
  *
- * Zero vira zero, não uma barra mínima "para aparecer": um dia sem venda é uma
- * informação, e desenhá-lo com dois pixels de altura é o mesmo que dizer que
- * vendeu pouco.
+ * ZERO CONTINUA ZERO — e é justamente por isso que o piso acima só se aplica
+ * a quem faturou alguma coisa. Um dia sem venda é uma informação, e desenhá-lo
+ * com dois pixels seria dizer que vendeu pouco.
  */
 export function barRatio(revenue: string, max: number): number {
   if (max <= 0) return 0;
-  return Math.min(1, Math.max(0, toNumberOrZero(revenue) / max));
+
+  const valor = toNumberOrZero(revenue);
+  if (valor <= 0) return 0;
+
+  const razao = Math.min(1, Math.max(0, valor / max));
+  return Math.max(MIN_BAR_RATIO, razao);
 }

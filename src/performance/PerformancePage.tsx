@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 import { DataTable, type Column } from '../ds/DataTable';
+import { TrendDownIcon, TrendUpIcon } from '../ds/icons';
 import { DayChart } from './DayChart';
 import {
   formatCurrency,
@@ -122,16 +123,6 @@ export function PerformancePage() {
           </div>
         ) : null}
 
-        {/*
-          O ESCOPO, ESCRITO — e ele não encolhe nem sai quando não há venda. Ele
-          fica ao lado do período de propósito: os dois juntos são o recorte
-          inteiro do que está na tela, e é aí que o olho vai antes de ler
-          qualquer número (ou qualquer frase).
-        */}
-        <p className="perf__escopo" data-testid="perf-escopo">
-          Estes números somam <strong>todas as filiais</strong> — os relatórios não separam por
-          loja, então o seletor de filial do topo não muda nada aqui.
-        </p>
       </div>
 
       {problem ? (
@@ -158,6 +149,7 @@ export function PerformancePage() {
             Nenhum pedido foi faturado neste período.
           </p>
           <Excluidos summary={summary} />
+          <Escopo />
         </section>
       ) : null}
 
@@ -215,6 +207,20 @@ export function PerformancePage() {
                 </dl>
 
                 <Excluidos summary={summary} />
+
+                {/*
+                  O ESCOPO DESCE PARA CÁ, e a ordem é a decisão.
+
+                  Ele já morou ao lado do período, acima da frase — e ali ele
+                  era a primeira coisa que o olho encontrava, três linhas de
+                  tinta de apoio na frente da única sentença que a tela existe
+                  para dizer. Ele qualifica os números, então vive com eles: a
+                  frase primeiro, a ressalva do escopo no pé do mesmo bloco.
+
+                  Descer NÃO é encolher: mesma tinta, mesmo corpo, e ele
+                  continua aparecendo inclusive no período sem venda nenhuma.
+                */}
+                <Escopo />
               </>
             ) : null}
           </section>
@@ -336,6 +342,23 @@ function Frase({ insight }: { insight: Insight | null }) {
 }
 
 /**
+ * O escopo dos números — dito uma vez na tela, no pé do bloco da frase.
+ *
+ * Nenhuma das rotas aceita `branch_id`, e o seletor de filial do topo continua
+ * visível aqui como em toda tela do painel: sem esta linha ele pareceria um
+ * filtro que pegou, e o lojista leria o faturamento de duas lojas como o de
+ * uma.
+ */
+function Escopo() {
+  return (
+    <p className="perf__escopo" data-testid="perf-escopo">
+      Estes números somam <strong>todas as filiais</strong> — os relatórios não separam por loja,
+      então o seletor de filial do topo não muda nada aqui.
+    </p>
+  );
+}
+
+/**
  * A linha dos pedidos excluídos — permanente, e colada no faturamento porque é
  * o faturamento que ela qualifica: "este número não conta N pedidos".
  */
@@ -406,18 +429,30 @@ function Numero({
 }) {
   const leitura = readChange(comparacao, anterior);
 
+  /*
+   * A DIREÇÃO É DITA EM TRÊS CANAIS: o sinal no texto, a seta e a cor.
+   *
+   * A cor sozinha não bastaria (WCAG 1.4.1) e a seta sozinha não é lida de
+   * relance, que é justamente o trabalho: com os três, "subiu" ou "caiu" chega
+   * antes de o olho ler o número.
+   */
+  const Seta = leitura.direction === 'up' ? TrendUpIcon : leitura.direction === 'down' ? TrendDownIcon : null;
+
   return (
     <div className="numeros__item">
       <dt className="numeros__rotulo">{rotulo}</dt>
       <dd className="numeros__valor">{valor}</dd>
       {/*
-        `change_percent` nulo vira "sem comparação", NUNCA 0% — ver
-        `readChange`. A tinta é de apoio nos dois casos: uma queda de
-        faturamento não é `--danger` (perigo é cancelar e excluir), e uma alta
-        não é `--ok` (que é "no ar / à venda"). O sinal já diz a direção.
+        `change_percent` nulo vira "sem comparação", NUNCA 0% — ver `readChange`.
+        Aí não há direção, e a linha fica na tinta de apoio: pintar de verde ou
+        vermelho uma comparação que não existe seria afirmar o que a rota diz
+        não saber.
       */}
-      <dd className={`numeros__delta${leitura.isMissing ? ' numeros__delta--vazio' : ''}`}>
-        {leitura.text}
+      <dd
+        className={`numeros__delta numeros__delta--${leitura.isMissing ? 'vazio' : leitura.direction}`}
+      >
+        {Seta ? <Seta size={14} /> : null}
+        <span>{leitura.text}</span>
       </dd>
     </div>
   );
@@ -451,32 +486,64 @@ function Composicao({ summary }: { summary: SalesSummary }) {
   );
 }
 
-type LinhaTipo = { id: string; tipo: string; pedidos: number; receita: ReactNode; fatia: string };
-
+/**
+ * TABELA SÓ QUANDO É TABELA.
+ *
+ * Entrega e retirada são DOIS valores — e, numa loja que só entrega, um. Uma
+ * tabela de quatro colunas e cabeçalho para duas linhas gasta mais tinta em
+ * moldura do que em dado, e uma tabela de UMA linha não é tabela: é uma frase
+ * com bordas. Aqui os dois casos têm forma própria:
+ *
+ * - um tipo só: uma frase, porque é o que ela é;
+ * - dois tipos: uma lista compacta, com a fatia como barra de proporção — a
+ *   comparação entre eles é a pergunta da seção, e a barra a responde antes da
+ *   leitura do número.
+ */
 function TiposDePedido({ summary }: { summary: SalesSummary }) {
-  const columns: readonly Column<LinhaTipo>[] = [
-    { key: 'tipo', header: 'Tipo' },
-    { key: 'pedidos', header: 'Pedidos', align: 'end' },
-    { key: 'receita', header: 'Faturamento', align: 'end' },
-    { key: 'fatia', header: 'Fatia', align: 'end' },
-  ];
+  const tipos = summary.order_types;
+  if (tipos.length === 0) return <p className="muted">Nenhum pedido no período.</p>;
 
-  const rows: LinhaTipo[] = summary.order_types.map((item) => ({
-    id: item.order_type,
-    tipo: labelFor(ORDER_TYPE_LABELS, item.order_type),
-    pedidos: item.orders_count,
-    receita: <span className="tnum num">{formatCurrency(item.revenue_total)}</span>,
-    fatia: formatPercent(item.revenue_share_percent),
-  }));
+  const unico = tipos.length === 1 ? tipos[0] : null;
+  if (unico) {
+    return (
+      <p className="perf__frase">
+        Todo o faturamento do período veio de{' '}
+        {labelFor(ORDER_TYPE_LABELS, unico.order_type).toLowerCase()} —{' '}
+        {unico.orders_count === 1 ? '1 pedido' : `${unico.orders_count} pedidos`},{' '}
+        {formatCurrency(unico.revenue_total)}.
+      </p>
+    );
+  }
 
   return (
-    <DataTable
-      caption="Faturamento por tipo de pedido"
-      captionHidden
-      columns={columns}
-      rows={rows}
-      empty={<p className="muted">Nenhum pedido no período.</p>}
-    />
+    <dl className="fatias">
+      {tipos.map((item) => {
+        const fatia = toNumber(item.revenue_share_percent);
+        return (
+          <div className="fatias__linha" key={item.order_type}>
+            <dt className="fatias__rotulo">{labelFor(ORDER_TYPE_LABELS, item.order_type)}</dt>
+            <dd className="fatias__valor tnum">{formatCurrency(item.revenue_total)}</dd>
+            <dd className="fatias__meta">
+              {item.orders_count === 1 ? '1 pedido' : `${item.orders_count} pedidos`} ·{' '}
+              {formatPercent(item.revenue_share_percent)}
+            </dd>
+            {/*
+              A BARRA É PROPORÇÃO, NÃO ENFEITE: ela responde "qual dos dois é
+              maior" sem que o olho compare dois números de quatro dígitos.
+              `aria-hidden` porque o percentual ao lado já diz o mesmo para quem
+              escuta a tela — e ela some quando não há denominador.
+            */}
+            {fatia === null ? null : (
+              <div
+                className="fatias__barra"
+                aria-hidden="true"
+                style={{ '--fatia': `${Math.min(100, Math.max(0, fatia))}%` } as CSSProperties}
+              />
+            )}
+          </div>
+        );
+      })}
+    </dl>
   );
 }
 

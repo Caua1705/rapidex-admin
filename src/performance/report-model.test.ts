@@ -6,6 +6,7 @@ import {
   dayFullLabel,
   dayLabel,
   maxRevenue,
+  MIN_BAR_RATIO,
   paymentMethodLabel,
   previousRange,
   rangeProblem,
@@ -240,6 +241,20 @@ describe('maxRevenue e barRatio', () => {
   it('a proporção sai entre 0 e 1', () => {
     expect(barRatio('250.00', 500)).toBe(0.5);
     expect(barRatio('500.00', 500)).toBe(1);
+  });
+
+  /*
+   * O PISO DA COLUNA. Numa série em que um dia domina, o dia de R$ 9,00 fica em
+   * 0,7% da altura — meio pixel, igual a um dia fechado. O piso separa "vendeu
+   * pouquíssimo" de "não vendeu", sem mexer na escala de quem se compara.
+   */
+  it('dia que vendeu pouquíssimo ainda aparece', () => {
+    expect(barRatio('9.00', 1240)).toBe(MIN_BAR_RATIO);
+    expect(barRatio('9.00', 1240)).toBeGreaterThan(0);
+  });
+
+  it('o piso não alcança quem já está acima dele', () => {
+    expect(barRatio('620.00', 1240)).toBe(0.5);
   });
 });
 
