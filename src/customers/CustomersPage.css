@@ -1,0 +1,195 @@
+/*
+ * ============================================================================
+ * CLIENTES — cabeçalho, barra de busca e uma tabela
+ * ============================================================================
+ *
+ * A tela mais simples do painel, e o CSS acompanha: quem desenha a lista é
+ * `ds/DataTable` (que já vira blocos empilhados no celular), e aqui só ficam o
+ * enquadramento e as duas linhas de texto que a tabela não cobre.
+ *
+ * O teto de largura é o da página (`--page-max`), medido a partir do fim da
+ * lateral — não centrado no viewport (§7).
+ */
+
+.customers {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-16);
+  padding: var(--page-pad);
+  overflow-y: auto;
+  background: var(--bg);
+  max-width: var(--page-max);
+}
+
+.customers__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+/*
+ * A frase do cabeçalho existe para dizer o que a tela NÃO tem.
+ *
+ * "Cadê o e-mail do cliente?" é a primeira pergunta de quem abre esta tela, e a
+ * resposta ("é da conta dele na plataforma, não do relacionamento com esta
+ * loja") não cabe em lugar nenhum da tabela. Dita uma vez aqui em cima, ela
+ * não vira coluna vazia nem tarja repetida em cinquenta linhas (§8).
+ */
+.customers__nota {
+  margin: 0;
+  max-width: 68ch;
+}
+
+.customers__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  flex-wrap: wrap;
+}
+
+.customers__busca {
+  flex: 1 1 260px;
+  min-width: 0;
+  max-width: 340px;
+}
+
+/* O contador cede a linha inteira antes de espremer a busca (§7). */
+.customers__total {
+  flex: 0 0 auto;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.customers__alerta {
+  margin: 0;
+}
+
+.customers__lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-16);
+  padding: var(--sp-4) var(--sp-16) var(--sp-16);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* Carregando e vazio moram no mesmo lugar da primeira linha da tabela. */
+.customers__estado {
+  padding: var(--sp-32) 0;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+}
+
+.customers__rodape {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+}
+
+/* --- as colunas ----------------------------------------------------------- */
+
+/*
+ * SÓ A COLUNA DO NOME É FLUIDA (§8). Pedidos, total e as duas datas têm
+ * largura própria e caem na mesma abscissa em todas as linhas — sem isso, cada
+ * linha ancora o olho num lugar diferente conforme o comprimento do nome.
+ *
+ * As medidas são de CONTEÚDO, não da escala de espaçamento: 96px é o que
+ * "Pedidos" pede no cabeçalho, e 132px o que cabe em "R$ 1.234,56" e em
+ * "Cliente desde" sem quebrar. É a exceção declarada da §2.
+ *
+ * Só a partir de 640px: abaixo disso a tabela não é tabela (ver `DataTable`),
+ * e largura de coluna não significa nada num bloco empilhado.
+ */
+@media (min-width: 640px) {
+  .customers__lista th:nth-child(2) {
+    width: 96px;
+  }
+
+  .customers__lista th:nth-child(3),
+  .customers__lista th:nth-child(4),
+  .customers__lista th:nth-child(5) {
+    width: 132px;
+  }
+}
+
+/* --- a célula do cliente -------------------------------------------------- */
+
+/*
+ * Nome e telefone na mesma célula, empilhados. Duas colunas para eles fariam a
+ * tabela ter seis, e a coluna do telefone ficaria com o dobro da largura do
+ * conteúdo — o telefone identifica a pessoa junto com o nome, não ao lado dele.
+ */
+.cliente {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+
+/*
+ * O NOME É O ÚNICO DA LINHA EM SEMIBOLD (§1). O telefone abaixo, o total à
+ * direita e as duas datas ficam em 400: com três pesos na mesma linha, nenhum
+ * é ponto de entrada.
+ */
+.cliente__nome {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cliente__fone {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+ * CELULAR
+ *
+ * A tabela já vira blocos sozinha (`ds/DataTable`). O que sobra aqui é o
+ * respiro da página e o cartão da lista, que perde a borda: em 390px um
+ * contorno a 12px de cada margem só estreita a linha que já está apertada.
+ * ======================================================================= */
+@media (max-width: 720px) {
+  .customers {
+    padding: var(--page-pad-mobile);
+  }
+
+  .customers__lista {
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .customers__busca {
+    max-width: none;
+  }
+
+  /*
+   * O NOME NÃO LEVA RÓTULO NO BLOCO EMPILHADO.
+   *
+   * `ds/DataTable` repete o cabeçalho da coluna ao lado do valor quando a
+   * tabela vira blocos — é o que mantém "Total gasto R$ 748,50" legível sem
+   * cabeçalho visível. Na primeira célula isso sai errado: "Cliente Ana Paula"
+   * rotula o que já é o TÍTULO do bloco, e empurra o nome para 40% da largura,
+   * onde ele deixa de ser a primeira coisa que o olho encontra.
+   *
+   * O cabeçalho continua existindo no desktop e para o leitor de tela — some
+   * só a repetição visual, e só aqui: numa tabela cuja primeira coluna não
+   * identifica a linha, o rótulo continua fazendo falta.
+   */
+  .customers__lista td:first-child {
+    align-items: flex-start;
+    padding-bottom: var(--sp-4);
+  }
+
+  .customers__lista td:first-child::before {
+    content: none;
+  }
+}

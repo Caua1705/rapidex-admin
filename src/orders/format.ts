@@ -28,6 +28,20 @@ const dateTimeFormatter = new Intl.DateTimeFormat('pt-BR', {
   timeZone: OPERATION_TIMEZONE,
 });
 
+/*
+ * Data sem hora, COM ano — para o que aconteceu fora do turno de hoje.
+ *
+ * O ano não é excesso: "cliente desde 12/03" numa lista que atravessa anos não
+ * distingue 2025 de 2026, e a pergunta que a coluna responde é justamente há
+ * quanto tempo essa pessoa compra aqui.
+ */
+const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  timeZone: OPERATION_TIMEZONE,
+});
+
 /** O total vem como number no JSON; o backend calcula, aqui só se exibe. */
 export function formatCurrency(value: number | string): string {
   const numeric = typeof value === 'string' ? Number(value) : value;
@@ -47,6 +61,13 @@ export function formatDateTime(isoDate: string | null | undefined): string {
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) return '—';
   return dateTimeFormatter.format(date);
+}
+
+export function formatDate(isoDate: string | null | undefined): string {
+  if (!isoDate) return '—';
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return '—';
+  return dateFormatter.format(date);
 }
 
 /**

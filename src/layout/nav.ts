@@ -73,12 +73,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   {
     title: 'Crescimento',
     entries: [
-      {
-        to: '/clientes',
-        label: 'Clientes',
-        Icon: CustomersIcon,
-        soon: 'Quem já comprou, há quanto tempo e quanto gastou — para saber a quem vale a pena chamar de volta.',
-      },
+      { to: '/clientes', label: 'Clientes', Icon: CustomersIcon },
       {
         to: '/cupons',
         label: 'Cupons',

@@ -81,6 +81,17 @@ export type ProductOptionUpdate = Schemas['AdminOptionUpdate'];
 /** O caminho e a URL da foto recém-enviada. */
 export type ProductImage = Schemas['ProductImageResponse'];
 
+// --- clientes -------------------------------------------------------------
+
+/*
+ * O item da lista NÃO tem id: a chave do agrupamento é o telefone, e é assim
+ * que o backend devolve (`AdminCustomerListItem`). Também não vêm e-mail, CPF
+ * nem id de cadastro — a descrição da rota diz que são dados da conta global
+ * da plataforma, não do relacionamento com esta loja.
+ */
+export type CustomerListItem = Schemas['AdminCustomerListItem'];
+export type CustomerListResponse = Schemas['AdminCustomerListResponse'];
+
 // --- setores de impressão -----------------------------------------------
 
 /*

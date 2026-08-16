@@ -58,6 +58,9 @@ export const ROUTE_BRANCH_SCOPE = {
   '/admin/orders/status-counts': 'multi',
   '/admin/orders/stream': 'multi',
   '/admin/branches': 'multi',
+  // Aceita `branch_id` em QUERY, então o seletor do topo funciona nela de
+  // verdade: vazio lista todas as filiais que o token alcança.
+  '/admin/customers': 'multi',
   // Estas três são do RESTAURANTE inteiro — não têm recorte de filial nenhum,
   // o que as deixa do lado que funciona com "todas" escolhida.
   '/admin/settings': 'multi',

@@ -28,6 +28,7 @@ type RestaurantSettings = Schemas['AdminRestaurantSettingsResponse'];
 type BusinessHour = Schemas['BusinessHourResponse'];
 type BusinessHourInput = Schemas['BusinessHourInput'];
 type PaymentMethod = Schemas['AdminPaymentMethodResponse'];
+type CustomerListItem = Schemas['AdminCustomerListItem'];
 
 export const LOGIN_EMAIL = 'dono@pizzaria.com';
 export const LOGIN_PASSWORD = 'senha-certa';
@@ -385,6 +386,78 @@ function initialPrintSectors(branchId: string): PrintSector[] {
   ];
 }
 
+/**
+ * Clientes que já pediram na loja.
+ *
+ * Cada linha cobre um caso que a tela precisa saber desenhar:
+ *
+ * - Ana Paula: o caso comum, com pedido de hoje.
+ * - Marcos Lima: sumiu há meses — é a linha que responde "a quem chamar de
+ *   volta", que é a razão de a tela existir.
+ * - (sem nome): quem compra no balcão sem se identificar. A linha não pode
+ *   sair em branco.
+ * - Rafael: um só pedido, e o telefone é FIXO (10 dígitos) — o formato do
+ *   telefone tem dois casos e os dois precisam aparecer em print.
+ *
+ * As datas são relativas a agora pelo mesmo motivo dos pedidos: data fixa faria
+ * "há 3 meses" virar "há 4 meses" na virada do mês e o print mentir sozinho.
+ */
+function daysAgo(days: number): string {
+  return new Date(Date.now() - days * 86_400_000).toISOString();
+}
+
+/**
+ * De qual filial é cada cliente.
+ *
+ * Fica FORA do item porque o contrato não tem esse campo: o backend filtra por
+ * filial na query e devolve o item sem dizer de qual loja ele veio. Um campo
+ * `branch_id` inventado no fixture faria o falso mentir sobre o formato da
+ * resposta — que é justamente o que este arquivo não pode fazer.
+ */
+const CUSTOMER_BRANCH: Record<string, string> = {
+  '85999990000': BRANCH_ID,
+  '85988887777': BRANCH_ID,
+  '85977776666': BRANCH_ID,
+  '8532224444': '44444444-4444-4444-4444-444444444444',
+};
+
+function initialCustomers(): CustomerListItem[] {
+  return [
+    {
+      customer_name: 'Ana Paula',
+      customer_phone: '85999990000',
+      orders_count: 12,
+      total_spent: 748.5,
+      first_order_at: daysAgo(400),
+      last_order_at: daysAgo(0),
+    },
+    {
+      customer_name: 'Marcos Lima',
+      customer_phone: '85988887777',
+      orders_count: 5,
+      total_spent: 312,
+      first_order_at: daysAgo(300),
+      last_order_at: daysAgo(95),
+    },
+    {
+      customer_name: '',
+      customer_phone: '85977776666',
+      orders_count: 2,
+      total_spent: 89.9,
+      first_order_at: daysAgo(60),
+      last_order_at: daysAgo(1),
+    },
+    {
+      customer_name: 'Rafael Nunes',
+      customer_phone: '8532224444',
+      orders_count: 1,
+      total_spent: 45,
+      first_order_at: daysAgo(12),
+      last_order_at: daysAgo(12),
+    },
+  ];
+}
+
 /** Espelho enxuto da máquina de estados do backend, só para recusar o inválido. */
 const TRANSICOES: Record<string, string[]> = {
   pending: ['accepted', 'rejected', 'cancelled'],
@@ -524,6 +597,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     categorySectorCalls: [] as { categoryId: string; printSectorId: string | null }[],
     /** Cada PATCH de setor em UM produto, vindo da edição do item. */
     productSectorCalls: [] as { productId: string; printSectorId: string | null }[],
+    customers: initialCustomers(),
   };
 
   function findOrder(orderId: string): OrderListItem | undefined {
@@ -619,6 +693,38 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         (item) => (!branchId || item.branch_id === branchId) && (!status || item.status === status),
       );
       return json(route, 200, { items, total: items.length, limit: 100, offset: 0 });
+    }
+
+    // --- clientes ----------------------------------------------------------
+
+    /*
+     * Respeita filial, busca e paginação — os três que a tela usa de verdade.
+     *
+     * A busca é "telefone (só dígitos) OU parte do nome", como o contrato
+     * descreve: um termo só, dois critérios. Testar só o nome deixaria a busca
+     * por telefone passar sem nunca ter rodado.
+     */
+    if (method === 'GET' && path === '/admin/customers') {
+      const query = new URL(request.url()).searchParams;
+      const branchId = query.get('branch_id');
+      const search = (query.get('search') ?? '').trim().toLowerCase();
+      const digits = search.replace(/\D/g, '');
+      const limit = Number(query.get('limit') ?? 50);
+      const offset = Number(query.get('offset') ?? 0);
+
+      const matching = state.customers.filter((item) => {
+        if (branchId && CUSTOMER_BRANCH[item.customer_phone] !== branchId) return false;
+        if (!search) return true;
+        if (item.customer_name.toLowerCase().includes(search)) return true;
+        return digits !== '' && item.customer_phone.includes(digits);
+      });
+
+      return json(route, 200, {
+        items: matching.slice(offset, offset + limit),
+        total: matching.length,
+        limit,
+        offset,
+      });
     }
 
     if (method === 'GET' && path === '/admin/orders/status-counts') {

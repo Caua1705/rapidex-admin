@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { RequireAuth } from './auth/RequireAuth';
 import { SessionProvider } from './auth/SessionProvider';
+import { CustomersPage } from './customers/CustomersPage';
 import { KitchenPage } from './kitchen/KitchenPage';
 import { AppShell } from './layout/AppShell';
 import { PENDING_ENTRIES } from './layout/nav';
@@ -50,6 +51,16 @@ export function App() {
               <RequireAuth>
                 <AppShell>
                   <MenuPage />
+                </AppShell>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/clientes"
+            element={
+              <RequireAuth>
+                <AppShell>
+                  <CustomersPage />
                 </AppShell>
               </RequireAuth>
             }
