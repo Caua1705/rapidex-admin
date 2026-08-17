@@ -309,6 +309,33 @@ function initialProducts(): Product[] {
       is_available: true,
       sort_order: 0,
     },
+    /*
+     * DOIS NOMES QUE SÓ SE DISTINGUEM PELA GRAMATURA — o caso que faz a lista
+     * do cardápio virar uma coluna de repetições. Os dois dividem a base
+     * "Batata rústica", então a tela tira o parêntese do nome e desenha a
+     * medida como marca própria (ver `product-name.ts`).
+     *
+     * "Batata frita M" fica ao lado de propósito: a base dele não se repete, e
+     * é ele que prova que a tela não reescreve o nome de quem não tem problema.
+     */
+    {
+      id: 'prod-5',
+      category_id: 'cat-2',
+      name: 'Batata rústica (400g)',
+      price: 22,
+      is_active: true,
+      is_available: true,
+      sort_order: 1,
+    },
+    {
+      id: 'prod-6',
+      category_id: 'cat-2',
+      name: 'Batata rústica (1kg)',
+      price: 38,
+      is_active: true,
+      is_available: false,
+      sort_order: 2,
+    },
   ];
 }
 

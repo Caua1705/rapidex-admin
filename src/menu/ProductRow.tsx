@@ -4,32 +4,42 @@ import { sectorLabelFor } from '../print-sectors/print-sectors';
 import { Switch } from '../ds/Switch';
 import { EditIcon } from '../ds/icons';
 import { isProductActive, isProductAvailable, showsAvailabilityToggle } from './menu-model';
+import { splitProductName } from './product-name';
 
 /**
  * Uma linha do cardápio.
  *
- * É uma GRADE de colunas fixas (imagem · nome+descrição · preço · estado ·
- * ação), não um flex com `space-between`. A diferença aparece na tela larga:
- * com space-between o preço ia para o canto oposto ao nome e cada linha
- * ancorava o olho num lugar diferente. Com a grade, preço e estado ficam
- * sempre na mesma abscissa e a coluna inteira se lê de cima a baixo.
+ * É uma GRADE de colunas fixas (foto · nome+descrição · preço · impressão ·
+ * situação · à venda · ação), não um flex com `space-between`. A diferença
+ * aparece na tela larga: com space-between o preço ia para o canto oposto ao
+ * nome e cada linha ancorava o olho num lugar diferente. Com a grade, tudo cai
+ * na mesma abscissa e a coluna inteira se lê de cima a baixo — o cabeçalho da
+ * lista usa a mesma grade, então os rótulos ficam por cima do que nomeiam.
  *
- * O ESTADO POSITIVO NÃO É ESCRITO. "DISPONÍVEL" em verde ao lado de um
- * interruptor verde ligado, repetido em toda linha da lista, é a mesma
- * informação duas vezes e uma parede de cor que não carrega significado
- * nenhum: se todas as linhas são verdes, o verde não distingue nada. O que
- * sobrou é a palavra dos estados que NÃO são o normal — "Esgotado" ao lado do
- * interruptor desligado, "Inativo" como etiqueta —, e são justamente elas que
- * o lojista está procurando quando abre esta tela.
+ * UM EIXO, UMA LINGUAGEM. "Inativo" e "Esgotado" respondem à MESMA pergunta —
+ * está à venda? — e por isso saem no mesmo lugar, com a mesma forma: uma
+ * etiqueta na coluna "Situação". Antes eram duas linguagens diferentes ("Inativo"
+ * como etiqueta colada ao nome, "Esgotado" como texto solto ao lado do
+ * interruptor), e ler a lista exigia olhar em dois pontos para responder uma
+ * pergunta só.
  *
- * Item inativo é outro assunto: ele não está à venda, então a linha esmaece e
- * o interruptor de disponibilidade some. Perguntar "tem hoje?" sobre algo que
- * não está no cardápio faria o lojista mexer achando que resolveu.
+ * O ESTADO POSITIVO CONTINUA SEM PALAVRA. "Disponível" ao lado de um
+ * interruptor ligado, repetido em toda linha, é a mesma informação duas vezes:
+ * se todas as linhas dizem o mesmo, a palavra não distingue nada. A célula fica
+ * vazia, e as etiquetas que sobram são justamente o que o lojista procura.
+ *
+ * O QUE DIFERENCIA OS DOIS ESTADOS não é a cor da etiqueta — é o RECUO da
+ * linha. Item esgotado continua em tinta cheia (é ele que se vem repor); item
+ * inativo recua, porque está fora do cardápio. O preço, porém, continua o preço
+ * de verdade: o item tem preço, só não está à venda, e um zero ali leria como
+ * erro de cadastro.
  */
 export function ProductRow({
   product,
   sectors,
+  showPhoto,
   showSector,
+  qualifier,
   isSaving,
   onToggleAvailability,
   onEdit,
@@ -37,8 +47,16 @@ export function ProductRow({
   product: Product;
   /** Setores da filial aberta no cabeçalho — é o que dá nome ao id do produto. */
   sectors: readonly PrintSector[];
+  /** A categoria tem foto em algum item? Sem isso a coluna inteira não existe. */
+  showPhoto: boolean;
   /** Falso com "Todas as filiais": sem filial não há setor a mostrar. */
   showSector: boolean;
+  /**
+   * O que estava entre parênteses no nome, quando outro item da lista divide a
+   * mesma base ("Picanha Suína"). `null` desenha o nome inteiro, como está
+   * cadastrado. Ver `product-name.ts`.
+   */
+  qualifier: string | null;
   isSaving: boolean;
   onToggleAvailability: () => void;
   onEdit: () => void;
@@ -46,6 +64,9 @@ export function ProductRow({
   const active = isProductActive(product);
   const available = isProductAvailable(product);
   const sector = sectorLabelFor(product.printing_sector_id, sectors);
+  // Só parte o nome quando há qualificador a mostrar: fora disso, o que vai à
+  // tela é exatamente a string cadastrada.
+  const name = qualifier ? splitProductName(product.name).base : product.name;
 
   return (
     <li
@@ -54,34 +75,49 @@ export function ProductRow({
       data-active={active}
       data-available={available}
     >
-      {product.image_url ? (
-        <img className="item__thumb" src={product.image_url} alt="" />
-      ) : (
-        <span className="item__thumb item__thumb--empty" aria-hidden="true" />
-      )}
+      {/*
+        O SLOT DA FOTO só existe quando a categoria tem foto em algum item (ver
+        `MenuPage`). Onde existe, ele mede 44px — grande o bastante para
+        distinguir um prato de carne de outro, que é a única coisa que ele
+        podia estar fazendo ali. Nos itens sem foto ele é um contorno tracejado,
+        nunca um bloco preenchido.
+      */}
+      {showPhoto ? (
+        product.image_url ? (
+          <img className="item__thumb" src={product.image_url} alt="" />
+        ) : (
+          <span className="item__thumb item__thumb--empty" aria-hidden="true" />
+        )
+      ) : null}
 
       <span className="item__main">
         <span className="item__title">
-          <span className="item__name">{product.name}</span>
+          <span className="item__name">{name}</span>
           {/*
-            "Esgotado" NÃO vira tag aqui: o estado já está escrito ao lado do
-            interruptor, na coluna da direita, e repetir a mesma palavra duas
-            vezes na mesma linha só gasta o espaço que o nome do item precisa.
-            "Inativo" é tag porque o item inativo não tem interruptor — sem a
-            tag, ele não teria onde dizer o que é.
+            O QUALIFICADOR DA VARIAÇÃO, quando o nome se repete na lista.
+            "Picanha Suína", "Picanha Suína (400g)" e "Picanha Suína (1kg)" têm
+            catorze caracteres idênticos em semibold e o que as separa some no
+            fim da string. Aqui a gramatura vira uma marca própria — a única
+            coisa que muda entre as três linhas é a única com forma diferente.
           */}
-          {!active ? <span className="tag">Inativo</span> : null}
+          {qualifier ? <span className="tag item__variant">{qualifier}</span> : null}
         </span>
+
         {/*
-          Uma linha só, cortada no fim. A descrição inteira é do cardápio do
-          cliente; aqui ela serve para distinguir dois itens de nome parecido,
-          e deixá-la crescer devolveria à lista a altura que a densidade pede.
+          A DESCRIÇÃO SUBIU PARA A MESMA LINHA DO NOME. Empilhada, ela dava a
+          toda linha com descrição a altura de um cartão — e uma categoria de 29
+          itens não cabia em tela nenhuma. Ao lado, a informação é a mesma e a
+          linha volta a ter uma altura só, igual à das outras.
+
+          Quem cede a largura é ela, e não o nome: o nome identifica a linha e é
+          o que o lojista veio procurar; a descrição desempata (§7).
         */}
         {product.description ? (
           <span className="item__description">{product.description}</span>
         ) : null}
       </span>
 
+      {/* O preço É tabular: é dinheiro, e ele se compara descendo a coluna. */}
       <span className="item__price num">{formatCurrency(product.price)}</span>
 
       {/*
@@ -108,20 +144,29 @@ export function ProductRow({
       ) : null}
 
       {/*
-        O ESTADO TEM CÉLULA PRÓPRIA, e não divide a do interruptor.
-        Dividindo, "Esgotado" transbordava a coluna de 34px e caía por cima do
-        preço — o mesmo defeito de quem não decide quem cede numa linha.
+        SITUAÇÃO — a coluna do eixo "está à venda?", com uma forma só.
 
-        Só o estado que NÃO é o normal ganha palavra: ver o comentário do
-        componente. A célula vazia mantém a grade alinhada de linha para linha.
+        Os dois estados que não são o normal saem daqui, os dois como etiqueta,
+        na mesma abscissa em toda linha: "Esgotado" para o item ativo que acabou
+        na cozinha, "Inativo" para o que saiu do cardápio. A célula vazia é o
+        normal, e é ela que faz as etiquetas saltarem.
+
+        A etiqueta NÃO recua junto com a linha do item inativo: ela é a
+        explicação do recuo, e recuar as duas apagaria o motivo.
       */}
       <span className="item__state">
-        {showsAvailabilityToggle(product) && !available ? 'Esgotado' : ''}
+        {!active ? (
+          <span className="tag">Inativo</span>
+        ) : !available ? (
+          <span className="tag">Esgotado</span>
+        ) : null}
       </span>
 
       {/*
         A célula do interruptor existe sempre, com ou sem controle: é a grade
-        que mantém o preço e a ação alinhados de uma linha para a outra.
+        que mantém o preço e a ação alinhados de uma linha para a outra. Item
+        inativo não a preenche — "tem hoje?" é pergunta sem sentido sobre algo
+        que não está no cardápio, e mexer ali não o traz de volta.
       */}
       <span className="item__status">
         {showsAvailabilityToggle(product) ? (

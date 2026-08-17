@@ -59,7 +59,7 @@ test('cada categoria mostra quantos itens tem, inclusive a vazia', async ({ page
   await abrirCardapio(page);
 
   await expect(page.getByTestId('category-count-cat-1')).toHaveText('3 itens');
-  await expect(page.getByTestId('category-count-cat-2')).toHaveText('1 item');
+  await expect(page.getByTestId('category-count-cat-2')).toHaveText('3 itens');
   // Zero é o número que importa: é a categoria que ninguém percebeu que ficou
   // sem item. Ele aparece escrito, e não como linha em branco.
   await expect(page.getByTestId('category-count-cat-3')).toHaveText('0 itens');

@@ -26,13 +26,25 @@ const SETORES: PrintSector[] = [
 function renderRow(
   overrides: Partial<Product> = {},
   onToggle = vi.fn(),
-  { showSector = true, sectors = SETORES }: { showSector?: boolean; sectors?: PrintSector[] } = {},
+  {
+    showSector = true,
+    showPhoto = false,
+    qualifier = null,
+    sectors = SETORES,
+  }: {
+    showSector?: boolean;
+    showPhoto?: boolean;
+    qualifier?: string | null;
+    sectors?: PrintSector[];
+  } = {},
 ) {
   render(
     <ProductRow
       product={product(overrides)}
       sectors={sectors}
+      showPhoto={showPhoto}
       showSector={showSector}
+      qualifier={qualifier}
       isSaving={false}
       onToggleAvailability={onToggle}
       onEdit={() => {}}
@@ -87,6 +99,69 @@ describe('ProductRow', () => {
     renderRow({ is_active: false, is_available: true });
     expect(screen.queryByRole('switch')).not.toBeInTheDocument();
     expect(screen.queryByText('Disponível')).not.toBeInTheDocument();
+  });
+
+  /*
+   * O ITEM INATIVO CONTINUA MOSTRANDO O PREÇO QUE TEM.
+   *
+   * O que ele não está é à venda — o preço segue cadastrado, e apagá-lo (ou
+   * mostrar zero) leria como erro de cadastro numa tela em que o lojista está
+   * justamente conferindo o que reativar. Quem diz "isto está fora do cardápio"
+   * é o recuo da linha mais a etiqueta, não um número mentiroso.
+   */
+  it('item inativo mostra o preço de verdade, não zero', () => {
+    renderRow({ is_active: false, price: 45 });
+    expect(screen.getByText(/45,00/)).toBeInTheDocument();
+    expect(screen.queryByText(/R\$\s*0,00/)).not.toBeInTheDocument();
+  });
+
+  /*
+   * UM EIXO, UMA LINGUAGEM. "Inativo" e "Esgotado" respondem à mesma pergunta —
+   * está à venda? — e por isso saem com a mesma forma (etiqueta) e no mesmo
+   * lugar da linha. Antes um era etiqueta colada ao nome e o outro texto solto
+   * ao lado do interruptor.
+   */
+  it('esgotado e inativo usam a mesma forma, no mesmo lugar', () => {
+    const { unmount } = render(
+      <ProductRow
+        product={product({ is_available: false })}
+        sectors={SETORES}
+        showPhoto={false}
+        showSector
+        qualifier={null}
+        isSaving={false}
+        onToggleAvailability={vi.fn()}
+        onEdit={() => {}}
+      />,
+    );
+    const esgotado = screen.getByText('Esgotado');
+    expect(esgotado.className).toContain('tag');
+    expect(esgotado.parentElement?.className).toContain('item__state');
+    unmount();
+
+    renderRow({ is_active: false });
+    const inativo = screen.getByText('Inativo');
+    expect(inativo.className).toContain('tag');
+    expect(inativo.parentElement?.className).toContain('item__state');
+  });
+
+  /*
+   * A gramatura presa no fim do nome sai como marca própria: é a única coisa
+   * que muda entre "Picanha Suína", "Picanha Suína (400g)" e "Picanha Suína
+   * (1kg)", e no fim de uma string em semibold o olho não a acha.
+   */
+  it('com qualificador, o nome sai sem o parêntese e a variação vira etiqueta', () => {
+    renderRow({ name: 'Picanha Suína (400g)' }, vi.fn(), { qualifier: '400 g' });
+
+    expect(screen.getByText('Picanha Suína')).toBeInTheDocument();
+    expect(screen.getByText('400 g').className).toContain('item__variant');
+  });
+
+  // Sem qualificador — nome que não se repete na lista — vai o nome cadastrado,
+  // inteiro. A tela não reescreve o cadastro de quem não tem problema nenhum.
+  it('sem qualificador, o nome vai inteiro como está cadastrado', () => {
+    renderRow({ name: 'Coca-Cola (lata)' });
+    expect(screen.getByText('Coca-Cola (lata)')).toBeInTheDocument();
   });
 
   it('null vale como ativo e disponível, que é o padrão do backend', () => {

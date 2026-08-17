@@ -9,6 +9,7 @@ import { CategoryRail } from './CategoryRail';
 import { EditIcon, PlusIcon, SearchIcon } from '../ds/icons';
 import { formatPriceInput, isCategoryActive } from './menu-model';
 import { ProductDialog } from './ProductDialog';
+import { qualifiersByProduct } from './product-name';
 import { ProductRow } from './ProductRow';
 import { useMenu, type CategoryDraft, type ProductDraft } from './useMenu';
 import './MenuPage.css';
@@ -40,6 +41,26 @@ export function MenuPage() {
   const [isApplyingSector, setIsApplyingSector] = useState(false);
 
   const { selectedCategory } = menu;
+
+  /*
+   * A COLUNA DE FOTO SÓ EXISTE SE A CATEGORIA TEM FOTO.
+   *
+   * A miniatura de 36px não distinguia um prato de carne de outro — ela ocupava
+   * uma coluna sem responder nada. Ou ela cresce o suficiente para servir, ou
+   * sai, e a resposta certa depende da categoria: onde há foto, ela vai a 44px
+   * e passa a valer a largura; onde não há nenhuma, uma coluna de contornos
+   * tracejados é literalmente uma coluna de buracos, e o nome do item começa na
+   * borda.
+   */
+  const showPhoto = menu.products.some((product) => product.image_url);
+
+  /*
+   * Os nomes que se repetem na lista, partidos em base + qualificador. Ver
+   * `product-name.ts`: numa categoria com "Picanha Suína", "Picanha Suína
+   * (400g)" e "Picanha Suína (1kg)", o que distingue as três linhas é o fim de
+   * uma string em semibold, e o olho não o acha.
+   */
+  const qualifiers = qualifiersByProduct(menu.products);
 
   function openNewProduct() {
     if (!selectedCategory) return;
@@ -165,19 +186,6 @@ export function MenuPage() {
               onChange={(event) => menu.setSearchDraft(event.target.value)}
               disabled={!selectedCategory}
             />
-
-            {/*
-              DE QUAL FILIAL É A COLUNA DE SETOR. O cardápio é do restaurante
-              inteiro, mas esta coluna não é — e sem dizer de qual loja ela
-              responde, o lojista de duas lojas leria a resposta da Aldeota
-              achando que vale para as duas. Some com uma filial só: aí não há
-              o que desambiguar.
-            */}
-            {sectorBranchLabel ? (
-              <span className="t-aux menu__sector-scope" data-testid="menu-sector-scope">
-                Setor de impressão: {sectorBranchLabel}
-              </span>
-            ) : null}
           </div>
 
           {menu.isLoadingCategories ? (
@@ -191,33 +199,84 @@ export function MenuPage() {
               {menu.isLoadingProducts ? 'Carregando…' : 'Nenhum item encontrado.'}
             </p>
           ) : (
-            // A coluna de setor entra pelo modificador porque ela vale para a
-            // LISTA inteira (depende da filial, não do item): sem isso, a
-            // grade teria largura diferente conforme a linha.
-            <ul className={`menu__items${branchChosen ? ' menu__items--with-sector' : ''}`}>
-              {menu.products.map((product) => (
-                <ProductRow
-                  key={product.id}
-                  product={product}
-                  sectors={printing.sectors}
-                  showSector={branchChosen}
-                  isSaving={menu.pendingAvailability.includes(product.id)}
-                  onToggleAvailability={() => void menu.toggleAvailability(product)}
-                  onEdit={() =>
-                    setProductDraft({
-                      id: product.id,
-                      categoryId: product.category_id,
-                      name: product.name,
-                      price: formatPriceInput(product.price),
-                      description: product.description ?? '',
-                      isActive: product.is_active !== false,
-                      isAvailable: product.is_available !== false,
-                      printSectorId: product.printing_sector_id ?? null,
-                    })
-                  }
-                />
-              ))}
-            </ul>
+            /*
+              As duas colunas opcionais entram por modificador no ENVOLTÓRIO,
+              não na linha: elas valem para a lista inteira (a de setor depende
+              da filial, a de foto da categoria), e o cabeçalho tem que usar
+              exatamente a mesma grade das linhas — senão o rótulo não fica em
+              cima do que nomeia.
+            */
+            <div
+              className={`menu__table${showPhoto ? ' menu__table--with-photo' : ''}${
+                branchChosen ? ' menu__table--with-sector' : ''
+              }`}
+            >
+              {/*
+                O CABEÇALHO DE COLUNAS, e é aqui que "Setor de impressão:
+                Matriz" ganha o lugar certo. Ele vivia solto no canto da linha
+                de busca, com peso de legenda, dizendo respeito a uma coluna que
+                estava do outro lado da tela. Como rótulo da própria coluna, ele
+                fica em cima do que qualifica e diz de qual loja é a resposta —
+                o cardápio é do restaurante inteiro, mas o setor de impressão
+                não é. O nome da filial só aparece quando há mais de uma: com
+                uma só, não desambigua nada.
+              */}
+              <div className="menu__columns t-label">
+                {showPhoto ? <span /> : null}
+                <span>Item</span>
+                <span className="menu__col-price">Preço</span>
+                {branchChosen ? (
+                  <span data-testid="menu-sector-scope">
+                    Impressão
+                    {/*
+                      A filial vai numa linha própria, e não colada com um
+                      ponto: emendada, ela quebrava no meio do nome e o rótulo
+                      da coluna virava duas metades sem sentido. Aqui a primeira
+                      linha nomeia a coluna e a segunda diz de qual loja é a
+                      resposta — o nome inteiro fica no `title`, para o caso de
+                      duas filiais com nome comprido.
+                    */}
+                    {sectorBranchLabel ? (
+                      <span className="menu__col-scope" title={sectorBranchLabel}>
+                        {sectorBranchLabel}
+                      </span>
+                    ) : null}
+                  </span>
+                ) : null}
+                <span className="menu__col-state">Situação</span>
+                {/* À venda e a ação: colunas de controle, largas demais para um
+                    rótulo de 34px e óbvias demais para precisar de um. */}
+                <span />
+                <span />
+              </div>
+
+              <ul className="menu__items">
+                {menu.products.map((product) => (
+                  <ProductRow
+                    key={product.id}
+                    product={product}
+                    sectors={printing.sectors}
+                    showPhoto={showPhoto}
+                    showSector={branchChosen}
+                    qualifier={qualifiers[product.id] ?? null}
+                    isSaving={menu.pendingAvailability.includes(product.id)}
+                    onToggleAvailability={() => void menu.toggleAvailability(product)}
+                    onEdit={() =>
+                      setProductDraft({
+                        id: product.id,
+                        categoryId: product.category_id,
+                        name: product.name,
+                        price: formatPriceInput(product.price),
+                        description: product.description ?? '',
+                        isActive: product.is_active !== false,
+                        isAvailable: product.is_available !== false,
+                        printSectorId: product.printing_sector_id ?? null,
+                      })
+                    }
+                  />
+                ))}
+              </ul>
+            </div>
           )}
         </div>
 

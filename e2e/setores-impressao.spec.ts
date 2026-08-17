@@ -111,14 +111,14 @@ test('Impressão mostra quantos itens tem cada setor e quantos ficaram sem', asy
   await fazerLogin(page);
   await abrirAbaImpressao(page);
 
-  // No falso, só prod-1 aponta para a Chapa; os outros três estão sem setor.
+  // No falso, só prod-1 aponta para a Chapa; os outros cinco estão sem setor.
   await expect(page.getByTestId('print-sector-count-sec-chapa')).toHaveText('1 item');
   // Setor vazio E desativado: os dois qualificadores dividem a mesma célula.
   await expect(page.getByTestId('print-sector-count-sec-bar')).toHaveText(
     'nenhum item · Desativado',
   );
 
-  await expect(page.getByTestId('sector-coverage')).toContainText('3 itens');
+  await expect(page.getByTestId('sector-coverage')).toContainText('5 itens');
   await expect(page.getByTestId('sector-coverage')).toContainText(
     'não imprime em setor nenhum',
   );
@@ -189,7 +189,9 @@ test('a lista de produtos mostra o setor de cada item', async ({ page }) => {
  * deixava de desenhar a coluna de setor e desabilitava "Aplicar setor a todos
  * os itens" — uma coluna a menos sem nada dizendo por quê, mais um controle
  * que o lojista não tinha como usar dali. Hoje a filial é resolvida e a coluna
- * DIZ de qual loja ela responde, que era a informação que faltava.
+ * DIZ de qual loja ela responde, que era a informação que faltava — no
+ * CABEÇALHO da própria coluna, e não mais numa legenda solta no canto da linha
+ * de busca, do outro lado da tela do que ela qualificava.
  */
 test('sem filial escolhida, a coluna de setor diz de qual filial ela é', async ({ page }) => {
   await fazerLogin(page);
@@ -197,9 +199,9 @@ test('sem filial escolhida, a coluna de setor diz de qual filial ela é', async 
 
   await expect(page.getByTestId('product-row-prod-1')).toBeVisible();
   await expect(page.getByTestId('product-sector-prod-1')).toBeVisible();
-  await expect(page.getByTestId('menu-sector-scope')).toHaveText(
-    `Setor de impressão: ${branchName(FAKE_BRANCH)}`,
-  );
+  const cabecalho = page.getByTestId('menu-sector-scope');
+  await expect(cabecalho).toContainText('Impressão');
+  await expect(cabecalho).toContainText(branchName(FAKE_BRANCH));
 
   await abrirMenuDaCategoria(page);
   await expect(page.getByTestId('apply-sector-open')).toBeEnabled();
