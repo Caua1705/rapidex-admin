@@ -1,12 +1,14 @@
 import { useState } from 'react';
 
 import { useResolvedBranch } from '../auth/use-branch-scope';
+import { branchName } from '../layout/branch-heading';
 import { usePrintSectors } from '../print-sectors/usePrintSectors';
 import { ApplySectorDialog } from './ApplySectorDialog';
 import { CategoryActionsMenu } from './CategoryActionsMenu';
 import { CategoryDialog } from './CategoryDialog';
 import { CategoryRail } from './CategoryRail';
-import { EditIcon, PlusIcon, SearchIcon } from '../ds/icons';
+import { PlusIcon } from '../ds/icons';
+import { SearchField } from '../ds/SearchField';
 import { formatPriceInput, isCategoryActive } from './menu-model';
 import { ProductDialog } from './ProductDialog';
 import { qualifiersByProduct } from './product-name';
@@ -14,26 +16,33 @@ import { ProductRow } from './ProductRow';
 import { useMenu, type CategoryDraft, type ProductDraft } from './useMenu';
 import './MenuPage.css';
 
+/**
+ * CARDÁPIO.
+ *
+ * A TELA PASSOU A SER UMA PÁGINA, e não mais duas caixas esticadas até o pé do
+ * navegador. O enquadramento anterior era `flex: 1` nos dois painéis: com três
+ * itens numa categoria, dois retângulos vazios ocupavam dois terços de um
+ * monitor de 1440 e a tela inteira lia como um esqueleto de wireframe. Aqui o
+ * cardápio usa o mesmo enquadramento de Clientes e Desempenho — título da
+ * página, uma frase de escopo, e cartões que ENCOLHEM até o tamanho do que
+ * têm dentro (§7). O que sobra embaixo é o chão da página, não caixa vazia.
+ *
+ * As duas colunas grudam no alto enquanto a página rola: a barra de categorias
+ * é a navegação da tela e o cabeçalho de colunas nomeia o que está passando.
+ */
 export function MenuPage() {
   const menu = useMenu();
   /*
    * Os setores são da FILIAL, enquanto o cardápio é do restaurante inteiro. É
    * o cruzamento que obriga esta tela a saber de filial: em qual setor um item
-   * imprime é uma resposta diferente em cada loja.
-   *
-   * A COLUNA SUMIA, E ISSO ERA O DEFEITO. Sem filial escolhida a coluna de
-   * setor não era desenhada e "Aplicar setor a todos os itens" ficava
-   * desabilitado — o lojista abria o Cardápio e via uma coluna a menos sem
-   * nada dizendo por quê, mais uma ação travada. Hoje a filial é RESOLVIDA (a
-   * principal, na falta de escolha) e o cabeçalho da coluna diz de qual loja é
-   * a resposta. Ver `auth/branch-scope.ts`.
+   * imprime é uma resposta diferente em cada loja. A filial é RESOLVIDA (a
+   * principal, na falta de escolha) — ver `auth/branch-scope.ts`.
    */
   const { branchId, branch, hasChoice } = useResolvedBranch();
   const printing = usePrintSectors(branchId);
   const branchChosen = branchId !== '';
   /* Nomeia a filial só quando há mais de uma: com uma só não desambigua nada. */
-  const sectorBranchLabel =
-    hasChoice && branch ? (branch.display_name?.trim() || branch.name) : '';
+  const sectorBranchLabel = hasChoice && branch ? branchName(branch) : '';
 
   const [categoryDraft, setCategoryDraft] = useState<CategoryDraft | null>(null);
   const [productDraft, setProductDraft] = useState<ProductDraft | null>(null);
@@ -45,20 +54,15 @@ export function MenuPage() {
   /*
    * A COLUNA DE FOTO SÓ EXISTE SE A CATEGORIA TEM FOTO.
    *
-   * A miniatura de 36px não distinguia um prato de carne de outro — ela ocupava
-   * uma coluna sem responder nada. Ou ela cresce o suficiente para servir, ou
-   * sai, e a resposta certa depende da categoria: onde há foto, ela vai a 44px
-   * e passa a valer a largura; onde não há nenhuma, uma coluna de contornos
-   * tracejados é literalmente uma coluna de buracos, e o nome do item começa na
-   * borda.
+   * Onde há foto ela vale 44px de largura; onde não há nenhuma, uma coluna de
+   * contornos tracejados é literalmente uma coluna de buracos, e o nome do item
+   * começa na borda.
    */
   const showPhoto = menu.products.some((product) => product.image_url);
 
   /*
    * Os nomes que se repetem na lista, partidos em base + qualificador. Ver
-   * `product-name.ts`: numa categoria com "Picanha Suína", "Picanha Suína
-   * (400g)" e "Picanha Suína (1kg)", o que distingue as três linhas é o fim de
-   * uma string em semibold, e o olho não o acha.
+   * `product-name.ts`.
    */
   const qualifiers = qualifiersByProduct(menu.products);
 
@@ -78,6 +82,15 @@ export function MenuPage() {
     });
   }
 
+  function openEditCategory() {
+    if (!selectedCategory) return;
+    setCategoryDraft({
+      id: selectedCategory.id,
+      name: selectedCategory.name,
+      isActive: isCategoryActive(selectedCategory),
+    });
+  }
+
   async function handleApplySector(printSectorId: string | null) {
     if (!selectedCategory) return;
     setIsApplyingSector(true);
@@ -88,51 +101,116 @@ export function MenuPage() {
 
   return (
     <div className="menu">
-      <CategoryRail
-        categories={menu.categories}
-        selectedCategoryId={menu.selectedCategoryId}
-        movedCategoryId={menu.movedCategoryId}
-        productCountByCategory={menu.productCountByCategory}
-        onSelect={menu.selectCategory}
-        onMove={(index, direction) => void menu.reorderCategory(index, direction)}
-        onMoveSettled={menu.clearMovedCategory}
-        onNew={() => setCategoryDraft({ id: null, name: '', isActive: true })}
-      />
+      {/*
+        O CABEÇALHO DA PÁGINA, que esta tela não tinha.
+        O título era o nome da categoria aberta — então "Cardápio" não aparecia
+        em lugar nenhum fora da lateral, e o painel começava sem dizer onde a
+        pessoa estava. Hoje o nível 1 é o nome da tela, como em toda outra, e a
+        categoria desce para o nível 2, dentro do cartão que ela nomeia.
+      */}
+      <header className="menu__head">
+        <div className="menu__head-text">
+          <h1 className="t-title">Cardápio</h1>
 
-      <section className="menu__panel">
-        <header className="menu__header">
-          <div className="menu__heading">
-            {/* O nome da categoria é o título da tela — nível 1, um por tela. */}
-            <h1 className="t-title menu__title">{selectedCategory?.name ?? 'Cardápio'}</h1>
+          {/*
+            A FRASE DE ESCOPO, e é ela que carrega "de qual loja é a coluna
+            Impressão".
+
+            Esse recado morava no cabeçalho da própria coluna, e ali ele não
+            cabia: "Pizzaria do Zé — Aldeota" em 140px quebrava em duas linhas,
+            engordava a régua de rótulos e desalinhava "Item", "Preço" e
+            "Situação" do que nomeiam. Dita uma vez aqui, em prosa, ela sai
+            inteira e legível — o mesmo lugar em que Clientes diz o que a tela
+            não tem e Minha loja diz para qual filial ela grava.
+          */}
+          <p className="t-aux menu__note" data-testid="menu-sector-scope">
+            {branchChosen ? (
+              sectorBranchLabel ? (
+                <>
+                  O cardápio é do restaurante inteiro. Só a coluna Impressão é de uma loja: ela
+                  responde pela <strong>{sectorBranchLabel}</strong>.
+                </>
+              ) : (
+                <>
+                  O cardápio é do restaurante inteiro. A coluna Impressão diz em qual setor da
+                  cozinha cada item sai na comanda.
+                </>
+              )
+            ) : (
+              <>O cardápio é do restaurante inteiro: itens e categorias valem em todas as lojas.</>
+            )}
+          </p>
+        </div>
+
+        {/*
+          A ação do dia mora no cabeçalho da página, com as outras telas, e não
+          mais dentro do cartão da lista: ali ela dividia a régua com o nome da
+          categoria e ficava ao lado de duas ações de outro peso.
+        */}
+        <button
+          type="button"
+          className="btn btn--primary menu__new"
+          onClick={openNewProduct}
+          disabled={!selectedCategory}
+        >
+          <PlusIcon />
+          Novo item
+        </button>
+      </header>
+
+      {menu.errorMessage ? (
+        <p className="alert alert--error" role="alert">
+          {menu.errorMessage}
+        </p>
+      ) : null}
+
+      <div className="menu__body">
+        <CategoryRail
+          categories={menu.categories}
+          selectedCategoryId={menu.selectedCategoryId}
+          movedCategoryId={menu.movedCategoryId}
+          productCountByCategory={menu.productCountByCategory}
+          onSelect={menu.selectCategory}
+          onMove={(index, direction) => void menu.reorderCategory(index, direction)}
+          onMoveSettled={menu.clearMovedCategory}
+          onNew={() => setCategoryDraft({ id: null, name: '', isActive: true })}
+        />
+
+        <section className="menu__panel">
+          {/*
+            A RÉGUA DO CARTÃO: quem é a lista à esquerda, como se busca nela à
+            direita.
+
+            A busca vivia numa faixa própria embaixo do cabeçalho, sozinha, com
+            seiscentos pixels de nada ao lado — e o cabeçalho, do outro lado,
+            era um nome com dois ícones minúsculos colados. Juntando os dois, a
+            faixa deixa de existir e a régua ganha as duas pontas.
+          */}
+          <header className="menu__panel-head">
+            <h2 className="t-section menu__panel-title">
+              {selectedCategory?.name ?? 'Nenhuma categoria'}
+            </h2>
             {selectedCategory && !isCategoryActive(selectedCategory) ? (
               <span className="tag">Inativa</span>
             ) : null}
-            {selectedCategory ? (
-              <button
-                type="button"
-                className="btn btn--sm btn--ghost icon-btn"
-                onClick={() =>
-                  setCategoryDraft({
-                    id: selectedCategory.id,
-                    name: selectedCategory.name,
-                    isActive: isCategoryActive(selectedCategory),
-                  })
-                }
-                aria-label={`Editar categoria ${selectedCategory.name}`}
-                title="Editar categoria"
-              >
-                <EditIcon />
-              </button>
-            ) : null}
 
             {/*
-              As ações em lote saem daqui de perto do nome, e não do canto ao
-              lado de "Novo item": aplicar setor sobrescreve a categoria
-              inteira, e não pode ter o mesmo peso visual da ação do dia.
+              UM CONTROLE, NÃO TRÊS. Editar a categoria era um lápis solto ao
+              lado do nome, e aplicar setor um segundo botão de ícone logo
+              depois: duas caixinhas mudas de 32px disputando a mesma régua com
+              o título. As duas são ações SOBRE A CATEGORIA e agora moram no
+              mesmo menu, escritas por extenso — o que também é o que separa
+              "renomear" de "sobrescrever o setor de todos os itens".
             */}
             {selectedCategory ? (
               <CategoryActionsMenu
                 actions={[
+                  {
+                    id: 'editar-categoria',
+                    label: 'Editar categoria',
+                    onSelect: openEditCategory,
+                    testId: 'category-edit-open',
+                  },
                   {
                     id: 'aplicar-setor',
                     label: 'Aplicar setor a todos os itens',
@@ -145,48 +223,17 @@ export function MenuPage() {
                 ]}
               />
             ) : null}
-          </div>
 
-          <div className="menu__actions">
-            <button
-              type="button"
-              className="btn btn--primary"
-              onClick={openNewProduct}
-              disabled={!selectedCategory}
-            >
-              <PlusIcon />
-              Novo item
-            </button>
-          </div>
-        </header>
-
-        {menu.errorMessage ? (
-          <p className="alert alert--error menu__alert" role="alert">
-            {menu.errorMessage}
-          </p>
-        ) : null}
-
-        {/*
-          A busca vive DENTRO do painel da lista, e não numa faixa própria
-          acima dele: assim a superfície da lista começa na mesma ordenada da
-          superfície da barra de categorias ao lado, e as duas colunas de
-          conteúdo têm a mesma borda de cima.
-        */}
-        <div className="menu__list">
-          <div className="menu__search">
-            <span className="menu__search-icon" aria-hidden="true">
-              <SearchIcon />
-            </span>
-            <input
-              className="input menu__search-input"
-              type="search"
-              placeholder="Buscar item nesta categoria"
-              aria-label="Buscar item nesta categoria"
-              value={menu.searchDraft}
-              onChange={(event) => menu.setSearchDraft(event.target.value)}
-              disabled={!selectedCategory}
-            />
-          </div>
+            <div className="menu__panel-search">
+              <SearchField
+                label="Buscar item nesta categoria"
+                placeholder="Buscar item"
+                value={menu.searchDraft}
+                onValueChange={menu.setSearchDraft}
+                disabled={!selectedCategory}
+              />
+            </div>
+          </header>
 
           {menu.isLoadingCategories ? (
             <p className="menu__empty faint">Carregando o cardápio…</p>
@@ -195,8 +242,19 @@ export function MenuPage() {
               Nenhuma categoria ainda. Crie a primeira para começar o cardápio.
             </p>
           ) : menu.products.length === 0 ? (
+            /*
+              DUAS AUSÊNCIAS DIFERENTES, DUAS FRASES DIFERENTES. "Nenhum item
+              encontrado" servia para as duas e mentia numa: numa categoria
+              recém-criada, sem busca nenhuma, "encontrado" faz o lojista
+              procurar um filtro que ele não ligou. Sem busca a categoria está
+              vazia, e a frase diz o que fazer a respeito.
+            */
             <p className="menu__empty faint">
-              {menu.isLoadingProducts ? 'Carregando…' : 'Nenhum item encontrado.'}
+              {menu.isLoadingProducts
+                ? 'Carregando…'
+                : menu.searchDraft.trim() !== ''
+                  ? 'Nenhum item desta categoria casa com a busca.'
+                  : 'Esta categoria ainda não tem itens. Crie o primeiro em “Novo item”.'}
             </p>
           ) : (
             /*
@@ -211,42 +269,14 @@ export function MenuPage() {
                 branchChosen ? ' menu__table--with-sector' : ''
               }`}
             >
-              {/*
-                O CABEÇALHO DE COLUNAS, e é aqui que "Setor de impressão:
-                Matriz" ganha o lugar certo. Ele vivia solto no canto da linha
-                de busca, com peso de legenda, dizendo respeito a uma coluna que
-                estava do outro lado da tela. Como rótulo da própria coluna, ele
-                fica em cima do que qualifica e diz de qual loja é a resposta —
-                o cardápio é do restaurante inteiro, mas o setor de impressão
-                não é. O nome da filial só aparece quando há mais de uma: com
-                uma só, não desambigua nada.
-              */}
               <div className="menu__columns t-label">
                 {showPhoto ? <span /> : null}
                 <span>Item</span>
                 <span className="menu__col-price">Preço</span>
-                {branchChosen ? (
-                  <span data-testid="menu-sector-scope">
-                    Impressão
-                    {/*
-                      A filial vai numa linha própria, e não colada com um
-                      ponto: emendada, ela quebrava no meio do nome e o rótulo
-                      da coluna virava duas metades sem sentido. Aqui a primeira
-                      linha nomeia a coluna e a segunda diz de qual loja é a
-                      resposta — o nome inteiro fica no `title`, para o caso de
-                      duas filiais com nome comprido.
-                    */}
-                    {sectorBranchLabel ? (
-                      <span className="menu__col-scope" title={sectorBranchLabel}>
-                        {sectorBranchLabel}
-                      </span>
-                    ) : null}
-                  </span>
-                ) : null}
+                {branchChosen ? <span>Impressão</span> : null}
                 <span className="menu__col-state">Situação</span>
-                {/* À venda e a ação: colunas de controle, largas demais para um
-                    rótulo de 34px e óbvias demais para precisar de um. */}
-                <span />
+                {/* A ação: coluna de controle, larga demais para um rótulo de
+                    32px e óbvia demais para precisar de um. */}
                 <span />
               </div>
 
@@ -278,32 +308,32 @@ export function MenuPage() {
               </ul>
             </div>
           )}
-        </div>
 
-        {/*
-          O rodapé só existe quando há o que carregar.
-          "3 de 3 itens nesta categoria" com tudo na tela é a terceira vez que
-          o mesmo número aparece — a barra de categorias já diz "3 itens" ao
-          lado do nome, e as três linhas estão logo acima, contáveis com o
-          olho. O que a tela NÃO diz sozinha é que faltam itens fora da página.
-        */}
-        {menu.products.length < menu.totalInCategory ? (
-          <footer className="menu__footer faint">
-            <span>
-              <span>{menu.products.length}</span> de <span>{menu.totalInCategory}</span> itens na
-              tela
-            </span>
-            <button
-              type="button"
-              className="btn btn--sm btn--ghost"
-              onClick={() => void menu.loadMoreProducts()}
-              disabled={menu.isLoadingProducts}
-            >
-              Carregar mais
-            </button>
-          </footer>
-        ) : null}
-      </section>
+          {/*
+            O rodapé só existe quando há o que carregar.
+            "3 de 3 itens nesta categoria" com tudo na tela é a terceira vez que
+            o mesmo número aparece — a barra de categorias já diz "3 itens" ao
+            lado do nome, e as três linhas estão logo acima, contáveis com o
+            olho. O que a tela NÃO diz sozinha é que faltam itens fora da página.
+          */}
+          {menu.products.length < menu.totalInCategory ? (
+            <footer className="menu__footer faint">
+              <span>
+                <span>{menu.products.length}</span> de <span>{menu.totalInCategory}</span> itens na
+                tela
+              </span>
+              <button
+                type="button"
+                className="btn btn--sm btn--ghost"
+                onClick={() => void menu.loadMoreProducts()}
+                disabled={menu.isLoadingProducts}
+              >
+                Carregar mais
+              </button>
+            </footer>
+          ) : null}
+        </section>
+      </div>
 
       {categoryDraft ? (
         <CategoryDialog

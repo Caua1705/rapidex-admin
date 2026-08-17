@@ -10,7 +10,7 @@ import { splitProductName } from './product-name';
  * Uma linha do cardápio.
  *
  * É uma GRADE de colunas fixas (foto · nome+descrição · preço · impressão ·
- * situação · à venda · ação), não um flex com `space-between`. A diferença
+ * situação · ação), não um flex com `space-between`. A diferença
  * aparece na tela larga: com space-between o preço ia para o canto oposto ao
  * nome e cada linha ancorava o olho num lugar diferente. Com a grade, tudo cai
  * na mesma abscissa e a coluna inteira se lê de cima a baixo — o cabeçalho da
@@ -144,12 +144,18 @@ export function ProductRow({
       ) : null}
 
       {/*
-        SITUAÇÃO — a coluna do eixo "está à venda?", com uma forma só.
+        SITUAÇÃO — UMA CÉLULA SÓ, porque é uma pergunta só: está à venda?
 
-        Os dois estados que não são o normal saem daqui, os dois como etiqueta,
-        na mesma abscissa em toda linha: "Esgotado" para o item ativo que acabou
-        na cozinha, "Inativo" para o que saiu do cardápio. A célula vazia é o
-        normal, e é ela que faz as etiquetas saltarem.
+        A etiqueta e o interruptor eram duas colunas vizinhas, com um vão de
+        12px entre elas e um rótulo em cima de uma das duas. Só que quem
+        responde "está à venda?" é o par: o interruptor no estado normal, a
+        etiqueta nos dois que não são ("Esgotado" para o item ativo que acabou
+        na cozinha, "Inativo" para o que saiu do cardápio). Juntos numa célula
+        encostada à direita, eles ficam na mesma abscissa em toda linha e o
+        rótulo "Situação" passa a nomear a resposta inteira, não metade dela.
+
+        O interruptor some no item inativo: "tem hoje?" é pergunta sem sentido
+        sobre algo que não está no cardápio, e mexer ali não o traz de volta.
 
         A etiqueta NÃO recua junto com a linha do item inativo: ela é a
         explicação do recuo, e recuar as duas apagaria o motivo.
@@ -160,15 +166,7 @@ export function ProductRow({
         ) : !available ? (
           <span className="tag">Esgotado</span>
         ) : null}
-      </span>
 
-      {/*
-        A célula do interruptor existe sempre, com ou sem controle: é a grade
-        que mantém o preço e a ação alinhados de uma linha para a outra. Item
-        inativo não a preenche — "tem hoje?" é pergunta sem sentido sobre algo
-        que não está no cardápio, e mexer ali não o traz de volta.
-      */}
-      <span className="item__status">
         {showsAvailabilityToggle(product) ? (
           <Switch
             hideLabel

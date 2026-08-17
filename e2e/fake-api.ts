@@ -274,6 +274,12 @@ function initialProducts(): Product[] {
       id: 'prod-1',
       category_id: 'cat-1',
       name: 'X-Burger Clássico',
+      // A DESCRIÇÃO EXISTE NO FALSO PORQUE ELA EXISTE NO CARDÁPIO DE VERDADE:
+      // é o texto que sai no app do cliente, e quase todo item tem o seu. Sem
+      // ela aqui, a linha da lista era só um nome curto seguido de meio metro
+      // de nada até o preço, e a tela era julgada por um dado que nenhum
+      // restaurante tem.
+      description: 'Pão brioche, hambúrguer 180 g, queijo prato e molho da casa',
       price: 24.9,
       is_active: true,
       is_available: true,
@@ -286,6 +292,7 @@ function initialProducts(): Product[] {
       id: 'prod-2',
       category_id: 'cat-1',
       name: 'X-Salada',
+      description: 'Pão brioche, hambúrguer 180 g, alface, tomate e maionese verde',
       price: 26.5,
       is_active: true,
       is_available: false,
@@ -295,6 +302,7 @@ function initialProducts(): Product[] {
       id: 'prod-3',
       category_id: 'cat-1',
       name: 'Combo Duplo',
+      description: 'Dois hambúrgueres, batata frita M e refrigerante em lata',
       price: 45,
       is_active: false,
       is_available: true,
@@ -304,6 +312,7 @@ function initialProducts(): Product[] {
       id: 'prod-4',
       category_id: 'cat-2',
       name: 'Batata frita M',
+      description: 'Porção individual, com sal e alecrim',
       price: 14.9,
       is_active: true,
       is_available: true,

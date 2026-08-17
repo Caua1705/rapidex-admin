@@ -1,33 +1,119 @@
 /*
  * ============================================================================
- * CARDÁPIO — barra de categorias à esquerda, lista de itens à direita
+ * CARDÁPIO — uma PÁGINA: título, escopo, barra de categorias e a lista
  * ============================================================================
  *
- * As duas colunas começam na MESMA ordenada e têm a mesma superfície: é isso
- * que faz a tela ler como uma coisa só em vez de dois blocos empilhados por
- * acaso.
- */
+ * O ENQUADRAMENTO MUDOU, e era ele o defeito.
+ *
+ * A tela era um `flex` de altura cheia com dois painéis em `flex: 1`: a barra
+ * de categorias e o cartão da lista esticavam até o pé do navegador
+ * independentemente do que tinham dentro. Com três itens numa categoria — o
+ * caso comum de quem está montando o cardápio — dois terços de um monitor de
+ * 1440 eram dois retângulos vazios com borda, que é exatamente o registro de
+ * wireframe que a direção quer evitar.
+ *
+ * Aqui o cardápio usa o enquadramento das outras telas do painel (Clientes,
+ * Desempenho): a PÁGINA rola, tem `--page-max` medido a partir do fim da
+ * lateral, e os cartões ENCOLHEM até o tamanho do conteúdo (§7). O que sobra
+ * embaixo passa a ser o chão da página.
+ *
+ * As duas colunas grudam no alto enquanto a página rola — a barra porque é a
+ * navegação da tela, o cabeçalho de colunas porque nomeia o que passa.
+ * ======================================================================= */
 
 .menu {
-  display: flex;
   flex: 1;
   min-height: 0;
-  gap: var(--sp-12);
-  padding: var(--sp-12) var(--page-pad) var(--page-pad);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-16);
+  padding: var(--page-pad);
   background: var(--bg);
+  max-width: var(--page-max);
+}
+
+/* ==========================================================================
+ * O CABEÇALHO DA PÁGINA
+ *
+ * O nível 1 é o NOME DA TELA. Ele já foi o nome da categoria aberta, e o preço
+ * era que "Cardápio" não aparecia em lugar nenhum fora da lateral: a tela
+ * começava sem dizer onde a pessoa estava, e o título pulava de texto a cada
+ * clique na barra da esquerda.
+ * ======================================================================= */
+.menu__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-16);
+}
+
+.menu__head-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+/*
+ * A frase de escopo. Ela carrega o que estava preso no cabeçalho da coluna de
+ * impressão — "de qual loja é esta resposta" —, e ali não cabia: o nome da
+ * filial quebrava em duas linhas dentro de 140px, engordava a régua de rótulos
+ * e desalinhava "Item", "Preço" e "Situação" do que nomeiam. Em prosa, dita
+ * uma vez, ela sai inteira (§8).
+ */
+.menu__note {
+  margin: 0;
+  max-width: 76ch;
+}
+
+/*
+ * O nome da filial não parte no meio: "…responde pela Pizzaria / do Zé —
+ * Aldeota" faz o olho ler duas coisas onde há uma. Quem identifica não quebra;
+ * quem quebra é a frase em volta (§7).
+ */
+.menu__note strong {
+  font-weight: var(--w-semibold);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+/* A ação do dia não encolhe nem quebra o rótulo em duas linhas. */
+.menu__new {
+  flex: 0 0 auto;
+}
+
+/* ==========================================================================
+ * AS DUAS COLUNAS
+ *
+ * `align-items: start` é o que permite os dois cartões encolherem: sem ele o
+ * grid estica os dois até a altura do mais alto, e a barra de três categorias
+ * volta a ser um retângulo de setecentos pixels de nada.
+ * ======================================================================= */
+.menu__body {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--sp-16);
 }
 
 /* ==========================================================================
  * A BARRA DE CATEGORIAS
  * ======================================================================= */
 .rail {
-  flex: 0 0 216px;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  /* Teto de altura para o cardápio de trinta categorias: passando disso, é a
+     LISTA que rola por dentro, e não a barra que empurra a página. */
+  max-height: calc(100vh - var(--topbar-h) - var(--page-pad) * 2);
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--r-field);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
 }
 
 .rail__header {
@@ -35,8 +121,8 @@
   align-items: center;
   gap: var(--sp-8);
   flex: 0 0 auto;
-  height: 34px;
-  padding: 0 var(--sp-4) 0 var(--sp-8);
+  min-height: var(--row-dense-h);
+  padding: 0 var(--sp-4) 0 var(--sp-12);
   border-bottom: 1px solid var(--line);
 }
 
@@ -46,7 +132,7 @@
 }
 
 .rail__list {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   padding: var(--sp-4);
@@ -121,8 +207,8 @@
 }
 
 /*
- * A contagem NÃO é mono: ela não se compara com a da linha de baixo, é uma
- * quantidade de itens. O tabular do `body` já a alinha em coluna.
+ * A contagem NÃO é mono nem tabular: ela não se compara com a da linha de
+ * baixo, é uma quantidade de itens.
  */
 .rail__count {
   flex: 0 0 auto;
@@ -184,84 +270,68 @@
 }
 
 /* ==========================================================================
- * O PAINEL DA LISTA
+ * O CARTÃO DA LISTA
+ *
+ * Ele DESCANSA NA PÁGINA, então leva `--r-card` e a sombra sutil do sistema —
+ * não mais `--r-field` e borda seca, que é a forma de uma superfície interna e
+ * era metade do que fazia a tela ler como wireframe (§3).
+ *
+ * E ELE NÃO RECORTA O QUE TEM DENTRO. O `overflow: hidden` que estava aqui não
+ * incomodava enquanto o cartão media a altura do navegador; com o cartão
+ * encolhendo até o conteúdo, ele passou a CORTAR o menu de ações da categoria
+ * numa categoria de poucos itens — o menu abre para baixo e o cartão acaba
+ * antes dele. Também é `overflow` que mata o `position: sticky` do cabeçalho de
+ * colunas, criando um contexto de rolagem que nunca rola.
+ *
+ * O que o recorte fazia — impedir o fundo da última linha de passar por cima do
+ * canto arredondado — vira o arredondamento da própria linha, logo abaixo.
  * ======================================================================= */
 .menu__panel {
-  flex: 1;
   min-width: 0;
-  min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--r-field);
-  overflow: hidden;
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-card);
 }
 
-.menu__header {
+/*
+ * A RÉGUA DO CARTÃO: quem é a lista à esquerda, como se busca nela à direita.
+ *
+ * A busca tinha faixa própria embaixo do cabeçalho, sozinha, com seiscentos
+ * pixels de nada ao lado; o cabeçalho, do outro lado, era um nome seguido de
+ * dois ícones mudos de 32px. Juntando as duas pontas, some uma faixa inteira e
+ * a régua passa a ter as duas margens ocupadas.
+ */
+.menu__panel-head {
   display: flex;
   align-items: center;
   gap: var(--sp-8);
   flex: 0 0 auto;
-  padding: var(--sp-8) var(--sp-12);
+  padding: var(--sp-8) var(--sp-12) var(--sp-8) var(--sp-16);
   border-bottom: 1px solid var(--line);
 }
 
-.menu__heading {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-8);
-  min-width: 0;
-}
-
-.menu__title {
+.menu__panel-title {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.menu__actions {
+/*
+ * A busca cede a largura antes do nome da categoria e nunca passa do que uma
+ * busca precisa: um campo de 600px numa régua é caixa decorativa (§7).
+ */
+.menu__panel-search {
   margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: var(--sp-8);
-}
-
-.menu__alert {
-  margin: var(--sp-12) var(--sp-12) 0;
-}
-
-.menu__list {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-/* A busca vive DENTRO do painel, com a lupa recuada dentro do campo. */
-.menu__search {
-  position: relative;
-  display: flex;
-  align-items: center;
-  padding: var(--sp-8) var(--sp-12);
-}
-
-.menu__search-icon {
-  position: absolute;
-  left: calc(var(--sp-12) + var(--sp-8));
-  display: flex;
-  color: var(--ink-3);
-  pointer-events: none;
-}
-
-.menu__search .input {
-  width: 100%;
-  max-width: 340px;
-  padding-left: calc(var(--sp-8) + var(--sp-16) + var(--sp-8));
+  flex: 0 1 260px;
+  min-width: 140px;
 }
 
 .menu__empty {
-  padding: var(--sp-32) var(--sp-12);
+  padding: var(--sp-32) var(--sp-16);
   font-size: var(--ta-size);
 }
 
@@ -269,12 +339,12 @@
  * A LISTA — GRADE, NUNCA `space-between`
  *
  * Só a coluna do nome é fluida. Preço, impressão, situação e ação têm largura
- * fixa e caem na mesma abscissa em todas as linhas. Com `space-between`, cada
- * linha ancoraria o olho num lugar diferente conforme o comprimento do nome.
+ * fixa e caem na mesma abscissa em todas as linhas.
  *
- * O TETO DE LARGURA existe porque a coluna do nome não pode crescer sem fim:
- * num monitor de 27", o preço ia parar a 900px do item que ele precifica, e a
- * linha deixava de ser lida como linha.
+ * SITUAÇÃO E O INTERRUPTOR VIRARAM UMA COLUNA SÓ. Eram duas células vizinhas
+ * com um vão entre elas e um rótulo em cima de uma das duas — mas quem responde
+ * "está à venda?" é o par, e o vão só empurrava o preço mais para longe do nome
+ * que ele precifica.
  *
  * AS DUAS COLUNAS OPCIONAIS VÊM DE `--cols`, no envoltório. A de impressão
  * depende da FILIAL e a de foto depende da CATEGORIA — nenhuma das duas depende
@@ -283,21 +353,19 @@
  * coisa nenhuma.
  * ======================================================================= */
 .menu__table {
-  max-width: var(--page-max);
-  padding-bottom: var(--sp-12);
-  --cols: minmax(0, 1fr) 96px 88px 34px var(--control-h);
+  --cols: minmax(0, 1fr) 88px 112px var(--control-h);
 }
 
 .menu__table--with-photo {
-  --cols: 44px minmax(0, 1fr) 96px 88px 34px var(--control-h);
+  --cols: 44px minmax(0, 1fr) 88px 112px var(--control-h);
 }
 
 .menu__table--with-sector {
-  --cols: minmax(0, 1fr) 96px 148px 88px 34px var(--control-h);
+  --cols: minmax(0, 1fr) 88px 132px 112px var(--control-h);
 }
 
 .menu__table--with-photo.menu__table--with-sector {
-  --cols: 44px minmax(0, 1fr) 96px 148px 88px 34px var(--control-h);
+  --cols: 44px minmax(0, 1fr) 88px 132px 112px var(--control-h);
 }
 
 .menu__items {
@@ -308,13 +376,10 @@
 /*
  * O CABEÇALHO DE COLUNAS.
  *
- * Ele existe por uma razão só, e não é ornamento de tabela: "Setor de
- * impressão: Matriz" estava solto no canto da linha de busca, com peso de
- * legenda, falando de uma coluna que ficava do outro lado da tela. Como rótulo
- * da coluna, ele fica em cima do que qualifica.
- *
- * Gruda no topo porque a categoria tem até 29 itens: rolando a lista, saber
- * qual coluna é qual é justamente o que se perde primeiro.
+ * Ele gruda no alto da PÁGINA (é ela que rola agora, não uma caixa interna) e
+ * para sozinho quando a lista acaba — `position: sticky` não passa do bloco que
+ * o contém. Numa categoria de trinta itens, saber qual coluna é qual é
+ * justamente o que se perde primeiro ao rolar.
  */
 .menu__columns {
   position: sticky;
@@ -325,7 +390,7 @@
   align-items: center;
   gap: var(--sp-12);
   min-height: var(--row-dense-h);
-  padding-inline: var(--sp-12);
+  padding-inline: var(--sp-16);
   background: var(--surface);
   border-bottom: 1px solid var(--line);
 }
@@ -333,20 +398,6 @@
 .menu__col-price,
 .menu__col-state {
   text-align: right;
-}
-
-/*
- * De qual filial responde a coluna de impressão. O cardápio é do restaurante
- * inteiro, mas o setor de impressão não é — sem isto, o lojista de duas lojas
- * leria a resposta da Aldeota achando que vale para as duas. Só aparece quando
- * há mais de uma filial: com uma só, não desambigua nada.
- */
-.menu__col-scope {
-  display: block;
-  font-weight: var(--tb-weight);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /*
@@ -358,12 +409,8 @@
  * entre sessenta, muitas vezes com o celular na outra mão. Por isso ela usa
  * `--row-read-h` (48px), o degrau que o sistema reserva para lista de leitura.
  *
- * O QUE MUDOU FOI A ALTURA VARIÁVEL. A descrição vinha empilhada embaixo do
- * nome, então uma linha com descrição media 56px e uma sem media 44 — a mesma
- * lista com dois ritmos, e a categoria de 29 itens não cabia em tela nenhuma.
- * Com a descrição na mesma linha do nome, toda linha mede o mesmo 48px, com a
- * mesma informação de antes. Uniforme, a lista se varre; irregular, se lê uma
- * por uma.
+ * A ALTURA É A MESMA EM TODA LINHA — com ou sem descrição, com ou sem etiqueta.
+ * Uniforme, a lista se varre; irregular, se lê uma por uma.
  */
 .item {
   display: grid;
@@ -371,8 +418,24 @@
   align-items: center;
   gap: var(--sp-12);
   min-height: var(--row-read-h);
-  padding-inline: var(--sp-12);
+  padding-inline: var(--sp-16);
   border-bottom: 1px solid var(--line);
+}
+
+/* O fio da última linha correria por cima do canto arredondado do cartão. */
+.item:last-child {
+  border-bottom: none;
+}
+
+/*
+ * A ÚLTIMA LINHA ARREDONDA O PRÓPRIO CANTO, e só quando ela é mesmo o fim do
+ * cartão — `:last-child` na tabela é o que diz "não há rodapé de 'Carregar
+ * mais' embaixo". Sem isto, o fundo do `:hover` da última linha sairia em
+ * esquadro por cima do canto de 10px do cartão.
+ */
+.menu__panel > .menu__table:last-child .item:last-child {
+  border-end-start-radius: var(--r-card);
+  border-end-end-radius: var(--r-card);
 }
 
 .item:hover {
@@ -461,14 +524,20 @@
  * Uma linha só, cortada no fim, AO LADO do nome. A descrição inteira é do
  * cardápio do cliente; aqui ela desempata dois itens parecidos.
  *
- * QUEM CEDE A LARGURA É ELA (§7). O nome identifica a linha e é o que o lojista
- * veio procurar — se os dois encolhessem juntos, o nome viraria "Picanha S…" ao
- * lado de uma descrição inteira. O `flex-shrink` maior é o que declara essa
- * ordem: a descrição some primeiro, o nome trunca só quando não sobrou mais
- * nada dela.
+ * QUEM CEDE A LARGURA É ELA (§7), E É `flex-basis: 0` QUE DECLARA ISSO.
+ *
+ * Com `flex: 1 4 auto` — que é o que estava aqui — os dois entram na conta com
+ * a largura do próprio texto e encolhem JUNTOS, só que em proporções
+ * diferentes. O resultado era "X-Burger Clássi…" ao lado de uma descrição
+ * inteira: o nome truncava com trezentos pixels sobrando na linha, que é
+ * exatamente o defeito que a régua de acabamento reprova.
+ *
+ * Com base zero, a descrição só recebe o que SOBRA depois de o nome caber
+ * inteiro. Ela some primeiro, letra a letra, e o nome só trunca quando ele
+ * sozinho não couber mais na coluna.
  */
 .item__description {
-  flex: 1 4 auto;
+  flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -497,28 +566,21 @@
   color: var(--alert);
 }
 
-.item__status {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-
 /*
- * SITUAÇÃO — a coluna do eixo "está à venda?".
+ * SITUAÇÃO — uma célula só para o eixo "está à venda?".
  *
- * Os dois estados que não são o normal moram aqui, os dois como etiqueta:
- * "Esgotado" e "Inativo" respondem à mesma pergunta e por isso têm a mesma
- * forma e a mesma abscissa. Antes eram duas linguagens — um era etiqueta colada
- * ao nome, o outro era texto solto ao lado do interruptor — e responder uma
- * pergunta só custava olhar dois lugares.
- *
- * O estado normal não escreve nada: "Disponível" em toda linha é a mesma
- * informação duas vezes, e é a célula vazia que faz as etiquetas saltarem.
+ * A etiqueta e o interruptor moram juntos, encostados à direita, porque
+ * respondem à mesma pergunta: o interruptor no estado normal, a etiqueta nos
+ * dois que não são ("Esgotado", "Inativo"). Item disponível não escreve nada —
+ * a palavra repetida em toda linha não distingue nada, e é a ausência dela que
+ * faz as etiquetas saltarem (§8).
  */
 .item__state {
   min-width: 0;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: var(--sp-8);
   overflow: hidden;
 }
 
@@ -563,7 +625,7 @@
   display: flex;
   align-items: center;
   gap: var(--sp-12);
-  padding: var(--sp-8) var(--sp-12);
+  padding: var(--sp-8) var(--sp-16);
   border-top: 1px solid var(--line);
   font-size: var(--ta-size);
 }
@@ -573,6 +635,7 @@
  * ======================================================================= */
 .actions-menu {
   position: relative;
+  flex: 0 0 auto;
 }
 
 .actions-menu__list {
@@ -596,6 +659,7 @@
   text-align: left;
   font-size: var(--tb-size);
   color: var(--ink);
+  white-space: nowrap;
 }
 
 .actions-menu__item:hover:not(:disabled) {
@@ -711,17 +775,35 @@
 }
 
 /* ==========================================================================
- * CELULAR — a densidade cede e a linha vira alvo de dedo
+ * TELA ESTREITA — a barra sobe para cima da lista
  * ======================================================================= */
 @media (max-width: 900px) {
   .menu {
-    flex-direction: column;
     padding-inline: var(--page-pad-mobile);
   }
 
+  /*
+   * UMA COLUNA. A barra deixa de grudar — no celular ela já está no alto da
+   * rolagem, e uma barra fixa ali comeria um terço da tela sobre a lista.
+   */
+  .menu__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .rail {
-    flex: 0 0 auto;
-    max-height: 200px;
+    position: static;
+    max-height: 220px;
+  }
+
+  /* O campo de busca não cabe na mesma régua do nome: ele desce inteiro. */
+  .menu__panel-head {
+    flex-wrap: wrap;
+    padding-inline: var(--sp-12);
+  }
+
+  .menu__panel-search {
+    flex: 1 1 100%;
+    margin-left: 0;
   }
 }
 
@@ -729,16 +811,17 @@
   /*
    * A LINHA VIRA DUAS, E É O NOME QUE GANHA A PRIMEIRA.
    *
-   * Em uma linha só, as células fixas (preço, situação, o interruptor, a ação e
-   * os vãos) somavam quase tudo dos ~342px disponíveis em 390: sobravam 48px
-   * para o nome, e a lista virava "X-Bu…", "X-Sal…" — com um item inativo
-   * saindo SEM NOME NENHUM, porque a etiqueta comia o que restava. O nome é o
-   * que identifica a linha e é exatamente o que o lojista veio procurar; ele
-   * não pode ser o que cede (§7).
+   * Em uma linha só, as células fixas (preço, situação, a ação e os vãos)
+   * somavam quase tudo dos ~342px disponíveis em 390: sobravam poucas dezenas
+   * de pixels para o nome, e a lista virava "X-Bu…", "X-Sal…" — com um item
+   * inativo saindo SEM NOME NENHUM, porque a etiqueta comia o que restava. O
+   * nome é o que identifica a linha e é exatamente o que o lojista veio
+   * procurar; ele não pode ser o que cede (§7).
    *
-   * Então o nome ocupa a primeira linha inteira, e preço, situação e descrição
-   * descem para uma segunda, embaixo dele. O interruptor e a ação atravessam as
-   * duas — eles são o alvo de dedo, e parti-los seria pior que a altura extra.
+   * Então o nome ocupa a primeira linha inteira, e o preço desce para uma
+   * segunda, embaixo dele. A situação (etiqueta + interruptor) e a ação
+   * atravessam as duas — são o alvo de dedo, e parti-los seria pior que a
+   * altura extra.
    *
    * A FOTO FICA, e é o que mais muda no celular. Ela saía da tela justamente
    * onde mais serve: no meio do serviço, com o telefone numa mão, distinguir um
@@ -752,23 +835,24 @@
   .menu__table--with-photo .item,
   .menu__table--with-sector .item,
   .menu__table--with-photo.menu__table--with-sector .item {
-    grid-template-columns: auto minmax(0, 1fr) 34px var(--control-h-touch);
+    grid-template-columns: minmax(0, 1fr) auto var(--control-h-touch);
     grid-template-areas:
-      'nome   nome  status acao'
-      'estado preco status acao';
+      'nome  estado acao'
+      'preco estado acao';
     align-items: center;
     column-gap: var(--sp-8);
     row-gap: var(--sp-4);
     min-height: var(--tap-mobile);
     padding-block: var(--sp-4);
+    padding-inline: var(--sp-12);
   }
 
   .menu__table--with-photo .item,
   .menu__table--with-photo.menu__table--with-sector .item {
-    grid-template-columns: 44px auto minmax(0, 1fr) 34px var(--control-h-touch);
+    grid-template-columns: 44px minmax(0, 1fr) auto var(--control-h-touch);
     grid-template-areas:
-      'foto nome   nome  status acao'
-      'foto estado preco status acao';
+      'foto nome  estado acao'
+      'foto preco estado acao';
   }
 
   .item__thumb {
@@ -790,17 +874,8 @@
   }
 
   /*
-   * A segunda linha é a de meta, e a etiqueta vem primeiro: numa lista de
-   * trinta itens no meio do almoço, a pergunta é qual deles está esgotado.
-   */
-  .item__state {
-    grid-area: estado;
-    justify-content: flex-start;
-  }
-
-  /*
-   * O preço perde o alinhamento à direita: ao lado da etiqueta ele é o meio de
-   * uma frase de meta, não uma coluna de dinheiro a conferir de cima a baixo.
+   * O preço perde o alinhamento à direita: embaixo do nome ele é a segunda
+   * linha de uma frase, não uma coluna de dinheiro a conferir de cima a baixo.
    * A classe da linha entra no seletor porque `.num` (que traz o alinhamento à
    * direita) tem a mesma especificidade e vem de outro arquivo — deixar a
    * ordem de importação decidir é como uma regra some no build de produção.
@@ -810,8 +885,8 @@
     text-align: left;
   }
 
-  .item__status {
-    grid-area: status;
+  .item__state {
+    grid-area: estado;
   }
 
   .item__edit {
