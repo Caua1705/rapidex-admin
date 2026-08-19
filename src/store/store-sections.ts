@@ -1,14 +1,19 @@
 /**
- * As seis seções de Minha loja — e agora cada uma é uma ROTA.
+ * As sete seções de Minha loja — e cada uma é uma ROTA.
  *
  * Esta lista é a fonte única: as rotas (`App.tsx`) e a navegação da esquerda
  * (`StoreLayout`) leem daqui. Duas listas divergiriam no dia em que alguém
  * acrescentasse uma seção — que é exatamente o que já aconteceu com a lateral
  * do produto antes de `nav.ts` existir.
  *
- * `scope` não é enfeite: ele diz se a seção mexe no restaurante inteiro ou em
- * UMA filial, porque as rotas das de filial levam `{branch_id}` no path e não
- * existe id para mandar quando o cabeçalho está em "Todas as filiais".
+ * `scope` não é enfeite: ele diz se a seção mexe no restaurante inteiro, em UMA
+ * filial ou em TODAS, porque as rotas das de filial levam `{branch_id}` no path
+ * e não existe id para mandar quando o cabeçalho está em "Todas as filiais".
+ *
+ * `all-branches` é o escopo de Operação, e ele não é o de Geral com outro nome:
+ * a tela grava por filial, uma linha de cada vez, mas mostra TODAS ao mesmo
+ * tempo — é a conferência que ela existe para dar. Por isso ela não adota
+ * filial nenhuma no cabeçalho, e o seletor continua oferecendo "todas".
  *
  * O QUE ELE NÃO FAZ MAIS É BLOQUEAR A PÁGINA. Este campo já pediu uma filial
  * ao lojista, com cartão e um botão por loja, nas quatro seções de filial ao
@@ -18,7 +23,7 @@
  * cabeçalho dizendo de qual filial é aquele formulário.
  */
 export type StoreSectionId =
-  'geral' | 'filial' | 'horarios' | 'entrega' | 'pagamento' | 'impressao';
+  'operacao' | 'geral' | 'filial' | 'horarios' | 'entrega' | 'pagamento' | 'impressao';
 
 export type StoreSection = {
   id: StoreSectionId;
@@ -27,10 +32,29 @@ export type StoreSection = {
   /** O título da página. Pode ser mais longo que o rótulo da navegação. */
   titulo: string;
   nota?: string;
-  scope: 'restaurant' | 'branch';
+  /**
+   * A seção é uma LISTA, não um formulário de grade: ela tem teto próprio.
+   *
+   * O da coluna (1180px acima de 1100) é a medida de quatro campos lado a lado.
+   * Numa linha de nome + chave, ele afastaria a chave da loja que ela abre.
+   */
+  estreita?: true;
+  scope: 'restaurant' | 'branch' | 'all-branches';
 };
 
 export const STORE_SECTIONS: readonly StoreSection[] = [
+  /*
+   * OPERAÇÃO É A PRIMEIRA, e é onde /minha-loja abre. É o estado do dia — o
+   * que o lojista vem conferir com pressa no sábado à noite —, enquanto Geral
+   * são os padrões que ele encosta uma vez por mês.
+   */
+  {
+    id: 'operacao',
+    label: 'Operação',
+    titulo: 'Operação',
+    estreita: true,
+    scope: 'all-branches',
+  },
   {
     id: 'geral',
     label: 'Geral',

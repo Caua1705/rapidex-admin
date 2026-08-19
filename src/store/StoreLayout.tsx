@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import { useAdoptedBranch } from '../auth/use-branch-scope';
 import { StoreStatusCard } from './StoreStatusCard';
@@ -46,6 +46,14 @@ import './StorePage.css';
 export type StoreOutletContext = {
   settings: ReturnType<typeof useStoreSettings>;
   branchDetail: ReturnType<typeof useBranchDetail>;
+  /**
+   * O estado do dia de TODAS as filiais — a lista, não a adotada.
+   *
+   * Mora aqui, e não dentro da página de Operação, porque o interruptor do
+   * cabeçalho lê a mesma coisa: duas cópias divergiriam no instante em que uma
+   * das duas gravasse.
+   */
+  operation: ReturnType<typeof useBranchOperation>;
   /** A filial resolvida. Vazia só quando o lojista não enxerga filial nenhuma. */
   branchId: string;
   /** Nome dela, para a linha auxiliar. Vazio quando não há escolha a fazer. */
@@ -53,20 +61,32 @@ export type StoreOutletContext = {
 };
 
 export function StoreLayout() {
-  const { branch, branchId, hasChoice } = useAdoptedBranch();
+  /*
+   * OPERAÇÃO É A ÚNICA SEÇÃO QUE NÃO ADOTA FILIAL. Ela mostra todas, e adotar
+   * uma faria o cabeçalho dizer "Matriz Aldeota" em cima de uma lista com as
+   * cinco lojas. É também por isso que o interruptor do cabeçalho some lá: a
+   * chave daquela filial já está na lista, uma linha abaixo.
+   */
+  const emOperacao = useLocation().pathname.replace(/\/+$/, '').endsWith('/operacao');
+  const { branch, branchId, hasChoice } = useAdoptedBranch(!emOperacao);
+  const mostrarInterruptor = !emOperacao;
 
   const settings = useStoreSettings();
   const branchDetail = useBranchDetail(branchId);
   /*
    * Abrir/fechar é da FILIAL, e por isso não sai mais de `useStoreSettings`:
-   * `is_open` deixou de existir nas configurações do restaurante. A filial aqui
-   * é a adotada — a mesma que o cabeçalho está exibindo.
+   * `is_open` deixou de existir nas configurações do restaurante.
+   *
+   * A LEITURA É DE TODAS AS FILIAIS, não da adotada: a página de Operação
+   * precisa das cinco lojas na tela, e o interruptor do cabeçalho pega a linha
+   * da filial que o seletor está exibindo dessa mesma lista. Uma chamada.
    */
-  const operation = useBranchOperation(branchId);
+  const operation = useBranchOperation('');
 
   const context: StoreOutletContext = {
     settings,
     branchDetail,
+    operation,
     branchId,
     branchLabel: hasChoice && branch ? branch.display_name?.trim() || branch.name : '',
   };
@@ -113,15 +133,22 @@ export function StoreLayout() {
             ELA FECHA UMA FILIAL, a que o cabeçalho está mostrando — não a rede.
             É por isso que o cabeçalho exibir a filial adotada deixou de ser só
             uma cortesia: sem ele, o interruptor não diria o que está fechando.
+
+            E ELE NÃO APARECE EM OPERAÇÃO. Lá a mesma filial já tem a própria
+            chave na lista, e a mesma informação duas vezes na mesma tela é o
+            defeito da §8: o lojista veria dois interruptores para uma loja e
+            teria que descobrir sozinho que são o mesmo.
           */}
-          <StoreStatusCard
-            isOpen={operation.branch?.is_open !== false}
-            isOpenNow={operation.branch?.is_open_now ?? null}
-            isLoading={operation.isLoading}
-            isSaving={operation.isTogglingOpen}
-            errorMessage={operation.errorMessage}
-            onToggle={(next) => void operation.toggleOpen(next)}
-          />
+          {mostrarInterruptor ? (
+            <StoreStatusCard
+              isOpen={operation.branchOf(branchId)?.is_open !== false}
+              isOpenNow={operation.branchOf(branchId)?.is_open_now ?? null}
+              isLoading={operation.isLoading}
+              isSaving={operation.isSaving(branchId)}
+              errorMessage={operation.errorFor(branchId)}
+              onToggle={(next) => void operation.toggleOpen(branchId, next)}
+            />
+          ) : null}
         </header>
 
         <Outlet context={context} />

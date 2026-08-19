@@ -4,6 +4,7 @@ import { BranchTab } from './BranchTab';
 import { DeliveryTab } from './DeliveryTab';
 import { GeneralTab } from './GeneralTab';
 import { HoursTab } from './HoursTab';
+import { OperationTab } from './OperationTab';
 import { PaymentMethodsTab } from './PaymentMethodsTab';
 import { PrintingTab } from './PrintingTab';
 import { STORE_SECTIONS, type StoreSectionId } from './store-sections';
@@ -37,7 +38,10 @@ export function StoreSectionPage({ id }: { id: StoreSectionId }) {
       : secao.nota;
 
   return (
-    <section className="store__section" aria-labelledby={`${id}-titulo`}>
+    <section
+      className={`store__section${secao.estreita ? ' store__section--estreita' : ''}`}
+      aria-labelledby={`${id}-titulo`}
+    >
       <div className="store__section-head">
         <h2 className="t-section" id={`${id}-titulo`}>
           {secao.titulo}
@@ -55,6 +59,7 @@ export function StoreSectionPage({ id }: { id: StoreSectionId }) {
 }
 
 function Corpo({ id, context }: { id: StoreSectionId; context: StoreOutletContext }) {
+  if (id === 'operacao') return <OperationTab operation={context.operation} />;
   if (id === 'geral') return <GeneralTab settings={context.settings} />;
   if (id === 'filial') return <BranchTab branchDetail={context.branchDetail} />;
   if (id === 'horarios') return <HoursTab branchId={context.branchId} />;

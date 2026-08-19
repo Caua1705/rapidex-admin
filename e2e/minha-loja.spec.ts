@@ -39,8 +39,14 @@ async function abrirMinhaLoja(page: Page) {
 
   await page.getByRole('link', { name: 'Minha loja' }).click();
   // /minha-loja é o nome do GRUPO de rotas, não uma tela: ela redireciona para
-  // a primeira seção.
-  await expect(page).toHaveURL(/\/minha-loja\/geral$/);
+  // a primeira seção, que é o estado do dia.
+  await expect(page).toHaveURL(/\/minha-loja\/operacao$/);
+}
+
+/** As outras seções saem da navegação da esquerda, como o lojista faz. */
+async function abrirSecao(page: Page, id: string) {
+  await page.getByTestId(`store-anchor-${id}`).click();
+  await expect(page).toHaveURL(new RegExp(`/minha-loja/${id}$`));
 }
 
 /**
@@ -55,50 +61,79 @@ async function escolherFilial(page: Page) {
   await escolherFilialNoTopo(page);
 }
 
-test('a sidebar leva a Minha loja e a filial abre e fecha pelo topo', async ({ page }) => {
+test('Operação mostra uma linha por filial e fecha só a que foi clicada', async ({ page }) => {
   await abrirMinhaLoja(page);
 
-  const status = page.getByTestId('store-status');
-  await expect(status).toHaveAttribute('data-open', 'true');
-  await expect(status).toContainText('Loja aberta');
-
-  // O interruptor está no topo, fora das abas: fechar a loja não pode custar
-  // dois cliques e uma aba.
-  await page.getByRole('switch', { name: 'Fechar a loja' }).click();
-
-  await expect(status).toHaveAttribute('data-open', 'false');
-  await expect(status).toContainText('Ninguém consegue fazer pedido');
-
   /*
-   * FECHOU UMA FILIAL, NÃO A REDE. É a mudança inteira deste passo: enquanto
-   * `is_open` era do restaurante, fechar a Aldeota fechava a Zona Norte junto —
-   * e o teste que só olhasse a tela não veria diferença nenhuma.
+   * AS DUAS LOJAS NA MESMA TELA. É a conferência que não existia enquanto o
+   * `is_open` era do restaurante: com um valor só, não havia o que comparar.
    */
+  const aldeota = page.getByTestId(`operation-row-${FAKE_BRANCH.id}`);
+  const zonaNorte = page.getByTestId(`operation-row-${FAKE_BRANCH_2.id}`);
+  await expect(aldeota).toHaveAttribute('data-open', 'true');
+  await expect(zonaNorte).toHaveAttribute('data-open', 'true');
+
+  await aldeota
+    .getByRole('switch', { name: `Fechar a filial ${FAKE_BRANCH.display_name}` })
+    .click();
+
+  await expect(aldeota).toHaveAttribute('data-open', 'false');
+  // A OUTRA NÃO SE MEXE — na tela e no "banco". Enquanto o campo era do
+  // restaurante, fechar a Aldeota fechava a Zona Norte junto.
+  await expect(zonaNorte).toHaveAttribute('data-open', 'true');
   expect(api.operation(FAKE_BRANCH.id)?.is_open).toBe(false);
   expect(api.operation(FAKE_BRANCH_2.id)?.is_open).toBe(true);
 });
 
 /*
  * A chave e a agenda são duas coisas, e é o chamado mais comum do suporte:
- * "não está entrando pedido" com a loja marcada como aberta. O texto ao lado
- * diz a consequência, então ele não pode afirmar que o cardápio está no ar
- * enquanto o horário de hoje já fechou.
+ * "não está entrando pedido" com a loja marcada como aberta. A linha só fala
+ * nesse caso — escrever "aberta" em toda linha aberta seria a palavra que se
+ * repete sem distinguir nada.
  */
-test('aberta fora do horário de hoje, a tela diz isso em vez de prometer pedido', async ({
+test('aberta fora do horário de hoje, a linha diz isso em vez de prometer pedido', async ({
   page,
 }) => {
   api.putOutsideHours(FAKE_BRANCH.id);
   await abrirMinhaLoja(page);
 
+  const aldeota = page.getByTestId(`operation-row-${FAKE_BRANCH.id}`);
+  await expect(aldeota).toHaveAttribute('data-open', 'true');
+  await expect(aldeota).toHaveAttribute('data-open-now', 'false');
+  await expect(aldeota).toContainText('Fora do horário de hoje');
+
+  // A loja que está mesmo no ar não escreve nada: o ponto e a chave já dizem.
+  await expect(page.getByTestId(`operation-row-${FAKE_BRANCH_2.id}`)).not.toContainText(
+    'Fora do horário',
+  );
+});
+
+/*
+ * O interruptor do cabeçalho continua sendo o gesto rápido de dentro das outras
+ * seções — mas ele não aparece em Operação, onde a mesma filial já tem a
+ * própria chave na lista. Dois interruptores para uma loja na mesma tela é a
+ * informação repetida que a §8 do design proíbe.
+ */
+test('o interruptor do cabeçalho vale nas outras seções, e some em Operação', async ({ page }) => {
+  await abrirMinhaLoja(page);
+  await expect(page.getByTestId('store-status')).toHaveCount(0);
+
+  await abrirSecao(page, 'horarios');
   const status = page.getByTestId('store-status');
   await expect(status).toHaveAttribute('data-open', 'true');
-  await expect(status).toContainText('Loja aberta');
-  await expect(status).toContainText('fora do horário de hoje');
-  await expect(status).not.toContainText('O cardápio está no ar');
+
+  await page.getByRole('switch', { name: 'Fechar a loja' }).click();
+  await expect(status).toHaveAttribute('data-open', 'false');
+  await expect(status).toContainText('Ninguém consegue fazer pedido');
+
+  // Ele opera a filial que o cabeçalho está exibindo, e só ela.
+  expect(api.operation(FAKE_BRANCH.id)?.is_open).toBe(false);
+  expect(api.operation(FAKE_BRANCH_2.id)?.is_open).toBe(true);
 });
 
 test('Geral salva as configurações do restaurante e não expõe a taxa padrão', async ({ page }) => {
   await abrirMinhaLoja(page);
+  await abrirSecao(page, 'geral');
 
   await expect(page.getByTestId('settings-min-order')).toHaveValue('20,00');
 
@@ -131,6 +166,7 @@ test('Geral salva as configurações do restaurante e não expõe a taxa padrão
  */
 test('a barra de salvar só existe quando há alteração pendente', async ({ page }) => {
   await abrirMinhaLoja(page);
+  await abrirSecao(page, 'geral');
 
   const barra = page.getByTestId('store-save-bar');
   await expect(barra).toHaveCount(0);
@@ -148,6 +184,7 @@ test('a barra de salvar só existe quando há alteração pendente', async ({ pa
 
 test('faixa de tempo estimado pela metade é recusada antes de sair da tela', async ({ page }) => {
   await abrirMinhaLoja(page);
+  await abrirSecao(page, 'geral');
 
   await page.getByTestId('settings-eta-max').fill('');
   await page.getByTestId('store-save').click();
@@ -172,6 +209,7 @@ test('as seções de filial resolvem a filial em vez de pedir uma', async ({ pag
   await abrirMinhaLoja(page);
 
   // Geral é do restaurante inteiro: a linha auxiliar dela diz outra coisa.
+  await abrirSecao(page, 'geral');
   await expect(page.getByTestId('settings-min-order')).toBeVisible();
   await expect(page.getByTestId('store-branch-note')).toHaveText('vale para o restaurante inteiro');
 

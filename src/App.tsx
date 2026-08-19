@@ -81,9 +81,13 @@ export function App() {
             é navegação de verdade — o endereço identifica a tela, o F5 volta
             onde estava e o botão voltar do navegador funciona entre seções.
 
-            `index` redireciona para Geral: /minha-loja sozinha não é uma tela,
-            é o nome do grupo. Deixá-la renderizar um estado vazio "escolha uma
-            seção" seria uma tela a mais para atravessar toda vez.
+            `index` redireciona para Operação: /minha-loja sozinha não é uma
+            tela, é o nome do grupo. Deixá-la renderizar um estado vazio
+            "escolha uma seção" seria uma tela a mais para atravessar toda vez.
+
+            É Operação, e não mais Geral, porque é o estado do dia: quem abre
+            Minha loja no meio do turno vem ver quais lojas estão no ar, não os
+            padrões que encosta uma vez por mês.
           */}
           <Route
             path="/minha-loja"
@@ -95,7 +99,7 @@ export function App() {
               </RequireAuth>
             }
           >
-            <Route index element={<Navigate to="geral" replace />} />
+            <Route index element={<Navigate to="operacao" replace />} />
             {STORE_SECTIONS.map((secao) => (
               <Route key={secao.id} path={secao.id} element={<StoreSectionPage id={secao.id} />} />
             ))}

@@ -31,8 +31,13 @@
  * O ESTADO DEPOIS DA MUDANÇA É OUTRA COISA e não sai daqui. Quem responde é
  * `AdminProductResponse.unavailable_by_required_group`, que o backend já
  * calcula — inclusive em SQL, para a listagem não virar uma consulta por
- * produto. Assim que esse campo entrar no contrato gerado, ele é a fonte para
- * o estado; esta função continua sendo só a simulação do "e se".
+ * produto.
+ *
+ * PENDÊNCIA ABERTA (19/08/2026): esse campo JÁ ESTÁ no contrato gerado, e a
+ * tela ainda não o lê — ela continua deduzindo o estado atual daqui. Enquanto
+ * as duas fontes convivem, elas divergem no dia em que a regra mudar de um lado
+ * só, e quem erra é a tela do lojista. O conserto é a tela adotar o campo para
+ * o ESTADO; esta função fica sendo só a simulação do "e se".
  */
 import type { ProductOptionGroup } from '../api/types';
 

@@ -128,6 +128,8 @@
   width: 8px;
   height: 8px;
   flex: 0 0 auto;
+  /* Cápsula, como todo ponto de status do sistema (ds/StatusChip). */
+  border-radius: var(--r-round);
   background: var(--ink-3);
 }
 
@@ -152,6 +154,107 @@
    o que mudou é o assunto da frase, não o lugar dela. */
 .store-status__hint--error {
   color: var(--danger);
+}
+
+/*
+ * TETO PRÓPRIO, E ELE É DA SEÇÃO, NÃO DA LISTA.
+ *
+ * Acima de 1100px a coluna abre para 1180px porque Filial e Entrega são grades
+ * de quatro campos. Uma linha com um nome e uma chave nessa largura deixaria a
+ * chave a um palmo da loja que ela abre — o mesmo defeito do preço a 900px do
+ * item que ele precifica (§8 do design).
+ *
+ * O teto fica na SEÇÃO para o fio do título parar onde o cartão para: uma tela,
+ * um teto (§7). Só na lista, o fio corria 400px além da borda do cartão e a
+ * tela lia como dois blocos desalinhados.
+ */
+.store__section--estreita {
+  max-width: 640px;
+}
+
+/* ==========================================================================
+ * OPERAÇÃO — uma linha por filial
+ *
+ * É lista de CONFERÊNCIA ("quais das minhas lojas estão no ar agora?"), então
+ * ela é densa e vai a grade: as três colunas caem na mesma abscissa em todas as
+ * linhas, e o olho desce a coluna das chaves sem procurar cada uma.
+ * ======================================================================= */
+.op-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.op-row {
+  display: grid;
+  /* A observação tem largura fixa para alinhar entre linhas; só o nome é fluido. */
+  grid-template-columns: 7px minmax(0, 1fr) 200px auto;
+  align-items: center;
+  gap: var(--sp-8);
+  min-height: var(--row-dense-h);
+  padding: var(--sp-8) var(--sp-16);
+}
+
+.op-row + .op-row {
+  border-top: 1px solid var(--line);
+}
+
+.op-row__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-round);
+  background: var(--ink-3);
+}
+
+/* No ar é a chave LIGADA e a agenda de hoje aberta — não só a chave. */
+.op-row--on .op-row__dot {
+  background: var(--ok);
+}
+
+/* O nome é quem identifica a linha, então é ele que carrega o peso. */
+.op-row__name {
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-semibold);
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Vazia na maioria das linhas, de propósito: só o estado que surpreende. */
+.op-row__note {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+  text-align: right;
+}
+
+.op-row__note--error {
+  color: var(--danger);
+}
+
+/*
+ * No celular a coluna da observação não cabe ao lado do nome sem espremer os
+ * dois. Ela desce para uma segunda linha, e a chave continua onde estava.
+ */
+@media (max-width: 720px) {
+  .op-row {
+    grid-template-columns: 7px minmax(0, 1fr) auto;
+    row-gap: var(--sp-4);
+  }
+
+  .op-row__note {
+    grid-column: 2 / 4;
+    text-align: left;
+  }
+
+  .op-row__note:empty {
+    display: none;
+  }
 }
 
 /* ==========================================================================

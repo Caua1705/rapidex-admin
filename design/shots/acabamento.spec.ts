@@ -189,7 +189,9 @@ for (const tema of ['light', 'dark'] as const) {
     );
     await entrar(page);
     await escolherFilial(page);
-    await page.goto('/minha-loja');
+    // GERAL, e não /minha-loja: a raiz abre em Operação, que é uma lista de
+    // interruptores e não tem caixa de marcar nenhuma para a régua medir.
+    await page.goto('/minha-loja/geral');
     await page.waitForLoadState('networkidle').catch(() => undefined);
 
     /*

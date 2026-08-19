@@ -60,15 +60,22 @@ export function useResolvedBranch(): ResolvedBranch {
  * A adoção é reversível pelo caminho normal: o seletor do topo continua
  * trocando de filial, e ele deixa de oferecer "Todas as filiais" enquanto uma
  * destas telas está aberta (ver `branchScopeForPath`).
+ *
+ * `adotar` existe para a tela que mostra TODAS as filiais dentro deste mesmo
+ * layout — a Operação de Minha loja. Lá a adoção seria a contradição que este
+ * hook existe para evitar, ao contrário: o cabeçalho diria "Matriz Aldeota" em
+ * cima de uma lista com as cinco lojas. A filial resolvida continua vindo (as
+ * outras seções do layout dependem dela); o que não acontece é a escrita no
+ * seletor do topo.
  */
-export function useAdoptedBranch(): ResolvedBranch {
+export function useAdoptedBranch(adotar = true): ResolvedBranch {
   const { activeBranchId, selectBranch } = useSession();
   const resolved = useResolvedBranch();
   const { branchId } = resolved;
 
   useEffect(() => {
-    if (activeBranchId === '' && branchId !== '') selectBranch(branchId);
-  }, [activeBranchId, branchId, selectBranch]);
+    if (adotar && activeBranchId === '' && branchId !== '') selectBranch(branchId);
+  }, [adotar, activeBranchId, branchId, selectBranch]);
 
   return resolved;
 }
