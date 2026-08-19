@@ -1,5 +1,6 @@
 import { Switch } from '../ds/Switch';
 import type { BranchOperation } from '../api/types';
+import { estaNoAr, situacaoDaFilial } from './operation-state';
 import type { useBranchOperation } from './useBranchOperation';
 
 /**
@@ -14,11 +15,9 @@ import type { useBranchOperation } from './useBranchOperation';
  * Quem está preso a uma filial recebe uma lista de um item — a mesma tela serve
  * aos dois casos sem conhecer a regra de escopo, que mora no token.
  *
- * O QUE CADA LINHA ESCREVE, E O QUE ELA CALA. A chave já diz aberta ou
- * fechada, e o ponto repete isso de longe; escrever "aberta" ao lado de um
- * interruptor ligado é a palavra que se repete em toda linha sem distinguir
- * nada. Sobra UM caso, e é o que ninguém adivinha: a chave ligada com a agenda
- * de hoje fechada. Aí a linha fala, porque a tela estaria mentindo se calasse.
+ * OS RÓTULOS FICAM NO CABEÇALHO DA LISTA, não em cada linha. Três palavras
+ * repetidas em cinco linhas ocupam a largura do que muda sem distinguir nada
+ * (§8 do design); no alto, elas nomeiam a coluna uma vez.
  */
 export function OperationTab({ operation }: { operation: ReturnType<typeof useBranchOperation> }) {
   if (operation.isLoading) return <p className="muted store__loading">Carregando as filiais…</p>;
@@ -36,34 +35,65 @@ export function OperationTab({ operation }: { operation: ReturnType<typeof useBr
     return <p className="muted store__loading">Nenhuma filial ativa para operar.</p>;
 
   return (
-    <ul className="op-list" data-testid="operation-list">
-      {linhas.map((linha) => (
-        <OperationRow
-          key={linha.branch_id}
-          linha={linha}
-          isSaving={operation.isSaving(linha.branch_id)}
-          errorMessage={operation.errorFor(linha.branch_id)}
-          onToggle={(next) => void operation.toggleOpen(linha.branch_id, next)}
-        />
-      ))}
-    </ul>
+    <div className="op-list" data-testid="operation-list">
+      <div className="op-head" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+        <span className="t-label op-head__col">Entrega</span>
+        <span className="t-label op-head__col">Retirada</span>
+        <span className="t-label op-head__col">Aberta</span>
+      </div>
+
+      <ul className="op-rows">
+        {linhas.map((linha) => (
+          <OperationRow key={linha.branch_id} linha={linha} operation={operation} />
+        ))}
+      </ul>
+    </div>
   );
 }
 
+/**
+ * A frase da linha — e ela responde uma pergunta só: por que esta loja não está
+ * recebendo pedido?
+ *
+ * Vazia nos dois estados que a própria linha já mostra: com a chave desligada, o
+ * interruptor é a resposta, e escrever "fechada" ao lado dele é a palavra que se
+ * repete sem distinguir nada. Quem decide qual estado é este é
+ * `operation-state.ts`; aqui só se escolhe a frase curta de cada um.
+ */
+const NOTA: Record<ReturnType<typeof situacaoDaFilial>, string> = {
+  'no-ar': '',
+  fechada: '',
+  desconhecida: '',
+  'fora-do-horario': 'Fora do horário de hoje',
+  /*
+   * A CONSEQUÊNCIA, não o estado: "sem entrega e sem retirada" é o que as duas
+   * chaves desligadas ao lado já dizem, e escrito por extenso ele quebrava em
+   * três linhas — uma linha de lista com o triplo da altura das outras.
+   */
+  'sem-forma-de-comprar': 'Ninguém consegue comprar',
+};
+
 function OperationRow({
   linha,
-  isSaving,
-  errorMessage,
-  onToggle,
+  operation,
 }: {
   linha: BranchOperation;
-  isSaving: boolean;
-  errorMessage: string | null;
-  onToggle: (next: boolean) => void;
+  operation: ReturnType<typeof useBranchOperation>;
 }) {
-  // Aberta e fora do horário não é "no ar": o ponto de cor precisa dizer o
-  // mesmo que o texto, senão quem olha de longe lê o contrário de quem lê.
-  const noAr = linha.is_open && linha.is_open_now;
+  /*
+   * O PONTO DIZ "ESTÁ ENTRANDO PEDIDO", NÃO "A CHAVE ESTÁ LIGADA".
+   *
+   * Desligar entrega e retirada equivale a fechar a loja, mas não FICA igual a
+   * fechar: a chave continua ligada, e um ponto que só olhasse `is_open`
+   * continuaria aceso numa loja em que ninguém consegue comprar. A frase ao
+   * lado explica; quem informa de longe é o ponto.
+   */
+  const noAr = estaNoAr(linha);
+  const nota = NOTA[situacaoDaFilial(linha)];
+  const erro = operation.errorFor(linha.branch_id);
 
   return (
     <li
@@ -71,32 +101,87 @@ function OperationRow({
       data-testid={`operation-row-${linha.branch_id}`}
       data-open={linha.is_open}
       data-open-now={linha.is_open_now}
+      data-no-ar={noAr}
     >
       <span className="op-row__dot" aria-hidden="true" />
 
       <span className="op-row__name">{linha.branch_name}</span>
 
-      {errorMessage ? (
+      {erro ? (
         <span className="op-row__note op-row__note--error" role="alert">
-          {errorMessage}
+          {erro}
         </span>
       ) : (
-        <span className="op-row__note">
-          {linha.is_open && !linha.is_open_now ? 'Fora do horário de hoje' : ''}
-        </span>
+        <span className="op-row__note">{nota}</span>
       )}
 
+      {/*
+        AS TRÊS CHAVES SÃO UM GRUPO, e o grupo é `display: contents` na tela
+        larga: cada uma cai numa coluna da grade e as três alinham entre as
+        linhas. No celular ele vira uma linha própria, onde os rótulos do
+        cabeçalho não caberiam.
+      */}
+      <span className="op-row__chaves">
+        <Chave
+          campo="accepts_delivery"
+          rotulo="Entrega"
+          linha={linha}
+          valor={linha.accepts_delivery}
+          operation={operation}
+        />
+        <Chave
+          campo="accepts_pickup"
+          rotulo="Retirada"
+          linha={linha}
+          valor={linha.accepts_pickup}
+          operation={operation}
+        />
+        <Chave
+          campo="is_open"
+          rotulo="Aberta"
+          linha={linha}
+          valor={linha.is_open}
+          operation={operation}
+        />
+      </span>
+    </li>
+  );
+}
+
+/**
+ * Um dos três interruptores da linha.
+ *
+ * O rótulo visível está no cabeçalho da lista; o nome ACESSÍVEL de cada
+ * interruptor traz a filial junto, porque numa lista de cinco lojas "Entrega"
+ * sozinho não diz de qual loja se está falando. No celular, onde o cabeçalho de
+ * coluna não cabe, o mesmo rótulo aparece ao lado do controle.
+ */
+function Chave({
+  campo,
+  rotulo,
+  linha,
+  valor,
+  operation,
+}: {
+  campo: 'is_open' | 'accepts_delivery' | 'accepts_pickup';
+  rotulo: string;
+  linha: BranchOperation;
+  valor: boolean;
+  operation: ReturnType<typeof useBranchOperation>;
+}) {
+  return (
+    <span className="op-row__chave">
+      <span className="op-row__chave-rotulo t-aux" aria-hidden="true">
+        {rotulo}
+      </span>
       <Switch
         hideLabel
-        checked={linha.is_open}
-        loading={isSaving}
-        onChange={onToggle}
-        label={
-          linha.is_open
-            ? `Fechar a filial ${linha.branch_name}`
-            : `Abrir a filial ${linha.branch_name}`
-        }
+        checked={valor}
+        loading={operation.isSaving(linha.branch_id, campo)}
+        onChange={(next) => void operation.toggle(linha.branch_id, campo, next)}
+        label={`${rotulo}: ${linha.branch_name}`}
+        data-testid={`operation-${campo}-${linha.branch_id}`}
       />
-    </li>
+    </span>
   );
 }

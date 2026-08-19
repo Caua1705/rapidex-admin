@@ -54,6 +54,15 @@ export type RestaurantSettingsUpdate = Schemas['AdminRestaurantSettingsUpdate'];
  */
 export type BranchOperation = Schemas['AdminBranchOperationResponse'];
 
+/**
+ * O corpo do PATCH de tipos de pedido: os dois campos são opcionais.
+ *
+ * Corpo vazio é 422 — não existe "salvar nada". Quem chama manda só o campo
+ * que mudou, e é isso que impede um clique em "entrega" de reenviar a retirada
+ * por cima do que outra aba gravou.
+ */
+export type BranchOrderTypes = Schemas['AdminBranchOrderTypesRequest'];
+
 /** Cadastro, localização e regras de entrega da filial, no mesmo PATCH. */
 export type BranchUpdate = Schemas['AdminBranchUpdate'];
 

@@ -73,9 +73,7 @@ test('Operação mostra uma linha por filial e fecha só a que foi clicada', asy
   await expect(aldeota).toHaveAttribute('data-open', 'true');
   await expect(zonaNorte).toHaveAttribute('data-open', 'true');
 
-  await aldeota
-    .getByRole('switch', { name: `Fechar a filial ${FAKE_BRANCH.display_name}` })
-    .click();
+  await aldeota.getByRole('switch', { name: `Aberta: ${FAKE_BRANCH.display_name}` }).click();
 
   await expect(aldeota).toHaveAttribute('data-open', 'false');
   // A OUTRA NÃO SE MEXE — na tela e no "banco". Enquanto o campo era do
@@ -106,6 +104,57 @@ test('aberta fora do horário de hoje, a linha diz isso em vez de prometer pedid
   await expect(page.getByTestId(`operation-row-${FAKE_BRANCH_2.id}`)).not.toContainText(
     'Fora do horário',
   );
+});
+
+/*
+ * O ESTADO SEM SAÍDA VISUAL.
+ *
+ * Desligar entrega e retirada equivale a fechar a loja — mas não FICA igual a
+ * fechar: a chave continua ligada, e sem isto a linha diria "aberta", com o
+ * ponto aceso, enquanto ninguém consegue comprar. O segundo desligamento não é
+ * bloqueado: tirar a liberdade do lojista não é o conserto. O conserto é o
+ * ponto apagar e a linha ler o estado de verdade.
+ */
+test('sem entrega e sem retirada, a linha para de dizer que está no ar', async ({ page }) => {
+  await abrirMinhaLoja(page);
+
+  const aldeota = page.getByTestId(`operation-row-${FAKE_BRANCH.id}`);
+  await expect(aldeota).toHaveAttribute('data-no-ar', 'true');
+
+  await page.getByTestId(`operation-accepts_delivery-${FAKE_BRANCH.id}`).click();
+  // Uma forma de comprar basta: só com a retirada de pé, a loja continua no ar.
+  await expect(aldeota).toHaveAttribute('data-no-ar', 'true');
+  await expect(aldeota).not.toContainText('Ninguém consegue comprar');
+
+  await page.getByTestId(`operation-accepts_pickup-${FAKE_BRANCH.id}`).click();
+
+  await expect(aldeota).toHaveAttribute('data-no-ar', 'false');
+  await expect(aldeota).toContainText('Ninguém consegue comprar');
+  // A CHAVE CONTINUA LIGADA: o backend permite, e a tela não mente sobre isso.
+  await expect(aldeota).toHaveAttribute('data-open', 'true');
+  expect(api.operation(FAKE_BRANCH.id)?.is_open).toBe(true);
+
+  // E a outra filial não se mexeu.
+  await expect(page.getByTestId(`operation-row-${FAKE_BRANCH_2.id}`)).toHaveAttribute(
+    'data-no-ar',
+    'true',
+  );
+});
+
+/*
+ * Corpo vazio é 422 no backend, e mandar os dois campos reenviaria por cima do
+ * que outra aba acabou de gravar. Cada clique manda UM campo.
+ */
+test('cada clique em entrega ou retirada manda só o campo que mudou', async ({ page }) => {
+  await abrirMinhaLoja(page);
+
+  await page.getByTestId(`operation-accepts_pickup-${FAKE_BRANCH.id}`).click();
+
+  // Só a retirada mudou no "banco"; a entrega ficou como estava.
+  await expect
+    .poll(() => api.orderTypeCalls())
+    .toEqual([{ branchId: FAKE_BRANCH.id, body: { accepts_pickup: false } }]);
+  expect(api.operation(FAKE_BRANCH.id)?.accepts_delivery).toBe(true);
 });
 
 /*

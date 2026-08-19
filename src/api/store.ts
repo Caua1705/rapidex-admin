@@ -16,6 +16,7 @@ import { apiClient, unwrap, unwrapEmpty } from './client';
 import type {
   Branch,
   BranchOperation,
+  BranchOrderTypes,
   BranchUpdate,
   BusinessHourInput,
   BusinessHour,
@@ -79,6 +80,30 @@ export async function setBranchOpen(branchId: string, isOpen: boolean): Promise<
     await apiClient.PATCH('/admin/branches/{branch_id}/store-status', {
       params: { path: { branch_id: branchId } },
       body: { is_open: isOpen },
+    }),
+  );
+}
+
+/**
+ * Aceitar entrega e aceitar retirada — os dois também são DESTA filial.
+ *
+ * Edição parcial de propósito: quem chama manda só o campo que o lojista
+ * mexeu. Mandar os dois reenviaria por cima do que outra aba (ou o gerente do
+ * outro balcão) acabou de gravar, e o corpo vazio é 422 no backend — não há
+ * como "salvar nada".
+ *
+ * Desligar os dois é PERMITIDO e equivale a fechar a loja. O backend aceita, e
+ * quem precisa dizer isso na tela é a linha da filial: a chave continua ligada
+ * e ninguém consegue comprar.
+ */
+export async function setBranchOrderTypes(
+  branchId: string,
+  body: BranchOrderTypes,
+): Promise<BranchOperation> {
+  return unwrap(
+    await apiClient.PATCH('/admin/branches/{branch_id}/order-types', {
+      params: { path: { branch_id: branchId } },
+      body,
     }),
   );
 }

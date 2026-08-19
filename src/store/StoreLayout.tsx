@@ -141,12 +141,11 @@ export function StoreLayout() {
           */}
           {mostrarInterruptor ? (
             <StoreStatusCard
-              isOpen={operation.branchOf(branchId)?.is_open !== false}
-              isOpenNow={operation.branchOf(branchId)?.is_open_now ?? null}
+              operacao={operation.branchOf(branchId)}
               isLoading={operation.isLoading}
-              isSaving={operation.isSaving(branchId)}
+              isSaving={operation.isSaving(branchId, 'is_open')}
               errorMessage={operation.errorFor(branchId)}
-              onToggle={(next) => void operation.toggleOpen(branchId, next)}
+              onToggle={(next) => void operation.toggle(branchId, 'is_open', next)}
             />
           ) : null}
         </header>

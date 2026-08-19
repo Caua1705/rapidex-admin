@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { messageFromUnknownError } from '../api/errors';
-import { fetchBranchOperation, setBranchOpen } from '../api/store';
+import { fetchBranchOperation, setBranchOpen, setBranchOrderTypes } from '../api/store';
 import type { BranchOperation } from '../api/types';
 
 /**
@@ -14,17 +14,24 @@ import type { BranchOperation } from '../api/types';
  *
  * O hook guarda a LISTA, não uma filial. É o que permite ao dono de cinco lojas
  * ver as cinco chaves lado a lado — a conferência que não existia enquanto o
- * `is_open` era um só —, e é por isso que `toggleOpen` recebe a filial em vez
- * de fechá-la num id resolvido lá em cima.
+ * `is_open` era um só —, e é por isso que `toggle` recebe a filial em vez de
+ * fechá-la num id resolvido lá em cima.
  *
  * `branchId` só RESTRINGE a leitura: vazio traz todas as filiais que o token
  * alcança, que é uma só para quem está preso a uma filial. Minha loja lê tudo;
  * o quadro de Pedidos passa o filtro do cabeçalho.
  *
- * O QUE ESTÁ SALVANDO E O QUE FALHOU SÃO POR FILIAL. Com um estado só, fechar
- * a Aldeota travaria o interruptor das outras quatro, e o erro dela apareceria
- * na linha de todas.
+ * O QUE ESTÁ SALVANDO É POR CONTROLE, e o que falhou é por FILIAL. Com um
+ * estado só, fechar a Aldeota travaria o interruptor das outras quatro; com um
+ * por filial, desligar a entrega travaria a chave de abrir da mesma linha
+ * enquanto a rede responde. O erro fica por filial de propósito: a linha tem um
+ * lugar só para dizer o que aconteceu.
  */
+
+/** Os três interruptores de uma linha. Cada um vai por uma rota. */
+export type OperationField = 'is_open' | 'accepts_delivery' | 'accepts_pickup';
+
+const chave = (branchId: string, campo: OperationField) => `${branchId}#${campo}`;
 export function useBranchOperation(branchId: string) {
   const [branches, setBranches] = useState<BranchOperation[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,26 +55,43 @@ export function useBranchOperation(branchId: string) {
     void reload();
   }, [reload]);
 
-  const toggleOpen = useCallback(async (alvo: string, isOpen: boolean): Promise<boolean> => {
-    if (alvo === '') return false;
+  /**
+   * Liga ou desliga UM dos três interruptores de UMA filial.
+   *
+   * As duas rotas são separadas no backend porque os gestos são diferentes —
+   * fechar a loja é do balcão, desligar a entrega é da gerência —, mas as duas
+   * respondem a linha de operação inteira, e por isso a tela trata as três
+   * chaves pelo mesmo caminho.
+   */
+  const toggle = useCallback(
+    async (alvo: string, campo: OperationField, valor: boolean): Promise<boolean> => {
+      if (alvo === '') return false;
 
-    setSaving((atuais) => [...atuais, alvo]);
-    setErrors(({ [alvo]: _descartado, ...resto }) => resto);
-    try {
-      // A resposta é a linha já gravada, com `is_open_now` recalculado: a tela
-      // adota o que o backend devolveu em vez de confiar no que mandou.
-      const gravada = await setBranchOpen(alvo, isOpen);
-      setBranches((atuais) =>
-        (atuais ?? []).map((linha) => (linha.branch_id === alvo ? gravada : linha)),
-      );
-      return true;
-    } catch (error) {
-      setErrors((atuais) => ({ ...atuais, [alvo]: messageFromUnknownError(error) }));
-      return false;
-    } finally {
-      setSaving((atuais) => atuais.filter((id) => id !== alvo));
-    }
-  }, []);
+      setSaving((atuais) => [...atuais, chave(alvo, campo)]);
+      setErrors(({ [alvo]: _descartado, ...resto }) => resto);
+      try {
+        // A resposta é a linha já gravada, com `is_open_now` recalculado: a tela
+        // adota o que o backend devolveu em vez de confiar no que mandou.
+        //
+        // O corpo do order-types leva SÓ o campo que mudou: mandar os dois
+        // reenviaria por cima do que outra aba acabou de gravar.
+        const gravada =
+          campo === 'is_open'
+            ? await setBranchOpen(alvo, valor)
+            : await setBranchOrderTypes(alvo, { [campo]: valor });
+        setBranches((atuais) =>
+          (atuais ?? []).map((linha) => (linha.branch_id === alvo ? gravada : linha)),
+        );
+        return true;
+      } catch (error) {
+        setErrors((atuais) => ({ ...atuais, [alvo]: messageFromUnknownError(error) }));
+        return false;
+      } finally {
+        setSaving((atuais) => atuais.filter((id) => id !== chave(alvo, campo)));
+      }
+    },
+    [],
+  );
 
   return {
     /** Uma linha por filial que o token alcança, na ordem do backend. */
@@ -76,13 +100,16 @@ export function useBranchOperation(branchId: string) {
     /** O que impediu a LEITURA. Erro de gravação é por filial, em `errorFor`. */
     loadError,
     reload,
-    toggleOpen,
+    toggle,
     /** A linha de uma filial, ou nula: antes de carregar, ou fora do escopo. */
     branchOf: useCallback(
       (id: string) => (branches ?? []).find((linha) => linha.branch_id === id) ?? null,
       [branches],
     ),
-    isSaving: useCallback((id: string) => saving.includes(id), [saving]),
+    isSaving: useCallback(
+      (id: string, campo: OperationField) => saving.includes(chave(id, campo)),
+      [saving],
+    ),
     errorFor: useCallback((id: string) => errors[id] ?? null, [errors]),
   };
 }

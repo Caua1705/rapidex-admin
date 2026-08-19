@@ -1,4 +1,6 @@
 import { Switch } from '../ds/Switch';
+import type { BranchOperation } from '../api/types';
+import { estaNoAr, situacaoDaFilial } from './operation-state';
 
 /**
  * Abrir e fechar a loja — DESTA FILIAL.
@@ -6,50 +8,52 @@ import { Switch } from '../ds/Switch';
  * Fica no topo de Minha loja, fora das seções: é a única configuração com
  * efeito imediato no que o cliente vê — loja fechada some do app — e a que o
  * lojista procura com pressa, no fim do expediente ou quando a cozinha não dá
- * conta.
+ * conta. Em Operação ele não aparece: lá a mesma filial já tem a própria chave
+ * na lista.
  *
- * NÃO É MAIS UM CARTÃO. Ele é um controle na linha do título: uma caixa de
- * 60px ali empurrava o título da tela para o meio dela e o desalinhava das
- * abas e do primeiro campo do formulário. O que o destaca é a posição (a
- * primeira linha da tela) e o ponto de cor, não uma moldura.
+ * NÃO É UM CARTÃO. Ele é um controle na linha do título: uma caixa de 60px ali
+ * empurrava o título da tela para o meio dela e o desalinhava das abas e do
+ * primeiro campo do formulário. O que o destaca é a posição (a primeira linha
+ * da tela) e o ponto de cor, não uma moldura.
  *
- * O texto ao lado diz a CONSEQUÊNCIA, não o estado. "Fechada" sozinho não
+ * O TEXTO AO LADO DIZ A CONSEQUÊNCIA, NÃO O ESTADO. "Fechada" sozinho não
  * responde a pergunta que o lojista tem na cabeça, que é se ainda está entrando
- * pedido.
- *
- * POR ISSO ELE PRECISA DE `isOpenNow`. A chave e a agenda são duas coisas, e a
- * chave sozinha não responde a pergunta: com a loja deixada aberta às 23h de um
- * dia que fecha às 22h, "o cardápio está no ar e os clientes conseguem fazer
- * pedido" é mentira — e é o chamado mais comum ("não está entrando pedido").
- * Aberta fora do horário, o ponto de cor não acende: quem olha de longe precisa
- * ver a mesma coisa que o texto diz.
+ * pedido — e são três coisas que decidem isso, não só a chave. A regra de quais
+ * mora em `operation-state.ts`, junto com a da linha de Operação; aqui está só
+ * a prosa de cada caso, que é mais longa porque este controle está sozinho no
+ * alto da tela e não tem uma coluna ao lado explicando.
  */
 export function StoreStatusCard({
-  isOpen,
-  isOpenNow,
+  operacao,
   isLoading,
   isSaving,
   errorMessage,
   onToggle,
 }: {
-  /** A chave que o lojista controla. */
-  isOpen: boolean;
-  /** A chave combinada com a agenda de hoje. `null` enquanto não carregou. */
-  isOpenNow: boolean | null;
+  /** A linha da filial que o cabeçalho está exibindo. Nula antes de carregar. */
+  operacao: BranchOperation | null;
   isLoading: boolean;
   isSaving: boolean;
   /** O que deu errado no último clique. O estado mostrado continua sendo o do backend. */
   errorMessage: string | null;
   onToggle: (next: boolean) => void;
 }) {
-  const noAr = isOpen && isOpenNow !== false;
+  const isOpen = operacao?.is_open !== false;
+  const noAr = estaNoAr(operacao);
 
   function hint() {
     if (isLoading) return 'Lendo a situação da loja.';
-    if (!isOpen) return 'Ninguém consegue fazer pedido enquanto estiver assim.';
-    if (isOpenNow === false)
-      return 'Aberta, mas fora do horário de hoje: só volta a receber pedido no próximo horário cadastrado.';
-    return 'O cardápio está no ar e os clientes conseguem fazer pedido.';
+
+    switch (situacaoDaFilial(operacao)) {
+      case 'fechada':
+        return 'Ninguém consegue fazer pedido enquanto estiver assim.';
+      case 'fora-do-horario':
+        return 'Aberta, mas fora do horário de hoje: só volta a receber pedido no próximo horário cadastrado.';
+      case 'sem-forma-de-comprar':
+        return 'Aberta, mas sem entrega e sem retirada: ninguém consegue comprar até uma das duas voltar.';
+      default:
+        return 'O cardápio está no ar e os clientes conseguem fazer pedido.';
+    }
   }
 
   return (
@@ -57,7 +61,7 @@ export function StoreStatusCard({
       className={`store-status${noAr ? ' store-status--open' : ''}`}
       data-testid="store-status"
       data-open={isOpen}
-      data-open-now={isOpenNow ?? ''}
+      data-no-ar={noAr}
     >
       <span className="store-status__dot" aria-hidden="true" />
 

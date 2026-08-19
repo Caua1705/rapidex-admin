@@ -925,6 +925,8 @@ export type FakeApi = {
   putOutsideHours: (branchId: string) => void;
   /** O estado do dia da filial: a chave, os tipos de pedido e a agenda. */
   operation: (branchId: string) => BranchDayState | undefined;
+  /** Corpo de cada PATCH /admin/branches/{id}/order-types que chegou. */
+  orderTypeCalls: () => { branchId: string; body: Record<string, unknown> }[];
   /** Empurra um pedido novo pelo SSE, como se outro cliente tivesse comprado. */
   pushNewOrder: (item: OrderListItem) => void;
   /** Muda o status por fora da tela, como faria outro atendente. */
@@ -991,6 +993,8 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     settings: initialSettings(),
     settingsPatches: [] as Record<string, unknown>[],
     branchPatches: [] as { branchId: string; body: Record<string, unknown> }[],
+    /** Cada PATCH de tipos de pedido, para conferir que só vai o campo mexido. */
+    orderTypeCalls: [] as { branchId: string; body: Record<string, unknown> }[],
     businessHours: {
       [BRANCH_ID]: initialBusinessHours(BRANCH_ID),
     } as Record<string, BusinessHour[]>,
@@ -1141,6 +1145,40 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         return json(route, 404, { detail: 'Filial não encontrada.' });
       }
       return json(route, 200, linhas);
+    }
+
+    const orderTypesMatch = /^\/admin\/branches\/([^/]+)\/order-types$/.exec(path);
+    if (method === 'PATCH' && orderTypesMatch?.[1]) {
+      const branchId = orderTypesMatch[1];
+      const branch = state.branches.find((item) => item.id === branchId);
+      if (!branch) return json(route, 404, { detail: 'Filial não encontrada.' });
+
+      const body = request.postDataJSON() as {
+        accepts_delivery?: boolean | null;
+        accepts_pickup?: boolean | null;
+      };
+      state.orderTypeCalls.push({ branchId, body });
+
+      /*
+       * CORPO VAZIO É 422 NO BACKEND, e o falso responde igual: "não mudar
+       * nada" não é uma edição. É o que prova que a tela manda só o campo que o
+       * lojista mexeu — e não os dois com o outro repetido.
+       */
+      const delivery = body.accepts_delivery;
+      const pickup = body.accepts_pickup;
+      if (delivery === undefined && pickup === undefined) {
+        return json(route, 422, { detail: 'Informe pelo menos um tipo de pedido.' });
+      }
+
+      const atual = state.dayState[branchId] ?? initialDayState();
+      state.dayState[branchId] = {
+        ...atual,
+        // Edição parcial: o campo ausente não se mexe. Desligar os dois é
+        // permitido — equivale a fechar a loja.
+        accepts_delivery: delivery ?? atual.accepts_delivery,
+        accepts_pickup: pickup ?? atual.accepts_pickup,
+      };
+      return json(route, 200, operationOf(branch));
     }
 
     const storeStatusMatch = /^\/admin\/branches\/([^/]+)\/store-status$/.exec(path);
@@ -1775,6 +1813,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       };
     },
     operation: (branchId: string) => state.dayState[branchId],
+    orderTypeCalls: () => state.orderTypeCalls,
     categories: () => state.categories,
     product: (productId) => state.products.find((item) => item.id === productId),
     reorderCalls: () => state.reorderCalls,

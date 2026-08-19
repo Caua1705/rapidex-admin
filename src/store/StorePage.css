@@ -169,36 +169,55 @@
  * tela lia como dois blocos desalinhados.
  */
 .store__section--estreita {
-  max-width: 640px;
+  max-width: 720px;
 }
 
 /* ==========================================================================
- * OPERAÇÃO — uma linha por filial
+ * OPERAÇÃO — uma linha por filial, três chaves cada
  *
  * É lista de CONFERÊNCIA ("quais das minhas lojas estão no ar agora?"), então
- * ela é densa e vai a grade: as três colunas caem na mesma abscissa em todas as
- * linhas, e o olho desce a coluna das chaves sem procurar cada uma.
+ * ela é densa e vai a grade: as seis colunas caem na mesma abscissa em todas as
+ * linhas, e o olho desce a coluna de uma chave sem procurar cada uma.
+ *
+ * Os rótulos das três colunas ficam no cabeçalho da lista, e não em cada linha:
+ * repetidos, seriam três palavras iguais em cinco linhas ocupando a largura do
+ * que muda.
  * ======================================================================= */
 .op-list {
-  display: flex;
-  flex-direction: column;
   border: 1px solid var(--line);
   border-radius: var(--r-card);
   background: var(--surface);
   box-shadow: var(--shadow-card);
 }
 
+.op-head,
 .op-row {
   display: grid;
-  /* A observação tem largura fixa para alinhar entre linhas; só o nome é fluido. */
-  grid-template-columns: 7px minmax(0, 1fr) 200px auto;
+  /*
+   * Só o nome é fluido. A observação tem largura fixa para alinhar entre as
+   * linhas, e as três chaves têm a largura do rótulo que as nomeia lá em cima.
+   */
+  grid-template-columns: 7px minmax(0, 1fr) 190px 72px 72px 72px;
   align-items: center;
   gap: var(--sp-8);
-  min-height: var(--row-dense-h);
   padding: var(--sp-8) var(--sp-16);
 }
 
-.op-row + .op-row {
+.op-head {
+  padding-bottom: var(--sp-4);
+}
+
+.op-head__col {
+  text-align: center;
+}
+
+.op-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.op-row {
+  min-height: var(--row-dense-h);
   border-top: 1px solid var(--line);
 }
 
@@ -209,7 +228,11 @@
   background: var(--ink-3);
 }
 
-/* No ar é a chave LIGADA e a agenda de hoje aberta — não só a chave. */
+/*
+ * No ar é a chave LIGADA, a agenda de hoje aberta E alguma forma de comprar.
+ * Desligar entrega e retirada equivale a fechar a loja; um ponto que só olhasse
+ * `is_open` continuaria aceso numa loja em que ninguém consegue comprar.
+ */
 .op-row--on .op-row__dot {
   background: var(--ok);
 }
@@ -238,22 +261,65 @@
 }
 
 /*
- * No celular a coluna da observação não cabe ao lado do nome sem espremer os
- * dois. Ela desce para uma segunda linha, e a chave continua onde estava.
+ * As três chaves são um grupo no HTML e nenhum na grade: `contents` deixa cada
+ * uma cair na coluna dela, que é o que alinha as chaves entre as linhas.
+ */
+.op-row__chaves {
+  display: contents;
+}
+
+.op-row__chave {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-8);
+}
+
+/* O rótulo mora no cabeçalho da coluna enquanto ele couber. */
+.op-row__chave-rotulo {
+  display: none;
+}
+
+/*
+ * CELULAR: as colunas de chave não cabem ao lado do nome, e um cabeçalho de
+ * coluna a 60px de largura seria ilegível. As três descem para uma linha
+ * própria e cada uma leva o rótulo junto — que é onde ele volta a ser
+ * necessário, e onde não se repete entre colunas.
  */
 @media (max-width: 720px) {
+  .op-head {
+    display: none;
+  }
+
   .op-row {
-    grid-template-columns: 7px minmax(0, 1fr) auto;
-    row-gap: var(--sp-4);
+    grid-template-columns: 7px minmax(0, 1fr);
+    row-gap: var(--sp-8);
+    padding-top: var(--sp-12);
+    padding-bottom: var(--sp-12);
   }
 
   .op-row__note {
-    grid-column: 2 / 4;
+    grid-column: 2;
     text-align: left;
   }
 
   .op-row__note:empty {
     display: none;
+  }
+
+  .op-row__chaves {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-16);
+    grid-column: 2;
+  }
+
+  .op-row__chave {
+    justify-content: flex-start;
+  }
+
+  .op-row__chave-rotulo {
+    display: inline;
   }
 }
 
