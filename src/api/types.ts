@@ -29,9 +29,30 @@ export type Branch = Schemas['AdminBranchResponse'];
 
 // --- minha loja ---------------------------------------------------------
 
-/** Configuração do RESTAURANTE inteiro, não da filial. */
+/**
+ * Os PADRÕES do restaurante — não mais o estado da loja.
+ *
+ * `is_open`, `accepts_delivery` e `accepts_pickup` SAÍRAM daqui: eles passaram
+ * a ser de cada filial (ver `BranchOperation`). Mandá-los no PATCH responde
+ * 422. O que sobrou são valor mínimo, prazo estimado, taxa de serviço e taxa de
+ * contingência, e nenhum pedido os lê direto: a filial os herda nos campos que
+ * deixou nulos.
+ */
 export type RestaurantSettings = Schemas['AdminRestaurantSettingsResponse'];
 export type RestaurantSettingsUpdate = Schemas['AdminRestaurantSettingsUpdate'];
+
+/**
+ * Como UMA filial está operando agora — uma linha de `GET /admin/branches/operation`.
+ *
+ * `is_open` e `is_open_now` são coisas diferentes e as duas vêm de propósito:
+ * `is_open` é a chave que o lojista controla, `is_open_now` é essa chave
+ * combinada com a agenda da semana. Aberta com `is_open_now: false` significa
+ * "você deixou aberta, mas o horário de hoje já fechou".
+ *
+ * `overrides` é o que está gravado NA filial — `null` ali é "herda o padrão do
+ * restaurante", nunca zero. `effective` é o que o próximo pedido vai usar.
+ */
+export type BranchOperation = Schemas['AdminBranchOperationResponse'];
 
 /** Cadastro, localização e regras de entrega da filial, no mesmo PATCH. */
 export type BranchUpdate = Schemas['AdminBranchUpdate'];
@@ -109,7 +130,8 @@ export type SalesByDay = Schemas['SalesByDayResponse'];
 export type SalesByDayItem = Schemas['SalesByDayItem'];
 export type MetricComparison = Schemas['MetricComparison'];
 export type OrderTypeSplitItem = Schemas['OrderTypeSplitItem'];
-export type ReportPaymentMethods = Schemas['src__schemas__admin_report_schema__PaymentMethodsResponse'];
+export type ReportPaymentMethods =
+  Schemas['src__schemas__admin_report_schema__PaymentMethodsResponse'];
 export type ProductSales = Schemas['ProductSalesResponse'];
 export type Cancellations = Schemas['CancellationsResponse'];
 export type CommissionReport = Schemas['CommissionReportResponse'];

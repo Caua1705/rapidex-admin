@@ -1,24 +1,26 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { messageFromUnknownError } from '../api/errors';
-import { fetchSettings, setStoreOpen, updateSettings } from '../api/store';
+import { fetchSettings, updateSettings } from '../api/store';
 import type { RestaurantSettings, RestaurantSettingsUpdate } from '../api/types';
 
 /**
- * As configurações do RESTAURANTE (não da filial).
+ * Os PADRÕES do restaurante (não o estado da filial).
  *
- * Abrir/fechar a loja mora aqui junto com o resto porque é o mesmo recurso do
- * outro lado — a resposta do `store-status` traz as configurações inteiras
- * atualizadas. Mas ela tem estado de "salvando" PRÓPRIO: com um só, clicar em
- * fechar a loja travaria os campos do formulário, e salvar o formulário
- * travaria o botão de fechar.
+ * ABRIR/FECHAR SAIU DAQUI. Enquanto `is_open` era do restaurante, ele morava
+ * junto porque era o mesmo recurso do outro lado — a resposta do `store-status`
+ * trazia as configurações inteiras. Hoje o estado do dia é de cada filial e tem
+ * hook próprio (`useBranchOperation`); `accepts_delivery` e `accepts_pickup`
+ * foram junto, pelo mesmo caminho.
+ *
+ * O que sobrou aqui é o que a filial HERDA quando não sobrescreve: valor
+ * mínimo, prazo estimado e taxa de serviço.
  */
 export function useStoreSettings() {
   const [settings, setSettings] = useState<RestaurantSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isTogglingOpen, setIsTogglingOpen] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
   const reload = useCallback(async () => {
@@ -54,30 +56,14 @@ export function useStoreSettings() {
     }
   }, []);
 
-  const toggleOpen = useCallback(async (isOpen: boolean): Promise<boolean> => {
-    setIsTogglingOpen(true);
-    setErrorMessage(null);
-    try {
-      setSettings(await setStoreOpen(isOpen));
-      return true;
-    } catch (error) {
-      setErrorMessage(messageFromUnknownError(error));
-      return false;
-    } finally {
-      setIsTogglingOpen(false);
-    }
-  }, []);
-
   return {
     settings,
     isLoading,
     isSaving,
-    isTogglingOpen,
     errorMessage,
     savedAt,
     reload,
     save,
-    toggleOpen,
     dismissError: useCallback(() => setErrorMessage(null), []),
   };
 }

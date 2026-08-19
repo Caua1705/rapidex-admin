@@ -3,8 +3,8 @@
  *
  * Duas escalas convivem aqui e é importante não confundi-las:
  *
- *   - `/admin/settings` é do RESTAURANTE inteiro (valor mínimo, tempo estimado,
- *     taxa de serviço, aceita entrega/retirada, loja aberta);
+ *   - `/admin/settings` é do RESTAURANTE inteiro, e hoje só os PADRÕES (valor
+ *     mínimo, tempo estimado, taxa de serviço, taxa de contingência);
  *   - `/admin/branches/{id}` e o que pende dele — horários, entrega, formas de
  *     pagamento — são de UMA FILIAL.
  *
@@ -15,6 +15,7 @@
 import { apiClient, unwrap, unwrapEmpty } from './client';
 import type {
   Branch,
+  BranchOperation,
   BranchUpdate,
   BusinessHourInput,
   BusinessHour,
@@ -35,17 +36,50 @@ export async function updateSettings(body: RestaurantSettingsUpdate): Promise<Re
   return unwrap(await apiClient.PATCH('/admin/settings', { body }));
 }
 
+// --- operação da filial -------------------------------------------------
+
+/*
+ * O ESTADO DO DIA É DA FILIAL, SEM HERANÇA.
+ *
+ * `PATCH /admin/settings/store-status` não existe mais: fechar a loja do Centro
+ * fechava a da Aldeota junto, e não havia como fechar só uma — que é a única
+ * coisa que a operação de fato quer fazer às 21h. A rota de hoje pede a filial
+ * no caminho, e por isso todas as funções daqui exigem `branchId`.
+ */
+
 /**
- * Abrir/fechar a loja.
+ * A tela de operação inteira em uma chamada: uma linha por filial.
+ *
+ * `branchId` só RESTRINGE. Sem ele vêm todas as filiais que o token alcança —
+ * que é uma só para quem está preso a uma filial, sem a tela precisar conhecer
+ * a regra de escopo.
+ */
+export async function fetchBranchOperation(branchId?: string): Promise<BranchOperation[]> {
+  return unwrap(
+    await apiClient.GET('/admin/branches/operation', {
+      params: { query: branchId ? { branch_id: branchId } : {} },
+    }),
+  );
+}
+
+/**
+ * Abrir/fechar ESTA filial.
  *
  * Rota própria, como a disponibilidade do produto no cardápio: é a ação mais
  * clicada do painel e não pode arrastar junto o resto do formulário que estava
  * aberto na tela. Um PATCH das configurações inteiras reenviaria valor mínimo e
  * taxa de serviço meio editados só porque o lojista fechou a loja.
+ *
+ * A resposta é a linha de operação inteira da filial — inclusive `is_open_now`,
+ * que pode voltar `false` com `is_open: true` quando o horário de hoje já
+ * fechou.
  */
-export async function setStoreOpen(isOpen: boolean): Promise<RestaurantSettings> {
+export async function setBranchOpen(branchId: string, isOpen: boolean): Promise<BranchOperation> {
   return unwrap(
-    await apiClient.PATCH('/admin/settings/store-status', { body: { is_open: isOpen } }),
+    await apiClient.PATCH('/admin/branches/{branch_id}/store-status', {
+      params: { path: { branch_id: branchId } },
+      body: { is_open: isOpen },
+    }),
   );
 }
 

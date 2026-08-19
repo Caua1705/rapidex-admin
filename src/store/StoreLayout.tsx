@@ -4,6 +4,7 @@ import { useAdoptedBranch } from '../auth/use-branch-scope';
 import { StoreStatusCard } from './StoreStatusCard';
 import { STORE_SECTIONS } from './store-sections';
 import { useBranchDetail } from './useBranchDetail';
+import { useBranchOperation } from './useBranchOperation';
 import { useStoreSettings } from './useStoreSettings';
 import './StorePage.css';
 
@@ -56,12 +57,18 @@ export function StoreLayout() {
 
   const settings = useStoreSettings();
   const branchDetail = useBranchDetail(branchId);
+  /*
+   * Abrir/fechar é da FILIAL, e por isso não sai mais de `useStoreSettings`:
+   * `is_open` deixou de existir nas configurações do restaurante. A filial aqui
+   * é a adotada — a mesma que o cabeçalho está exibindo.
+   */
+  const operation = useBranchOperation(branchId);
 
   const context: StoreOutletContext = {
     settings,
     branchDetail,
     branchId,
-    branchLabel: hasChoice && branch ? (branch.display_name?.trim() || branch.name) : '',
+    branchLabel: hasChoice && branch ? branch.display_name?.trim() || branch.name : '',
   };
 
   return (
@@ -85,9 +92,7 @@ export function StoreLayout() {
           <NavLink
             key={secao.id}
             to={secao.id}
-            className={({ isActive }) =>
-              `store__anchor${isActive ? ' store__anchor--on' : ''}`
-            }
+            className={({ isActive }) => `store__anchor${isActive ? ' store__anchor--on' : ''}`}
             data-testid={`store-anchor-${secao.id}`}
           >
             {secao.label}
@@ -104,12 +109,18 @@ export function StoreLayout() {
             mais clicada desta tela e a única com efeito imediato no que o
             cliente vê. Dentro de uma das seis, ela custaria uma navegação no
             momento em que a cozinha já não dá conta.
+
+            ELA FECHA UMA FILIAL, a que o cabeçalho está mostrando — não a rede.
+            É por isso que o cabeçalho exibir a filial adotada deixou de ser só
+            uma cortesia: sem ele, o interruptor não diria o que está fechando.
           */}
           <StoreStatusCard
-            isOpen={settings.settings?.is_open !== false}
-            isLoading={settings.isLoading}
-            isSaving={settings.isTogglingOpen}
-            onToggle={(next) => void settings.toggleOpen(next)}
+            isOpen={operation.branch?.is_open !== false}
+            isOpenNow={operation.branch?.is_open_now ?? null}
+            isLoading={operation.isLoading}
+            isSaving={operation.isTogglingOpen}
+            errorMessage={operation.errorMessage}
+            onToggle={(next) => void operation.toggleOpen(next)}
           />
         </header>
 

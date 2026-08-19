@@ -148,6 +148,12 @@
   color: var(--ink-3);
 }
 
+/* O clique não foi gravado. Mesma linha, mesma altura: só a cor muda, porque
+   o que mudou é o assunto da frase, não o lugar dela. */
+.store-status__hint--error {
+  color: var(--danger);
+}
+
 /* ==========================================================================
  * O FORMULÁRIO — o mesmo ritmo em todas as seções
  * ======================================================================= */

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 import type { OrderListItem } from '../api/types';
 import { useSession } from '../auth/session-context';
-import { useStoreSettings } from '../store/useStoreSettings';
+import { useBranchOperation } from '../store/useBranchOperation';
 import { emptyBoardState } from './empty-board';
 import {
   LANES,
@@ -31,9 +31,13 @@ export function OrdersPage() {
    * Só para o estado vazio: "não entrou pedido" e "a loja está fechada" são
    * respostas diferentes, e sem `is_open` a tela só sabe dizer a primeira —
    * que é justamente a errada quando o lojista esqueceu a loja fechada. Uma
-   * leitura de `/admin/settings` na abertura, e nada mais.
+   * leitura de `/admin/branches/operation` na abertura, e nada mais.
+   *
+   * A FILIAL AQUI É A DO FILTRO, e ela pode ser "todas" — o quadro é de leitura,
+   * então esta tela não adota filial nenhuma (ver `usePrepRange` abaixo, pelo
+   * mesmo motivo).
    */
-  const settings = useStoreSettings();
+  const operation = useBranchOperation(activeBranchId);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [view, setView] = useState<BoardView>('andamento');
 
@@ -93,8 +97,17 @@ export function OrdersPage() {
     (total, lane) => total + countFor(lane.statuses, board.counts),
     0,
   );
+  /*
+   * COM "TODAS AS FILIAIS", FECHADA SÓ VALE SE TODAS ESTIVEREM. O quadro mistura
+   * as lojas: com uma aberta e outra fechada, ainda entra pedido, e dizer "a
+   * loja está fechada" mandaria o lojista abrir o que já está aberto. Nulo
+   * enquanto a leitura não chegou — a tela não afirma nem uma coisa nem outra.
+   */
+  const linhas = operation.branches;
+  const isOpen = linhas === null || linhas.length === 0 ? null : linhas.some((l) => l.is_open);
+
   const vazio = emptyBoardState({
-    isOpen: settings.settings?.is_open ?? null,
+    isOpen,
     period: board.filters.period,
     search: board.filters.search,
   });

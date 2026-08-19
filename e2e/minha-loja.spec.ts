@@ -9,7 +9,14 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { branchName } from '../src/layout/branch-heading';
-import { installFakeApi, FAKE_BRANCH, LOGIN_EMAIL, LOGIN_PASSWORD, type FakeApi } from './fake-api';
+import {
+  installFakeApi,
+  FAKE_BRANCH,
+  FAKE_BRANCH_2,
+  LOGIN_EMAIL,
+  LOGIN_PASSWORD,
+  type FakeApi,
+} from './fake-api';
 import { escolher, escolherFilial as escolherFilialNoTopo } from './seletor';
 
 let api: FakeApi;
@@ -48,7 +55,7 @@ async function escolherFilial(page: Page) {
   await escolherFilialNoTopo(page);
 }
 
-test('a sidebar leva a Minha loja e a loja abre e fecha pelo topo', async ({ page }) => {
+test('a sidebar leva a Minha loja e a filial abre e fecha pelo topo', async ({ page }) => {
   await abrirMinhaLoja(page);
 
   const status = page.getByTestId('store-status');
@@ -61,7 +68,33 @@ test('a sidebar leva a Minha loja e a loja abre e fecha pelo topo', async ({ pag
 
   await expect(status).toHaveAttribute('data-open', 'false');
   await expect(status).toContainText('Ninguém consegue fazer pedido');
-  expect(api.settings().is_open).toBe(false);
+
+  /*
+   * FECHOU UMA FILIAL, NÃO A REDE. É a mudança inteira deste passo: enquanto
+   * `is_open` era do restaurante, fechar a Aldeota fechava a Zona Norte junto —
+   * e o teste que só olhasse a tela não veria diferença nenhuma.
+   */
+  expect(api.operation(FAKE_BRANCH.id)?.is_open).toBe(false);
+  expect(api.operation(FAKE_BRANCH_2.id)?.is_open).toBe(true);
+});
+
+/*
+ * A chave e a agenda são duas coisas, e é o chamado mais comum do suporte:
+ * "não está entrando pedido" com a loja marcada como aberta. O texto ao lado
+ * diz a consequência, então ele não pode afirmar que o cardápio está no ar
+ * enquanto o horário de hoje já fechou.
+ */
+test('aberta fora do horário de hoje, a tela diz isso em vez de prometer pedido', async ({
+  page,
+}) => {
+  api.putOutsideHours(FAKE_BRANCH.id);
+  await abrirMinhaLoja(page);
+
+  const status = page.getByTestId('store-status');
+  await expect(status).toHaveAttribute('data-open', 'true');
+  await expect(status).toContainText('Loja aberta');
+  await expect(status).toContainText('fora do horário de hoje');
+  await expect(status).not.toContainText('O cardápio está no ar');
 });
 
 test('Geral salva as configurações do restaurante e não expõe a taxa padrão', async ({ page }) => {
@@ -140,9 +173,7 @@ test('as seções de filial resolvem a filial em vez de pedir uma', async ({ pag
 
   // Geral é do restaurante inteiro: a linha auxiliar dela diz outra coisa.
   await expect(page.getByTestId('settings-min-order')).toBeVisible();
-  await expect(page.getByTestId('store-branch-note')).toHaveText(
-    'vale para o restaurante inteiro',
-  );
+  await expect(page.getByTestId('store-branch-note')).toHaveText('vale para o restaurante inteiro');
 
   // Filial abre no FORMULÁRIO, já preenchido com a filial principal — sem
   // parede, sem botão de escolha, sem bloqueio.

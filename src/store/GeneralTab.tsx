@@ -18,8 +18,6 @@ type Draft = {
   estimatedMax: string;
   serviceFeeEnabled: boolean;
   serviceFeeAmount: string;
-  acceptsDelivery: boolean;
-  acceptsPickup: boolean;
 };
 
 const EMPTY: Draft = {
@@ -28,13 +26,17 @@ const EMPTY: Draft = {
   estimatedMax: '',
   serviceFeeEnabled: true,
   serviceFeeAmount: '',
-  acceptsDelivery: true,
-  acceptsPickup: true,
 };
 
 /**
  * Configurações do RESTAURANTE inteiro — as mesmas para todas as filiais. É a
  * única aba desta tela que funciona com "Todas as filiais" no cabeçalho.
+ *
+ * "ACEITA ENTREGA" E "ACEITA RETIRADA" SAÍRAM DAQUI. Eles passaram a ser de
+ * cada filial (`PATCH /admin/branches/{id}/order-types`) e não existem mais em
+ * `AdminRestaurantSettingsUpdate` — mandá-los neste PATCH responde 422, e
+ * levava junto o resto do formulário. O quiosque que só faz retirada desligava
+ * a entrega da rede inteira, que é o defeito que a mudança fecha.
  *
  * `default_delivery_fee` NÃO ESTÁ AQUI, de propósito. A API aceita editá-lo,
  * mas ele não entra em cobrança nenhuma: o frete cobrado sai das regras por km
@@ -59,8 +61,6 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
       // explícito desliga.
       serviceFeeEnabled: loaded.service_fee_enabled !== false,
       serviceFeeAmount: formatDecimalInput(loaded.service_fee_amount),
-      acceptsDelivery: loaded.accepts_delivery !== false,
-      acceptsPickup: loaded.accepts_pickup !== false,
     };
     setDraft(next);
     setBaseline(next);
@@ -99,8 +99,6 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
       estimated_delivery_time_max: estimatedMax.value,
       service_fee_enabled: draft.serviceFeeEnabled,
       service_fee_amount: serviceFee.value ?? 0,
-      accepts_delivery: draft.acceptsDelivery,
-      accepts_pickup: draft.acceptsPickup,
     };
 
     if (await settings.save(body)) setBaseline(draft);
@@ -195,33 +193,6 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
             />
           </label>
         </div>
-      </section>
-
-      <section className="store-form__section">
-        <h2 className="store-form__heading">Como a loja atende</h2>
-
-        <div className="store-form__row">
-          <Checkbox
-            checked={draft.acceptsDelivery}
-            onChange={(acceptsDelivery) => patch({ acceptsDelivery })}
-            label="Aceita entrega"
-            data-testid="settings-accepts-delivery"
-          />
-
-          <Checkbox
-            checked={draft.acceptsPickup}
-            onChange={(acceptsPickup) => patch({ acceptsPickup })}
-            label="Aceita retirada no balcão"
-            data-testid="settings-accepts-pickup"
-          />
-        </div>
-
-        {!draft.acceptsDelivery && !draft.acceptsPickup ? (
-          <p className="alert alert--warn store-form__warn">
-            Sem entrega e sem retirada não sobra como receber pedido: a loja fica no ar sem nenhuma
-            forma de comprar.
-          </p>
-        ) : null}
       </section>
 
       <SaveBar

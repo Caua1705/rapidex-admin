@@ -25,6 +25,7 @@ type Category = Schemas['AdminCategoryResponse'];
 type Product = Schemas['AdminProductResponse'];
 type PrintSector = Schemas['PrintingSectorResponse'];
 type RestaurantSettings = Schemas['AdminRestaurantSettingsResponse'];
+type BranchOperation = Schemas['AdminBranchOperationResponse'];
 type BusinessHour = Schemas['BusinessHourResponse'];
 type BusinessHourInput = Schemas['BusinessHourInput'];
 type PaymentMethod = Schemas['AdminPaymentMethodResponse'];
@@ -42,6 +43,7 @@ export const ACCESS_TOKEN = 'jwt-de-mentira';
 
 const RESTAURANT_ID = '11111111-1111-1111-1111-111111111111';
 const BRANCH_ID = '22222222-2222-2222-2222-222222222222';
+const BRANCH_ID_2 = '44444444-4444-4444-4444-444444444444';
 
 export const FAKE_USER: AdminUser = {
   id: '33333333-3333-3333-3333-333333333333',
@@ -68,7 +70,7 @@ export const FAKE_BRANCH: Branch = {
 
 /** Segunda filial: sem ela o seletor do cabeçalho não teria o que escolher. */
 export const FAKE_BRANCH_2: Branch = {
-  id: '44444444-4444-4444-4444-444444444444',
+  id: BRANCH_ID_2,
   name: 'Zona Norte',
   slug: 'zona-norte',
   display_name: 'Pizzaria do Zé — Zona Norte',
@@ -269,6 +271,12 @@ function initialCategories(): Category[] {
 }
 
 function initialProducts(): Product[] {
+  /*
+   * `unavailable_by_required_group` entra em UM lugar só, no fim: o contrato
+   * passou a exigi-lo, nenhum item do falso está bloqueado por grupo
+   * obrigatório, e repetir `false` em seis itens só afastaria o que distingue
+   * um do outro.
+   */
   return [
     {
       id: 'prod-1',
@@ -345,7 +353,7 @@ function initialProducts(): Product[] {
       is_available: false,
       sort_order: 2,
     },
-  ];
+  ].map((item) => ({ unavailable_by_required_group: false, ...item }));
 }
 
 /**
@@ -364,10 +372,26 @@ function initialSettings(): RestaurantSettings {
     default_delivery_fee: 7.5,
     service_fee_enabled: true,
     service_fee_amount: 2,
-    accepts_delivery: true,
-    accepts_pickup: true,
-    is_open: true,
   };
+}
+
+/**
+ * O estado do dia de UMA filial — o que `is_open` era quando havia um só.
+ *
+ * `withinHours` não está no contrato: é a agenda da semana, que o backend
+ * combina com a chave para responder `is_open_now`. O falso guarda os dois
+ * separados porque a tela precisa distinguir "fechei a loja" de "o horário de
+ * hoje já fechou", e sem a segunda metade não haveria como encenar a segunda.
+ */
+type BranchDayState = {
+  is_open: boolean;
+  accepts_delivery: boolean;
+  accepts_pickup: boolean;
+  withinHours: boolean;
+};
+
+function initialDayState(): BranchDayState {
+  return { is_open: true, accepts_delivery: true, accepts_pickup: true, withinHours: true };
 }
 
 /** Segunda a sexta abertas, sábado à noite, domingo fechado. */
@@ -549,14 +573,11 @@ const VALORES_ANTERIORES = ['420.00', '1400.00', '10.00', '0.00', '880.50', '124
 function reportDays(inicio: string, fim: string): Schemas['SalesByDayItem'][] {
   const hoje = Date.parse(`${new Date().toISOString().slice(0, 10)}T12:00:00Z`);
   const fimDoPeriodo = Date.parse(`${fim}T12:00:00Z`);
-  const anterior =
-    Number.isFinite(fimDoPeriodo) && hoje - fimDoPeriodo >= 2 * 86_400_000;
+  const anterior = Number.isFinite(fimDoPeriodo) && hoje - fimDoPeriodo >= 2 * 86_400_000;
 
   const valores = anterior ? VALORES_ANTERIORES : VALORES_PERIODO;
   const primeiroDia = Date.parse(`${inicio}T12:00:00Z`);
-  const base = Number.isFinite(primeiroDia)
-    ? primeiroDia
-    : hoje - (PERIODO_DIAS - 1) * 86_400_000;
+  const base = Number.isFinite(primeiroDia) ? primeiroDia : hoje - (PERIODO_DIAS - 1) * 86_400_000;
 
   const dias: Schemas['SalesByDayItem'][] = [];
   for (let i = 0; i < PERIODO_DIAS; i += 1) {
@@ -602,8 +623,18 @@ function initialSalesSummary(start: string, end: string): SalesSummary {
       commission_total: '316.95',
     },
     order_types: [
-      { order_type: 'delivery', orders_count: 41, revenue_total: '2510.00', revenue_share_percent: '79.2' },
-      { order_type: 'pickup', orders_count: 13, revenue_total: '659.50', revenue_share_percent: '20.8' },
+      {
+        order_type: 'delivery',
+        orders_count: 41,
+        revenue_total: '2510.00',
+        revenue_share_percent: '79.2',
+      },
+      {
+        order_type: 'pickup',
+        orders_count: 13,
+        revenue_total: '659.50',
+        revenue_share_percent: '20.8',
+      },
     ],
     excluded_orders_count: 3,
     orders_count_comparison: { current: '54', previous: '48', change: '6', change_percent: '12.5' },
@@ -723,10 +754,25 @@ function initialPaymentsReport(start: string, end: string): ReportPaymentMethods
     orders_count: 54,
     revenue_total: '3169.50',
     payment_methods: [
-      { payment_method: 'pix', orders_count: 30, revenue_total: '1820.00', revenue_share_percent: '57.4' },
-      { payment_method: 'cash', orders_count: 18, revenue_total: '1049.50', revenue_share_percent: '33.1' },
+      {
+        payment_method: 'pix',
+        orders_count: 30,
+        revenue_total: '1820.00',
+        revenue_share_percent: '57.4',
+      },
+      {
+        payment_method: 'cash',
+        orders_count: 18,
+        revenue_total: '1049.50',
+        revenue_share_percent: '33.1',
+      },
       /* Sem forma registrada. NÃO é "Outro" — ver `paymentMethodLabel`. */
-      { payment_method: null, orders_count: 6, revenue_total: '300.00', revenue_share_percent: '9.5' },
+      {
+        payment_method: null,
+        orders_count: 6,
+        revenue_total: '300.00',
+        revenue_share_percent: '9.5',
+      },
     ],
   };
 }
@@ -736,10 +782,28 @@ function initialProductSales(start: string, end: string): ProductSales {
     restaurant_id: RESTAURANT_ID,
     period: reportPeriod(start, end),
     products: [
-      { product_id: 'prod-1', product_name: 'Pizza Calabresa G', orders_count: 22, quantity_total: 26, revenue_total: '1170.00' },
-      { product_id: 'prod-2', product_name: 'X-Burger Clássico', orders_count: 19, quantity_total: 24, revenue_total: '597.60' },
+      {
+        product_id: 'prod-1',
+        product_name: 'Pizza Calabresa G',
+        orders_count: 22,
+        quantity_total: 26,
+        revenue_total: '1170.00',
+      },
+      {
+        product_id: 'prod-2',
+        product_name: 'X-Burger Clássico',
+        orders_count: 19,
+        quantity_total: 24,
+        revenue_total: '597.60',
+      },
       /* Produto apagado depois da venda: `product_id` nulo é caso do contrato. */
-      { product_id: null, product_name: 'Combo de inverno (fora do cardápio)', orders_count: 4, quantity_total: 4, revenue_total: '180.00' },
+      {
+        product_id: null,
+        product_name: 'Combo de inverno (fora do cardápio)',
+        orders_count: 4,
+        quantity_total: 4,
+        revenue_total: '180.00',
+      },
     ],
     listed_revenue_total: '1947.60',
     revenue_note:
@@ -850,8 +914,17 @@ export type FakeApi = {
   clearOrders: () => void;
   /** Devolve os pedidos iniciais depois de um `clearOrders`. */
   restoreOrders: () => void;
-  /** Fecha a loja no "banco", como faria o interruptor de Minha loja. */
+  /** Fecha TODAS as filiais no "banco" — o quadro de pedidos mistura as duas. */
   closeStore: () => void;
+  /**
+   * Deixa a chave ligada e a agenda de hoje fechada.
+   *
+   * É o estado que `is_open` sozinho não sabia descrever: a loja marcada como
+   * aberta sem receber pedido, que é o chamado mais comum do suporte.
+   */
+  putOutsideHours: (branchId: string) => void;
+  /** O estado do dia da filial: a chave, os tipos de pedido e a agenda. */
+  operation: (branchId: string) => BranchDayState | undefined;
   /** Empurra um pedido novo pelo SSE, como se outro cliente tivesse comprado. */
   pushNewOrder: (item: OrderListItem) => void;
   /** Muda o status por fora da tela, como faria outro atendente. */
@@ -905,6 +978,16 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     // PATCH da tela gravam nelas, e mutar a constante vazaria de um teste para
     // o outro.
     branches: [{ ...FAKE_BRANCH }, { ...FAKE_BRANCH_2 }] as Branch[],
+    /*
+     * ABRIR/FECHAR É DE CADA FILIAL. Enquanto era do restaurante, isto era um
+     * campo dentro de `settings` — e fechar a Aldeota fechava o Centro junto.
+     * As sobrescritas comerciais nascem TODAS nulas, como na migração: filial
+     * nova herda o padrão do restaurante.
+     */
+    dayState: {
+      [BRANCH_ID]: initialDayState(),
+      [BRANCH_ID_2]: initialDayState(),
+    } as Record<string, BranchDayState>,
     settings: initialSettings(),
     settingsPatches: [] as Record<string, unknown>[],
     branchPatches: [] as { branchId: string; body: Record<string, unknown> }[],
@@ -920,6 +1003,44 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     productSectorCalls: [] as { productId: string; printSectorId: string | null }[],
     customers: initialCustomers(),
   };
+
+  /**
+   * Uma linha de `GET /admin/branches/operation`.
+   *
+   * `effective` é montado aqui, e não guardado: com a sobrescrita nula, o valor
+   * que vale é o do restaurante — copiá-lo para o estado deixaria o falso
+   * respondendo o número velho depois de um PATCH nos padrões.
+   */
+  function operationOf(branch: Branch): BranchOperation {
+    const dia = state.dayState[branch.id] ?? initialDayState();
+    const padrao = state.settings;
+
+    return {
+      branch_id: branch.id,
+      branch_name: branch.display_name?.trim() || branch.name,
+      is_open: dia.is_open,
+      is_open_now: dia.is_open && dia.withinHours,
+      accepts_delivery: dia.accepts_delivery,
+      accepts_pickup: dia.accepts_pickup,
+      // Todas herdando: é o estado em que a migração deixou as filiais.
+      overrides: {
+        min_order_value: null,
+        estimated_delivery_time_min: null,
+        estimated_delivery_time_max: null,
+        default_delivery_fee: null,
+        service_fee_enabled: null,
+        service_fee_amount: null,
+      },
+      effective: {
+        min_order_value: padrao.min_order_value,
+        estimated_delivery_time_min: padrao.estimated_delivery_time_min ?? null,
+        estimated_delivery_time_max: padrao.estimated_delivery_time_max ?? null,
+        default_delivery_fee: padrao.default_delivery_fee,
+        service_fee_enabled: padrao.service_fee_enabled !== false,
+        service_fee_amount: padrao.service_fee_amount,
+      },
+    };
+  }
 
   function findOrder(orderId: string): OrderListItem | undefined {
     return state.orders.find((item) => item.id === orderId);
@@ -1002,6 +1123,41 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
 
     if (method === 'GET' && path === '/admin/branches') {
       return json(route, 200, [FAKE_BRANCH, FAKE_BRANCH_2]);
+    }
+
+    /*
+     * Antes de qualquer `/admin/branches/{id}`: "operation" é um caminho fixo e
+     * seria lido como id de filial pelo casamento de rota abaixo — o mesmo
+     * cuidado que o reorder já pedia no cardápio.
+     */
+    if (method === 'GET' && path === '/admin/branches/operation') {
+      const pedida = new URL(request.url()).searchParams.get('branch_id');
+      const linhas = state.branches
+        .filter((branch) => !pedida || branch.id === pedida)
+        .map(operationOf);
+      // O `branch_id` só restringe, e pedir uma filial que não existe é 404 —
+      // não lista vazia, que a tela leria como "sem filial nenhuma".
+      if (pedida && linhas.length === 0) {
+        return json(route, 404, { detail: 'Filial não encontrada.' });
+      }
+      return json(route, 200, linhas);
+    }
+
+    const storeStatusMatch = /^\/admin\/branches\/([^/]+)\/store-status$/.exec(path);
+    if (method === 'PATCH' && storeStatusMatch?.[1]) {
+      const branchId = storeStatusMatch[1];
+      const branch = state.branches.find((item) => item.id === branchId);
+      if (!branch) return json(route, 404, { detail: 'Filial não encontrada.' });
+
+      const body = request.postDataJSON() as { is_open: boolean };
+      state.dayState[branchId] = {
+        ...(state.dayState[branchId] ?? initialDayState()),
+        is_open: body.is_open,
+      };
+      // A resposta é a LINHA DE OPERAÇÃO inteira, como no contrato: devolver só
+      // o booleano deixaria o falso mais frouxo que o backend, e a tela leria
+      // `is_open_now` como indefinido.
+      return json(route, 200, operationOf(branch));
     }
 
     if (method === 'GET' && path === '/admin/orders') {
@@ -1252,16 +1408,6 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     }
 
     // --- minha loja: configurações do restaurante --------------------------
-
-    /*
-     * Antes de /admin/settings, senão "store-status" seria lido como parte do
-     * PATCH das configurações inteiras — o mesmo cuidado do reorder.
-     */
-    if (method === 'PATCH' && path === '/admin/settings/store-status') {
-      const body = request.postDataJSON() as { is_open: boolean };
-      state.settings.is_open = body.is_open;
-      return json(route, 200, state.settings);
-    }
 
     if (path === '/admin/settings') {
       if (method === 'GET') return json(route, 200, state.settings);
@@ -1612,9 +1758,23 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     restoreOrders() {
       state.orders.splice(0, state.orders.length, ...initialOrders());
     },
+    /** Fecha TODAS as filiais: o quadro de pedidos mistura as duas lojas. */
     closeStore() {
-      state.settings.is_open = false;
+      for (const branch of state.branches) {
+        state.dayState[branch.id] = {
+          ...(state.dayState[branch.id] ?? initialDayState()),
+          is_open: false,
+        };
+      }
     },
+    /** A chave fica ligada e a agenda de hoje fecha: `is_open_now` cai sozinho. */
+    putOutsideHours(branchId: string) {
+      state.dayState[branchId] = {
+        ...(state.dayState[branchId] ?? initialDayState()),
+        withinHours: false,
+      };
+    },
+    operation: (branchId: string) => state.dayState[branchId],
     categories: () => state.categories,
     product: (productId) => state.products.find((item) => item.id === productId),
     reorderCalls: () => state.reorderCalls,
