@@ -32,6 +32,9 @@ function product(overrides: Partial<Product> = {}): Product {
     is_active: true,
     is_available: true,
     sort_order: 0,
+    // O contrato passou a exigir o campo: o backend calcula em SQL se um grupo
+    // obrigatório sem opção disponível tirou o item de venda.
+    unavailable_by_required_group: false,
     ...overrides,
   };
 }

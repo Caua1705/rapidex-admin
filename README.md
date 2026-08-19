@@ -38,19 +38,19 @@ JWT — o painel nunca manda `restaurant_id` em lugar nenhum.
 
 ### Scripts
 
-| Comando                | O que faz                                                  |
-| ---------------------- | ---------------------------------------------------------- |
-| `npm run dev`          | Servidor de desenvolvimento                                |
-| `npm run build`        | Confere os tipos e gera `dist/`                            |
-| `npm run preview`      | Serve o `dist/` como em produção                           |
-| `npm run lint`         | ESLint (com as regras do design system) + aderência de cor |
-| `npm run lint:tokens`  | Só a aderência de cor nos `.css`                           |
-| `npm run format`       | Prettier (escreve); `format:check` só confere              |
-| `npm run typecheck`    | TypeScript sem gerar arquivo                               |
-| `npm test`             | Testes unitários (Vitest)                                  |
-| `npm run e2e`          | Teste de ponta a ponta (Playwright)                        |
-| `npm run e2e:install`  | Baixa o Chromium do Playwright (uma vez por máquina)       |
-| `npm run api:generate` | **Regera o cliente da API** a partir do `/openapi.json`    |
+| Comando                | O que faz                                                   |
+| ---------------------- | ----------------------------------------------------------- |
+| `npm run dev`          | Servidor de desenvolvimento                                 |
+| `npm run build`        | Confere os tipos e gera `dist/`                             |
+| `npm run preview`      | Serve o `dist/` como em produção                            |
+| `npm run lint`         | ESLint (com as regras do design system) + aderência de cor  |
+| `npm run lint:tokens`  | Só a aderência de cor nos `.css`                            |
+| `npm run format`       | Prettier (escreve); `format:check` só confere               |
+| `npm run typecheck`    | TypeScript sem gerar arquivo                                |
+| `npm test`             | Testes unitários (Vitest)                                   |
+| `npm run e2e`          | Teste de ponta a ponta (Playwright)                         |
+| `npm run e2e:install`  | Baixa o Chromium do Playwright (uma vez por máquina)        |
+| `npm run api:generate` | **Regera o cliente da API** a partir do contrato do backend |
 
 ---
 
@@ -201,9 +201,35 @@ npm run api:generate
 
 Esse comando faz duas coisas:
 
-1. `openapi-typescript https://api.pederapidex.com/openapi.json -o src/api/generated/openapi.d.ts`
-   baixa o contrato e transforma em tipos TypeScript (`paths` e `components`).
-2. Roda o Prettier no arquivo gerado, para o diff no git ficar legível.
+1. lê o contrato e transforma em tipos TypeScript (`paths` e `components`) em
+   `src/api/generated/openapi.d.ts`;
+2. roda o Prettier no arquivo gerado, para o diff no git ficar legível.
+
+### De onde o contrato vem — e por que não vem mais da API no ar
+
+Ele **não** sai mais de `https://api.pederapidex.com/openapi.json`. Essa URL é
+desligada de propósito em produção: publicar o documento entregaria a superfície
+inteira da API, `/admin` inclusive. A fonte da verdade é o `openapi.json`
+**commitado na raiz do repositório do backend**.
+
+`scripts/api-generate.mjs` procura nesta ordem:
+
+| Ordem | Origem                              | Quando vale                                                                                                                 |
+| ----- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 1     | `RAPIDEX_OPENAPI` (caminho ou URL)  | apontar para uma branch do backend, ou um arquivo baixado à mão                                                             |
+| 2     | `../pedeaqui_back/openapi.json`     | com o backend clonado ao lado — funciona sem rede e já enxerga a mudança de contrato que você está escrevendo do outro lado |
+| 3     | raw do GitHub, na `main` do backend | para quem não tem o backend clonado                                                                                         |
+
+```bash
+# apontar para outro contrato sem clonar nada
+RAPIDEX_OPENAPI=https://raw.githubusercontent.com/Caua1705/pedeaqui_back/minha-branch/openapi.json npm run api:generate
+```
+
+**Por que não submódulo:** ele traria o backend inteiro para dentro deste
+repositório e cravaria um SHA que alguém precisa atualizar a cada mudança de
+contrato — dois commits para um arquivo JSON, e peso em todo `git clone` e em
+todo checkout do CI. O CI não precisa do backend para nada: o `openapi.d.ts`
+gerado é versionado aqui, e `npm ci` não roda este script.
 
 Em cima desses tipos, `src/api/client.ts` monta um `openapi-fetch`:
 
@@ -348,12 +374,12 @@ no `index.html`, liberado por hash `sha256-`.
 
 O que cada folga da política compra:
 
-| Diretiva | Por que não é mais apertada |
-|---|---|
-| `style-src 'unsafe-inline'` | O Vite injeta estilo por JS e há dois `style={{…}}` em componentes. Não dá execução de código. |
-| `img-src https://*.supabase.co` | A miniatura do produto (`src/menu/ProductRow.tsx`) vem do bucket público de imagens. |
+| Diretiva                                  | Por que não é mais apertada                                                                               |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `style-src 'unsafe-inline'`               | O Vite injeta estilo por JS e há dois `style={{…}}` em componentes. Não dá execução de código.            |
+| `img-src https://*.supabase.co`           | A miniatura do produto (`src/menu/ProductRow.tsx`) vem do bucket público de imagens.                      |
 | `connect-src https://api.pederapidex.com` | Cobre o `fetch` da API **e** o `EventSource` do stream de pedidos — SSE é `connect-src`, não `media-src`. |
-| `font-src 'self'` | A Inter é autohospedada por `@fontsource-variable/inter`. Nenhum CDN de fonte. |
+| `font-src 'self'`                         | A Inter é autohospedada por `@fontsource-variable/inter`. Nenhum CDN de fonte.                            |
 
 O som de pedido novo não aparece na política: ele é sintetizado na Web Audio
 API (`src/orders/useNewOrderSound.ts`), sem arquivo para carregar.
