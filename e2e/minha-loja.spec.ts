@@ -180,6 +180,91 @@ test('o interruptor do cabeçalho vale nas outras seções, e some em Operação
   expect(api.operation(FAKE_BRANCH_2.id)?.is_open).toBe(true);
 });
 
+/*
+ * O DEFEITO QUE ESTE TESTE GUARDA, e é o que faz a taxa mudar sozinha.
+ *
+ * Toda filial nasce herdando, então a tela abre com os quatro campos VAZIOS. Um
+ * formulário que serializa vazio como `null` devolveria a filial ao padrão do
+ * restaurante a cada salvamento — o lojista corrige o prazo, salva, e a taxa de
+ * serviço da loja volta para a da rede sem ninguém ter pedido. O sintoma
+ * aparece semanas depois, com o cliente pagando outro número.
+ */
+test('salvar um campo não devolve os outros ao padrão do restaurante', async ({ page }) => {
+  await abrirMinhaLoja(page);
+  await abrirSecao(page, 'valores');
+
+  // Herdando: campo vazio, e a ajuda diz o padrão por extenso — nunca zero.
+  const minimo = page.getByTestId('branch-min-order');
+  await expect(minimo).toHaveValue('');
+  await expect(page.getByText('Herdando o padrão do restaurante: R$ 20,00')).toBeVisible();
+
+  await minimo.fill('45,00');
+  await page.getByTestId('store-save').click();
+  await expect(page.getByTestId('store-saved')).toBeVisible();
+
+  // SÓ o campo mexido foi no corpo. Nenhum `null` — os outros continuam herdando.
+  expect(api.branchSettingsCalls()).toEqual([
+    { branchId: FAKE_BRANCH.id, body: { min_order_value: 45 } },
+  ]);
+  expect(api.overridesOf(FAKE_BRANCH.id)).toEqual({ min_order_value: 45 });
+});
+
+/*
+ * O `null` explícito é o único jeito de desfazer uma divergência. Ele sai
+ * quando o lojista APAGA um campo que tinha valor — e só então.
+ */
+test('apagar uma sobrescrita devolve a filial ao padrão, e a tela diz de novo qual é', async ({
+  page,
+}) => {
+  await abrirMinhaLoja(page);
+  await abrirSecao(page, 'valores');
+
+  await page.getByTestId('branch-min-order').fill('45,00');
+  await page.getByTestId('store-save').click();
+  await expect(page.getByTestId('store-saved')).toBeVisible();
+
+  // Com valor próprio, a etiqueta aparece e a ajuda passa a dizer o que volta.
+  await expect(page.getByTestId('tag-proprio').first()).toBeVisible();
+  await expect(page.getByText('Padrão do restaurante: R$ 20,00')).toBeVisible();
+
+  await page.getByTestId('branch-min-order').fill('');
+  await page.getByTestId('store-save').click();
+
+  await expect
+    .poll(() => api.branchSettingsCalls().at(-1))
+    .toEqual({ branchId: FAKE_BRANCH.id, body: { min_order_value: null } });
+  expect(api.overridesOf(FAKE_BRANCH.id)).toEqual({});
+  await expect(page.getByText('Herdando o padrão do restaurante: R$ 20,00')).toBeVisible();
+});
+
+/*
+ * "Não cobrar" é uma escolha desta loja; "herdar" segue o que a rede decidir
+ * depois. Com uma caixa de marcar as duas ficariam indistinguíveis, e não
+ * haveria como voltar atrás.
+ */
+test('a taxa de serviço da filial tem três estados, e desligar não é herdar', async ({ page }) => {
+  await abrirMinhaLoja(page);
+  await abrirSecao(page, 'valores');
+
+  await expect(page.getByTestId('branch-service-fee-herda')).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+
+  await page.getByTestId('branch-service-fee-nao-cobra').click();
+  await page.getByTestId('store-save').click();
+  await expect(page.getByTestId('store-saved')).toBeVisible();
+
+  expect(api.overridesOf(FAKE_BRANCH.id)).toEqual({ service_fee_enabled: false });
+
+  await page.getByTestId('branch-service-fee-herda').click();
+  await page.getByTestId('store-save').click();
+
+  await expect
+    .poll(() => api.branchSettingsCalls().at(-1))
+    .toEqual({ branchId: FAKE_BRANCH.id, body: { service_fee_enabled: null } });
+});
+
 test('Geral salva as configurações do restaurante e não expõe a taxa padrão', async ({ page }) => {
   await abrirMinhaLoja(page);
   await abrirSecao(page, 'geral');

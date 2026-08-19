@@ -1,5 +1,5 @@
 /**
- * As sete seções de Minha loja — e cada uma é uma ROTA.
+ * As oito seções de Minha loja — e cada uma é uma ROTA.
  *
  * Esta lista é a fonte única: as rotas (`App.tsx`) e a navegação da esquerda
  * (`StoreLayout`) leem daqui. Duas listas divergiriam no dia em que alguém
@@ -23,7 +23,7 @@
  * cabeçalho dizendo de qual filial é aquele formulário.
  */
 export type StoreSectionId =
-  'operacao' | 'geral' | 'filial' | 'horarios' | 'entrega' | 'pagamento' | 'impressao';
+  'operacao' | 'geral' | 'valores' | 'filial' | 'horarios' | 'entrega' | 'pagamento' | 'impressao';
 
 export type StoreSection = {
   id: StoreSectionId;
@@ -61,6 +61,19 @@ export const STORE_SECTIONS: readonly StoreSection[] = [
     titulo: 'Geral',
     nota: 'vale para o restaurante inteiro',
     scope: 'restaurant',
+  },
+  /*
+   * VALORES vem logo depois de GERAL, e não junto das outras de filial: as duas
+   * editam os MESMOS quatro números, uma no padrão da rede e outra na
+   * sobrescrita da loja. Lado a lado na navegação, a herança se lê na ordem —
+   * separadas por três seções, o lojista mexeria no padrão achando que mexia na
+   * filial, e o número da vitrine não se moveria.
+   */
+  {
+    id: 'valores',
+    label: 'Valores',
+    titulo: 'Valores desta filial',
+    scope: 'branch',
   },
   { id: 'filial', label: 'Filial', titulo: 'Filial', scope: 'branch' },
   { id: 'horarios', label: 'Horários', titulo: 'Horários de funcionamento', scope: 'branch' },

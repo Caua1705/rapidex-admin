@@ -17,6 +17,7 @@ import type {
   Branch,
   BranchOperation,
   BranchOrderTypes,
+  BranchSettingsUpdate,
   BranchUpdate,
   BusinessHourInput,
   BusinessHour,
@@ -102,6 +103,33 @@ export async function setBranchOrderTypes(
 ): Promise<BranchOperation> {
   return unwrap(
     await apiClient.PATCH('/admin/branches/{branch_id}/order-types', {
+      params: { path: { branch_id: branchId } },
+      body,
+    }),
+  );
+}
+
+/**
+ * As sobrescritas comerciais DESTA filial: mínimo, prazo, taxa de serviço e
+ * taxa de contingência.
+ *
+ * Rota separada do PATCH de padrões porque o corpo tem TRÊS estados por campo —
+ * ausente não mexe, valor sobrescreve, e `null` explícito volta a herdar. Sem o
+ * terceiro não haveria como desfazer uma divergência.
+ *
+ * Quem monta o corpo é `store/branch-overrides.ts`, e ele só manda `null`
+ * quando o lojista apagou uma sobrescrita que existia: um formulário que
+ * serializa campo vazio como `null` devolve ao padrão toda filial que estava
+ * herdando, sem ninguém ter pedido.
+ *
+ * Papel SOMENTE_DONO no backend: gerente recebe 403.
+ */
+export async function updateBranchSettings(
+  branchId: string,
+  body: BranchSettingsUpdate,
+): Promise<BranchOperation> {
+  return unwrap(
+    await apiClient.PATCH('/admin/branches/{branch_id}/settings', {
       params: { path: { branch_id: branchId } },
       body,
     }),

@@ -63,6 +63,20 @@ export type BranchOperation = Schemas['AdminBranchOperationResponse'];
  */
 export type BranchOrderTypes = Schemas['AdminBranchOrderTypesRequest'];
 
+/**
+ * As sobrescritas comerciais de uma filial. Três estados por campo:
+ *
+ *   - ausente do corpo → não mexe;
+ *   - com valor        → esta filial passa a usar esse valor;
+ *   - `null` explícito → esta filial VOLTA A HERDAR o padrão do restaurante.
+ *
+ * Sem o terceiro não haveria como desfazer uma divergência: a filial ficaria
+ * com a cópia congelada para sempre, e mudar o padrão não chegaria mais nela.
+ * Quem monta o corpo é `store/branch-overrides.ts`, que só manda `null` quando
+ * o lojista APAGOU uma sobrescrita que existia.
+ */
+export type BranchSettingsUpdate = Schemas['AdminBranchSettingsUpdate'];
+
 /** Cadastro, localização e regras de entrega da filial, no mesmo PATCH. */
 export type BranchUpdate = Schemas['AdminBranchUpdate'];
 

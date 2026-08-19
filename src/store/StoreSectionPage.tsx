@@ -1,6 +1,7 @@
 import { useOutletContext } from 'react-router-dom';
 
 import { BranchTab } from './BranchTab';
+import { BranchValuesTab } from './BranchValuesTab';
 import { DeliveryTab } from './DeliveryTab';
 import { GeneralTab } from './GeneralTab';
 import { HoursTab } from './HoursTab';
@@ -61,6 +62,14 @@ export function StoreSectionPage({ id }: { id: StoreSectionId }) {
 function Corpo({ id, context }: { id: StoreSectionId; context: StoreOutletContext }) {
   if (id === 'operacao') return <OperationTab operation={context.operation} />;
   if (id === 'geral') return <GeneralTab settings={context.settings} />;
+  if (id === 'valores')
+    return (
+      <BranchValuesTab
+        branchId={context.branchId}
+        operation={context.operation}
+        settings={context.settings}
+      />
+    );
   if (id === 'filial') return <BranchTab branchDetail={context.branchDetail} />;
   if (id === 'horarios') return <HoursTab branchId={context.branchId} />;
   if (id === 'entrega') return <DeliveryTab branchDetail={context.branchDetail} />;

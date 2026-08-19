@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { messageFromUnknownError } from '../api/errors';
-import { fetchBranchOperation, setBranchOpen, setBranchOrderTypes } from '../api/store';
-import type { BranchOperation } from '../api/types';
+import { ApiError, messageFromUnknownError } from '../api/errors';
+import {
+  fetchBranchOperation,
+  setBranchOpen,
+  setBranchOrderTypes,
+  updateBranchSettings,
+} from '../api/store';
+import type { BranchOperation, BranchSettingsUpdate } from '../api/types';
 
 /**
  * O ESTADO DO DIA DAS FILIAIS — e ele é de cada uma, sem herança.
@@ -28,8 +33,14 @@ import type { BranchOperation } from '../api/types';
  * lugar só para dizer o que aconteceu.
  */
 
-/** Os três interruptores de uma linha. Cada um vai por uma rota. */
-export type OperationField = 'is_open' | 'accepts_delivery' | 'accepts_pickup';
+/**
+ * O que se grava numa filial por aqui.
+ *
+ * Os três primeiros são os interruptores da linha de Operação; `settings` é o
+ * formulário de valores, que é outra rota e outra tela mas responde a MESMA
+ * linha — por isso ele atualiza este mesmo estado em vez de ter cópia própria.
+ */
+export type OperationField = 'is_open' | 'accepts_delivery' | 'accepts_pickup' | 'settings';
 
 const chave = (branchId: string, campo: OperationField) => `${branchId}#${campo}`;
 export function useBranchOperation(branchId: string) {
@@ -93,6 +104,45 @@ export function useBranchOperation(branchId: string) {
     [],
   );
 
+  /**
+   * As sobrescritas comerciais de uma filial.
+   *
+   * Mora no mesmo hook que os interruptores porque a resposta é a mesma linha
+   * de operação: gravar o valor mínimo aqui e ver o `effective` velho na tela
+   * de Operação seria a divergência que duas cópias de estado sempre produzem.
+   */
+  const saveSettings = useCallback(
+    async (alvo: string, body: BranchSettingsUpdate): Promise<boolean> => {
+      if (alvo === '') return false;
+
+      setSaving((atuais) => [...atuais, chave(alvo, 'settings')]);
+      setErrors(({ [alvo]: _descartado, ...resto }) => resto);
+      try {
+        const gravada = await updateBranchSettings(alvo, body);
+        setBranches((atuais) =>
+          (atuais ?? []).map((linha) => (linha.branch_id === alvo ? gravada : linha)),
+        );
+        return true;
+      } catch (error) {
+        /*
+         * O 403 AQUI É RESPOSTA ESPERADA, não falha. A rota é SOMENTE_DONO: são
+         * os mesmos números com que a rede negocia, e deixá-los na gerência
+         * daria por filial a permissão que se recusou dar no restaurante. O
+         * gerente precisa ler por que o botão não funcionou, não um "erro".
+         */
+        const mensagem =
+          error instanceof ApiError && error.status === 403
+            ? 'Só o dono do restaurante muda estes valores.'
+            : messageFromUnknownError(error);
+        setErrors((atuais) => ({ ...atuais, [alvo]: mensagem }));
+        return false;
+      } finally {
+        setSaving((atuais) => atuais.filter((id) => id !== chave(alvo, 'settings')));
+      }
+    },
+    [],
+  );
+
   return {
     /** Uma linha por filial que o token alcança, na ordem do backend. */
     branches,
@@ -101,6 +151,7 @@ export function useBranchOperation(branchId: string) {
     loadError,
     reload,
     toggle,
+    saveSettings,
     /** A linha de uma filial, ou nula: antes de carregar, ou fora do escopo. */
     branchOf: useCallback(
       (id: string) => (branches ?? []).find((linha) => linha.branch_id === id) ?? null,

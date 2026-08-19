@@ -26,6 +26,7 @@ type Product = Schemas['AdminProductResponse'];
 type PrintSector = Schemas['PrintingSectorResponse'];
 type RestaurantSettings = Schemas['AdminRestaurantSettingsResponse'];
 type BranchOperation = Schemas['AdminBranchOperationResponse'];
+type BranchOverrides = Schemas['AdminBranchOperationOverrides'];
 type BusinessHour = Schemas['BusinessHourResponse'];
 type BusinessHourInput = Schemas['BusinessHourInput'];
 type PaymentMethod = Schemas['AdminPaymentMethodResponse'];
@@ -927,6 +928,10 @@ export type FakeApi = {
   operation: (branchId: string) => BranchDayState | undefined;
   /** Corpo de cada PATCH /admin/branches/{id}/order-types que chegou. */
   orderTypeCalls: () => { branchId: string; body: Record<string, unknown> }[];
+  /** Corpo de cada PATCH /admin/branches/{id}/settings que chegou. */
+  branchSettingsCalls: () => { branchId: string; body: Record<string, unknown> }[];
+  /** As sobrescritas que a filial tem agora. Chave ausente = herdando. */
+  overridesOf: (branchId: string) => Record<string, unknown>;
   /** Empurra um pedido novo pelo SSE, como se outro cliente tivesse comprado. */
   pushNewOrder: (item: OrderListItem) => void;
   /** Muda o status por fora da tela, como faria outro atendente. */
@@ -990,6 +995,17 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       [BRANCH_ID]: initialDayState(),
       [BRANCH_ID_2]: initialDayState(),
     } as Record<string, BranchDayState>,
+    /*
+     * TODAS AS FILIAIS NASCEM HERDANDO, como a migração as deixou. Copiar o
+     * padrão do restaurante para cada uma deixaria uma cópia congelada, e a
+     * próxima edição do padrão não chegaria a nenhuma.
+     */
+    overrides: {
+      [BRANCH_ID]: {},
+      [BRANCH_ID_2]: {},
+    } as Record<string, Partial<Record<keyof BranchOverrides, number | boolean | null>>>,
+    /** Corpo de cada PATCH de valores, para conferir o null explícito. */
+    branchSettingsCalls: [] as { branchId: string; body: Record<string, unknown> }[],
     settings: initialSettings(),
     settingsPatches: [] as Record<string, unknown>[],
     branchPatches: [] as { branchId: string; body: Record<string, unknown> }[],
@@ -1018,6 +1034,15 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
   function operationOf(branch: Branch): BranchOperation {
     const dia = state.dayState[branch.id] ?? initialDayState();
     const padrao = state.settings;
+    const gravado = state.overrides[branch.id] ?? {};
+    const overrides: BranchOverrides = {
+      min_order_value: (gravado.min_order_value as number | null) ?? null,
+      estimated_delivery_time_min: (gravado.estimated_delivery_time_min as number | null) ?? null,
+      estimated_delivery_time_max: (gravado.estimated_delivery_time_max as number | null) ?? null,
+      default_delivery_fee: (gravado.default_delivery_fee as number | null) ?? null,
+      service_fee_enabled: (gravado.service_fee_enabled as boolean | null) ?? null,
+      service_fee_amount: (gravado.service_fee_amount as number | null) ?? null,
+    };
 
     return {
       branch_id: branch.id,
@@ -1026,22 +1051,23 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       is_open_now: dia.is_open && dia.withinHours,
       accepts_delivery: dia.accepts_delivery,
       accepts_pickup: dia.accepts_pickup,
-      // Todas herdando: é o estado em que a migração deixou as filiais.
-      overrides: {
-        min_order_value: null,
-        estimated_delivery_time_min: null,
-        estimated_delivery_time_max: null,
-        default_delivery_fee: null,
-        service_fee_enabled: null,
-        service_fee_amount: null,
-      },
+      overrides,
+      /*
+       * `effective` é o que o próximo pedido vai usar: a sobrescrita quando ela
+       * existe, o padrão do restaurante quando ela é nula. A distinção é entre
+       * NULO e valor, nunca entre verdadeiro e falso — um `??` no lugar de um
+       * `or`, porque `service_fee_enabled: false` na filial é uma escolha e não
+       * pode cair no `true` do restaurante.
+       */
       effective: {
-        min_order_value: padrao.min_order_value,
-        estimated_delivery_time_min: padrao.estimated_delivery_time_min ?? null,
-        estimated_delivery_time_max: padrao.estimated_delivery_time_max ?? null,
-        default_delivery_fee: padrao.default_delivery_fee,
-        service_fee_enabled: padrao.service_fee_enabled !== false,
-        service_fee_amount: padrao.service_fee_amount,
+        min_order_value: overrides.min_order_value ?? padrao.min_order_value,
+        estimated_delivery_time_min:
+          overrides.estimated_delivery_time_min ?? padrao.estimated_delivery_time_min ?? null,
+        estimated_delivery_time_max:
+          overrides.estimated_delivery_time_max ?? padrao.estimated_delivery_time_max ?? null,
+        default_delivery_fee: overrides.default_delivery_fee ?? padrao.default_delivery_fee,
+        service_fee_enabled: overrides.service_fee_enabled ?? padrao.service_fee_enabled !== false,
+        service_fee_amount: overrides.service_fee_amount ?? padrao.service_fee_amount,
       },
     };
   }
@@ -1145,6 +1171,31 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         return json(route, 404, { detail: 'Filial não encontrada.' });
       }
       return json(route, 200, linhas);
+    }
+
+    const branchSettingsMatch = /^\/admin\/branches\/([^/]+)\/settings$/.exec(path);
+    if (method === 'PATCH' && branchSettingsMatch?.[1]) {
+      const branchId = branchSettingsMatch[1];
+      const branch = state.branches.find((item) => item.id === branchId);
+      if (!branch) return json(route, 404, { detail: 'Filial não encontrada.' });
+
+      const body = request.postDataJSON() as Record<string, unknown>;
+      state.branchSettingsCalls.push({ branchId, body });
+
+      /*
+       * TRÊS ESTADOS POR CAMPO, e o falso precisa dos três para o teste
+       * significar alguma coisa: chave ausente não mexe, valor sobrescreve, e
+       * `null` explícito APAGA a sobrescrita — que é como a filial volta a
+       * herdar. Um `Object.assign` trataria os dois primeiros igual.
+       */
+      const gravado = state.overrides[branchId] ?? {};
+      for (const [campo, valor] of Object.entries(body)) {
+        if (valor === null) delete gravado[campo as keyof BranchOverrides];
+        else gravado[campo as keyof BranchOverrides] = valor as number | boolean;
+      }
+      state.overrides[branchId] = gravado;
+
+      return json(route, 200, operationOf(branch));
     }
 
     const orderTypesMatch = /^\/admin\/branches\/([^/]+)\/order-types$/.exec(path);
@@ -1814,6 +1865,8 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     },
     operation: (branchId: string) => state.dayState[branchId],
     orderTypeCalls: () => state.orderTypeCalls,
+    branchSettingsCalls: () => state.branchSettingsCalls,
+    overridesOf: (branchId: string) => state.overrides[branchId] ?? {},
     categories: () => state.categories,
     product: (productId) => state.products.find((item) => item.id === productId),
     reorderCalls: () => state.reorderCalls,
