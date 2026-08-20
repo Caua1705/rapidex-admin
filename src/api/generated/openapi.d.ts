@@ -421,14 +421,26 @@ export interface paths {
     };
     /**
      * List Categories
-     * @description Todas as categorias, ativas e inativas.
+     * @description Todas as categorias, ativas e inativas, das filiais que o token alcanca.
      *
      *     Diferente do cardapio publico de proposito: quem desativou uma categoria
      *     precisa continuar vendo-a para religar.
+     *
+     *     Sem `branch_id`, quem enxerga o restaurante inteiro recebe as lojas todas
+     *     numa lista, cada linha com o `branch_id` dela — e a tela em que o dono
+     *     confere se as duas lojas tem as mesmas secoes. Quem esta preso a uma
+     *     filial recebe so a dele, e pedir outra responde 404.
      */
     get: operations['list_categories_admin_categories_get'];
     put?: never;
-    /** Create Category */
+    /**
+     * Create Category
+     * @description Cria a categoria numa filial. `branch_id` e obrigatorio no corpo.
+     *
+     *     Sem default de propriedade nenhuma: cair na filial padrao criaria a
+     *     secao numa loja que o lojista nao escolheu, e ele so descobriria pelo
+     *     cardapio publico da outra.
+     */
     post: operations['create_category_admin_categories_post'];
     delete?: never;
     options?: never;
@@ -451,10 +463,10 @@ export interface paths {
     head?: never;
     /**
      * Reorder Categories
-     * @description Grava a nova ordem do cardapio.
+     * @description Grava a nova ordem do cardapio DE UMA FILIAL.
      *
-     *     Espera a lista COMPLETA das categorias do restaurante, na ordem
-     *     desejada. Faltando alguma, responde 400 — ver
+     *     Espera `branch_id` e a lista COMPLETA das categorias daquela filial, na
+     *     ordem desejada. Faltando alguma, responde 400 — ver
      *     AdminMenuService.reorder_categories.
      */
     patch: operations['reorder_categories_admin_categories_reorder_patch'];
@@ -929,10 +941,25 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List Products */
+    /**
+     * List Products
+     * @description Os produtos, paginados. Cada item diz de qual filial e.
+     *
+     *     Sem `branch_id`, quem enxerga o restaurante inteiro ve as lojas todas —
+     *     e ai a mesma "Picanha" aparece uma vez por loja, com precos que podem
+     *     divergir. A lista vem agrupada por filial de proposito, para que duas
+     *     linhas de mesmo nome nunca saiam vizinhas sem explicacao.
+     */
     get: operations['list_products_admin_products_get'];
     put?: never;
-    /** Create Product */
+    /**
+     * Create Product
+     * @description Cria o produto. A FILIAL vem da categoria, nao do corpo.
+     *
+     *     Nao ha `branch_id` aqui de proposito: `category_id` ja determina a loja,
+     *     e pedir os dois abriria a chance de virem em desacordo. Ver a decisao 3
+     *     no cabecalho de `admin_menu_service.py`.
+     */
     post: operations['create_product_admin_products_post'];
     delete?: never;
     options?: never;
@@ -988,10 +1015,14 @@ export interface paths {
     head?: never;
     /**
      * Update Product
-     * @description Edita nome, descricao, categoria, codigo e preco.
+     * @description Edita nome, descricao, categoria, codigo, chave de catalogo e preco.
      *
      *     O preco e a unica parte que o gerente nao alcanca — ver
      *     `ensure_pode_definir_preco`. Ele fica com o resto da tela.
+     *
+     *     `category_id` so aceita categoria da MESMA filial: produto nao muda de
+     *     loja. `catalog_key` explicitamente nulo LIMPA a chave; campo ausente nao
+     *     mexe nela.
      */
     patch: operations['update_product_admin_products__product_id__patch'];
     trace?: never;
@@ -1101,7 +1132,8 @@ export interface paths {
      *
      *     Exatamente o complemento do que os outros relatorios excluem —
      *     cancelados, recusados e estornados. A taxa e sobre TODOS os pedidos do
-     *     periodo (faturados + excluidos), nao so sobre os faturados.
+     *     periodo (faturados + excluidos), nao so sobre os faturados, e o recorte
+     *     de filial vale para os dois lados da fracao.
      */
     get: operations['cancellations_report_admin_reports_cancellations_get'];
     put?: never;
@@ -1126,6 +1158,9 @@ export interface paths {
      *     As datas sao interpretadas no fuso da operacao (America/Fortaleza).
      *     Cancelados, recusados e estornados nao entram; quantos foram fica em
      *     `excluded_orders_count`.
+     *
+     *     SOMENTE_DONO com ou sem `branch_id`: comissao e contrato com a
+     *     plataforma, nao desempenho de loja.
      */
     get: operations['commission_report_admin_reports_commission_get'];
     put?: never;
@@ -1149,6 +1184,11 @@ export interface paths {
      *
      *     `payment_method` nulo e pedido sem forma registrada, e continua nulo na
      *     resposta — nao vira "other", que e uma forma de pagamento de verdade.
+     *
+     *     Quem nao e dono precisa mandar `branch_id`. E o relatorio em que o
+     *     recorte mais muda a leitura: as formas aceitas sao de cada filial
+     *     (`branch_payment_methods`), entao a soma da rede mistura lojas que nem
+     *     oferecem os mesmos meios.
      */
     get: operations['payment_methods_report_admin_reports_payment_methods_get'];
     put?: never;
@@ -1174,6 +1214,11 @@ export interface paths {
      *     produto: renomear um produto no meio do periodo o separa em duas linhas,
      *     que e o correto — foram dois itens diferentes no cardapio de quem
      *     comprou.
+     *
+     *     **Sem `branch_id`, os produtos que compartilham `catalog_key` somam as
+     *     lojas numa linha so.** E a pergunta que a chave existe para responder
+     *     ("quanto vendi de picanha nas duas lojas"). Produto sem chave continua
+     *     contado por linha de `products`.
      *
      *     `listed_revenue_total` NAO fecha com o faturamento de `/reports/summary`:
      *     e receita bruta de item, sem cupom, cashback nem taxas. A resposta
@@ -1202,6 +1247,8 @@ export interface paths {
      *     Devolve TODOS os dias do periodo, inclusive os sem venda, com zero. O
      *     dia e o dia local (America/Fortaleza): um pedido das 22h de sexta conta
      *     na sexta, nao no sabado UTC.
+     *
+     *     Quem nao e dono precisa mandar `branch_id`.
      */
     get: operations['sales_by_day_admin_reports_sales_by_day_get'];
     put?: never;
@@ -1231,6 +1278,9 @@ export interface paths {
      *     Cancelados, recusados e estornados nao entram no faturamento. Quantos
      *     foram fica em `excluded_orders_count`, e o detalhe em
      *     `/reports/cancellations`.
+     *
+     *     Quem nao e dono precisa mandar `branch_id` — ver
+     *     `ensure_pode_ler_dinheiro`.
      */
     get: operations['sales_summary_admin_reports_summary_get'];
     put?: never;
@@ -1752,7 +1802,14 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Get Products By Category */
+    /**
+     * Get Products By Category
+     * @description Os produtos de uma categoria, dentro de uma filial.
+     *
+     *     O `category_slug` e unico por `(branch_id, slug)`, entao sem o parametro
+     *     esta rota responde pela filial padrao. Categoria que so existe em outra
+     *     loja responde 404.
+     */
     get: operations['get_products_by_category_restaurants__restaurant_slug__categories__category_slug__products_get'];
     put?: never;
     post?: never;
@@ -1839,18 +1896,19 @@ export interface paths {
     };
     /**
      * Get Restaurant Menu
-     * @description O cardapio, e a operacao da filial escolhida.
+     * @description O cardapio DAQUELA FILIAL.
      *
-     *     Os PRODUTOS ainda sao do restaurante: `branch_id` nao filtra cardapio.
-     *     Quem ele resolve e o bloco `settings` — valor minimo, taxa de servico,
-     *     aceita entrega/retirada e o "fechar agora" sao da filial desde a revisao
-     *     20260818_0025, e sem o parametro o cliente veria os numeros de uma loja
-     *     enquanto pede em outra.
+     *     Desde a revisao 20260820_0026 o `branch_id` resolve a resposta inteira:
+     *     produtos, categorias, precos, disponibilidade e o bloco `settings`. Cada
+     *     loja tem o proprio cardapio, sem heranca — chamar sem o parametro depois
+     *     de o cliente ter escolhido a loja mostra o cardapio e os numeros de
+     *     outra.
      *
      *     Omitido, vale a filial padrao (principal se houver, senao a primeira
      *     ativa em ordem alfabetica) — a mesma de `POST /delivery/estimate` e de
      *     `GET /restaurants/{slug}/info` sem filial. Filial de outro restaurante
-     *     responde 404.
+     *     responde 404; restaurante sem filial ativa responde 200 com as listas
+     *     vazias.
      */
     get: operations['get_restaurant_menu_restaurants__restaurant_slug__menu_get'];
     put?: never;
@@ -1932,7 +1990,18 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Get Product Detail */
+    /**
+     * Get Product Detail
+     * @description Um produto pelo slug, dentro de uma filial.
+     *
+     *     **Sem `branch_id`, vale a filial padrao — e e por isso que os links ja
+     *     divulgados continuam funcionando.** A migracao 20260820_0026 deixou as
+     *     linhas que ja existiam na filial padrao, com os mesmos ids e os mesmos
+     *     slugs, entao um link antigo abre exatamente o produto que sempre abriu.
+     *
+     *     Produto que existe SO numa filial nao padrao responde 404 pelo link sem
+     *     parametro: sem loja escolhida nao ha preco a mostrar.
+     */
     get: operations['get_product_detail_restaurants__restaurant_slug__products__product_slug__get'];
     put?: never;
     post?: never;
@@ -2221,6 +2290,11 @@ export interface components {
     /** AdminCategoryCreate */
     AdminCategoryCreate: {
       /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
+      /**
        * Is Active
        * @default true
        */
@@ -2235,6 +2309,11 @@ export interface components {
     };
     /** AdminCategoryResponse */
     AdminCategoryResponse: {
+      /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
       /**
        * Id
        * Format: uuid
@@ -2667,8 +2746,17 @@ export interface components {
       /** Sort Order */
       sort_order?: number | null;
     };
-    /** AdminProductCreate */
+    /**
+     * AdminProductCreate
+     * @description Produto novo. A FILIAL vem da categoria, e nao do corpo.
+     *
+     *     `category_id` ja determina a loja (categoria pertence a uma filial desde
+     *     a revisao 20260820_0026), entao um `branch_id` aqui seria um segundo jeito
+     *     de dizer a mesma coisa — com a chance de os dois discordarem.
+     */
     AdminProductCreate: {
+      /** Catalog Key */
+      catalog_key?: string | null;
       /**
        * Category Id
        * Format: uuid
@@ -2706,6 +2794,13 @@ export interface components {
      *     subconsultas para mostrar dado que nem aparece na tabela.
      */
     AdminProductDetailResponse: {
+      /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
+      /** Catalog Key */
+      catalog_key?: string | null;
       /**
        * Category Id
        * Format: uuid
@@ -2775,6 +2870,13 @@ export interface components {
     /** AdminProductResponse */
     AdminProductResponse: {
       /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
+      /** Catalog Key */
+      catalog_key?: string | null;
+      /**
        * Category Id
        * Format: uuid
        */
@@ -2831,8 +2933,17 @@ export interface components {
      *     Storage, inclusive de outro restaurante.
      *
      *     Sem `slug` pelo mesmo motivo da categoria: ele e URL publica.
+     *
+     *     Sem `branch_id`: produto nao muda de loja. Mover a linha levaria junto os
+     *     grupos de opcao, o setor de impressao e a chave de catalogo, e deixaria o
+     *     historico de pedido apontando para um produto que a filial nao vende
+     *     mais. Quem quer o item na outra loja cria um la e usa a mesma
+     *     `catalog_key`. Pelo mesmo motivo, `category_id` so aceita categoria DA
+     *     MESMA filial — categoria de outra loja responde 400.
      */
     AdminProductUpdate: {
+      /** Catalog Key */
+      catalog_key?: string | null;
       /** Category Id */
       category_id?: string | null;
       /** Code */
@@ -3392,6 +3503,8 @@ export interface components {
       amount_total: string;
       /** Billable Orders Count */
       billable_orders_count: number;
+      /** Branch Id */
+      branch_id?: string | null;
       /** Breakdown */
       breakdown: components['schemas']['CancellationBreakdownItem'][];
       /** Cancellation Rate Percent */
@@ -3479,19 +3592,43 @@ export interface components {
     };
     /**
      * CategoryReorderRequest
-     * @description Nova ordem das categorias, da primeira para a ultima.
+     * @description Nova ordem das categorias DE UMA FILIAL, da primeira para a ultima.
      *
      *     A lista inteira e nao pares (id, posicao) porque e assim que uma tela de
      *     arrastar-e-soltar pensa: o painel manda o que esta vendo e o servidor
      *     numera. Enviar posicoes soltas abriria espaco para duas categorias com o
      *     mesmo `sort_order` e ordem final imprevisivel.
+     *
+     *     `branch_id` entrou na revisao 20260820_0026 e nao e decorativo: o
+     *     conjunto que compartilha a numeracao passou a ser a FILIAL. Sem ele, a
+     *     conferencia de "lista completa" mediria as categorias das lojas todas, e
+     *     o dono com duas lojas nunca conseguiria reordenar uma sem mandar a outra
+     *     junto.
      */
     CategoryReorderRequest: {
+      /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
       /** Category Ids */
       category_ids: string[];
     };
-    /** CategoryResponse */
+    /**
+     * CategoryResponse
+     * @description Uma categoria do cardapio de UMA filial.
+     *
+     *     `branch_id` entrou na revisao 20260820_0026 e vale como conferencia: o
+     *     `/menu` inteiro fala de uma filial so, entao todas as categorias da
+     *     resposta trazem o mesmo valor. Uma tela que o compare com o `branch_id`
+     *     da raiz percebe na hora que esta misturando duas cargas.
+     */
     CategoryResponse: {
+      /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
       /**
        * Id
        * Format: uuid
@@ -3532,6 +3669,11 @@ export interface components {
     };
     /** ChatRequest */
     ChatRequest: {
+      /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
       /** Message */
       message: string;
       /**
@@ -3598,6 +3740,8 @@ export interface components {
     };
     /** CommissionReportResponse */
     CommissionReportResponse: {
+      /** Branch Id */
+      branch_id?: string | null;
       /** Commission Base Total */
       commission_base_total: string;
       /** Commission Total */
@@ -5041,8 +5185,21 @@ export interface components {
       /** Product Ids */
       product_ids: string[];
     };
-    /** ProductResponse */
+    /**
+     * ProductResponse
+     * @description Um produto do cardapio de UMA filial.
+     *
+     *     `restaurant_id` e `branch_id` aparecem os dois: o primeiro por ja ser
+     *     contrato publicado, o segundo porque desde a revisao 20260820_0026 e ele
+     *     que diz de qual LOJA sao este preco e esta disponibilidade. Dois produtos
+     *     com o mesmo nome e precos diferentes so se distinguem por ele.
+     */
     ProductResponse: {
+      /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
       /**
        * Category Id
        * Format: uuid
@@ -5092,6 +5249,8 @@ export interface components {
     };
     /** ProductSalesItem */
     ProductSalesItem: {
+      /** Catalog Key */
+      catalog_key?: string | null;
       /** Orders Count */
       orders_count: number;
       /** Product Id */
@@ -5105,6 +5264,8 @@ export interface components {
     };
     /** ProductSalesResponse */
     ProductSalesResponse: {
+      /** Branch Id */
+      branch_id?: string | null;
       /** Listed Revenue Total */
       listed_revenue_total: string;
       period: components['schemas']['ReportPeriod'];
@@ -5270,10 +5431,15 @@ export interface components {
       /** Name */
       name: string;
     };
-    /** RestaurantMenuResponse */
+    /**
+     * RestaurantMenuResponse
+     * @description O cardapio de UMA filial. Ver `MenuService.get_restaurant_menu`.
+     */
     RestaurantMenuResponse: {
       /** Banners */
       banners: components['schemas']['BannerResponse'][];
+      /** Branch Id */
+      branch_id?: string | null;
       /** Branches */
       branches: components['schemas']['BranchResponse'][];
       /** Categories */
@@ -5333,9 +5499,11 @@ export interface components {
      *     junto (armadilha 16). O `settings_branch_id` da resposta do cardapio diz
      *     de qual filial este bloco esta falando.
      *
-     *     `payment_methods` e o unico campo que continua sendo do restaurante, e e
-     *     dado morto: quem manda em forma de pagamento e `branch_payment_methods`,
-     *     por filial, em `GET /restaurants/{slug}/info?branch_id=...`.
+     *     `payment_methods` NAO esta mais aqui: saiu na revisao 20260820_0027,
+     *     junto com a coluna `restaurant_settings.payment_methods`. Era dado morto
+     *     e podia discordar do que a filial de fato aceita — quem manda e
+     *     `branch_payment_methods`, por filial, em
+     *     `GET /restaurants/{slug}/info?branch_id=...`.
      */
     RestaurantSettingsResponse: {
       /**
@@ -5361,8 +5529,6 @@ export interface components {
       is_open: boolean | null;
       /** Min Order Value */
       min_order_value: number;
-      /** Payment Methods */
-      payment_methods?: string[] | null;
       /** Service Fee Amount */
       service_fee_amount: number;
       /**
@@ -5411,6 +5577,8 @@ export interface components {
     };
     /** SalesByDayResponse */
     SalesByDayResponse: {
+      /** Branch Id */
+      branch_id?: string | null;
       /** Days */
       days: components['schemas']['SalesByDayItem'][];
       /** Orders Count */
@@ -5429,6 +5597,8 @@ export interface components {
       /** Average Ticket */
       average_ticket: string;
       average_ticket_comparison: components['schemas']['MetricComparison'];
+      /** Branch Id */
+      branch_id?: string | null;
       breakdown: components['schemas']['SalesBreakdown'];
       /** Excluded Orders Count */
       excluded_orders_count: number;
@@ -5597,6 +5767,8 @@ export interface components {
     };
     /** PaymentMethodsResponse */
     src__schemas__admin_report_schema__PaymentMethodsResponse: {
+      /** Branch Id */
+      branch_id?: string | null;
       /** Orders Count */
       orders_count: number;
       /** Payment Methods */
@@ -6266,7 +6438,10 @@ export interface operations {
   };
   list_categories_admin_categories_get: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description So restringe; nunca amplia */
+        branch_id?: string | null;
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -6280,6 +6455,15 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['AdminCategoryResponse'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };
@@ -7086,6 +7270,8 @@ export interface operations {
   list_products_admin_products_get: {
     parameters: {
       query?: {
+        /** @description So restringe; nunca amplia */
+        branch_id?: string | null;
         category_id?: string | null;
         /** @description Parte do nome ou do codigo */
         search?: string | null;
@@ -7429,6 +7615,8 @@ export interface operations {
         start_date: string;
         /** @description Ultimo dia do periodo (inclusive) */
         end_date: string;
+        /** @description Recorte por filial. Omitido, soma o restaurante inteiro. So restringe. */
+        branch_id?: string | null;
       };
       header?: never;
       path?: never;
@@ -7463,6 +7651,8 @@ export interface operations {
         start_date: string;
         /** @description Ultimo dia do periodo (inclusive) */
         end_date: string;
+        /** @description Recorte por filial. Omitido, soma o restaurante inteiro. So restringe. */
+        branch_id?: string | null;
       };
       header?: never;
       path?: never;
@@ -7497,6 +7687,8 @@ export interface operations {
         start_date: string;
         /** @description Ultimo dia do periodo (inclusive) */
         end_date: string;
+        /** @description Recorte por filial. Omitido, soma o restaurante inteiro. So restringe. */
+        branch_id?: string | null;
       };
       header?: never;
       path?: never;
@@ -7531,6 +7723,8 @@ export interface operations {
         start_date: string;
         /** @description Ultimo dia do periodo (inclusive) */
         end_date: string;
+        /** @description Recorte por filial. Omitido, soma o restaurante inteiro. So restringe. */
+        branch_id?: string | null;
         /** @description Quantos produtos o ranking devolve */
         limit?: number;
       };
@@ -7567,6 +7761,8 @@ export interface operations {
         start_date: string;
         /** @description Ultimo dia do periodo (inclusive) */
         end_date: string;
+        /** @description Recorte por filial. Omitido, soma o restaurante inteiro. So restringe. */
+        branch_id?: string | null;
       };
       header?: never;
       path?: never;
@@ -7601,6 +7797,8 @@ export interface operations {
         start_date: string;
         /** @description Ultimo dia do periodo (inclusive) */
         end_date: string;
+        /** @description Recorte por filial. Omitido, soma o restaurante inteiro. So restringe. */
+        branch_id?: string | null;
       };
       header?: never;
       path?: never;
@@ -8569,7 +8767,9 @@ export interface operations {
   };
   get_products_by_category_restaurants__restaurant_slug__categories__category_slug__products_get: {
     parameters: {
-      query?: never;
+      query?: {
+        branch_id?: string | null;
+      };
       header?: never;
       path: {
         restaurant_slug: string;
@@ -8892,7 +9092,9 @@ export interface operations {
   };
   get_product_detail_restaurants__restaurant_slug__products__product_slug__get: {
     parameters: {
-      query?: never;
+      query?: {
+        branch_id?: string | null;
+      };
       header?: never;
       path: {
         restaurant_slug: string;
