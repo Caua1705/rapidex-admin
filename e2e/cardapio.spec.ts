@@ -5,6 +5,8 @@
  * a tela não reclama, e o cardápio publicado sai errado:
  *
  *   1. o cardápio é DE UMA FILIAL, e a tela recorta por ela;
+ *   1b. parear a chave de catálogo grava nos DOIS lados, e editar um item
+ *       pareado não desfaz o par;
  *   2. reordenar categoria manda a LISTA COMPLETA de ids da filial;
  *   3. esgotar usa PATCH /admin/products/{id}/availability, não o PATCH do
  *      produto inteiro;
@@ -341,6 +343,103 @@ test('cadastrar um item com foto: o diálogo fica aberto e a lista mostra a mini
   // E o rodapé não oferece mais "Cancelar": o item já existe.
   await dialogo.getByRole('button', { name: 'Concluir' }).click();
   await expect(dialogo).toHaveCount(0);
+});
+
+/*
+ * ============================================================================
+ * A CHAVE DE CATÁLOGO — o que o painel não tinha, e o que faltava quebrava em
+ * silêncio
+ * ============================================================================
+ *
+ * A migração pareou o que já existia: cada item nasceu com a mesma
+ * `catalog_key` nas duas lojas, e `/reports/products` soma os dois numa linha.
+ * Tudo o que o lojista cadastra DEPOIS nasce sem chave — e um item sem chave
+ * some do agrupamento, contado sozinho, sem nenhuma tela ficando errada.
+ *
+ * "Milkshake de morango" existe só na Zona Norte e SEM chave, que é o estado de
+ * qualquer item cadastrado pelo painel. Parear com ele é o único caminho em que
+ * a chave precisa ser carimbada nos dois lados, porque não há nenhuma para
+ * reaproveitar — e é aí que "gravou só de um lado" pareceria ter funcionado.
+ */
+test('parear com o item de outra loja grava a mesma chave nos dois', async ({ page }) => {
+  await abrirCardapio(page);
+
+  // Acompanhamentos, que é onde o gêmeo está do outro lado.
+  await page.getByTestId('category-select-cat-2').click();
+  await page.getByRole('button', { name: 'Novo item' }).click();
+  await page.getByLabel('Nome do item').fill('Milkshake de morango');
+  await page.getByLabel('Preço').fill('18,00');
+
+  // A busca já abre com o nome digitado: é o atalho que faz o campo valer a
+  // pena, e sem ele o lojista redigita o que acabou de escrever.
+  await page.getByTestId('catalog-pair-open').click();
+  const resultado = page.getByTestId('catalog-pair-result-prod-zn-milkshake');
+  await expect(resultado).toContainText('Zona Norte');
+  await resultado.click();
+
+  // A tela nomeia o par: "conta junto com X, da loja Y".
+  const campo = page.getByTestId('product-catalog-pair');
+  await expect(campo).toContainText('Milkshake de morango');
+  await expect(campo).toContainText('Zona Norte');
+
+  await page.getByRole('button', { name: 'Salvar' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  const novo = api
+    .products()
+    .find((item) => item.name === 'Milkshake de morango' && item.id !== 'prod-zn-milkshake');
+  if (!novo) throw new Error('O item novo não chegou ao backend falso.');
+
+  /*
+   * OS DOIS LADOS, COM A MESMA CHAVE. Gravar só no item novo é o erro que
+   * passa despercebido: o produto aparece na lista, o diálogo fecha, e o
+   * relatório continua contando as duas lojas separadas.
+   */
+  const chaves = api.catalogKeys();
+  expect(chaves[novo.id]).toBe('prod-zn-milkshake');
+  expect(chaves['prod-zn-milkshake']).toBe('prod-zn-milkshake');
+
+  // E a chave é a do GÊMEO, não a do item recém-criado: a convenção da
+  // migração é o id do produto de origem, e usar o nosso parearia com nada.
+  expect(chaves[novo.id]).not.toBe(novo.id);
+});
+
+/*
+ * O DEFEITO MAIS SILENCIOSO DESTA TELA, e o motivo de o rascunho de edição sair
+ * de uma função testada: o corpo do PATCH manda `catalog_key` sempre, então um
+ * rascunho que esquecesse a chave mandaria `null` — e corrigir o preço de um
+ * item pareado desfaria o par. Nada falharia; a linha do relatório é que
+ * pararia de somar as duas lojas.
+ */
+test('corrigir o preço de um item pareado não desfaz o pareamento', async ({ page }) => {
+  await abrirCardapio(page);
+  expect(api.catalogKeys()['prod-1']).toBe('prod-1');
+
+  await page.getByRole('button', { name: 'Editar X-Burger Clássico' }).click();
+  await page.getByLabel('Preço').fill('27,50');
+  await page.getByRole('button', { name: 'Salvar' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  await expect.poll(() => api.product('prod-1')?.price).toBe(27.5);
+  expect(api.catalogKeys()['prod-1']).toBe('prod-1');
+});
+
+/*
+ * SEPARAR É UMA ESCOLHA, e ela manda `null` explícito. Sem isso o botão
+ * existiria e não faria nada: omitir o campo significa "não mexi na chave", e o
+ * item continuaria pareado com a tela dizendo que não está.
+ */
+test('separar um item pareado apaga a chave dele, e só a dele', async ({ page }) => {
+  await abrirCardapio(page);
+
+  await page.getByRole('button', { name: 'Editar X-Burger Clássico' }).click();
+  await page.getByTestId('catalog-pair-clear').click();
+  await page.getByRole('button', { name: 'Salvar' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  await expect.poll(() => api.catalogKeys()['prod-1']).toBeNull();
+  // O gêmeo da outra loja não foi tocado: separar é do lado de cá.
+  expect(api.catalogKeys()['prod-1-zn']).toBe('prod-1');
 });
 
 /*

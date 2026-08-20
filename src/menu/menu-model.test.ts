@@ -8,6 +8,7 @@ import {
   isProductAvailable,
   moveCategory,
   parsePriceInput,
+  productDraftFrom,
   showsAvailabilityToggle,
   sortCategories,
 } from './menu-model';
@@ -137,5 +138,63 @@ describe('preço', () => {
     expect(formatPriceInput(24.9)).toBe('24,90');
     expect(parsePriceInput(formatPriceInput(1234.5))).toBe(1234.5);
     expect(formatPriceInput(null)).toBe('');
+  });
+});
+
+describe('productDraftFrom', () => {
+  /*
+   * O CAMPO QUE ESTA FUNÇÃO EXISTE POR CAUSA DE. O corpo do PATCH manda
+   * `catalog_key` sempre — nulo é como o lojista separa dois itens —, então um
+   * rascunho que não trouxesse a chave mandaria `null` de volta e desfaria o
+   * pareamento de um item porque alguém corrigiu o preço dele. Nada falharia
+   * na tela; a linha do relatório é que pararia de somar as duas lojas.
+   */
+  it('carrega a chave de catálogo, para editar o preço não desfazer o par', () => {
+    expect(productDraftFrom(product({ catalog_key: 'prod-1' })).catalog).toEqual({
+      key: 'prod-1',
+      twin: null,
+    });
+  });
+
+  it('produto sem chave abre sem par, que é o estado normal', () => {
+    expect(productDraftFrom(product({ catalog_key: null })).catalog).toBeNull();
+  });
+
+  /* O resto do rascunho, para a extração não ter perdido campo pelo caminho. */
+  it('traz o item como ele está, com o preço no formato que se digita', () => {
+    const draft = productDraftFrom(
+      product({
+        id: 'prod-9',
+        category_id: 'cat-2',
+        name: 'Picanha',
+        price: 59.9,
+        description: null,
+        is_active: false,
+        is_available: false,
+        printing_sector_id: 'sec-chapa',
+      }),
+    );
+
+    expect(draft).toEqual({
+      id: 'prod-9',
+      categoryId: 'cat-2',
+      name: 'Picanha',
+      price: '59,90',
+      description: '',
+      isActive: false,
+      isAvailable: false,
+      printSectorId: 'sec-chapa',
+      catalog: null,
+    });
+  });
+
+  /*
+   * `null` em `is_active` é ATIVO (o padrão do backend), e o mesmo vale para
+   * `is_available`. Tratá-los como desligados sumiria com metade do cardápio
+   * de um restaurante antigo — a mesma regra de `isProductActive`.
+   */
+  it('trata null de ativo e disponível como ligado', () => {
+    const draft = productDraftFrom(product({ is_active: null, is_available: null }));
+    expect([draft.isActive, draft.isAvailable]).toEqual([true, true]);
   });
 });

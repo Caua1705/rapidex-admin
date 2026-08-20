@@ -1,6 +1,8 @@
 import { useState } from 'react';
 
 import { useAdoptedBranch } from '../auth/use-branch-scope';
+import { useSession } from '../auth/session-context';
+import { catalogPairingApplies } from './catalog-key';
 import { branchName } from '../layout/branch-heading';
 import { usePrintSectors } from '../print-sectors/usePrintSectors';
 import { ApplySectorDialog } from './ApplySectorDialog';
@@ -10,7 +12,7 @@ import { CategoryRail } from './CategoryRail';
 import { PlusIcon } from '../ds/icons';
 import { PageBar } from '../ds/PageBar';
 import { SearchField } from '../ds/SearchField';
-import { formatPriceInput, isCategoryActive } from './menu-model';
+import { isCategoryActive, productDraftFrom } from './menu-model';
 import { ProductDialog } from './ProductDialog';
 import { qualifiersByProduct } from './product-name';
 import { ProductRow } from './ProductRow';
@@ -59,6 +61,12 @@ import './MenuPage.css';
 export function MenuPage() {
   const { branchId, branch, hasChoice } = useAdoptedBranch();
   const menu = useMenu(branchId);
+  /*
+   * A chave de catálogo só existe para agrupar DUAS lojas no relatório. Com uma
+   * só, o campo do diálogo seria um controle que não distingue nada — e a busca
+   * por trás dele não teria onde procurar.
+   */
+  const catalogPairing = catalogPairingApplies(useSession().branches);
   const printing = usePrintSectors(branchId);
   const branchChosen = branchId !== '';
   /* Nomeia a filial só quando há mais de uma: com uma só não desambigua nada. */
@@ -99,6 +107,9 @@ export function MenuPage() {
       // Item novo não imprime até alguém dizer onde: chutar um setor mandaria
       // comanda para a chapa errada sem ninguém ter escolhido nada.
       printSectorId: null,
+      // E nasce sem par, que é o estado normal: a maioria dos itens não tem
+      // gêmeo em outra loja. Quem tem, o lojista aponta no próprio diálogo.
+      catalog: null,
     });
   }
 
@@ -320,18 +331,13 @@ export function MenuPage() {
                     qualifier={qualifiers[product.id] ?? null}
                     isSaving={menu.pendingAvailability.includes(product.id)}
                     onToggleAvailability={() => void menu.toggleAvailability(product)}
-                    onEdit={() =>
-                      setProductDraft({
-                        id: product.id,
-                        categoryId: product.category_id,
-                        name: product.name,
-                        price: formatPriceInput(product.price),
-                        description: product.description ?? '',
-                        isActive: product.is_active !== false,
-                        isAvailable: product.is_available !== false,
-                        printSectorId: product.printing_sector_id ?? null,
-                      })
-                    }
+                    /*
+                      O RASCUNHO SAI DE UMA FUNÇÃO TESTADA, e não de um objeto
+                      montado aqui: o corpo do PATCH manda `catalog_key`
+                      sempre, então um campo esquecido nesta lista desfaria o
+                      pareamento de um item porque alguém corrigiu o preço.
+                    */
+                    onEdit={() => setProductDraft(productDraftFrom(product))}
                   />
                 ))}
               </ul>
@@ -378,6 +384,8 @@ export function MenuPage() {
           categories={menu.categories}
           sectors={printing.sectors}
           branchChosen={branchChosen}
+          branchId={branchId}
+          catalogPairing={catalogPairing}
           onClose={() => setProductDraft(null)}
           onSave={menu.saveProduct}
           // A foto sobe por rota própria, sem passar por `saveProduct`: sem

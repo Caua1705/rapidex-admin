@@ -731,3 +731,114 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ==========================================================================
+ * PAREAMENTO DE CATÁLOGO — "mesmo item em outra loja" (menu/CatalogPairField)
+ *
+ * A busca é DISCLOSED, não um segundo diálogo: ela ocupa o lugar do botão,
+ * dentro do mesmo campo do formulário. Por isso o plano dela é
+ * `--surface-muted` — o plano de AGRUPAMENTO, que é o que diz "isto aqui é um
+ * bloco dentro do formulário" sem precisar de moldura nem de sombra. Sombra
+ * seria mentira: nada está por cima de nada.
+ * ======================================================================= */
+.pair__atual {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-12);
+}
+
+.pair__estado {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-8);
+  min-width: 0;
+  margin: 0;
+}
+
+/* O visto é do tamanho da linha e leva a tinta de "no ar", não a da marca. */
+.pair__estado svg {
+  flex: 0 0 auto;
+  margin-top: var(--sp-4);
+  color: var(--ok);
+}
+
+.pair__acoes {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--sp-8);
+}
+
+.pair__busca {
+  display: grid;
+  gap: var(--sp-8);
+  padding: var(--sp-12);
+  border-radius: var(--r-control);
+  background: var(--surface-muted);
+}
+
+.pair__busca-linha {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.pair__busca-linha > .ds-control {
+  flex: 1;
+  min-width: 0;
+}
+
+.pair__vazio {
+  margin: 0;
+  padding: var(--sp-4) 0;
+}
+
+/*
+ * A LISTA ROLA EM VEZ DE ESTICAR O DIÁLOGO. Oito itens por loja cabem em
+ * ~216px; sem o teto, uma busca com resultado nas duas lojas empurraria o
+ * rodapé do formulário para fora da janela — e o botão Salvar com ele.
+ */
+.pair__lista {
+  display: grid;
+  max-height: 216px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line-control);
+  border-radius: var(--r-control);
+  background: var(--surface);
+  list-style: none;
+}
+
+.pair__lista > li + li {
+  border-top: 1px solid var(--line);
+}
+
+.pair__resultado {
+  display: grid;
+  gap: var(--sp-4);
+  width: 100%;
+  padding: var(--sp-8) var(--sp-12);
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pair__resultado:hover {
+  background: var(--surface-muted);
+}
+
+/* Nome de linha de lista: o mesmo peso 550 de Pedidos, Clientes e do Cardápio. */
+.pair__resultado-nome {
+  color: var(--ink);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-strong);
+}
+
+.pair__resultado-meta {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+}

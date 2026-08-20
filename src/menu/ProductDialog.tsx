@@ -8,6 +8,7 @@ import { formatCurrency } from '../orders/format';
 import { activeSectors, NO_SECTOR_LABEL, sectorLabelFor } from '../print-sectors/print-sectors';
 import { Modal } from '../ui/Modal';
 import { Switch } from '../ds/Switch';
+import { CatalogPairField } from './CatalogPairField';
 import { parsePriceInput } from './menu-model';
 import { ProductImageField } from './ProductImageField';
 import { blockingRequiredGroup, groupEmptiedByDeactivating } from './required-groups';
@@ -31,6 +32,8 @@ export function ProductDialog({
   categories,
   sectors,
   branchChosen,
+  branchId,
+  catalogPairing,
   onClose,
   onSave,
   onImageUploaded,
@@ -41,6 +44,17 @@ export function ProductDialog({
   sectors: readonly PrintSector[];
   /** Falso com "Todas as filiais": não há de qual filial oferecer setor. */
   branchChosen: boolean;
+  /** A filial deste item — a única que a busca de gêmeo NÃO varre. */
+  branchId: string;
+  /**
+   * Oferecer o pareamento de catálogo. Falso num restaurante de uma loja só,
+   * onde não há o que agrupar — ver `catalogPairingApplies`.
+   *
+   * Vem como propriedade, e não de `useSession()` aqui dentro, porque este
+   * diálogo é montado em teste sem provider nenhum: ler a sessão daqui
+   * transformaria "não tem segunda loja" em uma exceção na montagem.
+   */
+  catalogPairing: boolean;
   onClose: () => void;
   /** Devolve o id salvo — é o que permite pôr foto sem fechar. `null` é falha. */
   onSave: (draft: ProductDraft, price: number) => Promise<string | null>;
@@ -326,6 +340,24 @@ export function ProductDialog({
             onChange={(event) => setDraft({ ...draft, description: event.target.value })}
           />
         </label>
+
+        {/*
+          MESMO ITEM EM OUTRA LOJA — logo depois do que o item É (nome, preço,
+          categoria, descrição) e antes de como ele se liga à operação.
+
+          A posição importa: a pergunta é de IDENTIDADE, e ela só se responde
+          com o nome já digitado — é dele que a busca parte. Mais abaixo, junto
+          dos interruptores, ela viraria uma opção que ninguém desce para ler,
+          e o item nasceria sem chave, que é o defeito de origem.
+        */}
+        {catalogPairing ? (
+          <CatalogPairField
+            branchId={branchId}
+            productName={draft.name}
+            pair={draft.catalog}
+            onChange={(catalog) => setDraft({ ...draft, catalog })}
+          />
+        ) : null}
 
         {/*
           Setor de impressão. "Não imprimir" é a primeira opção e o padrão de

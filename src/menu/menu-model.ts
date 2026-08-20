@@ -12,6 +12,61 @@
  *      parcial não reordena de menos: apaga a posição de quem ficou de fora.
  */
 import type { Category, Product } from '../api/types';
+import { pairFromProduct, type CatalogPair } from './catalog-key';
+
+/**
+ * Os RASCUNHOS dos dois formulários do cardápio.
+ *
+ * Moram aqui, e não no hook, porque são o mesmo tipo de coisa que o resto deste
+ * arquivo: a forma dos dados, sem React e sem rede. `useMenu` os reexporta para
+ * quem já os importava de lá.
+ */
+export type CategoryDraft = {
+  id: string | null;
+  name: string;
+  isActive: boolean;
+};
+
+export type ProductDraft = {
+  id: string | null;
+  categoryId: string;
+  name: string;
+  price: string;
+  description: string;
+  isActive: boolean;
+  isAvailable: boolean;
+  /** Setor de impressão. `null` é "Não imprimir" — uma escolha, não um vazio. */
+  printSectorId: string | null;
+  /**
+   * Pareamento de catálogo com o mesmo item de outra loja. `null` é "sem par",
+   * que é o estado normal de um item que só existe aqui. Ver `catalog-key.ts`.
+   */
+  catalog: CatalogPair | null;
+};
+
+/**
+ * O rascunho de EDIÇÃO, a partir da linha que o backend devolveu.
+ *
+ * É uma função, e não um objeto montado na tela, por causa de um campo só: a
+ * `catalog_key`. O corpo do PATCH manda a chave SEMPRE (nulo é como se desfaz o
+ * par), então um rascunho que esquecesse de trazê-la mandaria `null` — e
+ * corrigir o preço de um item pareado desfaria o pareamento dele, sem erro
+ * nenhum na tela. Montado num lugar só e testado, esse esquecimento deixa de
+ * ser possível.
+ */
+export function productDraftFrom(product: Product): ProductDraft {
+  return {
+    id: product.id,
+    categoryId: product.category_id,
+    name: product.name,
+    price: formatPriceInput(product.price),
+    description: product.description ?? '',
+    isActive: product.is_active !== false,
+    isAvailable: product.is_available !== false,
+    printSectorId: product.printing_sector_id ?? null,
+    catalog: pairFromProduct(product),
+  };
+}
 
 /**
  * O backend devolve `boolean | null` com padrão `true`, então null é "ativo".

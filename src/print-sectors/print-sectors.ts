@@ -5,12 +5,19 @@
  * sobremesa. Cada produto imprime em um setor, ou em nenhum ("Não imprimir",
  * que é o caso de item que não passa pela produção).
  *
- * A ARMADILHA QUE ESTE ARQUIVO EXISTE PARA EVITAR: setor é POR FILIAL, mas
- * produto é DO RESTAURANTE. O mesmo item aparece nas duas lojas, e o "Chapa" da
- * Aldeota é outra linha de banco que o "Chapa" da Zona Norte. Por isso um
- * `printing_sector_id` gravado no produto só faz sentido junto da filial que está
+ * A ARMADILHA QUE ESTE ARQUIVO EXISTE PARA EVITAR: setor e produto são os dois
+ * DA FILIAL, e o "Chapa" da Aldeota é outra linha de banco que o "Chapa" da
+ * Zona Norte. Por isso um `printing_sector_id` só faz sentido junto da filial
  * aberta na tela — e `sectorLabelFor` devolve um aviso, e não um nome, quando o
  * id aponta para setor que não é desta filial.
+ *
+ * O BANCO HOJE FECHA A PORTA DO PIOR CASO: a FK composta
+ * `products (branch_id, printing_sector_id)` torna "produto da filial A
+ * apontando para a impressora da filial B" um estado que não se grava. Enquanto
+ * o produto era do restaurante e o setor da filial, ele era gravável — e o item
+ * caía na via "SEM SETOR" na hora de imprimir. O aviso continua aqui porque
+ * sobraram dois caminhos sem FK que os feche: setor DESATIVADO depois de
+ * vinculado, e produto que não está mais naquele restaurante.
  */
 import type { PrintSector } from '../api/types';
 

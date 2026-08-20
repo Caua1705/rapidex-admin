@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { CategoryDraft, ProductDraft } from './menu-model';
+
 import { messageFromUnknownError } from '../api/errors';
 import {
   createCategory,
@@ -13,28 +15,17 @@ import {
 } from '../api/menu';
 import { applyPrintSectorToCategory, setProductPrintSector } from '../api/print-sectors';
 import type { Category, Product } from '../api/types';
+import { catalogKeyBody, twinKeyToWrite } from './catalog-key';
 import { categoryIdsForReorder, moveCategory, sortCategories, sortProducts } from './menu-model';
 
 /** Uma página de produtos. O cardápio de um restaurante grande passa disso. */
 const PAGE_SIZE = 50;
 
-export type CategoryDraft = {
-  id: string | null;
-  name: string;
-  isActive: boolean;
-};
-
-export type ProductDraft = {
-  id: string | null;
-  categoryId: string;
-  name: string;
-  price: string;
-  description: string;
-  isActive: boolean;
-  isAvailable: boolean;
-  /** Setor de impressão. `null` é "Não imprimir" — uma escolha, não um vazio. */
-  printSectorId: string | null;
-};
+/*
+ * Os rascunhos moram em `menu-model.ts` — forma de dados, sem React. Ficam
+ * reexportados daqui porque é deste módulo que a tela sempre os importou.
+ */
+export type { CategoryDraft, ProductDraft } from './menu-model';
 
 /**
  * O estado da tela de cardápio, DE UMA FILIAL.
@@ -377,6 +368,25 @@ export function useMenu(branchId: string) {
 
       let savedId: string;
       try {
+        /*
+         * O GÊMEO É CARIMBADO ANTES, e a ordem não é detalhe.
+         *
+         * Quando o item da outra loja ainda não tinha chave, parear exige
+         * gravar a MESMA chave nos dois lados — só de um lado não pareia com
+         * ninguém, e o relatório continua contando os dois separados sem nada
+         * na tela dizendo que não pegou.
+         *
+         * Primeiro o gêmeo porque a falha dele é a que ainda dá para desfazer:
+         * nada foi criado aqui, o lojista vê o erro e tenta de novo. Na ordem
+         * inversa, um item já criado ficaria com uma chave que não pareia, e
+         * consertar isso exigiria achá-lo de novo. E é idempotente — a segunda
+         * tentativa regrava o mesmo valor na mesma linha.
+         */
+        const carimbo = twinKeyToWrite(draft.catalog);
+        if (carimbo) {
+          await updateProduct(carimbo.productId, { catalog_key: carimbo.key });
+        }
+
         if (draft.id) {
           savedId = draft.id;
           await updateProduct(draft.id, {
@@ -386,6 +396,9 @@ export function useMenu(branchId: string) {
             price,
             is_active: draft.isActive,
             is_available: draft.isAvailable,
+            // SEMPRE presente, inclusive nulo: nulo é como o lojista separa
+            // dois itens, e omitir o campo significaria "não mexi na chave".
+            catalog_key: catalogKeyBody(draft.catalog),
           });
 
           // O setor NÃO entra no corpo acima: produto que já existe muda de
@@ -406,6 +419,7 @@ export function useMenu(branchId: string) {
             is_active: draft.isActive,
             is_available: draft.isAvailable,
             sort_order: products.length,
+            catalog_key: catalogKeyBody(draft.catalog),
           });
           savedId = created.id;
 

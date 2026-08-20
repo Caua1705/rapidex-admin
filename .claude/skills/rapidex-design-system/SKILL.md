@@ -615,6 +615,15 @@ A régua da categoria aberta é subordinada à faixa da tela: 44px contra 52, n�
 2 contra nível 1. Abaixo de 1024px a coluna de categorias deita e vira fita
 rolável; abaixo de 720px o item deixa de ser linha e vira bloco.
 
+**O diálogo do item pergunta "é o mesmo item de outra loja?"** logo depois do que
+o item É (nome, preço, categoria, descrição) e antes de como ele se liga à
+operação — a pergunta é de identidade e só se responde com o nome já digitado,
+que é de onde a busca parte. A busca abre DENTRO do campo, no lugar do botão, e
+nunca como um segundo diálogo por cima do primeiro: modal sobre modal esconde o
+formulário que a pessoa estava preenchendo, e o Esc de cima fecha os dois. O
+plano dela é `--surface-muted` (agrupamento) e sem sombra, porque nada está por
+cima de nada. O campo não aparece num restaurante de uma loja só.
+
 ### Clientes — `src/customers/`
 
 Faixa de 52px (título · busca · contagem) e uma tabela até a margem. A ressalva

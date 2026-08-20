@@ -429,13 +429,37 @@ function copiaDoCardapio(): { categories: Category[]; products: Product[] } {
     branch_id: BRANCH_ID_2,
   }));
 
-  const products = initialProducts().map((produto) => ({
+  const products: Product[] = initialProducts().map((produto) => ({
     ...produto,
     id: `${produto.id}${SUFIXO_FILIAL_2}`,
     branch_id: BRANCH_ID_2,
     category_id: `${produto.category_id}${SUFIXO_FILIAL_2}`,
     printing_sector_id: null,
   }));
+
+  /*
+   * UM ITEM QUE SÓ EXISTE NESTA LOJA, E SEM CHAVE DE CATÁLOGO.
+   *
+   * Ele é o estado de tudo o que o lojista cadastrar DEPOIS do deploy: a
+   * migração pareou o que já existia, e nada mais nasce pareado. É o caso que
+   * o campo "mesmo item em outra loja" existe para resolver — e o único em que
+   * parear exige carimbar a chave nos DOIS lados, porque não há nenhuma para
+   * reaproveitar. Sem ele aqui, o E2E só percorreria o caminho fácil.
+   */
+  products.push({
+    id: 'prod-zn-milkshake',
+    branch_id: BRANCH_ID_2,
+    category_id: `cat-2${SUFIXO_FILIAL_2}`,
+    name: 'Milkshake de morango',
+    description: 'Copo de 400 ml, com calda',
+    price: 18,
+    is_active: true,
+    is_available: true,
+    sort_order: 3,
+    printing_sector_id: null,
+    catalog_key: null,
+    unavailable_by_required_group: false,
+  });
 
   return { categories, products };
 }
@@ -974,6 +998,13 @@ export type FakeApi = {
   prepTimeOf: (branchId: string) => { min: number; max: number } | null;
   /** Cada PATCH /admin/products/{id}/availability que chegou. */
   availabilityCalls: () => { productId: string; isAvailable: boolean }[];
+  /**
+   * A chave de catálogo de cada produto, como o "banco" a tem.
+   *
+   * É por ela que se confere o pareamento: os DOIS lados precisam terminar com
+   * a mesma chave, e gravar só um deles não pareia com ninguém.
+   */
+  catalogKeys: () => Record<string, string | null>;
   /** Cada POST /admin/products/{id}/image que chegou, com o peso do corpo. */
   imageUploads: () => { productId: string; bytes: number }[];
   /** Configurações do restaurante como o "banco" as tem agora. */
@@ -2070,6 +2101,8 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     categorySectorCalls: () => state.categorySectorCalls,
     productSectorCalls: () => state.productSectorCalls,
     products: () => state.products,
+    catalogKeys: () =>
+      Object.fromEntries(state.products.map((item) => [item.id, item.catalog_key ?? null])),
     clearPrepTimeBase(branchId) {
       state.prepTime[branchId] = null;
     },

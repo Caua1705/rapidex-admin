@@ -244,9 +244,26 @@ que existe para o relatório somar as duas lojas numa linha. Ele **não tem
 semântica de herança**: nada lê `catalog_key` para decidir preço ou
 disponibilidade.
 
-**O painel ainda não tem tela para `catalog_key`**, então todo produto criado
-pelo Admin nasce sem chave e some do agrupamento de `/reports/products`. Está
-registrado como pendência — não invente o campo numa tela sem combinar antes.
+### `catalog_key`: as regras moram em `src/menu/catalog-key.ts`
+
+O diálogo do produto tem o campo "mesmo item em outra loja" — ele procura o
+gêmeo pelo NOME nas outras filiais e copia a chave. **Não escreva a lógica de
+chave em outro lugar**; as três regras abaixo compilam nas duas direções e
+erradas produzem um relatório menor do que devia, sem erro em tela nenhuma:
+
+1. **A chave do par é a do GÊMEO** (`pairWith`), e quando ele não tem nenhuma, é
+   o `id` DELE — a convenção da migração. Usar o id do produto que está sendo
+   criado dá uma chave que não pareia com nada.
+2. **Gêmeo sem chave precisa RECEBER a chave** (`twinKeyToWrite`), num
+   `PATCH /admin/products/{id}` feito ANTES de gravar o nosso. Gravar só de um
+   lado é parear com ninguém. É o caso normal: só o que a migração copiou nasce
+   pareado.
+3. **Desfazer o par manda `null` explícito** (`catalogKeyBody`), nunca a ausência
+   do campo — a mesma regra de `printing_sector_id`.
+
+E o rascunho de edição sai de `productDraftFrom` (`menu-model.ts`): o corpo do
+PATCH manda `catalog_key` sempre, então um rascunho montado à mão que esqueça a
+chave **desfaz o pareamento de um item porque alguém corrigiu o preço dele**.
 
 ---
 

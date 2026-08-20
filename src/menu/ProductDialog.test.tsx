@@ -27,6 +27,9 @@ const draft: ProductDraft = {
   name: 'Picanha na chapa',
   price: '59,90',
   description: '',
+  // Sem par de catálogo: é o estado normal, e este diálogo é montado sem
+  // sessão — o campo de pareamento não entra (ver `catalogPairing`).
+  catalog: null,
   isActive: true,
   isAvailable: true,
   printSectorId: null,
@@ -87,6 +90,15 @@ function renderDialog(
       categories={[{ id: 'cat-1', name: 'Carnes' } as never]}
       sectors={[]}
       branchChosen={false}
+      branchId="fil-1"
+      /*
+        Este arquivo monta o diálogo SEM SessionProvider, e o campo de
+        pareamento procura o gêmeo nas outras filiais da sessão. Desligado
+        aqui, o que estes testes cobrem continua sendo o que eles sempre
+        cobriram; o campo tem cobertura própria em `catalog-key.test.ts` e no
+        E2E, que sobem o painel inteiro.
+      */
+      catalogPairing={false}
       onClose={overrides.onClose ?? (() => {})}
       // Devolve o id salvo, e não um `true`: é o id que permite pôr foto sem
       // fechar o diálogo.
