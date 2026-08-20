@@ -131,36 +131,31 @@ export function OrdersFilters({
         <input
           className="input filtros__busca-campo"
           type="search"
-          placeholder="Nº do pedido ou nome do cliente"
+          /*
+            "…ou nome do cliente" não cabia: com o painel de detalhe aberto, a
+            coluna do quadro tem ~740px e a busca fica com 250. O texto ia até
+            "nome do cl" e parava. O rótulo acessível continua sendo "Buscar
+            pedido", e a busca continua procurando as duas coisas.
+          */
+          placeholder="Nº do pedido ou cliente"
           value={searchDraft}
           onChange={(event) => setSearchDraft(event.target.value)}
         />
       </label>
 
+      {/*
+        DUAS FAIXAS, E ELAS SÃO DE NATUREZAS DIFERENTES.
+
+        Em cima: o RECORTE (período, busca) e o estado da tela (conexão, som,
+        atualizar) — o que muda o que se vê.
+        Embaixo: as duas PROMESSAS (preparo e entrega) — o que o cliente lê do
+        outro lado, e a única coisa desta barra que altera a loja.
+
+        Numa faixa só, os sete controles disputavam a mesma linha e os dois
+        botões de ícone caíam sozinhos numa terceira: três linhas para o que
+        cabe em duas, e nenhuma delas dizendo do que era feita.
+      */}
       <div className="filtros__dir">
-        {/*
-          Sem `branchId`: o controle resolve a própria filial. O filtro da
-          barra é de LEITURA e aceita vazio ("todas as que eu enxergo"); o
-          ajuste de preparo é ESCRITA e precisa de uma. Passar o filtro para
-          dentro dele era o que fazia o controle travar com "escolha uma
-          filial" no lugar do valor. Ver `auth/branch-scope.ts`.
-        */}
-        <PrepTimeControl />
-
-        {/*
-          O TEMPO DE ENTREGA AO LADO DO DE PREPARO. Os dois juntos são a
-          promessa que o cliente vê — preparo é o que a cozinha controla,
-          entrega é o que a rua acrescenta —, e separados em telas diferentes
-          ninguém confere a soma.
-
-          Ele é SÓ LEITURA aqui, e não por economia: `estimated_delivery_time`
-          é do RESTAURANTE (ver `useDeliveryEstimate`), então um botão de +5
-          nesta barra mudaria a previsão de todas as filiais de uma vez.
-          Empurrar o prazo no meio do turno é o que o preparo faz, e ele é por
-          filial. Quem edita este é Minha loja › Geral.
-        */}
-        <DeliveryEstimate />
-
         <span className={`conn conn--${streamStatus}`} data-testid="stream-status">
           <span className="conn__dot" />
           {STREAM_LABELS[streamStatus]}
@@ -193,6 +188,31 @@ export function OrdersFilters({
         >
           <RefreshIcon />
         </button>
+      </div>
+
+      <div className="filtros__medidas">
+        {/*
+          Sem `branchId`: o controle resolve a própria filial. O filtro da
+          barra é de LEITURA e aceita vazio ("todas as que eu enxergo"); o
+          ajuste de preparo é ESCRITA e precisa de uma. Passar o filtro para
+          dentro dele era o que fazia o controle travar com "escolha uma
+          filial" no lugar do valor. Ver `auth/branch-scope.ts`.
+        */}
+        <PrepTimeControl />
+
+        {/*
+          O TEMPO DE ENTREGA AO LADO DO DE PREPARO. Os dois juntos são a
+          promessa que o cliente vê — preparo é o que a cozinha controla,
+          entrega é o que a rua acrescenta —, e separados em telas diferentes
+          ninguém confere a soma.
+
+          Ele é SÓ LEITURA aqui, e não por economia: `estimated_delivery_time`
+          é do RESTAURANTE (ver `useDeliveryEstimate`), então um botão de +5
+          nesta barra mudaria a previsão de todas as filiais de uma vez.
+          Empurrar o prazo no meio do turno é o que o preparo faz, e ele é por
+          filial. Quem edita este é Minha loja › Geral.
+        */}
+        <DeliveryEstimate />
       </div>
     </div>
   );

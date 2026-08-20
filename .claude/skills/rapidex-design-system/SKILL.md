@@ -5,6 +5,24 @@ description: Fonte de verdade visual do Admin Rapidex. Use ao criar, alterar ou 
 
 # Design system do Admin Rapidex
 
+> **AVISO — FASE 1 DE UMA NOVA DIREÇÃO VISUAL ESTÁ NO CÓDIGO (2026-08-20).**
+>
+> Os tokens, os primitivos e DUAS telas (Pedidos e Minha loja › Geral) já
+> seguem a direção nova; o resto do painel ainda não foi propagado, e este
+> documento ainda descreve a direção ANTERIOR. Enquanto a fase 3 não o
+> reescreve, a fonte de verdade das escolhas estéticas é
+> `src/styles/tokens.css` — leia o cabeçalho dele antes de confiar nas seções
+> de Tipografia, Espaçamento, Raios, Superfícies e Cor daqui.
+>
+> O que já divergiu: escala tipográfica (título 24/700, seção 15/600, rótulo
+> 12/600 em `--ink-3`), raios (4/6/8/12/16), alturas de controle (36/30/44),
+> separação por TOM em vez de borda (`--card-edge`), sombra só onde há elevação
+> (`--shadow-card` é `none`), neutros quentes e `--ember` em `#c2410c`.
+>
+> O que NÃO mudou e continua valendo: os limites invariáveis, a semântica de
+> status, a disciplina de tokens, contraste medido, `focus-visible`, movimento
+> reduzido e a regra de reutilização.
+
 Este documento descreve o painel implementado. O código de referência está em
 `src/styles/tokens.css`, `src/styles/primitives.css`, `src/ds/`, `src/layout/`
 e nos estilos das páginas. Se uma regra daqui divergir do código, corrija a

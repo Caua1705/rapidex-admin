@@ -8,8 +8,8 @@
   flex-direction: column;
   overflow: hidden;
   border-left: 1px solid var(--line);
-  background: var(--surface-raised);
-  box-shadow: var(--shadow-shell);
+  background: var(--surface);
+  box-shadow: none;
 }
 
 .panel--vazio {
@@ -18,7 +18,7 @@
 
 .panel__header {
   display: flex;
-  min-height: 76px;
+  min-height: 68px;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--s-3);
@@ -38,7 +38,7 @@
   width: 100%;
   color: var(--ink);
   font-size: var(--section-size);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-semibold);
   line-height: var(--section-line);
 }
 
@@ -90,8 +90,7 @@
   gap: var(--s-2);
   padding: var(--s-4) var(--s-5);
   border-top: 1px solid var(--line);
-  background: var(--surface-raised);
-  box-shadow: 0 -8px 20px color-mix(in srgb, var(--bg) 72%, transparent);
+  background: var(--surface);
 }
 
 .detail {
@@ -116,11 +115,12 @@
   border-bottom: 0;
 }
 
+/* Rótulo de bloco: o nível 3 do sistema, como todo rótulo. */
 .detail__heading {
   margin: 0 0 var(--s-3);
   color: var(--ink-3);
   font-size: var(--label-size);
-  font-weight: var(--weight-bold);
+  font-weight: var(--weight-semibold);
   letter-spacing: var(--label-tracking);
   line-height: var(--label-line);
 }
@@ -149,8 +149,13 @@
   font-weight: var(--weight-bold);
 }
 
+/*
+ * O TOTAL NÃO É LARANJA. Ele é o dado mais importante do painel, e a brasa não
+ * marca importância — ela marca ação, seleção, navegação ativa e foco (§1 dos
+ * tokens). Quem diz "este é o número" é o corpo e o peso.
+ */
 .detail__row--total > :last-child {
-  color: var(--brand);
+  color: var(--ink);
   font-size: var(--ticket-time-size);
   font-weight: var(--weight-bold);
   line-height: var(--ticket-time-line);
@@ -196,9 +201,11 @@
   gap: var(--s-2);
 }
 
+/* A quantidade também não: "2×" é dado, e dado é tinta. */
 .items__qty {
-  color: var(--brand);
-  font-weight: var(--weight-bold);
+  color: var(--ink-2);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .items__name,
@@ -255,15 +262,22 @@
 }
 
 @media (max-width: 1279px) {
+  /*
+   * `--topbar-height` e `--shadow-drawer` NÃO EXISTEM em tokens.css — as duas
+   * declarações eram inválidas, então o painel flutuante abaixo de 1280px
+   * ficava com `top: auto` (altura do conteúdo, e não da tela) e sem sombra
+   * nenhuma sobre o quadro. Os nomes certos são `--topbar-h` e
+   * `--shadow-raised`.
+   */
   .panel {
     position: fixed;
     z-index: var(--z-drawer);
-    top: var(--topbar-height);
+    top: var(--topbar-h);
     right: 0;
     bottom: 0;
     height: auto;
-    border-left: 0;
-    box-shadow: var(--shadow-drawer);
+    border-left: 1px solid var(--line);
+    box-shadow: var(--shadow-raised);
   }
 
   .panel--vazio {

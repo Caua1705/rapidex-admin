@@ -77,16 +77,21 @@
     clip: auto;
   }
 
+  /*
+   * O CABEÇALHO DE COLUNA É O NÍVEL 3 (12px / 600 / --ink-3), como todo rótulo
+   * do sistema. Em 13px semibold ele tinha quase o corpo do dado embaixo e a
+   * tabela lia como duas listas empilhadas em vez de cabeçalho e conteúdo.
+   */
   .ds-tabela th {
-    padding: var(--sp-12) var(--sp-16);
+    padding: var(--sp-8) var(--sp-16);
     background: var(--surface-muted);
     text-align: left;
-    font-size: var(--ta-size);
-    line-height: var(--ta-line);
-    font-weight: var(--w-semibold);
+    font-size: var(--tl-size);
+    line-height: var(--tl-line);
+    font-weight: var(--tl-weight);
+    letter-spacing: var(--tl-track);
     color: var(--ink-3);
     white-space: nowrap;
-    border-bottom: 1px solid var(--line);
   }
 
   .ds-tabela tr {

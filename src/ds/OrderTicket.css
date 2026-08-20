@@ -1,3 +1,20 @@
+/*
+ * O TICKET.
+ *
+ * O QUE MUDOU NESTA RODADA:
+ *
+ *   SAIU A MOLDURA. O cartão tinha borda em volta, sombra embaixo E um trilho
+ *   de estágio à esquerda — três recursos para dizer "aqui começa um pedido".
+ *   Ficou o trilho, que é o único dos três que carrega informação, e o degrau
+ *   de tom (branco sobre o chão bege). No escuro `--card-edge` acende o fio,
+ *   porque lá o tom sozinho não fecha o cartão.
+ *
+ *   O TRILHO ENGROSSOU e virou um bloco de cor cheia na matiz do estágio: numa
+ *   grade de doze tickets, é ele que agrupa a coluna antes de qualquer leitura.
+ *
+ *   A SOMBRA FOI PARA O HOVER, que é o único momento em que o cartão de fato
+ *   sai do plano.
+ */
 .ds-ticket {
   position: relative;
   width: 100%;
@@ -5,44 +22,43 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-edge);
   border-left: 3px solid var(--st);
   border-radius: var(--r-card);
   background: var(--surface);
   color: var(--ink);
   text-align: left;
-  box-shadow: var(--shadow-card);
   transition:
     transform var(--motion-fast) var(--ease),
-    border-color var(--motion-fast) var(--ease),
     background var(--motion-fast) var(--ease),
     box-shadow var(--motion-fast) var(--ease);
 }
 
 .ds-ticket:hover {
   transform: translateY(-1px);
-  border-color: var(--line-strong);
-  box-shadow: var(--shadow-raised);
+  box-shadow: var(--shadow-lift);
 }
 
 .ds-ticket:active {
   transform: translateY(0);
 }
 
+/*
+ * SELECIONADO: plano tingido e o fio da marca por dentro. Sem moldura pesada —
+ * o ticket escolhido continua sendo um da fila, não um objeto de outra
+ * natureza.
+ */
 .ds-ticket--selecionado {
-  border-color: var(--line-control);
   background: var(--surface-selected);
-  box-shadow:
-    var(--shadow-card),
-    inset 0 0 0 1px var(--ember);
+  box-shadow: inset 0 0 0 1px var(--ember);
 }
 
 .ds-ticket__corpo {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-8);
-  padding: var(--sp-12) var(--sp-16) var(--sp-16);
+  gap: var(--sp-4);
+  padding: var(--sp-12) var(--sp-12) var(--sp-12) var(--sp-16);
 }
 
 .ds-ticket__topo {
@@ -76,7 +92,7 @@
   color: var(--ink);
   font-size: var(--tb-size);
   line-height: var(--tb-line);
-  font-weight: var(--w-semibold);
+  font-weight: var(--w-medium);
 }
 
 .ds-ticket__meta {
@@ -92,32 +108,64 @@
 
 .ds-ticket__numero {
   color: var(--ink-2);
-  font-weight: var(--w-semibold);
-}
-
-.ds-ticket__meta .tag {
-  min-height: 22px;
-  padding-inline: var(--sp-4);
-  background: var(--surface-muted);
-}
-
-.ds-ticket__pgto {
-  color: var(--ink-2);
-  font-size: var(--tl-size);
   font-weight: var(--w-medium);
 }
 
+/*
+ * A ETIQUETA DENTRO DO TICKET NÃO TEM PLANO PRÓPRIO.
+ *
+ * "Entrega" e "Pix" em cápsulas cinzas eram dois retângulos numa linha que já
+ * tem quatro elementos — a linha inteira lia como cerca. Aqui elas são texto de
+ * apoio separado por ponto médio, como o nº e a hora ao lado: mesma família de
+ * informação, mesmo tratamento.
+ */
+.ds-ticket__meta .tag {
+  min-height: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink-3);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-weight: var(--w-regular);
+}
+
+.ds-ticket__meta .tag::before {
+  content: '·';
+  margin-right: var(--sp-4);
+  color: var(--ink-3);
+}
+
+.ds-ticket__pgto {
+  color: var(--ink-3);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+}
+
+.ds-ticket__pgto::before {
+  content: '·';
+  margin-right: var(--sp-4);
+}
+
+/*
+ * O AVISO QUE IMPEDE O PREPARO. Em âmbar de `pendente`, NUNCA em vermelho:
+ * quase todo pedido de Pix passa por este estado, e um alarme que pinta o
+ * normal deixa de ser alarme. Linha própria, largura inteira: ele não é um
+ * metadado a mais na fila de metadados.
+ */
 .ds-ticket__alerta {
+  width: 100%;
+  margin-top: var(--sp-4);
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
+  min-height: var(--tap);
   padding-inline: var(--sp-8);
   border-radius: var(--r-chip);
   background: var(--alert-wash);
   color: var(--alert);
   font-size: var(--tl-size);
-  line-height: 1;
-  font-weight: var(--w-bold);
+  line-height: var(--tl-line);
+  font-weight: var(--w-semibold);
 }
 
 .ds-ticket--alerta::after {
@@ -125,11 +173,10 @@
   position: absolute;
   top: var(--sp-12);
   right: var(--sp-12);
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: var(--r-round);
   background: var(--alert);
-  box-shadow: 0 0 0 3px var(--alert-wash);
 }
 
 .ds-ticket--alerta .ds-ticket__total {

@@ -1,3 +1,28 @@
+/*
+ * ============================================================================
+ * PEDIDOS — a tela mais densa do painel
+ * ============================================================================
+ *
+ * O QUE MUDOU NESTA RODADA:
+ *
+ *   O CABEÇALHO VIROU UMA LINHA SÓ. Título, subtítulo e as duas abas ficavam em
+ *   três blocos empilhados, e as abas ainda traziam uma régua de largura
+ *   inteira: 140px de altura antes do primeiro pedido. Agora título e abas
+ *   dividem a mesma linha, e o subtítulo desceu para o nível auxiliar.
+ *
+ *   A BARRA DE FILTRO PERDEU A MOLDURA e ganhou densidade. Ela continua sendo
+ *   UMA superfície agrupadora — sem isso, as cápsulas de preparo somem no chão
+ *   bege — mas sem borda, sem sombra e com os controles no tamanho compacto.
+ *
+ *   O CABEÇALHO DE FAIXA VIROU RÓTULO. Ele tinha contador em cápsula cinza,
+ *   título em semibold e um fio: três objetos para dizer "começa aqui a fila
+ *   dos novos". Ficaram o ponto na matiz do estágio, o nome, o número e o fio.
+ *
+ *   A GRADE APERTOU de 268 para 248px de coluna mínima. Numa tela de 1440 com
+ *   o painel de detalhe aberto, é a diferença entre três e quatro tickets por
+ *   linha.
+ */
+
 .orders {
   flex: 1;
   min-height: 0;
@@ -16,12 +41,17 @@
   overflow-y: auto;
 }
 
+/*
+ * TÍTULO E ABAS NA MESMA LINHA. As abas são o recorte do que está na tela —
+ * elas pertencem ao título, não ao conteúdo.
+ */
 .orders__header {
   flex: 0 0 auto;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--sp-16);
+  flex-wrap: wrap;
+  gap: var(--sp-12) var(--sp-24);
 }
 
 .orders__header p {
@@ -29,76 +59,81 @@
 }
 
 .tabs {
-  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: var(--sp-20);
-  min-height: var(--control-h);
-  border-bottom: 1px solid var(--line);
+  gap: var(--sp-4);
+  padding: var(--sp-4);
+  border-radius: var(--r-control);
+  background: var(--surface-muted);
 }
 
+/*
+ * AS DUAS ABAS VIRARAM SEGMENTADO. Sublinhado de aba é para navegação que troca
+ * o contexto da página; "Em andamento" e "Histórico" são dois recortes do mesmo
+ * quadro — a mesma pergunta que o segmentado de período responde logo abaixo, e
+ * agora com o mesmo desenho.
+ */
 .tab {
-  align-self: stretch;
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--sp-8);
-  padding-inline: var(--sp-4);
-  color: var(--ink-3);
-  font-size: var(--tb-size);
+  min-height: var(--control-h-sm);
+  padding-inline: var(--sp-12);
+  border-radius: var(--r-chip);
+  color: var(--ink-2);
+  font-size: var(--ta-size);
+  line-height: 1;
   font-weight: var(--w-medium);
-  transition: color var(--motion-fast) var(--ease);
+  white-space: nowrap;
+  transition:
+    color var(--motion-fast) var(--ease),
+    background var(--motion-fast) var(--ease),
+    box-shadow var(--motion-fast) var(--ease);
 }
 
 .tab:hover {
   color: var(--ink);
-}
-
-.tab::after {
-  content: '';
-  position: absolute;
-  inset: auto 0 -1px;
-  height: 3px;
-  border-radius: var(--r-round) var(--r-round) 0 0;
-  background: var(--ember);
-  transform: scaleX(0);
-  transition: transform var(--motion-base) var(--ease);
+  background: var(--hover);
 }
 
 .tab--on {
   color: var(--ink);
+  background: var(--surface);
   font-weight: var(--w-semibold);
+  box-shadow: var(--shadow-lift);
 }
 
-.tab--on::after {
-  transform: scaleX(1);
-}
-
+/* O contador diz o que há do outro lado; ele é apoio, não um objeto. */
 .tab__count {
-  min-width: 22px;
-  min-height: 22px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding-inline: var(--sp-4);
-  border-radius: var(--r-round);
-  background: var(--surface-muted);
-  color: var(--ink-2);
+  color: var(--ink-3);
   font-size: var(--tl-size);
   font-weight: var(--w-semibold);
+  font-variant-numeric: tabular-nums;
 }
 
+/* ==========================================================================
+ * A BARRA DE FILTRO
+ * ======================================================================= */
 .filtros {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--sp-12);
-  padding: var(--sp-12);
-  border: 1px solid var(--line);
+  gap: var(--sp-8) var(--sp-12);
+  padding: var(--sp-8);
   border-radius: var(--r-card);
   background: var(--surface);
-  box-shadow: var(--shadow-card);
+}
+
+/*
+ * O SEGMENTADO DE PERÍODO É MAIS APERTADO AQUI que na galeria: quatro opções
+ * numa barra que também carrega busca e três botões, dentro de uma coluna que
+ * mede 740px com o detalhe aberto. É a densidade da tela mandando na do
+ * componente, e não o contrário.
+ */
+.filtros > .seg .seg__opt {
+  padding-inline: var(--sp-8);
 }
 
 .filtros__datas {
@@ -110,20 +145,21 @@
 
 .filtros__data .input {
   width: 140px;
+  height: var(--control-h-sm);
 }
 
 .filtros__busca {
   position: relative;
-  flex: 1 1 240px;
+  flex: 1 1 220px;
   min-width: 0;
-  max-width: 380px;
+  max-width: 340px;
   display: flex;
   align-items: center;
 }
 
 .filtros__lupa {
   position: absolute;
-  left: var(--sp-12);
+  left: var(--sp-8);
   z-index: 1;
   display: flex;
   color: var(--ink-3);
@@ -131,17 +167,39 @@
 }
 
 .filtros__busca-campo {
-  padding-left: var(--sp-32);
+  height: var(--control-h-sm);
+  padding-left: var(--sp-24);
 }
 
 .filtros__dir {
   margin-left: auto;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   flex-wrap: wrap;
   gap: var(--sp-8);
 }
 
+/*
+ * A SEGUNDA FAIXA, sempre em linha própria (`100%` de base): preparo e entrega
+ * são as duas promessas que o cliente lê, e elas não competem por espaço com o
+ * recorte do quadro.
+ */
+.filtros__medidas {
+  flex: 1 0 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-8);
+}
+
+/*
+ * PREPARO E ENTREGA — dois valores de leitura numa barra de controles.
+ *
+ * O plano de agrupamento (`--surface-muted`) é o que os separa dos botões sem
+ * dar contorno a nenhum dos dois: eles não são operáveis como um todo (só os
+ * três steppers de preparo são), então uma caixa contornada mentiria.
+ */
 .prep {
   position: relative;
   min-height: var(--control-h-sm);
@@ -158,7 +216,8 @@
   color: var(--ink-3);
   font-size: var(--tl-size);
   line-height: var(--tl-line);
-  font-weight: var(--w-semibold);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
 }
 
 .prep__range {
@@ -193,7 +252,7 @@
   min-width: var(--control-h-sm);
   min-height: var(--control-h-sm);
   padding-inline: var(--sp-4);
-  border-color: var(--line);
+  border-color: var(--line-strong);
   background: var(--surface);
 }
 
@@ -208,7 +267,7 @@
   gap: var(--sp-12);
   padding: var(--sp-16);
   border: 1px solid var(--line);
-  border-radius: var(--r-sheet);
+  border-radius: var(--r-card);
   background: var(--surface-raised);
   box-shadow: var(--shadow-raised);
 }
@@ -245,55 +304,59 @@
   font-size: var(--ta-size);
 }
 
+/* ==========================================================================
+ * O QUADRO
+ * ======================================================================= */
 .faixas {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-24);
+  gap: var(--sp-20);
 }
 
 .faixa {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-12);
+  gap: var(--sp-8);
 }
 
 .faixa__head {
   display: flex;
   align-items: center;
   gap: var(--sp-8);
+  min-height: var(--sp-20);
 }
 
+/*
+ * O PONTO É A MATIZ DO ESTÁGIO, e ele é a única cor do cabeçalho. Sem o halo de
+ * wash em volta: numa tela com três faixas, três halos de 14px eram três
+ * manchas antes de qualquer pedido.
+ */
 .faixa__dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   flex: 0 0 auto;
   border-radius: var(--r-round);
   background: var(--st, var(--ink-3));
-  box-shadow: 0 0 0 3px var(--st-wash, var(--surface-muted));
 }
 
 .faixa__title {
   margin: 0;
-  color: var(--ink-2);
+  color: var(--ink);
   font-size: var(--ta-size);
   line-height: var(--ta-line);
   font-weight: var(--w-semibold);
   white-space: nowrap;
 }
 
+/* O contador é número, não objeto: a cápsula cinza saiu. */
 .faixa__count {
-  min-width: 24px;
-  min-height: 24px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--r-round);
-  background: var(--surface-muted);
-  color: var(--ink);
-  font-size: var(--tl-size);
-  font-weight: var(--w-bold);
+  color: var(--ink-3);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-weight: var(--w-medium);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .faixa__rule {
@@ -305,7 +368,7 @@
 .faixa__cards,
 .historico__grade {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
   gap: var(--sp-12);
   align-items: start;
 }
@@ -319,7 +382,7 @@
   padding: var(--sp-32) var(--sp-24);
   border-radius: var(--r-card);
   background: var(--surface);
-  box-shadow: var(--shadow-card);
+  border: 1px solid var(--card-edge);
 }
 
 .historico {
@@ -345,7 +408,23 @@
 
   .filtros__dir {
     width: 100%;
-    margin-left: 0;
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 1023px) {
+  /* No toque tudo volta a 44px; a barra deixa de ser compacta. */
+  .filtros__data .input,
+  .filtros__busca-campo {
+    height: var(--field-h-touch);
+  }
+
+  .filtros__busca-campo {
+    padding-left: var(--sp-32);
+  }
+
+  .filtros__lupa {
+    left: var(--sp-12);
   }
 }
 
@@ -354,8 +433,23 @@
     gap: var(--sp-12);
   }
 
+  .orders__header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--sp-8);
+  }
+
   .orders__header p {
     display: none;
+  }
+
+  .tabs {
+    width: 100%;
+  }
+
+  .tab {
+    flex: 1;
+    justify-content: center;
   }
 
   .filtros {
@@ -374,7 +468,8 @@
 
   .filtros__busca,
   .filtros__datas,
-  .filtros__dir {
+  .filtros__dir,
+  .filtros__medidas {
     flex: 1 1 100%;
     max-width: none;
   }
@@ -388,11 +483,12 @@
     width: 100%;
   }
 
-  .filtros__dir {
+  .filtros__dir,
+  .filtros__medidas {
     align-items: stretch;
   }
 
-  .filtros__dir .prep:first-child {
+  .filtros__medidas .prep:first-child {
     flex: 1 1 100%;
   }
 
@@ -411,7 +507,7 @@
   }
 
   .faixas {
-    gap: var(--sp-20);
+    gap: var(--sp-16);
   }
 
   .faixa__cards,

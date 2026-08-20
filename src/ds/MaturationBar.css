@@ -24,8 +24,13 @@
   height: 3px;
   width: 100%;
   flex: 0 0 auto;
-  /* O trilho é a superfície afundada: o vazio também informa (falta encher). */
-  background: var(--field);
+  /*
+   * O trilho é o plano de agrupamento, e não `--field`: com o campo passando a
+   * ser BRANCO nesta direção, um trilho em `--field` desaparecia dentro do
+   * cartão branco e a barra deixava de ter começo e fim. O vazio também informa
+   * (falta encher), então ele precisa ser visível.
+   */
+  background: var(--surface-muted);
   overflow: hidden;
 }
 

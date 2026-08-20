@@ -29,6 +29,11 @@ type Ponta = {
   /** Nome acessível da caixa — o rótulo visível é o do `Field`. */
   label: string;
   placeholder?: string;
+  /**
+   * Cada ponta é uma caixa própria e precisa de um alvo próprio no teste: a
+   * faixa é o dado, mas quem se preenche continua sendo um número de cada vez.
+   */
+  'data-testid'?: string;
 };
 
 export function RangeInput({
@@ -39,6 +44,7 @@ export function RangeInput({
   separator = 'a',
   inputMode = 'numeric',
   disabled,
+  className,
 }: {
   from: Ponta;
   to: Ponta;
@@ -47,15 +53,18 @@ export function RangeInput({
   separator?: string;
   inputMode?: 'numeric' | 'decimal';
   disabled?: boolean;
+  /** Teto de conteúdo da faixa inteira — ver `.ds-range--faixa` em Input.css. */
+  className?: string;
 }) {
   const field = useFieldState();
   const hintId = useId();
 
   return (
-    <div className="ds-range">
+    <div className={['ds-range', className ?? ''].filter(Boolean).join(' ')}>
       <Input
         aria-label={from.label}
         aria-describedby={field?.describedBy}
+        data-testid={from['data-testid']}
         value={from.value}
         onValueChange={from.onValueChange}
         placeholder={from.placeholder}
@@ -77,6 +86,7 @@ export function RangeInput({
       <Input
         aria-label={to.label}
         aria-describedby={field?.describedBy}
+        data-testid={to['data-testid']}
         value={to.value}
         onValueChange={to.onValueChange}
         placeholder={to.placeholder}

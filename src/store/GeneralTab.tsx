@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 
 import type { RestaurantSettingsUpdate } from '../api/types';
 import { Checkbox } from '../ds/Checkbox';
+import { Field } from '../ds/Field';
+import { Input } from '../ds/Input';
+import { RangeInput } from '../ds/RangeInput';
 import { SaveBar } from './SaveBar';
 import {
   checkEstimatedRange,
@@ -43,6 +46,28 @@ const EMPTY: Draft = {
  * da filial (aba Entrega). Um campo de "taxa de entrega padrão" que não altera
  * o que o cliente paga é pior que campo faltando — o lojista mexe nele achando
  * que baixou o frete e o app continua cobrando o mesmo.
+ *
+ * ============================================================================
+ * O DESENHO DO FORMULÁRIO — o que mudou na rodada de direção visual
+ * ============================================================================
+ *
+ * ELE USA O DESIGN SYSTEM AGORA. Eram `<label className="field">` e
+ * `<input className="input">` montados à mão, com o rótulo, a ajuda e o campo
+ * ligados só pelo aninhamento. `Field` + `Input` fazem `htmlFor`/`id`,
+ * `aria-describedby` e `aria-invalid` uma vez só, e o afixo "R$" passa a viver
+ * DENTRO da caixa.
+ *
+ * O CAMPO TEM A LARGURA DO QUE CABE DENTRO DELE. "20,00" morava numa caixa de
+ * 912px porque a grade esticava tudo até a coluna acabar — é o sintoma nº 1 de
+ * formulário com aparência de HTML padrão. Com `--dinheiro` e `--faixa` (tetos
+ * de conteúdo declarados em tokens.css), a caixa diz pelo tamanho o que se
+ * escreve nela.
+ *
+ * DOIS GRUPOS, UMA SUPERFÍCIE. Eram dois cartões contornados para dois grupos
+ * de dois campos. Agora é uma superfície com um fio entre os grupos, e o nome
+ * do grupo mora numa coluna própria à esquerda: a hierarquia passa a ser
+ * posição, e não mais dois títulos de 16px dentro de uma tela que já tinha
+ * outro.
  */
 export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreSettings> }) {
   const [draft, setDraft] = useState<Draft>(EMPTY);
@@ -115,85 +140,76 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
         void handleSave();
       }}
     >
-      <section className="store-form__section">
-        <h2 className="store-form__heading">Pedido</h2>
+      <div className="store-form__folha">
+        <section className="store-form__group">
+          <h3 className="store-form__heading">Pedido</h3>
 
-        <div className="store-form__grid">
-          <label className="field">
-            <span className="field__label">Valor mínimo do pedido</span>
-            <input
-              className="input tnum"
-              inputMode="decimal"
-              value={draft.minOrderValue}
-              onChange={(event) => patch({ minOrderValue: event.target.value })}
-              data-testid="settings-min-order"
-            />
-            <span className="field__hint">
-              Abaixo disso o cliente não fecha o pedido. Em reais.
-            </span>
-          </label>
+          <div className="store-form__fields">
+            <Field label="Valor mínimo do pedido" hint="Abaixo disso o cliente não fecha o pedido.">
+              {/* O "R$" é afixo interno: fora da caixa ele lê como outra coluna. */}
+              <Input
+                className="ds-control--dinheiro tnum"
+                prefix="R$"
+                inputMode="decimal"
+                value={draft.minOrderValue}
+                onValueChange={(minOrderValue) => patch({ minOrderValue })}
+                data-testid="settings-min-order"
+              />
+            </Field>
 
-          {/*
-            Mínimo e máximo são UM campo: eles formam uma faixa, sempre são
-            editados juntos e o backend os valida em par. Em duas caixas
-            rotuladas separadamente, cada uma pedia o próprio rótulo de três
-            palavras e a própria linha de ajuda — três campos onde há dois
-            números.
-          */}
-          <div className="field">
-            <span className="field__label">Tempo estimado (min)</span>
-            <div className="field__pair">
-              <input
-                className="input tnum"
-                inputMode="numeric"
-                aria-label="Tempo estimado mínimo, em minutos"
-                value={draft.estimatedMin}
-                onChange={(event) => patch({ estimatedMin: event.target.value })}
-                data-testid="settings-eta-min"
+            {/*
+              Mínimo e máximo são UM campo: eles formam uma faixa, sempre são
+              editados juntos e o backend os valida em par. Em duas caixas
+              rotuladas separadamente, cada uma pedia o próprio rótulo de três
+              palavras e a própria linha de ajuda — três campos onde há dois
+              números.
+            */}
+            <Field label="Tempo estimado" hint="É a faixa que o cliente vê ao escolher a loja.">
+              <RangeInput
+                className="ds-range--faixa"
+                suffix="min"
+                from={{
+                  value: draft.estimatedMin,
+                  onValueChange: (estimatedMin) => patch({ estimatedMin }),
+                  label: 'Tempo estimado mínimo, em minutos',
+                  'data-testid': 'settings-eta-min',
+                }}
+                to={{
+                  value: draft.estimatedMax,
+                  onValueChange: (estimatedMax) => patch({ estimatedMax }),
+                  label: 'Tempo estimado máximo, em minutos',
+                  'data-testid': 'settings-eta-max',
+                }}
               />
-              <span className="field__pair-sep" aria-hidden="true">
-                a
-              </span>
-              <input
-                className="input tnum"
-                inputMode="numeric"
-                aria-label="Tempo estimado máximo, em minutos"
-                value={draft.estimatedMax}
-                onChange={(event) => patch({ estimatedMax: event.target.value })}
-                data-testid="settings-eta-max"
-              />
-            </div>
-            <span className="field__hint">É a faixa que o cliente vê ao escolher a loja.</span>
+            </Field>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="store-form__section">
-        <h2 className="store-form__heading">Taxa de serviço</h2>
+        <section className="store-form__group">
+          <h3 className="store-form__heading">Taxa de serviço</h3>
 
-        {/* A caixa de marcar liga o campo ao lado: na mesma linha, a relação
-            entre os dois é o próprio desenho. */}
-        <div className="store-form__row">
-          <Checkbox
-            checked={draft.serviceFeeEnabled}
-            onChange={(serviceFeeEnabled) => patch({ serviceFeeEnabled })}
-            label="Cobrar taxa de serviço"
-            data-testid="settings-service-fee-enabled"
-          />
-
-          <label className="field store-form__narrow">
-            <span className="field__label">Valor da taxa</span>
-            <input
-              className="input tnum"
-              inputMode="decimal"
-              value={draft.serviceFeeAmount}
-              disabled={!draft.serviceFeeEnabled}
-              onChange={(event) => patch({ serviceFeeAmount: event.target.value })}
-              data-testid="settings-service-fee-amount"
+          {/* A caixa de marcar comanda o campo abaixo: desligada, ele apaga. */}
+          <div className="store-form__fields">
+            <Checkbox
+              checked={draft.serviceFeeEnabled}
+              onChange={(serviceFeeEnabled) => patch({ serviceFeeEnabled })}
+              label="Cobrar taxa de serviço"
+              data-testid="settings-service-fee-enabled"
             />
-          </label>
-        </div>
-      </section>
+
+            <Field label="Valor da taxa" disabled={!draft.serviceFeeEnabled}>
+              <Input
+                className="ds-control--dinheiro tnum"
+                prefix="R$"
+                inputMode="decimal"
+                value={draft.serviceFeeAmount}
+                onValueChange={(serviceFeeAmount) => patch({ serviceFeeAmount })}
+                data-testid="settings-service-fee-amount"
+              />
+            </Field>
+          </div>
+        </section>
+      </div>
 
       <SaveBar
         isSaving={settings.isSaving}

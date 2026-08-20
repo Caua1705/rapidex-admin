@@ -1,3 +1,27 @@
+/*
+ * ============================================================================
+ * PRIMITIVOS — botão, campo, segmentado, aviso, etiqueta
+ * ============================================================================
+ *
+ * O QUE MUDOU NESTA RODADA, e o porquê de cada um:
+ *
+ *   SAIU O RELEVO. O botão tinha `box-shadow: 0 1px 1px` e o campo tinha
+ *   `inset 0 1px 1px`. Os dois juntos eram o que fazia o formulário ler como
+ *   HTML de 2009: um baixo-relevo de sistema operacional que ninguém escolheu.
+ *   Hoje o botão é um plano chapado e o campo é uma caixa branca com um fio.
+ *
+ *   O PESO DO BOTÃO CAIU de 600 para 500. Numa barra com sete controles, sete
+ *   rótulos em semibold são sete títulos disputando a mesma linha. Só o
+ *   primário fica em 600: ele é a ação, e o peso é parte de dizer isso.
+ *
+ *   O RÓTULO DE CAMPO VIROU NÍVEL 3 (12px / 600 / --ink-3). O que fica forte é
+ *   o VALOR (14px / --ink), que é o dado que a pessoa veio conferir. Antes
+ *   rótulo e valor tinham quase o mesmo peso e o olho não sabia onde pousar.
+ */
+
+/* ==========================================================================
+ * BOTÃO
+ * ======================================================================= */
 .btn {
   min-height: var(--control-h);
   display: inline-flex;
@@ -11,16 +35,13 @@
   color: var(--ink);
   font-size: var(--tb-size);
   line-height: 1;
-  font-weight: var(--w-semibold);
+  font-weight: var(--w-medium);
   white-space: nowrap;
   text-decoration: none;
-  box-shadow: 0 1px 1px var(--line);
   transition:
     background var(--motion-fast) var(--ease),
     border-color var(--motion-fast) var(--ease),
-    color var(--motion-fast) var(--ease),
-    transform var(--motion-fast) var(--ease),
-    box-shadow var(--motion-fast) var(--ease);
+    color var(--motion-fast) var(--ease);
 }
 
 .btn:hover:not(:disabled) {
@@ -29,21 +50,23 @@
 }
 
 .btn:active:not(:disabled) {
-  transform: translateY(1px);
-  box-shadow: none;
+  background: var(--active);
 }
 
 .btn:disabled {
   opacity: var(--disabled-opacity);
   cursor: not-allowed;
-  box-shadow: none;
 }
 
+/*
+ * O PRIMÁRIO É O ÚNICO BOTÃO EM BRASA DA TELA. Se dois aparecem juntos, um
+ * deles não é a ação — é uma alternativa, e alternativa é `.btn` comum.
+ */
 .btn--primary {
   border-color: var(--ember);
   background: var(--ember);
   color: var(--on-ember);
-  box-shadow: 0 1px 2px var(--line-strong);
+  font-weight: var(--w-semibold);
 }
 
 .btn--primary:hover:not(:disabled),
@@ -57,6 +80,7 @@
   border-color: var(--danger);
   background: var(--danger);
   color: var(--on-ember);
+  font-weight: var(--w-semibold);
 }
 
 .btn--danger:hover:not(:disabled),
@@ -69,7 +93,6 @@
 .btn--ghost-danger {
   border-color: transparent;
   background: transparent;
-  box-shadow: none;
 }
 
 .btn--ghost-danger {
@@ -102,6 +125,15 @@
   width: var(--control-h-sm);
 }
 
+/* ==========================================================================
+ * SEGMENTADO — escolher UMA alternativa dentro do mesmo contexto
+ *
+ * O ativo NÃO usa a brasa. Ele é filtro de leitura, não ação nem navegação: o
+ * que o marca é o segmento subir para `--surface` sobre o trilho `muted`, com
+ * peso e tinta cheia. A brasa continua valendo só para os quatro empregos da
+ * §1 dos tokens — e um sublinhado laranja dentro de uma cápsula cinza era um
+ * quinto.
+ * ======================================================================= */
 .seg {
   display: inline-flex;
   align-items: center;
@@ -135,11 +167,12 @@
   color: var(--ink);
   background: var(--surface);
   font-weight: var(--w-semibold);
-  box-shadow:
-    var(--shadow-card),
-    inset 0 -2px 0 var(--ember);
+  box-shadow: var(--shadow-lift);
 }
 
+/* ==========================================================================
+ * CAMPO — envelope, rótulo, ajuda e erro
+ * ======================================================================= */
 .field,
 .ds-field {
   min-width: 0;
@@ -148,12 +181,17 @@
   gap: var(--sp-4);
 }
 
+/*
+ * O RÓTULO É NÍVEL 3 (ver §7 dos tokens): 12px, peso 600, tinta de apoio. Ele
+ * nomeia; quem se lê é o valor dentro da caixa.
+ */
 .field__label,
 .ds-choice-group__legend {
-  color: var(--ink-2);
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-  font-weight: var(--w-semibold);
+  color: var(--ink-3);
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
 }
 
 .field__hint,
@@ -187,6 +225,11 @@
   font-size: var(--ta-size);
 }
 
+/*
+ * A CAIXA. Sem baixo-relevo e sem preenchimento cinza: papel branco com um fio
+ * que passa dos 3:1 da WCAG 1.4.11. No foco o fio vira brasa e ganha o anel —
+ * é a única coisa que muda, e é o bastante.
+ */
 .input,
 .textarea {
   width: 100%;
@@ -200,17 +243,19 @@
   font-family: var(--font-ui);
   font-size: var(--tb-size);
   line-height: var(--tb-line);
-  box-shadow: inset 0 1px 1px var(--line);
   transition:
     background var(--motion-fast) var(--ease),
-    border-color var(--motion-fast) var(--ease),
-    box-shadow var(--motion-fast) var(--ease);
+    border-color var(--motion-fast) var(--ease);
 }
 
 .input:hover:not(:disabled),
 .textarea:hover:not(:disabled) {
   border-color: var(--ink-3);
-  background: var(--surface);
+}
+
+.input:focus-visible,
+.textarea:focus-visible {
+  border-color: var(--ember);
 }
 
 .textarea {
@@ -232,7 +277,6 @@
   background: var(--surface-muted);
   color: var(--ink-3);
   cursor: not-allowed;
-  box-shadow: none;
 }
 
 .input::-webkit-calendar-picker-indicator {
@@ -250,40 +294,50 @@
   font-variant-numeric: tabular-nums lining-nums;
 }
 
+/* ==========================================================================
+ * AVISO — sem moldura, porque o wash já é a moldura
+ *
+ * Antes ele tinha borda de 1px em volta e mais 3px à esquerda. Duas bordas e
+ * um preenchimento para dizer uma coisa só: o fundo tingido já separa o aviso
+ * do que está em volta, e o texto na cor do estado já diz de que natureza ele
+ * é (nunca só a cor — a frase também diz).
+ * ======================================================================= */
 .alert {
   margin: 0;
   padding: var(--sp-12) var(--sp-16);
-  border: 1px solid;
-  border-left-width: 3px;
+  border: 0;
   border-radius: var(--r-field);
   font-size: var(--tb-size);
   line-height: var(--tb-line);
 }
 
 .alert--error {
-  border-color: var(--danger);
   background: var(--danger-wash);
   color: var(--danger);
 }
 
 .alert--warn {
-  border-color: var(--alert);
   background: var(--alert-wash);
   color: var(--alert);
 }
 
 .alert--info {
-  border-color: var(--info);
   background: var(--info-wash);
   color: var(--info);
 }
 
+/* ==========================================================================
+ * ETIQUETA — modalidade, pagamento, contagem curta
+ *
+ * Sem contorno: ela é uma palavra sobre um plano de agrupamento, não um
+ * objeto com beirada. Contorno em etiqueta é como uma linha de ticket com
+ * três delas vira uma cerca.
+ * ======================================================================= */
 .tag {
-  min-height: 24px;
+  min-height: 20px;
   display: inline-flex;
   align-items: center;
   padding-inline: var(--sp-8);
-  border: 1px solid var(--line);
   border-radius: var(--r-chip);
   background: var(--surface-muted);
   color: var(--ink-2);
@@ -301,6 +355,9 @@
   color: var(--ink-3);
 }
 
+/* ==========================================================================
+ * ESTADO DA CONEXÃO
+ * ======================================================================= */
 .conn {
   display: inline-flex;
   align-items: center;
@@ -311,12 +368,11 @@
 }
 
 .conn__dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   flex: 0 0 auto;
   border-radius: var(--r-round);
   background: var(--ink-3);
-  box-shadow: 0 0 0 3px var(--surface-muted);
 }
 
 .conn--live .conn__dot {

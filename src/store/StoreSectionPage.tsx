@@ -43,8 +43,18 @@ export function StoreSectionPage({ id }: { id: StoreSectionId }) {
       className={`store__section${secao.estreita ? ' store__section--estreita' : ''}`}
       aria-labelledby={`${id}-titulo`}
     >
+      {/*
+        O NOME DA SEÇÃO É SUBTÍTULO DA ROTA, não um segundo título.
+
+        Ele tinha o mesmo corpo (16px) do título de cada cartão do formulário
+        logo abaixo, e ficava a dois blocos do título da tela — três níveis
+        dentro de três pixels, que é como uma tela perde hierarquia. Como
+        `.t-crumb` ele lê como a continuação de "Minha loja", que é o que ele é:
+        o <h2> continua sendo <h2>, e `aria-labelledby` continua apontando para
+        ele.
+      */}
       <div className="store__section-head">
-        <h2 className="t-section" id={`${id}-titulo`}>
+        <h2 className="t-crumb" id={`${id}-titulo`}>
           {secao.titulo}
         </h2>
         {nota ? (

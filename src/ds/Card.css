@@ -1,10 +1,18 @@
+/*
+ * O CARTÃO NÃO TEM MOLDURA NO TEMA CLARO, e não tem sombra em tema nenhum.
+ *
+ * Branco sobre o chão bege já é começo e fim de bloco — a borda e a sombra que
+ * ele tinha estavam ali para dizer o que o tom já dizia. No escuro, onde
+ * `--surface` e `--bg` estão a um degrau um do outro, `--card-edge` acende o
+ * fio; é o mesmo token nos dois temas, e é por isso que não existe um bloco
+ * `[data-theme='dark']` aqui.
+ */
 .ds-card {
   display: flex;
   flex-direction: column;
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-edge);
   border-radius: var(--r-card);
-  box-shadow: var(--shadow-card);
 }
 
 .ds-card__cab {

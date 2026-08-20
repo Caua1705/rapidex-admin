@@ -53,7 +53,7 @@
   min-height: 20px;
   padding-inline: var(--sp-4);
   border-radius: var(--r-round);
-  background: var(--field);
+  background: var(--surface-muted);
   color: var(--ink-2);
   font-size: var(--tl-size);
   font-weight: var(--tl-weight);

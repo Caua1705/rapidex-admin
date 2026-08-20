@@ -70,7 +70,24 @@
   font-size: var(--ta-size);
   line-height: var(--ta-line);
   font-weight: var(--ta-weight);
+  letter-spacing: var(--ta-track);
   color: var(--ink-3);
+}
+
+/*
+ * O SUBTÍTULO DE ROTA — o nome da seção aberta, embaixo do título da página.
+ *
+ * Ele existe porque "Minha loja" e "Geral" eram DOIS títulos, um de 26px e
+ * outro de 16px, a dois blocos de distância, com o nome do primeiro cartão
+ * ("Pedido") também em 16px logo abaixo. Três níveis dentro de três pixels.
+ * Aqui a seção volta a ser o que ela é — a continuação do título, não um
+ * segundo título — e o 15px fica livre para nomear grupo de formulário.
+ */
+.t-crumb {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-weight: var(--w-semibold);
+  color: var(--ink-2);
 }
 
 /*

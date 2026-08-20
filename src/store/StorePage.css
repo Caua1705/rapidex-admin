@@ -32,22 +32,26 @@
  * As classes ainda se chamam `__index` e `__anchor` de quando isto era um
  * sumário de âncoras. O nome ficou; o que elas são hoje é `NavLink`.
  * ======================================================================= */
+/*
+ * SEM CAIXA. A lista era um cartão branco contornado e com sombra, do lado
+ * esquerdo de outro cartão branco contornado — duas molduras na mesma linha
+ * para separar navegação de conteúdo, quando a distância entre as duas já
+ * separava. Agora ela é uma coluna de itens sobre o chão da página, e o que
+ * marca a seção aberta é o mesmo par que marca o item ativo da lateral: plano
+ * tingido e trilho de brasa.
+ */
 .store__index {
-  flex: 0 0 184px;
+  flex: 0 0 176px;
   position: sticky;
   top: 0;
   align-self: flex-start;
   display: flex;
   flex-direction: column;
   gap: var(--sp-4);
-  padding: var(--sp-8);
-  border: 1px solid var(--line);
-  border-radius: var(--r-card);
-  background: var(--surface);
-  box-shadow: var(--shadow-card);
 }
 
 .store__anchor {
+  position: relative;
   display: flex;
   min-height: var(--control-h);
   align-items: center;
@@ -72,7 +76,17 @@
   background: var(--surface-selected);
   color: var(--ink);
   font-weight: var(--w-semibold);
-  box-shadow: inset 3px 0 var(--ember);
+}
+
+.store__anchor--on::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: var(--sp-8);
+  bottom: var(--sp-8);
+  width: 3px;
+  border-radius: var(--r-round);
+  background: var(--ember);
 }
 
 /*
@@ -86,12 +100,19 @@
 /* ==========================================================================
  * A COLUNA
  * ======================================================================= */
+/*
+ * A COLUNA. O vão dela é PEQUENO de propósito: o nome da seção ("Geral") vem
+ * logo abaixo do título da tela ("Minha loja") e é a continuação dele, não um
+ * segundo título. Eram 26px e 16px separados por 20px de ar, com o nome do
+ * primeiro cartão também em 16px logo em seguida — três níveis dentro de três
+ * pixels. O respiro que a seção precisa é dado pelo `margin-top` dela.
+ */
 .store__col {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-20);
+  gap: var(--sp-8);
   max-width: var(--form-max);
 }
 
@@ -103,16 +124,17 @@
 }
 
 .store__section {
+  margin-top: var(--sp-12);
   display: flex;
   flex-direction: column;
-  gap: var(--sp-20);
+  gap: var(--sp-16);
 }
 
 .store__section-head {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   gap: var(--sp-8);
-  padding-inline: var(--sp-4);
 }
 
 .store__loading {
@@ -124,14 +146,20 @@
 /* ==========================================================================
  * LOJA ABERTA / FECHADA — controle na linha do título, não cartão
  * ======================================================================= */
+/*
+ * O interruptor do topo é um CONTROLE, não um cartão: superfície de trabalho
+ * com o fio do tema escuro, alinhado à direita da coluna — na mesma abscissa em
+ * que o formulário termina, para ele pertencer à tela e não pairar sobre ela.
+ */
 .store-status {
   display: flex;
   align-items: center;
   gap: var(--sp-8);
   margin-left: auto;
-  padding: var(--sp-8) var(--sp-12);
+  padding: var(--sp-4) var(--sp-12);
+  border: 1px solid var(--card-edge);
   border-radius: var(--r-control);
-  background: var(--surface-muted);
+  background: var(--surface);
 }
 
 .store-status__dot {
@@ -149,7 +177,7 @@
 
 .store-status__label {
   font-size: var(--tb-size);
-  font-weight: var(--w-bold);
+  font-weight: var(--w-semibold);
   color: var(--ink);
   white-space: nowrap;
 }
@@ -194,10 +222,10 @@
  * que muda.
  * ======================================================================= */
 .op-list {
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-edge);
   border-radius: var(--r-card);
   background: var(--surface);
-  box-shadow: var(--shadow-card);
+  overflow: hidden;
 }
 
 .op-head,
@@ -351,39 +379,92 @@
 .store-form {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-20);
+  gap: var(--sp-16);
 }
 
+/*
+ * UMA FOLHA, VÁRIOS GRUPOS.
+ *
+ * Eram dois cartões contornados e com sombra para dois grupos de dois campos —
+ * quatro molduras numa tela que já tem a da lista à esquerda. Agora é uma
+ * superfície só, e o que separa um grupo do outro é um fio: régua de lista, que
+ * é um dos três trabalhos que sobraram para a borda (§2 dos tokens).
+ */
+.store-form__folha {
+  border: 1px solid var(--card-edge);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+/*
+ * O NOME DO GRUPO NUMA COLUNA PRÓPRIA.
+ *
+ * "Pedido" e "Taxa de serviço" eram títulos de 16px empilhados sobre campos de
+ * 14px, dentro de uma tela cujo título de seção também tinha 16px. Postos numa
+ * coluna à esquerda, eles param de disputar corpo com o campo: quem os separa é
+ * a POSIÇÃO, e o corpo volta a ser só o corpo.
+ */
+.store-form__group {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: var(--sp-8) var(--sp-24);
+  padding: var(--sp-20);
+}
+
+.store-form__group + .store-form__group {
+  border-top: 1px solid var(--line);
+}
+
+.store-form__heading {
+  margin: 0;
+  font-size: var(--ts-size);
+  line-height: var(--ts-line);
+  font-weight: var(--ts-weight);
+  letter-spacing: var(--ts-track);
+  color: var(--ink);
+}
+
+/*
+ * OS CAMPOS DO GRUPO VÃO A GRADE, não a pilha.
+ *
+ * Empilhados, dois campos de 170px deixavam dois terços do cartão vazios à
+ * direita — a mesma sobra que já fazia o campo de dinheiro esticar até a borda
+ * antes de ele ganhar teto. Em grade eles dividem a largura, o cartão fica
+ * cheio e a seção inteira cabe numa dobra.
+ */
+.store-form__fields {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  align-items: start;
+  gap: var(--sp-16) var(--sp-24);
+}
+
+/*
+ * A CAIXA DE MARCAR QUE COMANDA UM CAMPO OCUPA A LINHA INTEIRA. Ao lado dele
+ * ela leria como um segundo campo irmão; acima, ela lê como a chave que apaga o
+ * de baixo — que é o que ela é.
+ */
+.store-form__fields > .ds-choice {
+  grid-column: 1 / -1;
+}
+
+/* A seção antiga, ainda usada pelas outras cinco abas de Minha loja. */
 .store-form__section {
   display: flex;
   flex-direction: column;
   gap: var(--sp-12);
   padding: var(--sp-20);
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-edge);
   border-radius: var(--r-card);
   background: var(--surface);
-  box-shadow: var(--shadow-card);
 }
 
 .store-form__section-head {
   display: flex;
   align-items: baseline;
   gap: var(--sp-8);
-}
-
-/*
- * TÍTULO DE CARTÃO, NÃO NÍVEL 3. "Pedido", "Taxa de serviço", "Como a loja
- * atende" são um título por cartão — a mesma função que `.t-section` já
- * cobre. Caixa alta e tracking eram o que dava a cada formulário de Minha
- * loja ar de painel de comando; agora só a sidebar e a faixa do quadro de
- * pedidos usam esse tratamento (ver `.field__label` em primitives.css).
- */
-.store-form__heading {
-  font-size: var(--ts-size);
-  line-height: var(--ts-line);
-  font-weight: var(--ts-weight);
-  letter-spacing: var(--ts-track);
-  color: var(--ink);
 }
 
 /*
@@ -414,8 +495,8 @@
 }
 
 /*
- * A BARRA DE SALVAR flutua no fim da coluna. Ela é o que justifica a sombra —
- * cartão parado na página não tem sombra em tema nenhum.
+ * A BARRA DE SALVAR flutua no fim da coluna. Ela é uma das duas coisas da tela
+ * que justificam sombra — cartão parado na página não tem sombra em tema nenhum.
  */
 .store-form__actions {
   position: sticky;
@@ -428,7 +509,7 @@
   padding: var(--sp-8) var(--sp-12);
   background: var(--surface-raised);
   border: 1px solid var(--line);
-  border-radius: var(--r-field);
+  border-radius: var(--r-card);
   box-shadow: var(--shadow-raised);
 }
 
@@ -781,12 +862,53 @@
     align-items: center;
   }
 
-  .store__anchor--on {
-    box-shadow: none;
+  /*
+   * NA FAIXA HORIZONTAL O TRILHO SAI. Ele é vertical: à esquerda de um item que
+   * agora está lado a lado com os outros, ele lê como um separador de coluna e
+   * não como "você está aqui". Sobram o plano tingido e o peso, que é o par que
+   * o resto do sistema usa para seleção.
+   */
+  .store__anchor--on::before {
+    display: none;
+  }
+
+  /*
+   * O GRUPO DO FORMULÁRIO EMPILHA. A coluna de 180px do nome do grupo não cabe
+   * ao lado de um campo em 390px: aqui o nome volta a ser um título em cima dos
+   * campos dele, que é a única forma que sobra de dizer a mesma coisa.
+   */
+  .store-form__group {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--sp-12);
+    padding: var(--sp-16);
   }
 
   .store__col {
     max-width: none;
+  }
+
+  /*
+   * O INTERRUPTOR DO TOPO NO CELULAR: estado e chave na primeira linha, a
+   * consequência na segunda.
+   *
+   * Numa linha só, a frase de consequência espremia-se em três linhas de 160px
+   * entre o rótulo e a chave, e o controle ficava com 88px de altura logo
+   * abaixo do título da tela. Quebrando a frase para a largura inteira, ele
+   * volta a ter duas linhas e a chave fica alinhada com o rótulo que ela opera.
+   */
+  .store-status {
+    width: 100%;
+    flex-wrap: wrap;
+    padding: var(--sp-8) var(--sp-12);
+  }
+
+  .store-status__hint {
+    order: 1;
+    flex: 1 0 100%;
+  }
+
+  .store-status .ds-switch {
+    margin-left: auto;
   }
 
   /*

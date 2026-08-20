@@ -18,7 +18,7 @@
      ter dois tamanhos de campo conforme quem o escreveu usou o componente
      React ou a classe. */
   min-height: var(--field-h-touch);
-  padding-inline: var(--sp-8);
+  padding-inline: var(--sp-12);
   background: var(--field);
   border: 1px solid var(--line-control);
   border-radius: var(--r-field);
@@ -116,6 +116,26 @@
   font-family: var(--font-ui);
 }
 
+/*
+ * O CAMPO TEM A LARGURA DO QUE CABE DENTRO DELE.
+ *
+ * Um campo de dinheiro esticado por uma coluna de 900px é o sintoma nº 1 de
+ * "formulário com aparência de HTML padrão": a caixa promete um endereço e
+ * recebe "20,00". Estas três classes vêm dos tetos declarados em tokens.css e
+ * são o jeito de um formulário dizer, pelo tamanho, o que se escreve ali.
+ */
+.ds-control--numero {
+  max-width: var(--w-numero);
+}
+
+.ds-control--dinheiro {
+  max-width: var(--w-dinheiro);
+}
+
+.ds-control--curto {
+  max-width: var(--w-texto-curto);
+}
+
 /* --- intervalo ------------------------------------------------------------ */
 
 /*
@@ -127,6 +147,11 @@
   display: flex;
   align-items: center;
   gap: var(--sp-8);
+}
+
+/* Duas caixas de número e o "a" no meio: a faixa também tem teto de conteúdo. */
+.ds-range--faixa {
+  max-width: var(--w-faixa);
 }
 
 .ds-range > .ds-control {

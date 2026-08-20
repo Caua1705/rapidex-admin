@@ -120,36 +120,44 @@ export function OrdersPage() {
      */
     <div className="orders">
       <div className="orders__main">
+        {/*
+          TÍTULO E ABAS NA MESMA LINHA.
+
+          As abas eram um bloco próprio, com régua de largura inteira, embaixo
+          do título e do subtítulo: três blocos empilhados antes do primeiro
+          pedido. Elas não são conteúdo — são o RECORTE do que está na tela,
+          que é a mesma natureza do título. Na linha dele, a tela ganha uma
+          dobra inteira de altura sem perder nada.
+        */}
         <header className="orders__header">
           <div>
             <h1 className="t-title">Pedidos</h1>
             <p className="t-aux">Acompanhe a operação e priorize o que precisa de atenção agora.</p>
           </div>
-        </header>
-        {/*
+          {/*
           DUAS ABAS, E ELAS SEPARAM TRABALHO DE CONSULTA.
           Concluído e cancelado ocupavam duas das sete colunas do quadro com o
           que ninguém toca durante o turno. Aqui eles continuam a um clique —
           e o clique é honesto, porque quem vai ao histórico está consultando.
         */}
-        <div className="tabs" role="tablist" aria-label="Pedidos">
-          {(
-            [
-              { key: 'andamento', label: 'Em andamento' },
-              { key: 'historico', label: 'Histórico' },
-            ] as const
-          ).map((aba) => (
-            <button
-              key={aba.key}
-              type="button"
-              role="tab"
-              aria-selected={view === aba.key}
-              className={`tab${view === aba.key ? ' tab--on' : ''}`}
-              onClick={() => setView(aba.key)}
-              data-testid={`orders-tab-${aba.key}`}
-            >
-              {aba.label}
-              {/*
+          <div className="tabs" role="tablist" aria-label="Pedidos">
+            {(
+              [
+                { key: 'andamento', label: 'Em andamento' },
+                { key: 'historico', label: 'Histórico' },
+              ] as const
+            ).map((aba) => (
+              <button
+                key={aba.key}
+                type="button"
+                role="tab"
+                aria-selected={view === aba.key}
+                className={`tab${view === aba.key ? ' tab--on' : ''}`}
+                onClick={() => setView(aba.key)}
+                data-testid={`orders-tab-${aba.key}`}
+              >
+                {aba.label}
+                {/*
                 O CONTADOR DIZ O QUE HÁ DO OUTRO LADO — por isso ele fica na
                 aba FECHADA, e sai da aberta.
 
@@ -164,12 +172,13 @@ export function OrdersPage() {
                 Fechada, ela não repete nada: é o único jeito de saber que
                 entraram três pedidos enquanto se consultava o histórico.
               */}
-              {view === aba.key ? null : (
-                <span className="tab__count">{countForView(aba.key, board.counts)}</span>
-              )}
-            </button>
-          ))}
-        </div>
+                {view === aba.key ? null : (
+                  <span className="tab__count">{countForView(aba.key, board.counts)}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </header>
 
         <OrdersFilters
           filters={board.filters}

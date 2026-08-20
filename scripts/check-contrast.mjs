@@ -99,6 +99,24 @@ const PAIRS = [
   { fg: '--ink-3', bg: '--surface-raised', min: 4.5, use: 'apoio em menu/diálogo' },
 
   /*
+   * O PLANO DE AGRUPAMENTO. Ele carrega texto de verdade — cabeçalho de coluna
+   * de tabela e trilho de segmentado — e ficava de fora da medição porque, na
+   * direção anterior, quase nada escrevia sobre ele. Com a separação passando a
+   * ser TONAL em vez de contornada, `--surface-muted` virou plano de leitura.
+   */
+  { fg: '--ink', bg: '--surface-muted', min: 4.5, use: 'corpo sobre agrupamento' },
+  { fg: '--ink-2', bg: '--surface-muted', min: 4.5, use: 'secundário sobre agrupamento' },
+  { fg: '--ink-3', bg: '--surface-muted', min: 4.5, use: 'cabeçalho de coluna de tabela' },
+
+  /*
+   * A SELEÇÃO. `--surface-selected` é o plano da linha/ticket escolhido, e o
+   * texto dele continua sendo o texto comum: se ele não passar, selecionar um
+   * pedido piora a legibilidade do que se veio ler.
+   */
+  { fg: '--ink', bg: '--surface-selected', min: 4.5, use: 'corpo sobre item selecionado' },
+  { fg: '--ink-3', bg: '--surface-selected', min: 4.5, use: 'meta sobre item selecionado' },
+
+  /*
    * A semântica de estado (--ok, --alert, --danger) sobre cada plano onde ela
    * aparece como TEXTO, e sobre o próprio wash quando ela vira faixa de aviso.
    */
