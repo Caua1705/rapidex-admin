@@ -39,7 +39,14 @@ import { STORE_SECTIONS } from '../store/store-sections';
 export type BranchScope =
   /** `branch_id` vazio (ou ausente) = todas as filiais que o token alcança. */
   | 'multi'
-  /** `branch_id` vai no path: sem UMA filial escolhida não há o que chamar. */
+  /**
+   * Sem UMA filial escolhida não há o que chamar.
+   *
+   * Eram só as rotas com `{branch_id}` no PATH. Hoje também são as que exigem
+   * a filial no CORPO — `POST /admin/categories` e
+   * `PATCH /admin/categories/reorder` respondem 422 sem ela. O que define o
+   * escopo não é onde o campo viaja, é não haver chamada possível sem ele.
+   */
   | 'single';
 
 /**
@@ -79,15 +86,34 @@ export const ROUTE_BRANCH_SCOPE = {
   '/admin/reports/products': 'multi',
   '/admin/reports/cancellations': 'multi',
   '/admin/reports/commission': 'multi',
-  // Estas três são do RESTAURANTE inteiro — não têm recorte de filial nenhum,
-  // o que as deixa do lado que funciona com "todas" escolhida.
+  // Esta é do RESTAURANTE inteiro — não tem recorte de filial nenhum, o que a
+  // deixa do lado que funciona com "todas" escolhida.
   '/admin/settings': 'multi',
-  '/admin/categories': 'multi',
-  '/admin/products': 'multi',
 
   // --- ESCRITA POR FILIAL ---------------------------------------------------
   // `{branch_id}` no path: é preciso escolher QUAL, dentro do que o token já
   // delimitou. É esta lista que faz uma tela resolver a filial em vez de pedi-la.
+  /*
+   * O CARDÁPIO MUDOU DE LADO NESTA TABELA, e é a mudança que mais explica a
+   * tela.
+   *
+   * Ele já foi do restaurante inteiro: uma categoria valia nas duas lojas e a
+   * única coisa de filial na tela era a coluna de impressão. Deixou de ser.
+   * Cada filial tem os próprios produtos, os próprios preços e as próprias
+   * categorias, sem herança entre elas.
+   *
+   * As duas de leitura ACEITAM a filial em query, e é aí que mora a armadilha
+   * que trouxe estas linhas para cá: sem o parâmetro elas respondem 200 com o
+   * cardápio das duas lojas somado — "Promoções 10 / Promoções 10" na barra de
+   * categorias, cada item duas vezes na lista. Não é erro, é a resposta certa
+   * para a pergunta errada, e por isso nada acende. Classificá-las como
+   * 'multi' seria dizer que essa soma é um estado que a tela oferece.
+   *
+   * As de escrita fecham a conta: sem filial não há corpo válido a mandar.
+   */
+  '/admin/categories': 'single',
+  '/admin/products': 'single',
+
   '/admin/branches/{branch_id}': 'single',
   '/admin/branches/{branch_id}/business-hours': 'single',
   '/admin/branches/{branch_id}/payment-methods': 'single',
@@ -96,15 +122,23 @@ export const ROUTE_BRANCH_SCOPE = {
 } as const satisfies Partial<Record<keyof paths, BranchScope>>;
 
 /**
- * As TELAS que gravam por filial, derivadas de `STORE_SECTIONS`.
+ * As TELAS que falam de UMA filial, derivadas de `STORE_SECTIONS`.
  *
  * Derivada, e não uma segunda lista escrita à mão: o campo `scope` da seção já
  * diz isso, e duas listas divergiriam na primeira seção nova. Cada uma destas
  * rotas consome pelo menos uma das rotas `single` da tabela acima.
+ *
+ * O CARDÁPIO ENTRA À MÃO porque não é uma seção de Minha loja — é rota própria,
+ * e a lista derivada não tem como alcançá-la. Ele está aqui pelo mesmo motivo
+ * que as outras: o cardápio é de uma loja, e "Todas as filiais" nesta tela não
+ * é um recorte mais largo, é o cardápio das duas somado.
  */
-export const SINGLE_BRANCH_PATHS: readonly string[] = STORE_SECTIONS.filter(
-  (secao) => secao.scope === 'branch',
-).map((secao) => `/minha-loja/${secao.id}`);
+export const SINGLE_BRANCH_PATHS: readonly string[] = [
+  ...STORE_SECTIONS.filter((secao) => secao.scope === 'branch').map(
+    (secao) => `/minha-loja/${secao.id}`,
+  ),
+  '/cardapio',
+];
 
 /**
  * O escopo de uma tela do painel, pelo endereço dela.

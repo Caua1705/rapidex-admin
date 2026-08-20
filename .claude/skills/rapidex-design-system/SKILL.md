@@ -599,9 +599,17 @@ telefone, endereço ou total: a cozinha monta prato.
 ### Cardápio — `src/menu/`
 
 Faixa de 52px (título · busca · "Novo item", o único laranja da tela), a frase de
-escopo dizendo de qual loja é a coluna Impressão, e o corpo em duas colunas: a
-de categorias separada por um FIO — a mesma peça que Minha loja usa — e a lista
-de itens correndo até a margem. As duas rolam separadas.
+escopo dizendo **de qual loja é o cardápio na tela**, e o corpo em duas colunas:
+a de categorias separada por um FIO — a mesma peça que Minha loja usa — e a
+lista de itens correndo até a margem. As duas rolam separadas.
+
+**A tela é de UMA filial**, como as seções de filial de Minha loja: ela adota a
+filial resolvida no seletor do topo, e o seletor deixa de oferecer "Todas as
+filiais" enquanto ela está aberta. Não é preferência de enquadramento — o
+cardápio passou a ser da filial no backend, e ali "todas" não é um recorte mais
+largo: é o cardápio das lojas somado, com cada categoria e cada item em dobro.
+A frase de escopo é o que separa uma coisa da outra antes de o lojista editar um
+preço achando que edita nas duas lojas.
 
 A régua da categoria aberta é subordinada à faixa da tela: 44px contra 52, nível
 2 contra nível 1. Abaixo de 1024px a coluna de categorias deita e vira fita

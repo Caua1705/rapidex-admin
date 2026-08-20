@@ -274,15 +274,30 @@ function detailOf(item: OrderListItem, history: Schemas['StatusHistoryResponse']
  */
 function initialCategories(): Category[] {
   return [
-    { id: 'cat-1', name: 'Lanches', slug: 'lanches', sort_order: 0, is_active: true },
+    {
+      id: 'cat-1',
+      branch_id: BRANCH_ID,
+      name: 'Lanches',
+      slug: 'lanches',
+      sort_order: 0,
+      is_active: true,
+    },
     {
       id: 'cat-2',
+      branch_id: BRANCH_ID,
       name: 'Acompanhamentos',
       slug: 'acompanhamentos',
       sort_order: 1,
       is_active: true,
     },
-    { id: 'cat-3', name: 'Sobremesas', slug: 'sobremesas', sort_order: 2, is_active: false },
+    {
+      id: 'cat-3',
+      branch_id: BRANCH_ID,
+      name: 'Sobremesas',
+      slug: 'sobremesas',
+      sort_order: 2,
+      is_active: false,
+    },
   ];
 }
 
@@ -296,6 +311,7 @@ function initialProducts(): Product[] {
   return [
     {
       id: 'prod-1',
+      branch_id: BRANCH_ID,
       category_id: 'cat-1',
       name: 'X-Burger Clássico',
       // A DESCRIÇÃO EXISTE NO FALSO PORQUE ELA EXISTE NO CARDÁPIO DE VERDADE:
@@ -314,6 +330,7 @@ function initialProducts(): Product[] {
     },
     {
       id: 'prod-2',
+      branch_id: BRANCH_ID,
       category_id: 'cat-1',
       name: 'X-Salada',
       description: 'Pão brioche, hambúrguer 180 g, alface, tomate e maionese verde',
@@ -324,6 +341,7 @@ function initialProducts(): Product[] {
     },
     {
       id: 'prod-3',
+      branch_id: BRANCH_ID,
       category_id: 'cat-1',
       name: 'Combo Duplo',
       description: 'Dois hambúrgueres, batata frita M e refrigerante em lata',
@@ -334,6 +352,7 @@ function initialProducts(): Product[] {
     },
     {
       id: 'prod-4',
+      branch_id: BRANCH_ID,
       category_id: 'cat-2',
       name: 'Batata frita M',
       description: 'Porção individual, com sal e alecrim',
@@ -353,6 +372,7 @@ function initialProducts(): Product[] {
      */
     {
       id: 'prod-5',
+      branch_id: BRANCH_ID,
       category_id: 'cat-2',
       name: 'Batata rústica (400g)',
       price: 22,
@@ -362,6 +382,7 @@ function initialProducts(): Product[] {
     },
     {
       id: 'prod-6',
+      branch_id: BRANCH_ID,
       category_id: 'cat-2',
       name: 'Batata rústica (1kg)',
       price: 38,
@@ -369,7 +390,54 @@ function initialProducts(): Product[] {
       is_available: false,
       sort_order: 2,
     },
-  ].map((item) => ({ unavailable_by_required_group: false, ...item }));
+    /*
+     * `catalog_key` = o id do próprio produto, que é EXATAMENTE o que a
+     * migração fez: ela carimbou o id de origem no original e na cópia, e são
+     * os dois com a mesma chave que fazem o relatório somar "picanha" nas
+     * duas lojas em uma linha só. Produto criado depois nasce sem chave — ver
+     * `copiaDoCardapio`.
+     */
+  ].map((item) => ({
+    unavailable_by_required_group: false,
+    catalog_key: item.id,
+    ...item,
+  }));
+}
+
+/**
+ * O cardápio da SEGUNDA filial — e ele é uma CÓPIA, como no banco.
+ *
+ * A migração do backend deixou as linhas que já existiam na filial principal
+ * (mesmos ids, mesmos slugs, para não quebrar link publicado) e deu à outra
+ * loja um jogo novo de linhas, com ids próprios e a mesma `catalog_key`. Sem
+ * este segundo cardápio aqui, o falso não teria como reproduzir o defeito que
+ * esta rodada conserta: a tela sem recorte de filial mostrava "Lanches" duas
+ * vezes na barra e cada item duas vezes na lista, e um falso de uma loja só
+ * faria esse teste passar sozinho.
+ *
+ * O SETOR DE IMPRESSÃO DA CÓPIA É NULO de propósito. O remapeamento da
+ * migração é por NOME dentro da filial de destino, e a segunda filial do falso
+ * não tem setor nenhum cadastrado — então "ficou sem setor" é o estado real, e
+ * é justamente o que a conferência do pós-deploy manda procurar.
+ */
+const SUFIXO_FILIAL_2 = '-zn';
+
+function copiaDoCardapio(): { categories: Category[]; products: Product[] } {
+  const categories = initialCategories().map((categoria) => ({
+    ...categoria,
+    id: `${categoria.id}${SUFIXO_FILIAL_2}`,
+    branch_id: BRANCH_ID_2,
+  }));
+
+  const products = initialProducts().map((produto) => ({
+    ...produto,
+    id: `${produto.id}${SUFIXO_FILIAL_2}`,
+    branch_id: BRANCH_ID_2,
+    category_id: `${produto.category_id}${SUFIXO_FILIAL_2}`,
+    printing_sector_id: null,
+  }));
+
+  return { categories, products };
 }
 
 /**
@@ -883,12 +951,17 @@ const ROTULOS: Record<string, string> = {
 export type FakeApi = {
   /** Estado que o "banco" tem agora. Os testes leem e escrevem à vontade. */
   orders: OrderListItem[];
-  /** Categorias na ordem em que o "banco" as tem. */
-  categories: () => Category[];
+  /**
+   * Categorias na ordem em que o "banco" as tem.
+   *
+   * Com `branchId`, só as daquela loja — que é a lista que o painel enxerga.
+   * Sem ele, as das duas, que é o que o backend responde a quem não recorta.
+   */
+  categories: (branchId?: string) => Category[];
   /** Produto pelo id, para conferir o que o painel gravou. */
   product: (productId: string) => Product | undefined;
-  /** Corpo de cada PATCH /admin/categories/reorder que chegou. */
-  reorderCalls: () => string[][];
+  /** Corpo de cada PATCH /admin/categories/reorder, COM a filial que foi junto. */
+  reorderCalls: () => { branchId: string | undefined; categoryIds: string[] }[];
   /** Motivo gravado no cancelamento, para conferir o que a tela mandou. */
   cancelReasons: () => { orderId: string; reason: string }[];
   /** Apaga a faixa base da filial: o próximo ajuste responde 409. */
@@ -1005,9 +1078,14 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      */
     streamConnections: 0,
     eventId: 0,
-    categories: initialCategories(),
-    products: initialProducts(),
-    reorderCalls: [] as string[][],
+    /*
+     * O CARDÁPIO DAS DUAS LOJAS VIVE NO MESMO "BANCO", como no Postgres de
+     * verdade — é o que dá ao falso a chance de responder errado quando o
+     * painel não recorta por filial, que é o defeito que esta suíte cobre.
+     */
+    categories: [...initialCategories(), ...copiaDoCardapio().categories],
+    products: [...initialProducts(), ...copiaDoCardapio().products],
+    reorderCalls: [] as { branchId: string | undefined; categoryIds: string[] }[],
     availabilityCalls: [] as { productId: string; isAvailable: boolean }[],
     imageUploads: [] as { productId: string; bytes: number }[],
     cancelReasons: [] as { orderId: string; reason: string }[],
@@ -1694,8 +1772,23 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
 
     // --- cardápio: categorias ---------------------------------------------
 
+    /*
+     * O RECORTE É OPCIONAL AQUI, E O FALSO MANTÉM ISSO DE PROPÓSITO.
+     *
+     * O backend responde 200 sem `branch_id`, com o cardápio de todas as
+     * filiais que o token alcança — que num restaurante de duas lojas é o
+     * cardápio duas vezes. Fazer o falso exigir o parâmetro transformaria o
+     * defeito num 422 barulhento e o teste passaria a provar outra coisa: o
+     * que ele precisa provar é que a TELA manda o recorte, e isso só se prova
+     * contra um falso que aceitaria não recebê-lo.
+     */
     if (method === 'GET' && path === '/admin/categories') {
-      return json(route, 200, state.categories);
+      const pedida = new URL(request.url()).searchParams.get('branch_id');
+      return json(
+        route,
+        200,
+        state.categories.filter((categoria) => !pedida || categoria.branch_id === pedida),
+      );
     }
 
     /*
@@ -1704,21 +1797,57 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      * chamada "reorder" — que é exatamente o bug que a ordem aqui previne.
      */
     if (method === 'PATCH' && path === '/admin/categories/reorder') {
-      const body = request.postDataJSON() as { category_ids: string[] };
-      state.reorderCalls.push(body.category_ids);
+      const body = request.postDataJSON() as { branch_id?: string; category_ids: string[] };
+      state.reorderCalls.push({ branchId: body.branch_id, categoryIds: body.category_ids });
 
-      // Como o backend: renumera a partir da lista recebida, na ordem recebida.
-      state.categories = body.category_ids.flatMap((id, index) => {
-        const found = state.categories.find((category) => category.id === id);
+      // `branch_id` é OBRIGATÓRIO no corpo, e sem ele o backend responde 422 —
+      // a lista completa de uma loja é parcial para a outra, e sem o recorte
+      // não há como saber qual das duas a lista pretende ser.
+      if (!body.branch_id) {
+        return json(route, 422, {
+          detail: [{ loc: ['body', 'branch_id'], msg: 'Field required', type: 'missing' }],
+        });
+      }
+      const branchId = body.branch_id;
+
+      /*
+       * Renumera a partir da lista recebida, na ordem recebida — e SÓ dentro da
+       * filial. As categorias das outras lojas ficam onde estão: uma
+       * reordenação que as varresse do "banco" faria o falso esconder o bug de
+       * quem manda a lista sem recorte, que é o oposto do que ele existe para
+       * fazer.
+       */
+      const reordenadas = body.category_ids.flatMap((id, index) => {
+        const found = state.categories.find(
+          (category) => category.id === id && category.branch_id === branchId,
+        );
         return found ? [{ ...found, sort_order: index }] : [];
       });
-      return json(route, 200, state.categories);
+      state.categories = [
+        ...state.categories.filter((category) => category.branch_id !== branchId),
+        ...reordenadas,
+      ];
+      return json(route, 200, reordenadas);
     }
 
     if (method === 'POST' && path === '/admin/categories') {
-      const body = request.postDataJSON() as { name: string; sort_order: number };
+      const body = request.postDataJSON() as {
+        branch_id?: string;
+        name: string;
+        sort_order: number;
+      };
+
+      // Também obrigatório: não existe categoria da rede. A mesma categoria em
+      // duas lojas são duas categorias, com dois ids.
+      if (!body.branch_id) {
+        return json(route, 422, {
+          detail: [{ loc: ['body', 'branch_id'], msg: 'Field required', type: 'missing' }],
+        });
+      }
+
       const created: Category = {
         id: `cat-${state.categories.length + 1}-nova`,
+        branch_id: body.branch_id,
         name: body.name,
         slug: body.name.toLowerCase().replace(/\s+/g, '-'),
         sort_order: body.sort_order,
@@ -1766,10 +1895,15 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
 
     if (method === 'GET' && path === '/admin/products') {
       const query = new URL(request.url()).searchParams;
+      const branchId = query.get('branch_id');
       const categoryId = query.get('category_id');
       const search = (query.get('search') ?? '').toLowerCase();
+      // Sem `branch_id` vêm os itens das duas lojas, pelo mesmo motivo das
+      // categorias: é a resposta que o backend dá, e é o defeito que a tela
+      // precisa não provocar.
       const matching = state.products.filter(
         (item) =>
+          (!branchId || item.branch_id === branchId) &&
           (!categoryId || item.category_id === categoryId) &&
           (!search || item.name.toLowerCase().includes(search)),
       );
@@ -1864,8 +1998,22 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     }
 
     if (method === 'POST' && path === '/admin/products') {
-      const body = request.postDataJSON() as Omit<Product, 'id'>;
-      const created: Product = { ...body, id: `prod-${state.products.length + 1}-novo` };
+      const body = request.postDataJSON() as Omit<Product, 'id' | 'branch_id'>;
+
+      /*
+       * A FILIAL VEM DA CATEGORIA, e o corpo não a traz. É a decisão do
+       * backend: `category_id` já determina a loja, e pedir os dois abriria um
+       * corpo em que eles podem discordar — cujo único desfecho seria um 400
+       * que não precisa existir.
+       */
+      const categoria = state.categories.find((item) => item.id === body.category_id);
+      if (!categoria) return json(route, 400, { detail: 'Categoria inválida.' });
+
+      const created: Product = {
+        ...body,
+        id: `prod-${state.products.length + 1}-novo`,
+        branch_id: categoria.branch_id,
+      };
       state.products.push(created);
       return json(route, 201, created);
     }
@@ -1906,7 +2054,8 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     orderTypeCalls: () => state.orderTypeCalls,
     branchSettingsCalls: () => state.branchSettingsCalls,
     overridesOf: (branchId: string) => state.overrides[branchId] ?? {},
-    categories: () => state.categories,
+    categories: (branchId?: string) =>
+      state.categories.filter((categoria) => !branchId || categoria.branch_id === branchId),
     product: (productId) => state.products.find((item) => item.id === productId),
     reorderCalls: () => state.reorderCalls,
     availabilityCalls: () => state.availabilityCalls,

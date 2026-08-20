@@ -1,4 +1,20 @@
-/** Chamadas da tela de cardápio. */
+/**
+ * Chamadas da tela de cardápio.
+ *
+ * TODAS AS LEITURAS LEVAM `branch_id`, E ISSO NÃO É OPCIONAL AQUI.
+ *
+ * O cardápio deixou de ser do restaurante: cada filial tem os próprios
+ * produtos, os próprios preços e as próprias categorias (revisões
+ * `20260820_0026`/`0027` do backend). `GET /admin/categories` e
+ * `GET /admin/products` ACEITAM a filial em query e, sem ela, devolvem o que o
+ * token alcança — que num restaurante de duas lojas é o cardápio DUAS VEZES.
+ *
+ * Foi exatamente o que apareceu na tela: "Promoções 10 / Promoções 10",
+ * "Entradas 29 / Entradas 29". Nada falhou, nada logou — a resposta era 200 e
+ * estava certa para a pergunta que o painel fez. Por isso o parâmetro é
+ * obrigatório na assinatura destas funções: um `branchId` esquecido volta a
+ * ser erro de compilação, não uma lista dobrada na mão do lojista.
+ */
 import { apiClient, unwrap } from './client';
 import type {
   Category,
@@ -13,8 +29,10 @@ import type {
   ProductUpdate,
 } from './types';
 
-export async function listCategories(): Promise<Category[]> {
-  return unwrap(await apiClient.GET('/admin/categories'));
+export async function listCategories(branchId: string): Promise<Category[]> {
+  return unwrap(
+    await apiClient.GET('/admin/categories', { params: { query: { branch_id: branchId } } }),
+  );
 }
 
 export async function createCategory(body: CategoryCreate): Promise<Category> {
@@ -38,16 +56,25 @@ export async function updateCategory(categoryId: string, body: CategoryUpdate): 
  * lista parcial não reordena de menos — apaga a posição de quem ficou de fora.
  * Por isso quem chama monta a lista a partir de `categoryIdsForReorder`, que
  * parte de todas as categorias carregadas e nunca de uma lista filtrada.
+ *
+ * A LISTA COMPLETA PASSOU A SER A DA FILIAL, e `branch_id` é obrigatório no
+ * corpo (422 sem ele). As duas coisas andam juntas: a lista completa de uma
+ * loja é parcial para a outra, e sem o recorte o backend não teria como saber
+ * qual das duas leituras o painel quis.
  */
-export async function reorderCategories(categoryIds: string[]): Promise<Category[]> {
+export async function reorderCategories(
+  branchId: string,
+  categoryIds: string[],
+): Promise<Category[]> {
   return unwrap(
     await apiClient.PATCH('/admin/categories/reorder', {
-      body: { category_ids: categoryIds },
+      body: { branch_id: branchId, category_ids: categoryIds },
     }),
   );
 }
 
 export async function listProducts(params: {
+  branchId: string;
   categoryId?: string;
   search?: string;
   limit: number;
@@ -57,6 +84,7 @@ export async function listProducts(params: {
     await apiClient.GET('/admin/products', {
       params: {
         query: {
+          branch_id: params.branchId,
           ...(params.categoryId ? { category_id: params.categoryId } : {}),
           ...(params.search?.trim() ? { search: params.search.trim() } : {}),
           // `is_active` fica de fora de propósito: a tela do lojista mostra
@@ -79,6 +107,13 @@ export async function fetchProductDetail(productId: string): Promise<ProductDeta
   );
 }
 
+/**
+ * Cria o item.
+ *
+ * SEM `branch_id`, e não é esquecimento: a filial vem da categoria. `category_id`
+ * já determina a loja, e mandar os dois abriria um corpo em que eles podem
+ * discordar — cujo único desfecho seria um 400 que não precisa existir.
+ */
 export async function createProduct(body: ProductCreate): Promise<Product> {
   return unwrap(await apiClient.POST('/admin/products', { body }));
 }

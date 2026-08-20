@@ -1,18 +1,21 @@
 /**
  * E2E do cardápio.
  *
- * Cobre as quatro regras da tela que dão errado em silêncio — o backend aceita,
+ * Cobre as cinco regras da tela que dão errado em silêncio — o backend aceita,
  * a tela não reclama, e o cardápio publicado sai errado:
  *
- *   1. reordenar categoria manda a LISTA COMPLETA de ids;
- *   2. esgotar usa PATCH /admin/products/{id}/availability, não o PATCH do
+ *   1. o cardápio é DE UMA FILIAL, e a tela recorta por ela;
+ *   2. reordenar categoria manda a LISTA COMPLETA de ids da filial;
+ *   3. esgotar usa PATCH /admin/products/{id}/availability, não o PATCH do
  *      produto inteiro;
- *   3. `is_active` e `is_available` são eixos diferentes;
- *   4. não existe excluir — existe desativar.
+ *   4. `is_active` e `is_available` são eixos diferentes;
+ *   5. não existe excluir — existe desativar.
  */
 import { expect, test, type Page } from '@playwright/test';
 
 import { installFakeApi, LOGIN_EMAIL, LOGIN_PASSWORD, type FakeApi } from './fake-api';
+import { escolher, FAKE_BRANCH, FAKE_BRANCH_2 } from './seletor';
+import { branchName } from '../src/layout/branch-heading';
 
 let api: FakeApi;
 
@@ -131,18 +134,106 @@ test('reordenar categoria manda a lista completa de ids', async ({ page }) => {
   await page.getByRole('button', { name: 'Mover Acompanhamentos para cima' }).click();
 
   await expect.poll(() => api.reorderCalls()).toHaveLength(1);
-  const enviado = api.reorderCalls()[0] as string[];
+  const chamada = api.reorderCalls()[0]!;
+
+  // A FILIAL VAI NO CORPO. Sem ela o backend responde 422 — e a lista completa
+  // de uma loja é parcial para a outra, então sem o recorte não haveria como
+  // saber qual das duas esta lista pretende ser.
+  expect(chamada.branchId).toBe(FAKE_BRANCH.id);
 
   // A ordem nova...
-  expect(enviado).toEqual(['cat-2', 'cat-1', 'cat-3']);
-  // ...e, o que mais importa, TODAS as categorias — inclusive a inativa
-  // (cat-3), que não foi tocada. Mandar só o que mudou zeraria a posição dela.
-  expect(enviado).toHaveLength(api.categories().length);
-  expect(enviado).toContain('cat-3');
+  expect(chamada.categoryIds).toEqual(['cat-2', 'cat-1', 'cat-3']);
+  /*
+   * ...e, o que mais importa, TODAS as categorias DESTA FILIAL — inclusive a
+   * inativa (cat-3), que não foi tocada. Mandar só o que mudou zeraria a
+   * posição dela.
+   *
+   * A contagem é a da filial, e não a do "banco" inteiro: a segunda loja tem o
+   * cardápio dela, e comparar com o total somado exigiria da tela uma lista
+   * que ela nunca deve mandar.
+   */
+  expect(chamada.categoryIds).toHaveLength(api.categories(FAKE_BRANCH.id).length);
+  expect(chamada.categoryIds).toContain('cat-3');
 
   // A barra reflete a ordem que o backend devolveu.
   const nomes = await page.locator('.rail__name').allTextContents();
   expect(nomes).toEqual(['Acompanhamentos', 'Lanches', 'Sobremesas']);
+});
+
+/*
+ * O DEFEITO QUE ABRIU ESTA RODADA, E O ÚNICO QUE NÃO SE VÊ NO CÓDIGO.
+ *
+ * As duas lojas do falso têm cada uma o cardápio inteiro, como a migração as
+ * deixou. Sem `branch_id` na leitura, `GET /admin/categories` responde 200 com
+ * as seis categorias e a barra escreve "Lanches 3 / Lanches 3" — nada falha,
+ * nada loga, e o lojista lê o cardápio dobrado.
+ *
+ * O teste é uma CONTAGEM, e é a forma certa aqui: "Lanches aparece uma vez" só
+ * pode passar se a tela mandou o recorte, e não passaria com o painel que esta
+ * rodada consertou.
+ */
+test('mostra o cardápio de uma filial só, sem as categorias em dobro', async ({ page }) => {
+  await abrirCardapio(page);
+
+  // Uma linha por categoria da filial, não duas.
+  await expect(page.locator('.rail__name')).toHaveText([
+    'Lanches',
+    'Acompanhamentos',
+    'Sobremesas',
+  ]);
+
+  // E o mesmo na lista: três itens em Lanches, não seis.
+  await expect(page.getByTestId('category-count-cat-1')).toHaveText('3 itens');
+  await expect(page.getByText('X-Burger Clássico')).toHaveCount(1);
+});
+
+/*
+ * TROCAR DE FILIAL TROCA O CARDÁPIO — não filtra o mesmo cardápio.
+ *
+ * Os ids são outros (`prod-1` na Aldeota, `prod-1-zn` na Zona Norte), e é isso
+ * que prova que a tela releu em vez de reaproveitar o que tinha em mão. O
+ * mesmo NOME nas duas é o esperado: são duas linhas independentes que a
+ * migração criou com a mesma `catalog_key`.
+ */
+test('trocar de filial no topo troca o cardápio inteiro', async ({ page }) => {
+  await abrirCardapio(page);
+  await expect(page.getByTestId('product-row-prod-1')).toBeVisible();
+
+  await escolher(page.getByTestId('branch-select'), branchName(FAKE_BRANCH_2));
+
+  // O item da outra loja, com o id da outra loja.
+  await expect(page.getByTestId('product-row-prod-1-zn')).toBeVisible();
+  // E o da primeira sumiu: não é o mesmo produto visto de outro ângulo.
+  await expect(page.getByTestId('product-row-prod-1')).toHaveCount(0);
+});
+
+/*
+ * "TODAS AS FILIAIS" NÃO É OFERECIDA AQUI, e é a metade da decisão que se vê
+ * na tela. Ali ela não seria um recorte mais largo: seria o cardápio das duas
+ * lojas somado — o defeito de cima, oferecido como opção.
+ */
+test('o seletor do topo não oferece "todas as filiais" no cardápio', async ({ page }) => {
+  await abrirCardapio(page);
+
+  const seletor = page.getByTestId('branch-select');
+  await seletor.click();
+  await expect(page.getByRole('option', { name: 'Todas as filiais' })).toHaveCount(0);
+  await expect(page.getByRole('option')).toHaveCount(2);
+  await seletor.press('Escape');
+});
+
+/*
+ * A RESSALVA DE ESCOPO DIZ DE QUAL LOJA É O CARDÁPIO, e ela é a frase que mais
+ * importa nesta tela: enquanto dizia "o cardápio é do restaurante inteiro", ela
+ * convidava o lojista a baixar um preço achando que baixava nas duas lojas.
+ */
+test('a tela diz de qual loja é o cardápio que está mostrando', async ({ page }) => {
+  await abrirCardapio(page);
+
+  const escopo = page.getByTestId('menu-sector-scope');
+  await expect(escopo).toContainText(branchName(FAKE_BRANCH));
+  await expect(escopo).toContainText('valem só nesta loja');
+  await expect(escopo).not.toContainText('restaurante inteiro');
 });
 
 test('a primeira categoria não tem "mover para cima", nem a última "para baixo"', async ({

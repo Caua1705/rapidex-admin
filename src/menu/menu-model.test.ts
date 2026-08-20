@@ -15,6 +15,10 @@ import {
 function category(overrides: Partial<Category> = {}): Category {
   return {
     id: 'cat-1',
+    // O contrato passou a exigir o campo: categoria e produto são DA FILIAL,
+    // e é o que impede um fixture de descrever uma linha que o banco não
+    // aceita mais gravar.
+    branch_id: 'fil-1',
     name: 'Lanches',
     slug: 'lanches',
     sort_order: 0,
@@ -26,6 +30,7 @@ function category(overrides: Partial<Category> = {}): Category {
 function product(overrides: Partial<Product> = {}): Product {
   return {
     id: 'prod-1',
+    branch_id: 'fil-1',
     category_id: 'cat-1',
     name: 'X-Burger',
     price: 24.9,

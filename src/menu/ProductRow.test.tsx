@@ -8,6 +8,8 @@ import { ProductRow } from './ProductRow';
 function product(overrides: Partial<Product> = {}): Product {
   return {
     id: 'prod-1',
+    // O produto é DA FILIAL desde que o cardápio deixou de ser do restaurante.
+    branch_id: 'fil-1',
     category_id: 'cat-1',
     name: 'X-Burger Clássico',
     price: 24.9,

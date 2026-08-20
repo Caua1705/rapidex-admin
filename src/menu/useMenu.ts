@@ -37,9 +37,20 @@ export type ProductDraft = {
 };
 
 /**
- * O estado da tela de cardápio.
+ * O estado da tela de cardápio, DE UMA FILIAL.
  *
- * Duas escolhas que valem explicação:
+ * `branchId` não é um filtro que o hook aplica sobre um cardápio maior: ele é o
+ * cardápio. Cada filial tem os próprios produtos, os próprios preços e as
+ * próprias categorias, e não há herança entre elas — a picanha do Centro e a da
+ * Aldeota são duas linhas independentes, com dois ids. Por isso ele entra como
+ * parâmetro e não como estado daqui: quem escolhe a loja é o seletor do topo, e
+ * um segundo lugar guardando a mesma escolha é como os dois passam a discordar.
+ *
+ * Filial vazia (o lojista não enxerga nenhuma) não carrega nada, como em
+ * `usePrintSectors`: não existe cardápio a mostrar, e pedir sem o recorte
+ * traria o das duas lojas somado.
+ *
+ * Duas outras escolhas que valem explicação:
  *
  * - As ações de um clique só (esgotar, reordenar) são OTIMISTAS: a tela muda
  *   na hora e desfaz se o backend recusar. No meio do almoço, esperar o
@@ -48,7 +59,7 @@ export type ProductDraft = {
  *   cardápio inteiro para contar itens na barra lateral — seria uma
  *   requisição por categoria a cada abertura da tela, para mostrar um número.
  */
-export function useMenu() {
+export function useMenu(branchId: string) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -70,6 +81,33 @@ export function useMenu() {
 
   // Descarta a resposta de uma busca que já não é a atual.
   const productRequestRef = useRef(0);
+
+  /*
+   * TROCAR DE FILIAL ZERA A TELA, E ISSO ACONTECE DURANTE A RENDERIZAÇÃO.
+   *
+   * Nenhum id sobrevive à troca: a categoria aberta, os produtos carregados e
+   * as contagens da barra são todos da loja anterior. Deixá-los na tela por um
+   * quadro que seja é mostrar o cardápio da loja errada — e pedir os produtos
+   * de `selectedCategoryId` depois da troca é pedir uma categoria que não
+   * existe nesta filial.
+   *
+   * O ajuste é feito no corpo do componente, e não num efeito, porque efeito é
+   * TARDE DEMAIS: eles rodam todos no mesmo commit, então o que carrega
+   * produtos dispararia com o id velho antes de o de limpeza corrigir o estado.
+   * Ajustar aqui faz o React descartar esta renderização e repetir com o estado
+   * novo ANTES de rodar efeito nenhum.
+   */
+  const [loadedBranchId, setLoadedBranchId] = useState(branchId);
+  if (loadedBranchId !== branchId) {
+    setLoadedBranchId(branchId);
+    setCategories([]);
+    setSelectedCategoryId(null);
+    setProducts([]);
+    setProductCounts({});
+    setTotalInCategory(0);
+    setErrorMessage(null);
+    setIsLoadingCategories(branchId !== '');
+  }
 
   // A busca espera o lojista parar de digitar; sem isto é uma chamada por tecla.
   useEffect(() => {
@@ -93,31 +131,47 @@ export function useMenu() {
    * nem precisa delas: o `total` da listagem já está na mão e é sempre o mais
    * fresco.
    */
-  const loadProductCounts = useCallback(async (list: readonly Category[]) => {
-    const entries = await Promise.all(
-      list.map(async (category) => {
-        try {
-          const page = await listProducts({ categoryId: category.id, limit: 1, offset: 0 });
-          return [category.id, page.total] as const;
-        } catch {
-          return null;
-        }
-      }),
-    );
+  const loadProductCounts = useCallback(
+    async (list: readonly Category[]) => {
+      const entries = await Promise.all(
+        list.map(async (category) => {
+          try {
+            const page = await listProducts({
+              branchId,
+              categoryId: category.id,
+              limit: 1,
+              offset: 0,
+            });
+            return [category.id, page.total] as const;
+          } catch {
+            return null;
+          }
+        }),
+      );
 
-    setProductCounts((current) => {
-      const next = { ...current };
-      entries.forEach((entry) => {
-        if (entry) next[entry[0]] = entry[1];
+      setProductCounts((current) => {
+        const next = { ...current };
+        entries.forEach((entry) => {
+          if (entry) next[entry[0]] = entry[1];
+        });
+        return next;
       });
-      return next;
-    });
-  }, []);
+    },
+    [branchId],
+  );
 
   const loadCategories = useCallback(async () => {
+    // Sem filial não há cardápio a pedir. O tratamento é o de `usePrintSectors`:
+    // lista vazia, sem erro, e quem chama diz na tela o que está faltando.
+    if (!branchId) {
+      setCategories([]);
+      setIsLoadingCategories(false);
+      return;
+    }
+
     setIsLoadingCategories(true);
     try {
-      const loaded = sortCategories(await listCategories());
+      const loaded = sortCategories(await listCategories(branchId));
       setCategories(loaded);
       setSelectedCategoryId((current) => {
         if (current && loaded.some((category) => category.id === current)) return current;
@@ -131,39 +185,49 @@ export function useMenu() {
     } finally {
       setIsLoadingCategories(false);
     }
-  }, [loadProductCounts]);
+  }, [branchId, loadProductCounts]);
 
   useEffect(() => {
     void loadCategories();
   }, [loadCategories]);
 
-  const loadProducts = useCallback(async (categoryId: string | null, term: string) => {
-    if (!categoryId) {
-      setProducts([]);
-      setTotalInCategory(0);
-      return;
-    }
+  const loadProducts = useCallback(
+    async (categoryId: string | null, term: string) => {
+      /*
+       * O CONTADOR SOBE ANTES DO DESVIO, e é isto que invalida a resposta em
+       * voo da filial anterior: sem categoria a função sai sem pedir nada, mas
+       * o pedido que já estava na rede continua chegando — e chegaria com a
+       * lista da loja de onde o lojista acabou de sair.
+       */
+      const requestId = ++productRequestRef.current;
+      if (!categoryId || !branchId) {
+        setProducts([]);
+        setTotalInCategory(0);
+        return;
+      }
 
-    const requestId = ++productRequestRef.current;
-    setIsLoadingProducts(true);
-    try {
-      const page = await listProducts({
-        categoryId,
-        search: term,
-        limit: PAGE_SIZE,
-        offset: 0,
-      });
-      if (requestId !== productRequestRef.current) return;
-      setProducts(sortProducts(page.items));
-      setTotalInCategory(page.total);
-      setErrorMessage(null);
-    } catch (error) {
-      if (requestId !== productRequestRef.current) return;
-      setErrorMessage(messageFromUnknownError(error));
-    } finally {
-      if (requestId === productRequestRef.current) setIsLoadingProducts(false);
-    }
-  }, []);
+      setIsLoadingProducts(true);
+      try {
+        const page = await listProducts({
+          branchId,
+          categoryId,
+          search: term,
+          limit: PAGE_SIZE,
+          offset: 0,
+        });
+        if (requestId !== productRequestRef.current) return;
+        setProducts(sortProducts(page.items));
+        setTotalInCategory(page.total);
+        setErrorMessage(null);
+      } catch (error) {
+        if (requestId !== productRequestRef.current) return;
+        setErrorMessage(messageFromUnknownError(error));
+      } finally {
+        if (requestId === productRequestRef.current) setIsLoadingProducts(false);
+      }
+    },
+    [branchId],
+  );
 
   useEffect(() => {
     void loadProducts(selectedCategoryId, search);
@@ -175,6 +239,7 @@ export function useMenu() {
     setIsLoadingProducts(true);
     try {
       const page = await listProducts({
+        branchId,
         categoryId: selectedCategoryId,
         search,
         limit: PAGE_SIZE,
@@ -188,7 +253,7 @@ export function useMenu() {
     } finally {
       if (requestId === productRequestRef.current) setIsLoadingProducts(false);
     }
-  }, [products.length, search, selectedCategoryId]);
+  }, [branchId, products.length, search, selectedCategoryId]);
 
   const selectCategory = useCallback((categoryId: string) => {
     setSelectedCategoryId(categoryId);
@@ -235,6 +300,10 @@ export function useMenu() {
    * `categoryIdsForReorder` a partir de todas as categorias carregadas — a
    * barra lateral nunca é filtrada justamente para que essa lista seja a
    * verdade inteira.
+   *
+   * A VERDADE INTEIRA PASSOU A SER A DA FILIAL. A lista completa de uma loja é
+   * parcial para a outra, e por isso `branch_id` acompanha o corpo — é ele que
+   * diz ao backend qual das duas leituras a lista pretende ser.
    */
   const reorderCategory = useCallback(
     async (index: number, direction: -1 | 1) => {
@@ -246,7 +315,7 @@ export function useMenu() {
       setMovedCategoryId(reordered[index + direction]?.id ?? null);
 
       try {
-        const saved = await reorderCategories(categoryIdsForReorder(reordered));
+        const saved = await reorderCategories(branchId, categoryIdsForReorder(reordered));
         setCategories(sortCategories(saved));
         setErrorMessage(null);
       } catch (error) {
@@ -254,7 +323,7 @@ export function useMenu() {
         setErrorMessage(messageFromUnknownError(error));
       }
     },
-    [categories],
+    [branchId, categories],
   );
 
   const clearMovedCategory = useCallback(() => setMovedCategoryId(null), []);
@@ -270,6 +339,10 @@ export function useMenu() {
           await updateCategory(draft.id, { name, is_active: draft.isActive });
         } else {
           const created = await createCategory({
+            // A categoria nasce NA FILIAL ABERTA, e o campo é obrigatório no
+            // corpo (422 sem ele). Não existe categoria da rede: a mesma
+            // categoria em duas lojas são duas categorias, com dois ids.
+            branch_id: branchId,
             name,
             // Categoria nova entra no fim: mudar a ordem de quem já existe
             // sem o lojista pedir bagunçaria o cardápio publicado.
@@ -286,7 +359,7 @@ export function useMenu() {
         return false;
       }
     },
-    [categories.length, loadCategories],
+    [branchId, categories.length, loadCategories],
   );
 
   /**

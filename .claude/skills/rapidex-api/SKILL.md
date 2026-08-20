@@ -122,7 +122,8 @@ segundos vale mais que a tela inteira escrita contra uma rota imaginária.
 
 # 4. As armadilhas que o typecheck não pega
 
-As três abaixo compilam. Os tipos batem. O número na tela é que está errado.
+As quatro abaixo compilam. Os tipos batem. O número na tela é que está
+errado — ou a lista vem duas vezes.
 
 ## 4.1 Dia da semana: o backend conta 0 = segunda, o JS conta 0 = domingo
 
@@ -204,6 +205,48 @@ filial. Por isso o topo do painel usa a filial principal (`is_main`) e, na falta
 dela, a primeira da lista — em `src/auth/restaurant-label.ts`.
 
 Não procure `restaurant_name` numa resposta `/admin`: ele não está lá.
+
+## 4.4 O cardápio é da FILIAL, e a leitura sem recorte devolve ele duas vezes
+
+Desde as revisões `20260820_0026`/`0027` do backend, **produto, preço,
+disponibilidade e categoria são da filial**. Não há herança e não há
+sobrescrita: a picanha do Centro e a da Aldeota são duas linhas independentes,
+com dois ids e dois preços.
+
+Isto contradiz o parágrafo acima de um jeito que custa caro, e a diferença é a
+razão de esta seção existir:
+
+| Rota | Sem `branch_id` |
+| --- | --- |
+| `GET /admin/orders`, `/admin/customers` | todas as filiais do token — o recorte é uma opção |
+| `GET /admin/categories`, `/admin/products` | **o cardápio de cada loja, somado num só** |
+
+Na segunda linha o resultado é 200, o JSON é válido e nada acende. O que aparece
+é a tela dobrada: "Promoções 10 / Promoções 10" na barra de categorias, cada
+item duas vezes na lista. Foi assim que o defeito chegou ao painel.
+
+**Por isso `listCategories` e `listProducts` (`src/api/menu.ts`) exigem
+`branchId` na assinatura** — um recorte esquecido volta a ser erro de
+compilação em vez de uma lista dobrada na mão do lojista.
+
+Nas escritas o campo é obrigatório de verdade:
+
+| Rota | Onde a filial entra |
+| --- | --- |
+| `POST /admin/categories` | **no corpo**, obrigatório (422 sem ela) |
+| `PATCH /admin/categories/reorder` | **no corpo**, obrigatório; a lista completa é a da filial |
+| `POST /admin/products` | **não vai** — a filial vem da categoria (`category_id` já a determina) |
+| `PATCH /admin/products/{id}` | `category_id` só aceita categoria da MESMA filial (400) |
+
+**Produto não muda de filial.** Quem quer o mesmo item na outra loja cria um lá
+com a mesma `catalog_key` — campo opcional, texto livre, único dentro da filial,
+que existe para o relatório somar as duas lojas numa linha. Ele **não tem
+semântica de herança**: nada lê `catalog_key` para decidir preço ou
+disponibilidade.
+
+**O painel ainda não tem tela para `catalog_key`**, então todo produto criado
+pelo Admin nasce sem chave e some do agrupamento de `/reports/products`. Está
+registrado como pendência — não invente o campo numa tela sem combinar antes.
 
 ---
 
@@ -298,7 +341,8 @@ trabalho de quem estava editando.
 - **`PATCH /admin/categories/reorder` recebe a lista COMPLETA de ids**, não o
   par (id, posição) do que mudou. Lista parcial apaga a posição de quem ficou de
   fora. Use `categoryIdsForReorder`, que parte de todas as categorias carregadas
-  e nunca de uma lista filtrada.
+  e nunca de uma lista filtrada. **A lista completa é a DA FILIAL**, e
+  `branch_id` é obrigatório no corpo (422 sem ele) — ver §4.4.
 
 Nos dois casos o tipo aceita a lista curta sem reclamar.
 

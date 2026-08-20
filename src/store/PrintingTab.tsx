@@ -44,7 +44,7 @@ import { Switch } from '../ds/Switch';
  */
 export function PrintingTab({ branchId }: { branchId: string }) {
   const printing = usePrintSectors(branchId);
-  const coverage = useSectorCoverage(printing.sectors);
+  const coverage = useSectorCoverage(branchId, printing.sectors);
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);

@@ -58,6 +58,8 @@ function grupoPonto(
 function detalhe(groups: ProductOptionGroup[]): ProductDetail {
   return {
     id: 'prod-1',
+    // O produto é DA FILIAL desde que o cardápio deixou de ser do restaurante.
+    branch_id: 'fil-1',
     category_id: 'cat-1',
     name: 'Picanha na chapa',
     price: 59.9,

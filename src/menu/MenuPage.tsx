@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { useResolvedBranch } from '../auth/use-branch-scope';
+import { useAdoptedBranch } from '../auth/use-branch-scope';
 import { branchName } from '../layout/branch-heading';
 import { usePrintSectors } from '../print-sectors/usePrintSectors';
 import { ApplySectorDialog } from './ApplySectorDialog';
@@ -30,20 +30,39 @@ import './MenuPage.css';
  *
  * As duas colunas grudam no alto enquanto a página rola: a barra de categorias
  * é a navegação da tela e o cabeçalho de colunas nomeia o que está passando.
+ *
+ * ----------------------------------------------------------------------------
+ * A TELA PASSOU A SER DE UMA LOJA, E NÃO DO RESTAURANTE
+ * ----------------------------------------------------------------------------
+ *
+ * Ela sabia de filial por um detalhe: o setor de impressão era da loja, e o
+ * resto do cardápio era da rede. Hoje é o contrário — produto, preço,
+ * disponibilidade e categoria são todos da filial, sem herança entre lojas.
+ *
+ * O SINTOMA DE NÃO SABER DISSO ERA A TELA DOBRADA: "Promoções 10 / Promoções
+ * 10", "Entradas 29 / Entradas 29" na barra de categorias, cada item duas
+ * vezes na lista. Não era erro de ninguém — a leitura sem recorte devolve o
+ * cardápio de todas as filiais que o token alcança, e num restaurante de duas
+ * lojas isso é o cardápio duas vezes, com 200 e sem log.
+ *
+ * Por isso ela ADOTA a filial (`useAdoptedBranch`) em vez de só resolvê-la, e é
+ * a mesma decisão das seções de Minha loja: a tela inteira fala de uma loja,
+ * então o cabeçalho tem que dizer a mesma coisa. O seletor do topo deixa de
+ * oferecer "Todas as filiais" enquanto ela está aberta — não porque escolher
+ * seja proibido, mas porque ali "todas" não é um recorte mais largo: é o
+ * cardápio das duas somado, que é o defeito, não um estado.
+ *
+ * O QUE ELA NÃO FAZ É PEDIR A FILIAL ANTES DE ABRIR. Sem escolha, o painel usa
+ * a principal e DIZ qual é — a parede com um botão por loja é o padrão que
+ * `auth/branch-scope.ts` existe para não repetir.
  */
 export function MenuPage() {
-  const menu = useMenu();
-  /*
-   * Os setores são da FILIAL, enquanto o cardápio é do restaurante inteiro. É
-   * o cruzamento que obriga esta tela a saber de filial: em qual setor um item
-   * imprime é uma resposta diferente em cada loja. A filial é RESOLVIDA (a
-   * principal, na falta de escolha) — ver `auth/branch-scope.ts`.
-   */
-  const { branchId, branch, hasChoice } = useResolvedBranch();
+  const { branchId, branch, hasChoice } = useAdoptedBranch();
+  const menu = useMenu(branchId);
   const printing = usePrintSectors(branchId);
   const branchChosen = branchId !== '';
   /* Nomeia a filial só quando há mais de uma: com uma só não desambigua nada. */
-  const sectorBranchLabel = hasChoice && branch ? branchName(branch) : '';
+  const branchLabel = hasChoice && branch ? branchName(branch) : '';
 
   const [categoryDraft, setCategoryDraft] = useState<CategoryDraft | null>(null);
   const [productDraft, setProductDraft] = useState<ProductDraft | null>(null);
@@ -144,30 +163,38 @@ export function MenuPage() {
       </PageBar>
 
       {/*
-        A FRASE DE ESCOPO, e é ela que carrega "de qual loja é a coluna
-        Impressão".
+        A FRASE DE ESCOPO, e ela mudou de assunto.
 
-        Esse recado morava no cabeçalho da própria coluna, e ali ele não cabia:
-        "Pizzaria do Zé — Aldeota" em 140px quebrava em duas linhas, engordava a
-        régua de rótulos e desalinhava "Item", "Preço" e "Situação" do que
-        nomeiam. Dito uma vez aqui, em prosa, ele sai inteiro e legível — o
-        mesmo lugar em que Clientes diz o que a tela não tem.
+        Dizia "o cardápio é do restaurante inteiro. Só a coluna Impressão é de
+        uma loja" — o que era verdade até o cardápio passar a ser da filial, e
+        virou a afirmação mais perigosa da tela: ela convidava o lojista a
+        baixar um preço achando que baixava nas duas lojas. Hoje ela diz o
+        contrário, e diz ANTES da lista, que é onde o preço é editado.
+
+        A ressalva continua sendo uma frase de prosa aqui, e não um recado no
+        cabeçalho da coluna: "Pizzaria do Zé — Aldeota" em 140px quebrava em
+        duas linhas, engordava a régua de rótulos e desalinhava "Item", "Preço"
+        e "Situação" do que nomeiam.
       */}
       <p className="t-aux menu__note" data-testid="menu-sector-scope">
-        {branchChosen ? (
-          sectorBranchLabel ? (
-            <>
-              O cardápio é do restaurante inteiro. Só a coluna Impressão é de uma loja: ela responde
-              pela <strong>{sectorBranchLabel}</strong>.
-            </>
-          ) : (
-            <>
-              O cardápio é do restaurante inteiro. A coluna Impressão diz em qual setor da cozinha
-              cada item sai na comanda.
-            </>
-          )
+        {!branchChosen ? (
+          /*
+            Sem filial nenhuma no acesso não há cardápio a mostrar — e a frase
+            diz isso em vez de deixar a tela vazia parecer um cardápio vazio,
+            que são coisas diferentes e levam a ações diferentes.
+          */
+          <>Este acesso não alcança nenhuma filial, e o cardápio é de uma filial.</>
+        ) : branchLabel ? (
+          <>
+            Este é o cardápio da <strong>{branchLabel}</strong>: item, preço e disponibilidade valem
+            só nesta loja. As outras têm o cardápio delas — inclusive o setor de impressão da coluna
+            Impressão.
+          </>
         ) : (
-          <>O cardápio é do restaurante inteiro: itens e categorias valem em todas as lojas.</>
+          <>
+            O cardápio é desta loja. A coluna Impressão diz em qual setor da cozinha cada item sai
+            na comanda.
+          </>
         )}
       </p>
 

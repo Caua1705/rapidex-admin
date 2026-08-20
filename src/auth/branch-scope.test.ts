@@ -33,19 +33,44 @@ describe('ROUTE_BRANCH_SCOPE', () => {
   });
 
   /*
-   * Toda rota com `{branch_id}` no path é 'single' e nenhuma outra é. É a
-   * regra do §4.3 da skill de API conferida contra a tabela inteira, então uma
-   * rota nova classificada errado cai aqui em vez de cair na tela.
+   * O cardápio é 'single' sem ter `{branch_id}` no path, e é a única família de
+   * rotas assim: `POST /admin/categories` e `PATCH /admin/categories/reorder`
+   * exigem a filial no CORPO (422 sem ela), e as duas leituras respondem o
+   * cardápio de todas as lojas somado quando ninguém recorta.
    */
-  it('classifica pelo formato da rota, sem exceção escrita à mão', () => {
+  it('trata o cardápio como rota de uma filial, mesmo sem filial no path', () => {
+    expect(ROUTE_BRANCH_SCOPE['/admin/categories']).toBe('single');
+    expect(ROUTE_BRANCH_SCOPE['/admin/products']).toBe('single');
+  });
+
+  /*
+   * A regra escrita por extenso, conferida contra a tabela INTEIRA: 'single' é
+   * "não há chamada possível sem a filial" — por path, ou por corpo. Uma rota
+   * nova classificada errado cai aqui em vez de cair na tela.
+   *
+   * A lista de exceção é curta de propósito. Ela não é um escape para
+   * classificar à mão: quem acrescentar um nome aqui está afirmando que o
+   * contrato daquela rota EXIGE a filial, e é isso que a revisão confere.
+   */
+  it('classifica pelo contrato: filial no path, ou filial obrigatória no corpo', () => {
+    const filialNoCorpo = ['/admin/categories', '/admin/products'];
+
     Object.entries(ROUTE_BRANCH_SCOPE).forEach(([rota, escopo]) => {
-      expect([rota, escopo]).toEqual([rota, rota.includes('{branch_id}') ? 'single' : 'multi']);
+      const exigeFilial = rota.includes('{branch_id}') || filialNoCorpo.includes(rota);
+      expect([rota, escopo]).toEqual([rota, exigeFilial ? 'single' : 'multi']);
     });
   });
 });
 
 describe('branchScopeForPath', () => {
-  it('marca as seções de filial de Minha loja como escrita por filial', () => {
+  /*
+   * O Cardápio entrou nesta lista quando o cardápio virou da filial. Sem ele
+   * aqui, o seletor do topo volta a oferecer "Todas as filiais" na tela — e
+   * ali "todas" não é um recorte mais largo, é o cardápio das lojas somado,
+   * que é o defeito com que esta rodada começou.
+   */
+  it('marca o Cardápio e as seções de filial de Minha loja como tela de uma filial', () => {
+    expect(branchScopeForPath('/cardapio')).toBe('single');
     expect(branchScopeForPath('/minha-loja/horarios')).toBe('single');
     expect(branchScopeForPath('/minha-loja/entrega')).toBe('single');
     expect(branchScopeForPath('/minha-loja/pagamento')).toBe('single');
@@ -57,7 +82,7 @@ describe('branchScopeForPath', () => {
     // Geral é do restaurante inteiro: "todas as filiais" continua válido lá.
     expect(branchScopeForPath('/minha-loja/geral')).toBe('multi');
     expect(branchScopeForPath('/pedidos')).toBe('multi');
-    expect(branchScopeForPath('/cardapio')).toBe('multi');
+    expect(branchScopeForPath('/clientes')).toBe('multi');
   });
 
   it('ignora a barra final', () => {
