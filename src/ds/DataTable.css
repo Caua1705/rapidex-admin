@@ -78,11 +78,12 @@
   }
 
   .ds-tabela th {
-    padding: var(--sp-8) var(--sp-12);
+    padding: var(--sp-12) var(--sp-16);
+    background: var(--surface-muted);
     text-align: left;
     font-size: var(--ta-size);
     line-height: var(--ta-line);
-    font-weight: var(--w-medium);
+    font-weight: var(--w-semibold);
     color: var(--ink-3);
     white-space: nowrap;
     border-bottom: 1px solid var(--line);
@@ -95,13 +96,22 @@
 
   .ds-tabela td {
     display: table-cell;
-    padding: var(--sp-8) var(--sp-12);
+    min-height: var(--row-dense-h);
+    padding: var(--sp-12) var(--sp-16);
     vertical-align: middle;
     border-bottom: 1px solid var(--line);
   }
 
   .ds-tabela tbody tr:last-child td {
     border-bottom: none;
+  }
+
+  .ds-tabela tbody tr {
+    transition: background var(--motion-fast) var(--ease);
+  }
+
+  .ds-tabela tbody tr:hover {
+    background: var(--hover);
   }
 
   .ds-tabela td[data-col]::before {

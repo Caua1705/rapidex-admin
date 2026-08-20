@@ -120,6 +120,12 @@ export function OrdersPage() {
      */
     <div className="orders">
       <div className="orders__main">
+        <header className="orders__header">
+          <div>
+            <h1 className="t-title">Pedidos</h1>
+            <p className="t-aux">Acompanhe a operação e priorize o que precisa de atenção agora.</p>
+          </div>
+        </header>
         {/*
           DUAS ABAS, E ELAS SEPARAM TRABALHO DE CONSULTA.
           Concluído e cancelado ocupavam duas das sete colunas do quadro com o

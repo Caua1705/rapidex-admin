@@ -1,61 +1,269 @@
-/* --- o painel ------------------------------------------------------------ */
-
-/*
- * O DETALHE É UMA COLUNA À DIREITA DO QUADRO, MAS SÓ QUANDO HÁ O QUE MOSTRAR.
- *
- * Sem pedido aberto, ela colapsa: reservar um terço da largura da tela para
- * uma frase era gastar espaço com ausência de informação, e a grade de faixas
- * (`auto-fill`) já resolve as próprias colunas sozinha quando ganha a largura
- * de volta. Ao selecionar um pedido, ela entra com a mesma transição que
- * qualquer painel do sistema usa para comunicar mudança de estado (§9).
- *
- * Um fio à esquerda a separa do quadro — os dois estão no mesmo plano (`--bg`),
- * então aqui o tom não basta.
- */
 .panel {
-  width: 380px;
-  flex: 0 0 auto;
+  position: relative;
   display: flex;
+  width: var(--detail-panel-width);
+  min-width: 0;
+  height: 100%;
+  flex: 0 0 var(--detail-panel-width);
   flex-direction: column;
-  min-height: 0;
-  background: var(--bg);
-  border-left: 1px solid var(--line);
   overflow: hidden;
-  transition:
-    width var(--motion-base) var(--ease),
-    border-color var(--motion-base) var(--ease);
+  border-left: 1px solid var(--line);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-shell);
 }
 
-/* Acima de 1280px (ver a exceção abaixo), sem pedido a coluna some de largura. */
 .panel--vazio {
-  width: 0;
-  border-left-color: transparent;
+  box-shadow: none;
 }
 
-/*
- * ABAIXO DE 1280px A COLUNA NÃO CABE, e aí o painel volta a ser sob demanda:
- * some quando não há pedido aberto, e flutua sobre o quadro quando há.
- *
- * Sem véu por cima do quadro: ele continua sendo o que diz o que fazer em
- * seguida, e escurecê-lo para ler um pedido é trocar o contexto pelo detalhe.
- * Quem separa os dois planos é a sombra.
- */
+.panel__header {
+  display: flex;
+  min-height: 76px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-5) var(--s-5) var(--s-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.panel__title {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.panel__number {
+  width: 100%;
+  color: var(--ink);
+  font-size: var(--section-size);
+  font-weight: var(--weight-bold);
+  line-height: var(--section-line);
+}
+
+.panel__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: 24px;
+  padding: 0 var(--s-2);
+  border-radius: var(--r-chip);
+  background: var(--st-wash);
+  color: var(--st);
+  font-size: var(--meta-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--meta-line);
+}
+
+.panel__status::before {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: currentColor;
+  content: '';
+}
+
+.panel__body {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--s-5);
+  scrollbar-gutter: stable;
+}
+
+.panel__vazio {
+  max-width: 30ch;
+  margin: var(--s-7) auto 0;
+  color: var(--ink-3);
+  font-size: var(--body-size);
+  line-height: var(--body-line);
+  text-align: center;
+}
+
+.panel__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--s-2);
+  padding: var(--s-4) var(--s-5);
+  border-top: 1px solid var(--line);
+  background: var(--surface-raised);
+  box-shadow: 0 -8px 20px color-mix(in srgb, var(--bg) 72%, transparent);
+}
+
+.detail {
+  display: grid;
+  gap: 0;
+}
+
+.detail > .alert {
+  margin-bottom: var(--s-4);
+}
+
+.detail__block {
+  padding: var(--s-5) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.detail__block:first-of-type {
+  padding-top: 0;
+}
+
+.detail__block:last-child {
+  border-bottom: 0;
+}
+
+.detail__heading {
+  margin: 0 0 var(--s-3);
+  color: var(--ink-3);
+  font-size: var(--label-size);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--label-tracking);
+  line-height: var(--label-line);
+}
+
+.detail__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--s-3);
+  padding: var(--s-1) 0;
+  color: var(--ink-2);
+}
+
+.detail__row > :last-child {
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+  text-align: right;
+}
+
+.detail__row--total {
+  margin-top: var(--s-3);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--line-strong);
+  color: var(--ink);
+  font-size: var(--section-size);
+  font-weight: var(--weight-bold);
+}
+
+.detail__row--total > :last-child {
+  color: var(--brand);
+  font-size: var(--ticket-time-size);
+  font-weight: var(--weight-bold);
+  line-height: var(--ticket-time-line);
+}
+
+.detail__notes,
+.items__observation {
+  margin: 0;
+  padding: var(--s-3);
+  border-radius: var(--r-control);
+  background: var(--alert-wash);
+  color: var(--ink);
+  line-height: var(--body-line);
+}
+
+.items,
+.options,
+.options__list,
+.detail__history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.items__row {
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.items__row:first-child {
+  padding-top: 0;
+}
+
+.items__row:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.items__main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--s-2);
+}
+
+.items__qty {
+  color: var(--brand);
+  font-weight: var(--weight-bold);
+}
+
+.items__name,
+.items__price {
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+}
+
+.items__price,
+.options__price {
+  text-align: right;
+}
+
+.options {
+  display: grid;
+  gap: var(--s-2);
+  margin: var(--s-2) 0 0 calc(var(--s-5) + var(--s-1));
+}
+
+.options__label {
+  display: block;
+  margin-bottom: var(--s-1);
+  color: var(--ink-3);
+  font-size: var(--meta-size);
+  font-weight: var(--weight-semibold);
+}
+
+.options__option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--s-3);
+  color: var(--ink-2);
+  font-size: var(--meta-size);
+  line-height: var(--meta-line);
+}
+
+.items__observation {
+  margin: var(--s-3) 0 0 calc(var(--s-5) + var(--s-1));
+  padding: var(--s-2) var(--s-3);
+  color: var(--alert);
+  font-size: var(--meta-size);
+  line-height: var(--meta-line);
+}
+
+.detail__history {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.detail__history li {
+  color: var(--ink-2);
+  font-size: var(--meta-size);
+  line-height: var(--meta-line);
+}
+
 @media (max-width: 1279px) {
   .panel {
     position: fixed;
-    top: 0;
+    z-index: var(--z-drawer);
+    top: var(--topbar-height);
     right: 0;
     bottom: 0;
-    z-index: var(--z-popover);
-    max-width: 100%;
-    background: var(--surface);
-    box-shadow: var(--shadow-raised);
-    /*
-     * Aqui ele ENTRA de verdade, então o deslize volta a ter trabalho: sem
-     * ele, 380px de conteúdo surgem por cima do quadro e o olho perde de onde
-     * vieram. @keyframes precisa do próprio desligamento (abaixo).
-     */
-    animation: panel-enter var(--motion-fast) var(--ease);
+    height: auto;
+    border-left: 0;
+    box-shadow: var(--shadow-drawer);
   }
 
   .panel--vazio {
@@ -63,313 +271,22 @@
   }
 }
 
-@keyframes panel-enter {
-  from {
-    opacity: 0;
-    transform: translateX(var(--sp-16));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
+@media (max-width: 720px) {
   .panel {
-    animation: none;
-  }
-}
-
-/* O estado vazio: uma frase, na tinta de apoio, e nada mais. */
-.panel__vazio {
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-  color: var(--ink-3);
-}
-
-.panel__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-12);
-  height: var(--topbar-h);
-  flex: 0 0 auto;
-  padding: 0 var(--sp-16);
-}
-
-.panel__title {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-8);
-  min-width: 0;
-  font-size: var(--ta-size);
-}
-
-/* O nº do pedido é o título deste painel — nível 1, um por painel. */
-.panel__number {
-  font-size: var(--tt-size);
-  line-height: var(--tt-line);
-  font-weight: var(--tt-weight);
-  letter-spacing: var(--tt-track);
-  color: var(--ink);
-}
-
-/*
- * Lê a matiz da classe `is-<estágio>` de tokens.css.
- *
- * SEM CAIXA ALTA. Ele já foi nível 3 (rótulo) inteiro — caixa alta e
- * espaçado —, mas caixa alta com tracking ficou reservada à sidebar e à faixa
- * do quadro (ver o comentário sobre `.field__label` em primitives.css); um
- * badge de status é frase comum. O que continua fazendo o trabalho é a matiz:
- * era tinta do status sobre o wash do status, par que o verificador de
- * contraste garante em 3:1 (elemento gráfico) e não em 4.5:1 (texto). Sobre a
- * superfície do painel a mesma matiz passa com folga.
- */
-.panel__status {
-  color: var(--st);
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-  font-weight: var(--w-medium);
-  white-space: nowrap;
-}
-
-.panel__body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 0 var(--sp-16) var(--sp-16);
-}
-
-.panel__footer {
-  flex: 0 0 auto;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-8);
-  align-items: center;
-  padding: var(--sp-12) var(--sp-16);
-  border-top: 1px solid var(--line);
-}
-
-/*
- * Não existe estado vazio: sem pedido escolhido o painel não é montado, e o
- * quadro fica com a tela inteira. Um painel de 380px que só diz "nenhum pedido
- * aberto" é um quarto da largura gasto para informar que não há informação.
- */
-
-/* --- blocos do detalhe --------------------------------------------------- */
-
-.detail {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-16);
-}
-
-.detail__block {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-}
-
-/*
- * O TÍTULO DE BLOCO É `.t-section`, NÃO O NÍVEL 3. "Cliente", "Itens",
- * "Pagamento" são um título por bloco do painel — a mesma função que
- * `.t-section` já cobre em cartão/coluna/aba/diálogo (§1 do SKILL). Caixa
- * alta e tracking eram o que fazia um painel de detalhe ler como réguas de
- * formulário; um título de bloco é frase comum, só com peso.
- */
-.detail__heading {
-  margin: 0 0 var(--sp-4);
-  font-size: var(--ts-size);
-  line-height: var(--ts-line);
-  font-weight: var(--ts-weight);
-  letter-spacing: var(--ts-track);
-  color: var(--ink);
-}
-
-.detail__row {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--sp-12);
-  font-size: var(--tb-size);
-  line-height: var(--tb-line);
-}
-
-.detail__row--total {
-  border-top: 1px solid var(--line);
-  margin-top: var(--sp-4);
-  padding-top: var(--sp-8);
-  font-weight: var(--w-bold);
-}
-
-.detail__notes {
-  margin: 0;
-  padding: var(--sp-8);
-  background: var(--field);
-  border-radius: var(--r-chip);
-  font-size: var(--tb-size);
-  line-height: var(--tb-line);
-}
-
-.detail__history {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-}
-
-/* --- itens --------------------------------------------------------------- */
-
-.items {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.items__row {
-  padding: var(--sp-8) 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.items__row:last-child {
-  border-bottom: none;
-}
-
-/*
- * Grade: quantidade · nome · preço. A quantidade tem coluna própria e o preço
- * encosta à direita, então os valores de todos os itens ficam na mesma
- * abscissa e o total logo abaixo se confere descendo o olho.
- */
-.items__main {
-  display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto;
-  gap: var(--sp-8);
-  align-items: baseline;
-  font-size: var(--tb-size);
-  line-height: var(--tb-line);
-}
-
-.items__qty {
-  color: var(--ink-2);
-}
-
-.items__name {
-  color: var(--ink);
-  font-weight: var(--w-semibold);
-}
-
-.items__price {
-  white-space: nowrap;
-}
-
-.items__observation {
-  margin: var(--sp-4) 0 0 calc(24px + var(--sp-8));
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-  /* Âmbar de "esperando/atenção": é o que ainda exige cuidado de quem prepara. */
-  color: var(--alert);
-}
-
-/* --- adicionais ---------------------------------------------------------- */
-
-/*
- * Recuados sob o item e separados por grupo.
- *
- * O recuo alinha com o nome do produto (largura da quantidade + o vão), então
- * lê-se de cima para baixo como "este item, com estas escolhas". A régua à
- * esquerda amarra o bloco ao item de quem ele é quando há dois itens seguidos
- * com adicionais.
- */
-.options {
-  list-style: none;
-  margin: var(--sp-4) 0 0 calc(24px + var(--sp-8));
-  padding: 0 0 0 var(--sp-12);
-  border-left: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-}
-
-.options__group {
-  display: flex;
-  flex-direction: column;
-}
-
-/*
- * O rótulo do grupo é o que separa a TROCA ("Acompanhamento: espaguete") da
- * PORÇÃO EXTRA ("Adicional: espaguete") — as duas linhas têm o mesmo texto e
- * significados opostos para a cozinha.
- */
-.options__label {
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-  font-weight: var(--w-medium);
-  color: var(--ink-3);
-}
-
-.options__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.options__option {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--sp-12);
-  font-size: var(--tb-size);
-  line-height: var(--tb-line);
-  color: var(--ink-2);
-}
-
-/* Só conferência: o preço do item já inclui este valor. */
-.options__price {
-  font-size: var(--ta-size);
-  white-space: nowrap;
-}
-
-/* --- diálogo de cancelamento --------------------------------------------- */
-
-.cancel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-12);
-}
-
-.cancel__warning {
-  margin: 0;
-  font-size: var(--tb-size);
-  line-height: var(--tb-line);
-  font-weight: var(--w-semibold);
-  color: var(--danger);
-}
-
-.cancel__meta {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--sp-12);
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-}
-
-.cancel__error {
-  color: var(--danger);
-}
-
-/* --- estreito ------------------------------------------------------------ */
-
-/*
- * Abaixo de 1100px não sobra largura para o quadro E o painel lado a lado. O
- * painel vira uma folha sobre a direita da tela — e como ele só existe com
- * pedido escolhido, não há mais o que esconder por aqui.
- */
-@media (max-width: 1100px) {
-  .panel {
-    position: fixed;
     top: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 40;
-    width: min(380px, 92vw);
-    box-shadow: var(--shadow-raised);
+    width: 100%;
+    max-width: none;
+    flex-basis: 100%;
+  }
+
+  .panel__header,
+  .panel__body,
+  .panel__footer {
+    padding-right: var(--page-padding-mobile);
+    padding-left: var(--page-padding-mobile);
+  }
+
+  .panel__footer {
+    padding-bottom: calc(var(--s-4) + env(safe-area-inset-bottom));
   }
 }

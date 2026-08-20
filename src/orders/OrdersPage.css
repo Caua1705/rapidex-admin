@@ -1,8 +1,7 @@
-/* Quadro + painel de detalhe, lado a lado. */
 .orders {
-  display: flex;
   flex: 1;
   min-height: 0;
+  display: flex;
   background: var(--bg);
 }
 
@@ -12,34 +11,42 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+  gap: var(--sp-16);
+  padding: var(--page-pad);
+  overflow-y: auto;
 }
 
-/* ==========================================================================
- * AS DUAS ABAS
- * O trilho de brasa embaixo da escolhida é o mesmo do `ds/Tabs`; aqui ele é
- * local porque estas abas são a estrutura da tela, não um componente reusado.
- * ======================================================================= */
-.tabs {
-  display: flex;
-  gap: var(--sp-16);
+.orders__header {
   flex: 0 0 auto;
-  padding: var(--sp-12) var(--page-pad) 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-16);
+}
+
+.orders__header p {
+  margin: var(--sp-4) 0 0;
+}
+
+.tabs {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-20);
+  min-height: var(--control-h);
   border-bottom: 1px solid var(--line);
 }
 
 .tab {
+  align-self: stretch;
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-4);
-  height: 30px;
-  padding: 0;
-  border: 0;
-  background: transparent;
+  gap: var(--sp-8);
+  padding-inline: var(--sp-4);
   color: var(--ink-3);
   font-size: var(--tb-size);
-  font-weight: var(--w-regular);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
+  font-weight: var(--w-medium);
   transition: color var(--motion-fast) var(--ease);
 }
 
@@ -47,34 +54,51 @@
   color: var(--ink);
 }
 
+.tab::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 3px;
+  border-radius: var(--r-round) var(--r-round) 0 0;
+  background: var(--ember);
+  transform: scaleX(0);
+  transition: transform var(--motion-base) var(--ease);
+}
+
 .tab--on {
   color: var(--ink);
   font-weight: var(--w-semibold);
-  border-bottom-color: var(--ember);
 }
 
-/* A contagem é apoio, e não é mono: ela não se compara com a de baixo. */
+.tab--on::after {
+  transform: scaleX(1);
+}
+
 .tab__count {
-  font-size: var(--ta-size);
-  font-weight: var(--w-regular);
-  color: var(--ink-3);
+  min-width: 22px;
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: var(--sp-4);
+  border-radius: var(--r-round);
+  background: var(--surface-muted);
+  color: var(--ink-2);
+  font-size: var(--tl-size);
+  font-weight: var(--w-semibold);
 }
 
-/* ==========================================================================
- * A BARRA DE FILTROS — fixa, sempre visível, na altura de um controle.
- *
- * Ela é moldura, não conteúdo: sai em `--bg`, o mesmo tom da barra do topo, e
- * o que a separa do quadro é o fio de baixo.
- * ======================================================================= */
 .filtros {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: var(--sp-12);
-  flex: 0 0 auto;
   flex-wrap: wrap;
-  padding: var(--sp-8) var(--page-pad);
-  border-bottom: 1px solid var(--line);
-  background: var(--bg);
+  gap: var(--sp-12);
+  padding: var(--sp-12);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 
 .filtros__datas {
@@ -85,39 +109,31 @@
 }
 
 .filtros__data .input {
-  width: 132px;
+  width: 140px;
 }
 
-/* A busca leva a lupa DENTRO do campo, recuada — não um ícone ao lado. */
 .filtros__busca {
   position: relative;
+  flex: 1 1 240px;
+  min-width: 0;
+  max-width: 380px;
   display: flex;
   align-items: center;
-  flex: 1 1 200px;
-  max-width: 320px;
-  min-width: 0;
 }
 
 .filtros__lupa {
   position: absolute;
-  left: var(--sp-8);
+  left: var(--sp-12);
+  z-index: 1;
   display: flex;
   color: var(--ink-3);
   pointer-events: none;
 }
 
-/* 8 de recuo + 14 do ícone + 8 de folga: o texto não encosta na lupa. */
 .filtros__busca-campo {
-  width: 100%;
-  padding-left: calc(var(--sp-8) + var(--sp-16) + var(--sp-8));
+  padding-left: var(--sp-32);
 }
 
-/*
- * `flex-wrap` aqui também, e não só na barra: no celular este bloco desce
- * inteiro para a segunda linha e, sem quebrar por dentro, o sino e o
- * "Atualizar" saíam da tela pela direita — sem barra de rolagem, sem nada
- * indicando que havia mais.
- */
 .filtros__dir {
   margin-left: auto;
   display: flex;
@@ -126,82 +142,46 @@
   gap: var(--sp-8);
 }
 
-/* --- tempo de preparo ---------------------------------------------------- */
-
-/*
- * Sem caixa: dentro de uma barra que já é moldura, um controle contornado
- * disputava atenção com os pedidos. O que agrupa o controle é o vão ao redor e
- * o rótulo à esquerda.
- */
-/*
- * ELE QUEBRA EM LINHAS, PORQUE PEDIDOS NÃO ROLA DE LADO (§8).
- *
- * Com o nome da filial ao lado da faixa ("Preparo 25–35 min na Pizzaria do Zé
- * — Aldeota"), o controle passou a ser largo demais para 390px: sem quebrar,
- * ele empurrava os botões +5/+10/−5 para fora da tela — e o botão que sai pela
- * direita é um botão que ninguém encontra num sábado cheio.
- *
- * `min-height` no lugar de `height`: com altura fixa, a segunda linha ficaria
- * por baixo da barra em vez de empurrá-la.
- */
 .prep {
   position: relative;
+  min-height: var(--control-h-sm);
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: var(--sp-8);
-  min-height: var(--field-h);
+  padding-inline: var(--sp-8);
+  border-radius: var(--r-field);
+  background: var(--surface-muted);
 }
 
-/* Rótulo de contexto, não nível 3: ver o comentário sobre `.field__label` em
-   primitives.css — caixa alta com tracking fica só na sidebar e na faixa. */
 .prep__label {
+  color: var(--ink-3);
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--w-semibold);
+}
+
+.prep__range {
+  color: var(--ink);
   font-size: var(--ta-size);
   line-height: var(--ta-line);
-  font-weight: var(--w-medium);
-  color: var(--ink-3);
-}
-
-/*
- * A faixa é a informação principal do controle, não um enfeite ao lado dos
- * botões.
- *
- * ELA NÃO É TABULAR. "25–35 min" é minuto de configuração: está na lista
- * literal do que NÃO leva `.tnum` (§1), porque não se compara descendo uma
- * coluna — é um valor único numa barra, sem linha de cima contra a qual ler.
- * Quem a destaca é o peso e a tinta cheia.
- */
-.prep__range {
-  font-size: var(--tb-size);
-  line-height: var(--tb-line);
   font-weight: var(--w-semibold);
-  color: var(--ink);
   white-space: nowrap;
 }
 
-/* Sem faixa gravada a frase é texto, não número: sai do peso e da tinta. */
-.prep__range--empty {
-  font-weight: var(--w-regular);
+.prep__range--empty,
+.prep__branch {
   color: var(--ink-3);
+  font-weight: var(--w-regular);
 }
 
-/*
- * DE QUAL FILIAL É ESTE NÚMERO.
- *
- * Só aparece com "todas as filiais" no cabeçalho e mais de uma loja: aí o
- * valor é de uma delas e omitir qual seria mentir por omissão. Auxiliar, não
- * rótulo — ele qualifica a faixa à esquerda, e ler mais forte que ela
- * inverteria a hierarquia do controle.
- */
 .prep__branch {
   min-width: 0;
-  max-width: 100%;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-  color: var(--ink-3);
+  font-size: var(--tl-size);
 }
 
 .prep__buttons {
@@ -209,51 +189,35 @@
   gap: var(--sp-4);
 }
 
-/*
- * SEM BORDA EM REPOUSO. `.btn` desenha 1px de `--line-strong` sempre visível —
- * ótimo para uma ação isolada, mas três destes lado a lado liam como tecla de
- * teclado numérico. Aqui o repouso é preenchimento suave (`--field`, o mesmo
- * plano que os campos afundam); o realce de ponteiro/pressão continua vindo de
- * `--hover`/`--active`, como qualquer `.btn`.
- */
 .prep__step {
-  min-width: var(--sp-32);
-  min-height: var(--sp-32);
-  border-color: transparent;
-  border-radius: var(--r-control);
-  background: var(--field);
+  min-width: var(--control-h-sm);
+  min-height: var(--control-h-sm);
+  padding-inline: var(--sp-4);
+  border-color: var(--line);
+  background: var(--surface);
 }
 
-.prep__step:hover:not(:disabled) {
-  border-color: transparent;
-}
-
-/*
- * Erro e campo de base flutuam ABAIXO do controle. Crescendo dentro da barra,
- * eles empurrariam os filtros de lugar a cada 409 — e o lojista perderia o
- * ponto onde estava clicando.
- */
 .prep__popover {
   position: absolute;
   top: calc(100% + var(--sp-8));
   right: 0;
   z-index: var(--z-popover);
-  width: 280px;
+  width: 300px;
   display: flex;
   flex-direction: column;
   gap: var(--sp-12);
-  padding: var(--sp-12);
-  background: var(--surface-raised);
+  padding: var(--sp-16);
   border: 1px solid var(--line);
   border-radius: var(--r-sheet);
+  background: var(--surface-raised);
   box-shadow: var(--shadow-raised);
 }
 
 .prep__message {
   margin: 0;
+  color: var(--ink-2);
   font-size: var(--tb-size);
   line-height: var(--tb-line);
-  color: var(--ink-2);
 }
 
 .prep__base-fields {
@@ -273,158 +237,98 @@
 }
 
 .orders__alert {
-  margin: var(--sp-12) var(--page-pad) 0;
+  flex: 0 0 auto;
 }
 
 .orders__vazio {
-  padding: var(--sp-32) var(--page-pad);
+  padding: var(--sp-32) 0;
   font-size: var(--ta-size);
 }
 
-/* ==========================================================================
- * O QUADRO EM TRÊS FAIXAS
- *
- * Sete colunas verticais viravam sete filas de dois cartões em 1440px: muito
- * cabeçalho para pouco pedido, e o olho descia sete vezes. Em faixa, o pedido
- * caminha da esquerda para a direita DENTRO da faixa e de cima para baixo
- * ENTRE elas — que é a ordem em que a cozinha trabalha.
- * ======================================================================= */
 .faixas {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-20);
-  padding: var(--sp-12) var(--page-pad) var(--page-pad);
-  overflow-y: auto;
-}
-
-/*
- * O QUADRO INTEIRO VAZIO.
- *
- * Ele fica ABAIXO das três faixas, não no lugar delas: os cabeçalhos com o
- * contador zerado continuam sendo a resposta de "o quadro está de pé e as três
- * faixas existem", e trocá-los por um bloco escondería a estrutura da tela
- * justamente para quem ainda está aprendendo a lê-la.
- *
- * Sem caixa e sem tom próprio — não é aviso, é a tela dizendo o que está
- * acontecendo. `--sp-32` é o único degrau generoso da escala, e estado vazio é
- * o lugar dele.
- */
-.quadro-vazio {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--sp-8);
-  padding: var(--sp-32) 0;
-  max-width: 52ch;
+  gap: var(--sp-24);
 }
 
 .faixa {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-8);
+  gap: var(--sp-12);
 }
 
-/* Cabeçalho: ponto, nome, contagem e um fio correndo até a margem direita. */
 .faixa__head {
   display: flex;
   align-items: center;
   gap: var(--sp-8);
 }
 
-/*
- * O ponto lê `--st` da classe `is-<estágio>`. Nenhuma matiz é escolhida aqui:
- * acrescentar uma faixa é acrescentar um token, não uma regra neste arquivo.
- *
- * Ele é QUADRADO, como tudo nesta direção.
- */
 .faixa__dot {
   width: 8px;
   height: 8px;
   flex: 0 0 auto;
+  border-radius: var(--r-round);
   background: var(--st, var(--ink-3));
+  box-shadow: 0 0 0 3px var(--st-wash, var(--surface-muted));
 }
 
-/* Nível 3 (rótulo), em caixa de frase — o mesmo de todo cabeçalho de coluna do painel. */
 .faixa__title {
   margin: 0;
-  min-width: 0;
-  font-size: var(--tl-size);
-  line-height: var(--tl-line);
-  font-weight: var(--tl-weight);
-  letter-spacing: var(--tl-track);
   color: var(--ink-2);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-weight: var(--w-semibold);
   white-space: nowrap;
 }
 
-/*
- * O contador da faixa é O contador: é o único lugar da tela que responde
- * "quantos em preparo?". Sem caixa colorida — a matiz já está no ponto à
- * esquerda, e repeti-la num badge pintaria a mesma informação duas vezes.
- *
- * Ele NÃO é mono: é uma contagem, não um valor que se compara com o da linha
- * de baixo. O tabular do `body` já o alinha.
- */
 .faixa__count {
-  font-size: var(--ta-size);
-  font-weight: var(--w-semibold);
+  min-width: 24px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-round);
+  background: var(--surface-muted);
   color: var(--ink);
+  font-size: var(--tl-size);
+  font-weight: var(--w-bold);
 }
 
-/*
- * O FIO ATÉ A MARGEM. Ele é o que faz a faixa ler como faixa mesmo vazia — e
- * é por isso que faixa vazia não escreve "Nenhum pedido": o fio já diz que ela
- * existe, e o zero ao lado já diz que está vazia.
- */
 .faixa__rule {
   flex: 1;
   height: 1px;
   background: var(--line);
 }
 
-/*
- * A FAIXA QUEBRA EM LINHAS. NÃO ROLA.
- *
- * Ela já rolou na horizontal, e o defeito era grave: com treze pedidos em
- * "Novos", sete apareciam e o resto saía pela direita — inclusive o MAIS
- * ANTIGO, que é exatamente o que precisa ser visto primeiro. E ninguém arrasta
- * uma faixa para o lado num sábado cheio: o pedido não some por bug, some por
- * ninguém ter procurado.
- *
- * Grade com `auto-fill` resolve sem escolher um número de colunas: os cartões
- * mantêm a largura mínima de leitura e ocupam quantas linhas precisarem. Em
- * 390px isso dá uma coluna sozinha, sem nenhuma regra a mais.
- *
- * NENHUM SCROLL HORIZONTAL EM PEDIDOS. Se um dia faltar largura, o que cede é
- * a quantidade de colunas, nunca a visibilidade de um pedido.
- */
-.faixa__cards {
+.faixa__cards,
+.historico__grade {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(244px, 1fr));
-  gap: var(--sp-8);
+  grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+  gap: var(--sp-12);
   align-items: start;
 }
 
-/* ==========================================================================
- * HISTÓRICO — grade de cartões, sem faixa e sem cabeçalho de estágio
- * ======================================================================= */
+.quadro-vazio {
+  max-width: 54ch;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-8);
+  padding: var(--sp-32) var(--sp-24);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
 .historico {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   gap: var(--sp-16);
-  padding: var(--sp-12) var(--page-pad) var(--page-pad);
-  overflow-y: auto;
   max-width: var(--page-max);
-}
-
-.historico__grade {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(244px, 1fr));
-  gap: var(--sp-8);
-  align-items: start;
 }
 
 .historico__rodape {
@@ -434,15 +338,88 @@
   font-size: var(--ta-size);
 }
 
-@media (max-width: 720px) {
-  .tabs,
-  .filtros,
-  .faixas,
-  .historico {
-    padding-inline: var(--page-pad-mobile);
+@media (max-width: 1179px) {
+  .orders__main {
+    padding: var(--page-pad-mobile);
   }
 
-  .orders__alert {
-    margin-inline: var(--page-pad-mobile);
+  .filtros__dir {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .orders__main {
+    gap: var(--sp-12);
+  }
+
+  .orders__header p {
+    display: none;
+  }
+
+  .filtros {
+    align-items: stretch;
+    padding: var(--sp-8);
+  }
+
+  .filtros > .seg {
+    width: 100%;
+  }
+
+  .filtros > .seg .seg__opt {
+    flex: 1;
+    padding-inline: var(--sp-4);
+  }
+
+  .filtros__busca,
+  .filtros__datas,
+  .filtros__dir {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .filtros__datas .filtros__data {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .filtros__data .input {
+    width: 100%;
+  }
+
+  .filtros__dir {
+    align-items: stretch;
+  }
+
+  .filtros__dir .prep:first-child {
+    flex: 1 1 100%;
+  }
+
+  .prep__branch {
+    max-width: 100%;
+  }
+
+  .prep__buttons {
+    margin-left: auto;
+  }
+
+  .prep__popover {
+    position: fixed;
+    inset: auto var(--page-pad-mobile) calc(var(--bottombar-h) + var(--sp-12));
+    width: auto;
+  }
+
+  .faixas {
+    gap: var(--sp-20);
+  }
+
+  .faixa__cards,
+  .historico__grade {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .quadro-vazio {
+    padding: var(--sp-24) var(--sp-16);
   }
 }

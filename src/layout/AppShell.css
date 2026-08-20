@@ -1,26 +1,3 @@
-/*
- * A MOLDURA, escrita mobile-first: o que está fora de qualquer `@media` é o
- * celular, e cada `min-width` só ACRESCENTA. É a única ordem em que dá para
- * garantir que nada dependa de ser desligado depois.
- *
- * ============================================================================
- * A NAVEGAÇÃO É UM CONSOLE, E ELE É ESCURO NOS DOIS TEMAS
- * ============================================================================
- *
- * É a decisão de enquadramento desta direção. A lateral (e, no celular, a
- * barra inferior) não é página: é equipamento. Ela fica escura de dia e de
- * noite, e o que troca de tema é o CONTEÚDO.
- *
- * Sem isso, no tema claro a lateral vira mais uma faixa bege ao lado de uma
- * área bege, e o painel perde a moldura que o faz parecer instrumento — que é
- * exatamente a diferença entre esta direção e um dashboard genérico.
- *
- * Os tokens `--console-*` (bloco 9b de tokens.css) não são redefinidos no tema
- * escuro, porque lá eles já são estes. E eles têm pares próprios em
- * check-contrast.mjs: um plano que não inverte é o que costuma escapar da
- * revisão de contraste, porque ninguém pensa nele ao mexer na paleta do claro.
- */
-
 .shell {
   min-height: 100%;
   display: flex;
@@ -28,125 +5,16 @@
   background: var(--bg);
 }
 
-/* --- celular: a lateral não existe, a barra inferior sim ------------------ */
-
 .shell__nav {
   display: none;
 }
 
-.shell__bottom {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: var(--z-sticky);
-  display: flex;
-  height: calc(var(--bottombar-h) + env(safe-area-inset-bottom));
-  padding-bottom: env(safe-area-inset-bottom);
-  /* O console, no celular. Mesmo plano da lateral do desktop. */
-  background: var(--console-bg);
-  background-image: var(--hachura);
-  border-top: 1px solid var(--console-line);
-}
-
-.shell__tab {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--sp-4);
-  /* Alvo de 44px com folga: é o alvo mais usado do painel no celular. */
-  min-height: var(--tap-mobile);
-  color: var(--console-ink-3);
-  text-decoration: none;
-}
-
-.shell__tab-nome {
-  font-size: var(--tl-size);
-  line-height: 1;
-  font-weight: var(--w-medium);
-}
-
-/*
- * O item ativo é dito por TRÊS coisas: a tinta cheia, o peso e o traço em cima.
- * Cor sozinha não passa em 1.4.1 — e num rodapé de quatro ícones iguais, a cor
- * sozinha é justamente o que não se distingue de relance.
- *
- * O laranja fica SÓ no traço, que é elemento gráfico (3:1 basta). Como texto de
- * 11px ele reprovaria em AA sobre qualquer uma das duas superfícies.
- */
-.shell__tab--ativa {
-  color: var(--console-ink);
-  font-weight: var(--w-bold);
-  position: relative;
-}
-
-.shell__tab--ativa::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 25%;
-  right: 25%;
-  height: 2px;
-  background: var(--ember);
-}
-
-/* O conteúdo não pode terminar embaixo da barra fixa. */
 .shell__main {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   padding-bottom: calc(var(--bottombar-h) + env(safe-area-inset-bottom));
-}
-
-.shell__mais-grupo {
-  padding: var(--sp-8) var(--sp-12) var(--sp-12);
-}
-
-.shell__mais-grupo .t-label {
-  padding: var(--sp-4) var(--sp-12) var(--sp-8);
-}
-
-/* --- barra do topo -------------------------------------------------------- */
-
-.shell__bar {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-8);
-  min-height: var(--topbar-h);
-  flex: 0 0 auto;
-  padding-inline: var(--sp-12);
-  background: var(--bg);
-  border-bottom: 1px solid var(--line);
-}
-
-.shell__spacer {
-  flex: 1;
-}
-
-/* Quem é a pessoa não cabe no celular; ela está em "Mais". */
-.shell__user {
-  display: none;
-  white-space: nowrap;
-}
-
-.shell__sair {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--tap-mobile);
-  padding-inline: var(--sp-8);
-  border-radius: var(--r-chip);
-  color: var(--ink-2);
-  font-size: var(--tb-size);
-  font-weight: var(--w-medium);
-}
-
-.shell__sair:hover {
-  background: var(--hover);
-  color: var(--ink);
 }
 
 .shell__content {
@@ -156,11 +24,178 @@
   flex-direction: column;
 }
 
-/* ==========================================================================
- * TABLET (≥640): a lateral entra como trilha de ícones
- * ======================================================================= */
+.shell__bar {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  min-height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  padding-inline: var(--page-pad-mobile);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  box-shadow: var(--shadow-shell);
+}
 
-@media (min-width: 640px) {
+.shell__spacer {
+  flex: 1;
+  min-width: var(--sp-4);
+}
+
+.shell__account {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.shell__avatar,
+.shell__user,
+.shell__account-divider {
+  display: none;
+}
+
+.shell__sair {
+  min-height: var(--control-h-sm);
+  padding-inline: var(--sp-8);
+  border-radius: var(--r-chip);
+  color: var(--ink-2);
+  font-size: var(--ta-size);
+  font-weight: var(--w-medium);
+  transition:
+    color var(--motion-fast) var(--ease),
+    background var(--motion-fast) var(--ease);
+}
+
+.shell__sair:hover {
+  color: var(--ink);
+  background: var(--hover);
+}
+
+.shell__bottom {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: var(--z-sticky);
+  height: calc(var(--bottombar-h) + env(safe-area-inset-bottom));
+  display: flex;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--console-bg);
+  border-top: 1px solid var(--console-line);
+  box-shadow: var(--shadow-raised);
+}
+
+.shell__tab {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap-mobile);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+  color: var(--console-ink-3);
+  text-decoration: none;
+  transition:
+    color var(--motion-fast) var(--ease),
+    background var(--motion-fast) var(--ease);
+}
+
+.shell__tab:hover {
+  color: var(--console-ink);
+  background: var(--console-hover);
+}
+
+.shell__tab-nome {
+  font-size: var(--tl-size);
+  line-height: 1;
+  font-weight: var(--w-medium);
+}
+
+.shell__tab--ativa {
+  color: var(--console-ink);
+  font-weight: var(--w-bold);
+}
+
+.shell__tab--ativa::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 30%;
+  right: 30%;
+  height: 3px;
+  border-radius: 0 0 var(--r-chip) var(--r-chip);
+  background: var(--ember);
+}
+
+.shell__mais-grupo {
+  padding: var(--sp-12) var(--sp-16) var(--sp-16);
+}
+
+.shell__mais-grupo .t-label {
+  padding: var(--sp-4) var(--sp-12) var(--sp-8);
+}
+
+.branch {
+  min-width: 0;
+  max-width: min(58vw, 480px);
+}
+
+.branch .ds-select__trigger--bare,
+.branch--static {
+  min-height: var(--control-h);
+  display: flex;
+  align-items: center;
+  padding: var(--sp-4) var(--sp-8);
+  border-radius: var(--r-field);
+  transition: background var(--motion-fast) var(--ease);
+}
+
+.branch .ds-select__trigger--bare:hover {
+  background: var(--hover);
+}
+
+.branch__text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  text-align: left;
+}
+
+.branch__eyebrow {
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--w-medium);
+  color: var(--ink-3);
+}
+
+.branch__value {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+}
+
+.branch__name {
+  flex: 0 0 auto;
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-semibold);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.branch__detail {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--ta-size);
+  color: var(--ink-3);
+}
+
+@media (min-width: 768px) {
   .shell {
     flex-direction: row;
   }
@@ -174,54 +209,30 @@
   }
 
   .shell__nav {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sp-16);
+    position: sticky;
+    top: 0;
+    height: 100vh;
     width: var(--sidebar-rail);
     flex: 0 0 auto;
-    padding: 0 var(--sp-8) var(--sp-16);
-    /*
-     * O CONSOLE. Ver o bloco no topo deste arquivo: a lateral é escura nos
-     * dois temas porque a navegação é equipamento, não página.
-     *
-     * A hachura a 45° é a única textura do sistema. Ela está a 2% de opacidade
-     * — não se vê, se sente: é o que dá matéria à chapa sem virar desenho
-     * atrás do texto.
-     */
-    background: var(--console-bg);
-    background-image: var(--hachura);
-    border-right: 1px solid var(--console-line);
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
     align-items: center;
+    gap: var(--sp-20);
+    padding: 0 var(--sp-8) var(--sp-20);
+    overflow-y: auto;
+    background: var(--console-bg);
+    border-right: 1px solid var(--console-line);
   }
 
   .shell__brand {
+    height: var(--topbar-h);
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    height: var(--topbar-h);
-    flex: 0 0 auto;
   }
 
-  /*
-   * A marca está DENTRO do console, então ela usa a tinta do console — não a
-   * da página. Sem isto, no tema claro o nome "Rapidex" sai em tinta escura
-   * sobre a chapa escura e simplesmente some.
-   *
-   * Não é regra específica de tema (o console não tem temas): é uma regra de
-   * CONTEXTO, e por isso ela mora aqui e não em `RapidexLogo.css` — o logo
-   * também aparece na tela de login, onde o fundo é a página.
-   */
-  .shell__brand .logo__wordmark {
-    color: var(--console-ink);
-  }
-
-  .shell__brand .logo__mark {
-    border-color: var(--console-line);
-  }
-
-  /* Na trilha, o nome do grupo sai da tela mas o vão entre grupos fica: é ele
-     que continua dizendo que "Cozinha" e "Cardápio" são coisas diferentes. */
+  .shell__brand .logo__wordmark,
   .shell__group-title,
   .shell__link-label,
   .shell__link-soon {
@@ -235,67 +246,57 @@
     white-space: nowrap;
   }
 
-  .shell__group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--sp-4);
-    width: 100%;
+  .shell__brand .logo__mark {
+    border-color: var(--console-line);
   }
 
+  .shell__group,
   .shell__group ul {
+    width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: var(--sp-4);
-    width: 100%;
   }
 
   .shell__link {
+    position: relative;
+    width: var(--tap-mobile);
+    height: var(--tap-mobile);
     display: flex;
     align-items: center;
     justify-content: center;
-    width: var(--sp-32);
-    height: var(--sp-32);
-    border-radius: var(--r-chip);
+    border-radius: var(--r-field);
     color: var(--console-ink-2);
     text-decoration: none;
     transition:
+      color var(--motion-fast) var(--ease),
       background var(--motion-fast) var(--ease),
-      color var(--motion-fast) var(--ease);
+      transform var(--motion-fast) var(--ease);
   }
 
   .shell__link:hover {
-    background: var(--console-hover);
     color: var(--console-ink);
+    background: var(--console-hover);
   }
 
-  /*
-   * O ITEM ATIVO: tinta cheia, um trilho de brasa de 2px e um halo curto para
-   * dentro. Três sinais, e o laranja em nenhum deles é texto.
-   *
-   * Ele já foi "laranja sobre laranja claro". Media 3.11:1 no tema claro e
-   * 4.17:1 no escuro — os dois abaixo do mínimo para 13px —, e não existe um
-   * laranja que passe nos dois sem deixar de ser o laranja da marca.
-   *
-   * O HALO existe porque, num console escuro com onze itens, o trilho de 2px
-   * sozinho some: ele é o degradê que morre em 70% da largura, e é o único uso
-   * do `--console-active`, que é a brasa vista de dentro do escuro.
-   */
+  .shell__link:active {
+    transform: translateY(1px);
+  }
+
   .shell__link--active {
-    position: relative;
     color: var(--console-ink);
-    background: linear-gradient(90deg, var(--console-active) 0%, transparent 70%);
+    background: var(--console-active);
   }
 
   .shell__link--active::before {
     content: '';
     position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 2px;
-    height: 16px;
+    left: -6px;
+    top: 11px;
+    bottom: 11px;
+    width: 3px;
+    border-radius: 0 var(--r-chip) var(--r-chip) 0;
     background: var(--ember);
   }
 
@@ -308,24 +309,23 @@
   }
 
   .shell__bar {
-    padding-inline: var(--sp-16);
+    padding-inline: var(--page-pad);
   }
 
-  .shell__user {
-    display: inline;
+  .shell__account-divider {
+    display: block;
+    width: 1px;
+    height: var(--sp-24);
+    background: var(--line);
   }
 }
 
-/* ==========================================================================
- * DESKTOP (≥1024): a lateral abre com os nomes e os grupos escritos
- * ======================================================================= */
-
-@media (min-width: 1024px) {
+@media (min-width: 1180px) {
   .shell__nav {
     width: var(--sidebar-w);
     align-items: stretch;
-    padding-inline: var(--sp-8);
     gap: var(--sp-16);
+    padding-inline: var(--sp-12);
   }
 
   .shell__brand {
@@ -333,172 +333,115 @@
     padding-inline: var(--sp-8);
   }
 
-  /*
-   * O rótulo do grupo volta para a tela, e leva um FIO que corre até a borda:
-   * é a etiqueta gravada na chapa. O fio faz o trabalho que antes era só do
-   * vão — num console de onze itens, o vão sozinho deixava os quatro grupos
-   * lendo como uma lista só.
-   */
-  .shell__group-title {
+  .shell__brand .logo__wordmark {
     position: static;
-    display: flex;
-    align-items: center;
-    gap: var(--sp-8);
     width: auto;
     height: auto;
     margin: 0;
-    padding: 0 var(--sp-8) var(--sp-4);
+    overflow: visible;
     clip: auto;
-    color: var(--console-ink-3);
+    color: var(--console-ink);
+    font-size: var(--ts-size);
   }
 
-  .shell__group-title::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--console-line);
+  .shell__group-title {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: var(--sp-8) var(--sp-8) var(--sp-4);
+    overflow: visible;
+    clip: auto;
+    color: var(--console-ink-3);
   }
 
   .shell__group,
   .shell__group ul {
     align-items: stretch;
-    gap: var(--sp-4);
   }
 
   .shell__link {
     width: auto;
-    height: auto;
-    /* Alvo de 32px: no mouse, a densidade sobe. */
-    min-height: var(--sp-32);
+    height: 40px;
     justify-content: flex-start;
-    /*
-     * `--sp-8`, e não `--sp-12`: dentro de um item de navegação o ícone e o
-     * rótulo são UM elemento (§2 põe ícone↔texto no degrau de baixo), e os
-     * 4px de cada vão fazer falta na única linha que não cabia.
-     *
-     * A CONTA, medida: a área útil do item é 179px (212 da lateral, menos o
-     * fio e o padding). "Desempenho" (88) + "Em breve" (57) + o ícone (18)
-     * pedem 187px com dois vãos de 12 — 8px a mais do que existe, e era por
-     * isso que o selo saía como "Em br…". Com dois vãos de 8 são 179, e a
-     * linha fecha. Nenhum outro item chega perto: "Integrações", o segundo
-     * mais longo, sobra 10px.
-     */
-    gap: var(--sp-8);
-    padding-inline: var(--sp-8);
-    font-size: var(--tb-size);
-    font-weight: var(--tb-weight);
+    gap: var(--sp-12);
+    padding-inline: var(--sp-12);
   }
 
-  /*
-   * O RÓTULO IDENTIFICA O ITEM — ele não cede (§7): "Desempen…" ao lado de um
-   * selo "Em breve" inteiro, com espaço sobrando, era o defeito de truncar
-   * quando sobra. Quem desempata, se algum dia faltar espaço de verdade, é o
-   * selo — por isso é ele, e não o rótulo, que leva `min-width: 0`.
-   */
+  .shell__link--active::before {
+    left: -12px;
+    top: var(--sp-8);
+    bottom: var(--sp-8);
+  }
+
   .shell__link-label {
     position: static;
     width: auto;
     height: auto;
     margin: 0;
+    overflow: hidden;
     clip: auto;
-    flex: 0 0 auto;
+    flex: 1;
+    min-width: 0;
+    text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: var(--tb-size);
+    font-weight: var(--w-medium);
   }
 
-  .shell__link--active {
-    font-weight: var(--w-bold);
-  }
-
-  /*
-   * "Em breve" volta a aparecer, discreto, à direita. Ele não some no tablet
-   * por decoração: é que ao lado de um ícone de 18px não sobra onde escrevê-lo.
-   */
-  /* Badge, não rótulo de nível 3: sentence case, como qualquer badge do
-     sistema — "Em breve" continua discreto pela tinta e pelo tamanho. */
   .shell__link-soon {
     position: static;
     width: auto;
     height: auto;
-    margin-left: auto;
+    margin: 0;
+    overflow: visible;
     clip: auto;
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: var(--ta-size);
-    line-height: 1;
+    font-size: var(--tl-size);
     color: var(--console-ink-3);
   }
 
-  .shell__bar {
-    padding-inline: var(--sp-16);
+  .shell__avatar {
+    width: var(--control-h-sm);
+    height: var(--control-h-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--r-round);
+    background: var(--surface-muted);
+    color: var(--ink-2);
+    font-size: var(--tl-size);
+    font-weight: var(--w-bold);
+  }
+
+  .shell__user {
+    display: flex;
+    flex-direction: column;
+    max-width: 220px;
+    line-height: var(--ta-line);
+  }
+
+  .shell__user strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--ink);
+    font-size: var(--ta-size);
+    font-weight: var(--w-semibold);
+  }
+
+  .shell__user span {
+    color: var(--ink-3);
+    font-size: var(--tl-size);
   }
 }
 
-/* --- seletor de filial ---------------------------------------------------- */
+@media (max-width: 430px) {
+  .shell__sair {
+    padding-inline: var(--sp-4);
+  }
 
-/*
- * Sem caixa: dentro da barra, um controle contornado disputa atenção com o
- * conteúdo da tela. Quem diz que é clicável é o realce de ponteiro e o chevron
- * (ver `.ds-select__trigger--bare`).
- */
-/*
- * `flex: 0 1 auto` com `min-width: 0`: o cabeçalho ocupa o que o texto pede e
- * só encolhe quando a barra aperta de verdade. Com um teto fixo, o endereço
- * era cortado em 1440px com meia barra vazia à direita — texto truncado onde
- * havia espaço de sobra é a mesma falta de acabamento do nome cortado.
- */
-.branch {
-  flex: 0 1 auto;
-  min-width: 0;
-  margin-left: calc(var(--sp-8) * -1);
-}
-
-.branch--static {
-  display: flex;
-  align-items: center;
-  min-height: var(--control-h-touch);
-  padding-inline: var(--sp-8);
-}
-
-.branch__text {
-  flex: 1;
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-8);
-  min-width: 0;
-}
-
-/*
- * `flex: 0 0 auto` no nome e `flex: 1 1 auto; min-width: 0` no endereço: é
- * exatamente esta assimetria que decide QUEM trunca. Sem ela os dois encolhem
- * juntos e o nome da filial vira "M…" ao lado de um endereço inteiro.
- */
-.branch__name {
-  flex: 0 0 auto;
-  font-size: var(--tb-size);
-  line-height: var(--tb-line);
-  font-weight: var(--w-semibold);
-  color: var(--ink);
-  white-space: nowrap;
-}
-
-/* O endereço só cabe a partir do tablet: no celular ele espremia o nome. */
-.branch__detail {
-  display: none;
-  flex: 1 1 auto;
-  min-width: 0;
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-  color: var(--ink-3);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-@media (min-width: 640px) {
-  .branch__detail {
-    display: block;
+  .branch__detail,
+  .branch__eyebrow {
+    display: none;
   }
 }

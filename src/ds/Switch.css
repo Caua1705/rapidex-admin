@@ -39,8 +39,8 @@
 .ds-switch__track {
   position: relative;
   display: block;
-  width: 28px;
-  height: 16px;
+  width: 36px;
+  height: 20px;
   border-radius: var(--r-round);
   background: var(--line-control);
   transition: background var(--motion-base) var(--ease);
@@ -54,15 +54,15 @@
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   border-radius: var(--r-round);
   background: var(--surface);
   transition: transform var(--motion-base) var(--ease);
 }
 
 .ds-switch[aria-checked='true'] .ds-switch__knob {
-  transform: translateX(12px);
+  transform: translateX(16px);
 }
 
 /* --- interruptor com rótulo ao lado --------------------------------------- */

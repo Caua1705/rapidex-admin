@@ -16,7 +16,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-16);
+  gap: var(--sp-20);
   padding: var(--page-pad);
   overflow-y: auto;
   background: var(--bg);
@@ -47,6 +47,11 @@
   align-items: center;
   gap: var(--sp-12);
   flex-wrap: wrap;
+  padding: var(--sp-8);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 
 .customers__busca {
@@ -70,7 +75,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-16);
-  padding: var(--sp-4) var(--sp-16) var(--sp-16);
+  gap: var(--sp-8);
+  padding: 0 var(--sp-16) var(--sp-16);
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-card);
@@ -157,6 +163,7 @@
 @media (max-width: 720px) {
   .customers {
     padding: var(--page-pad-mobile);
+    padding-bottom: calc(var(--bottombar-h) + var(--sp-24));
   }
 
   .customers__lista {

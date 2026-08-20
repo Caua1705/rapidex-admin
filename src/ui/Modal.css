@@ -4,10 +4,10 @@
   /* Véu sólido semi-opaco, sem blur: o painel é denso e funcional. */
   background: var(--scrim);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   padding: var(--sp-32) var(--sp-16);
-  z-index: 50;
+  z-index: var(--z-modal);
   overflow: auto;
 }
 
@@ -32,29 +32,47 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-12);
-  padding: var(--sp-12) var(--sp-16);
+  padding: var(--sp-20) var(--sp-24);
   border-bottom: 1px solid var(--line);
 }
 
 /* Nível 1: dentro do diálogo, ele é o título da tela. */
 .modal__title {
-  font-size: var(--tt-size);
-  line-height: var(--tt-line);
-  font-weight: var(--tt-weight);
-  letter-spacing: var(--tt-track);
+  font-size: var(--ts-size);
+  line-height: var(--ts-line);
+  font-weight: var(--w-semibold);
   color: var(--ink);
 }
 
 .modal__body {
-  padding: var(--sp-16);
+  padding: var(--sp-24);
   overflow: auto;
 }
 
 .modal__footer {
-  padding: var(--sp-12) var(--sp-16);
+  padding: var(--sp-16) var(--sp-24);
   border-top: 1px solid var(--line);
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-8);
   align-items: center;
+  justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .modal__backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal {
+    max-height: 94vh;
+    border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+  }
+
+  .modal__header,
+  .modal__body,
+  .modal__footer {
+    padding-inline: var(--sp-16);
+  }
 }

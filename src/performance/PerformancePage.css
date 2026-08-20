@@ -19,7 +19,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-16);
+  gap: var(--sp-20);
   padding: var(--page-pad);
   overflow-y: auto;
   background: var(--bg);
@@ -46,7 +46,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-12);
-  padding: var(--sp-20);
+  padding: var(--sp-24);
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-card);
@@ -94,6 +94,11 @@
   align-items: center;
   gap: var(--sp-12);
   flex-wrap: wrap;
+  padding: var(--sp-8);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 
 .perf__datas {
@@ -145,9 +150,19 @@
 /* --- as seções ------------------------------------------------------------ */
 
 .perf__secoes {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: var(--sp-20);
+}
+
+.perf__resposta,
+.perf__secao {
+  grid-column: 1 / -1;
+}
+
+.perf__secao:nth-child(4),
+.perf__secao:nth-child(5) {
+  grid-column: span 6;
 }
 
 /*
@@ -165,7 +180,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-12);
-  padding: var(--sp-16);
+  padding: var(--sp-20);
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-card);
@@ -227,16 +242,24 @@
 
 .numeros {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, auto));
-  justify-content: start;
-  gap: var(--sp-20);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
   margin: 0;
+  padding-block: var(--sp-8);
 }
 
 .numeros__item {
   display: flex;
   flex-direction: column;
   gap: var(--sp-4);
+  min-width: 0;
+  padding: var(--sp-8) var(--sp-20);
+  border-left: 1px solid var(--line);
+}
+
+.numeros__item:first-child {
+  padding-left: 0;
+  border-left: 0;
 }
 
 .numeros__rotulo {
@@ -253,9 +276,10 @@
  */
 .numeros__valor {
   margin: 0;
-  font-size: var(--ts-size);
-  line-height: var(--ts-line);
-  font-weight: var(--w-semibold);
+  font-size: var(--metric-size);
+  line-height: var(--metric-line);
+  font-weight: var(--w-bold);
+  letter-spacing: var(--tt-track);
   color: var(--ink);
 }
 
@@ -608,6 +632,13 @@
  * CELULAR
  * ======================================================================= */
 
+@media (max-width: 1199px) {
+  .perf__secao:nth-child(4),
+  .perf__secao:nth-child(5) {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 720px) {
   .perf {
     padding: var(--page-pad-mobile);
@@ -636,6 +667,7 @@
    * a variação, que é a mais longa das três, fica com a linha inteira.
    */
   .numeros {
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--sp-12);
   }
 
@@ -644,9 +676,18 @@
     grid-template-columns: 1fr auto;
     align-items: baseline;
     gap: 0 var(--sp-12);
+    padding: var(--sp-8) 0;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .numeros__item:first-child {
+    border-top: 0;
   }
 
   .numeros__valor {
+    font-size: var(--ts-size);
+    line-height: var(--ts-line);
     text-align: right;
   }
 

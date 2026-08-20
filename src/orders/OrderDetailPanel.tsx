@@ -113,22 +113,10 @@ export function OrderDetailPanel({
   }
 
   /*
-   * O PAINEL É UMA COLUNA PERMANENTE, e não mais uma gaveta que aparece.
-   *
-   * Ele já foi montado só com pedido aberto, e o argumento era bom: 380px de
-   * largura fixa para dizer "nenhum pedido aberto" é um quarto da tela gasto
-   * com ausência de informação. O que derrubou esse argumento foi o quadro
-   * parar de rolar de lado — sem a rolagem, a largura que o painel toma vira
-   * uma coluna a menos na grade, e não pedido escondido.
-   *
-   * O que se ganha é maior: a coluna não muda de lugar ao abrir e ao fechar um
-   * pedido. Com a gaveta, cada clique reflowava o quadro inteiro e o cartão que
-   * a pessoa ia clicar em seguida trocava de posição embaixo do ponteiro.
-   *
-   * ABAIXO DE 1280px ELA NÃO É PERMANENTE: não há largura para dividir a tela
-   * em duas. Lá o painel volta a existir só com pedido aberto, e flutua sobre o
-   * quadro (ver `.panel--flutuante` no CSS) — deixá-lo simplesmente sumir
-   * tiraria o único caminho para mudar o status num laptop de 1200px.
+   * Em desktop a coluna é permanente: abrir outro pedido troca só o conteúdo,
+   * sem mover os tickets sob o ponteiro. Abaixo de 1280px, onde a divisão
+   * esmagaria o quadro, ela só aparece com seleção e flutua; abaixo de 720px
+   * vira uma folha de tela inteira.
    */
   const vazio = orderId === null;
 
@@ -167,12 +155,7 @@ export function OrderDetailPanel({
       </header>
 
       <div className="panel__body">
-        {/*
-          O ESTADO VAZIO EXPLICA O QUE A COLUNA FAZ. Uma faixa de 380px em
-          branco não é discrição — é uma pergunta sem resposta no meio da tela.
-          Aqui ela cabe porque a coluna é permanente: a frase é lida uma vez, no
-          começo do turno, e some no primeiro clique.
-        */}
+        {/* Em desktop, explica a coluna permanente antes da primeira seleção. */}
         {vazio ? (
           <p className="panel__vazio">
             Clique num pedido para ver os itens, o endereço e o pagamento — e para mudar o status.

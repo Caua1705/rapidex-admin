@@ -1,174 +1,143 @@
-/*
- * ============================================================================
- * O TICKET — cartão comum, com o filete do estágio à esquerda
- * ============================================================================
- *
- * SOMBRA SUTIL, JUNTO com a borda — não no lugar dela. É a mesma elevação de
- * qualquer cartão parado do sistema (`--shadow-card`): o que separa o ticket
- * do fundo da faixa não é só o degrau de tom, é também esse traço de
- * profundidade quase imperceptível.
- *
- * A BORDA É NEUTRA; O STATUS ENTRA NUM FILETE DE 2px. A moldura inteira
- * pintada com a cor do estágio já foi tentada, em 3px — num quadro de doze
- * cartões isso dava doze retângulos coloridos, e a cor perdia o trabalho de
- * dizer "este está em preparo" para virar o fundo da tela. O filete diz a
- * mesma coisa gastando um décimo da tinta.
- *
- * ELE NÃO DECIDE A PRÓPRIA LARGURA: quem decide é o container — a faixa, a
- * grade do histórico, a galeria. Já teve `width: 236px` fixo aqui, e o preço
- * era que toda tela que o usasse precisava desfazer a regra para encaixá-lo
- * numa grade.
- */
 .ds-ticket {
   position: relative;
   width: 100%;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  text-align: left;
-  padding: 0;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-card);
-  box-shadow: var(--shadow-card);
-  color: var(--ink);
   overflow: hidden;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--st);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  box-shadow: var(--shadow-card);
   transition:
+    transform var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease),
     background var(--motion-fast) var(--ease),
-    border-color var(--motion-fast) var(--ease);
-}
-
-/* O filete do estágio, colado na borda esquerda e correndo a altura inteira. */
-.ds-ticket::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: var(--st, var(--line-strong));
+    box-shadow var(--motion-fast) var(--ease);
 }
 
 .ds-ticket:hover {
-  background: var(--hover);
-  border-color: var(--line-control);
+  transform: translateY(-1px);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-raised);
 }
 
-/*
- * Escolhido: um anel interno de brasa. É o segundo dos três lugares onde o
- * laranja aparece — "você está olhando este".
- */
+.ds-ticket:active {
+  transform: translateY(0);
+}
+
 .ds-ticket--selecionado {
-  box-shadow: inset 0 0 0 2px var(--ember);
+  border-color: var(--line-control);
+  background: var(--surface-selected);
+  box-shadow:
+    var(--shadow-card),
+    inset 0 0 0 1px var(--ember);
 }
 
 .ds-ticket__corpo {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-4);
-  /* O recuo à esquerda abre espaço para o filete sem que ele encoste no texto. */
-  padding: var(--sp-12) var(--sp-12) var(--sp-12) var(--sp-16);
-  min-width: 0;
+  gap: var(--sp-8);
+  padding: var(--sp-12) var(--sp-16) var(--sp-16);
 }
 
 .ds-ticket__topo {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--sp-8);
+  gap: var(--sp-12);
 }
 
-/*
- * O TEMPO DECORRIDO é a maior tinta do cartão, e a matiz dele é a do estágio:
- * na faixa "Em preparo" ele é ametista, na "Prontos" é verde. Não é decoração
- * — é o dado que responde "o que eu faço primeiro", no lugar onde o olho já
- * está quando percorre a fila.
- *
- * A mono vem da classe `.tnum` no elemento. Aqui só o corpo, o peso e a tinta.
- */
 .ds-ticket__tempo {
-  font-size: var(--ts-size);
-  line-height: var(--ts-line);
+  color: var(--st);
+  font-size: var(--ticket-time-size);
+  line-height: var(--ticket-time-line);
   font-weight: var(--w-bold);
-  color: var(--st, var(--ink));
-  white-space: nowrap;
+  letter-spacing: -0.02em;
 }
 
 .ds-ticket__total {
+  color: var(--ink);
   font-size: var(--ts-size);
   line-height: var(--ts-line);
-  font-weight: var(--w-regular);
+  font-weight: var(--w-semibold);
   white-space: nowrap;
 }
 
 .ds-ticket__cliente {
-  font-size: var(--tb-size);
-  line-height: var(--tb-line);
-  white-space: nowrap;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-semibold);
 }
 
-/*
- * A LINHA DE APOIO: nº, hora e etiquetas, tudo em 12px e em `--ink-3`. É como
- * o pedido é chamado no balcão e conferido no caixa — não é como ele é
- * decidido, e por isso nada aqui compete com a linha de cima.
- */
 .ds-ticket__meta {
+  min-width: 0;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: var(--sp-4);
-  min-width: 0;
+  color: var(--ink-3);
   font-size: var(--ta-size);
   line-height: var(--ta-line);
-  color: var(--ink-3);
 }
 
 .ds-ticket__numero {
-  font-weight: var(--w-medium);
   color: var(--ink-2);
-}
-
-/* A situação do pagamento quando ela NÃO é impedimento: texto, sem caixa. */
-.ds-ticket__pgto {
-  color: var(--ink-3);
-}
-
-/*
- * O AVISO QUE IMPEDE O PREPARO, em âmbar de `pendente` — não em vermelho.
- *
- * Já foi um card inteiro pintado de vermelho, depois uma faixa âmbar em linha
- * própria embaixo do cartão. A linha própria virou o problema seguinte: com
- * treze cartões na mesma aba e quase todo pedido de Pix passando por
- * "aguardando pagamento", os treze repetiam a mesma tarja e o quadro lia como
- * listra, não como aviso. Ele mora na mesma linha dos badges de Entrega/Pix
- * agora — ainda impossível de não ver num cartão, sem virar padrão repetido
- * numa coluna inteira.
- */
-/*
- * `min-width: 0` deixa o badge encolher dentro do flex em vez de estourar a
- * borda do cartão — a frase é mais longa que qualquer outro badge da linha.
- * SEM `nowrap`/ellipsis de propósito: é a instrução "não preparar", e cortar
- * o fim da frase esconde justamente a palavra que importa. Se não couber
- * numa linha, ele quebra em duas — continua mais leve que a tarja de borda a
- * borda que ele substituiu.
- */
-.ds-ticket__alerta {
-  display: inline-flex;
-  align-items: center;
-  min-width: 0;
-  max-width: 100%;
-  padding: var(--sp-4) var(--sp-8);
-  border-radius: var(--r-chip);
-  background: var(--st-pendente-wash);
-  color: var(--ink);
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
   font-weight: var(--w-semibold);
 }
 
-/* De longe, o filete repete o aviso: é só ele que se vê. */
-.ds-ticket--alerta::before {
-  background: var(--st-pendente);
+.ds-ticket__meta .tag {
+  min-height: 22px;
+  padding-inline: var(--sp-4);
+  background: var(--surface-muted);
+}
+
+.ds-ticket__pgto {
+  color: var(--ink-2);
+  font-size: var(--tl-size);
+  font-weight: var(--w-medium);
+}
+
+.ds-ticket__alerta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding-inline: var(--sp-8);
+  border-radius: var(--r-chip);
+  background: var(--alert-wash);
+  color: var(--alert);
+  font-size: var(--tl-size);
+  line-height: 1;
+  font-weight: var(--w-bold);
+}
+
+.ds-ticket--alerta::after {
+  content: '';
+  position: absolute;
+  top: var(--sp-12);
+  right: var(--sp-12);
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-round);
+  background: var(--alert);
+  box-shadow: 0 0 0 3px var(--alert-wash);
+}
+
+.ds-ticket--alerta .ds-ticket__total {
+  padding-right: var(--sp-12);
+}
+
+@media (max-width: 720px) {
+  .ds-ticket__corpo {
+    padding: var(--sp-12);
+  }
 }

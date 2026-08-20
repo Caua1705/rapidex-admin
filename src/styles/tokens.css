@@ -35,11 +35,11 @@
    *
    * Só ação primária, item ativo da navegação e anel de foco.
    * ======================================================================= */
-  --ember: #c24507;
-  --ember-press: #a63a05;
-  --ember-wash: #fbe3d2;
-  --on-ember: #fff3ea;
-  --on-ember-press: #fff3ea;
+  --ember: #b83f08;
+  --ember-press: #943205;
+  --ember-wash: #fff0e6;
+  --on-ember: #ffffff;
+  --on-ember-press: #ffffff;
 
   /* ==========================================================================
    * 2. OS QUATRO PLANOS — neutros quase-brancos, com um sopro mínimo de calor
@@ -53,10 +53,12 @@
    * fundo — e é por isso que campo é o único componente do sistema que leva
    * contorno sempre.
    * ======================================================================= */
-  --bg: #fafaf9;
+  --bg: #f5f6f7;
   --surface: #ffffff;
   --surface-raised: #ffffff;
-  --field: #ffffff;
+  --surface-muted: #eef0f2;
+  --surface-selected: #fff4ec;
+  --field: #fbfbfc;
 
   /*
    * Três linhas, três trabalhos — e só uma precisa passar em contraste.
@@ -64,9 +66,9 @@
    * WCAG 1.4.11 não os alcança. `--line-control` CONTORNA o que se opera, e é
    * ele que é medido contra as superfícies.
    */
-  --line: #e7e5e4;
-  --line-strong: #d6d3d1;
-  --line-control: #78716c;
+  --line: #e4e6e9;
+  --line-strong: #d0d4d9;
+  --line-control: #737984;
 
   /*
    * A MARCA DE SELEÇÃO — checkbox e rádio marcados.
@@ -84,9 +86,9 @@
    *   --ink-2  o que acompanha o dado (nome do cliente, descrição)
    *   --ink-3  o que só existe para localizar: rótulo, meta, hora, contagem
    * ======================================================================= */
-  --ink: #1c1917;
-  --ink-2: #57534e;
-  --ink-3: #78716c;
+  --ink: #191c20;
+  --ink-2: #4d535b;
+  --ink-3: #69717b;
 
   /* ==========================================================================
    * 4. SEMÂNTICA DE ESTADO — os três únicos usos de cor fora da marca e do
@@ -96,12 +98,14 @@
    *   --alert   "esperando / atenção"
    *   --danger  "perigo"
    * ======================================================================= */
-  --ok: #096546;
-  --ok-wash: #ddefe6;
-  --alert: #9c5a0a;
-  --alert-wash: #f8eede;
-  --danger: #b72c24;
-  --danger-wash: #f9e4e1;
+  --ok: #067a55;
+  --ok-wash: #e0f2ea;
+  --alert: #8a5b00;
+  --alert-wash: #fbf0d6;
+  --danger: #b42318;
+  --danger-wash: #fce8e7;
+  --info: #315f9b;
+  --info-wash: #e8eef8;
 
   /* ==========================================================================
    * 5. STATUS DO PEDIDO — 7 estágios. As matizes são intocáveis: carregam
@@ -168,18 +172,17 @@
    * qual nível ele usa. Se não der para dizer, o texto está errado — não falta
    * um nível.
    * ======================================================================= */
-  --font-ui:
-    'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-ui: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
   /* 1. Título de página. */
-  --tt-size: 20px;
-  --tt-line: 28px;
-  --tt-weight: 600;
-  --tt-track: 0em;
+  --tt-size: 26px;
+  --tt-line: 34px;
+  --tt-weight: 650;
+  --tt-track: -0.025em;
 
   /* 2. Título de seção. */
-  --ts-size: 15px;
-  --ts-line: 22px;
+  --ts-size: 16px;
+  --ts-line: 24px;
   --ts-weight: 600;
   --ts-track: 0em;
 
@@ -194,7 +197,7 @@
   --tl-size: 12px;
   --tl-line: 16px;
   --tl-weight: 600;
-  --tl-track: 0em;
+  --tl-track: 0.01em;
 
   /*
    * 4. Corpo, e 5. Auxiliar.
@@ -213,6 +216,12 @@
   --ta-weight: 400;
   --ta-track: 0em;
 
+  /* Números de alta prioridade: ticket operacional e KPI analítico. */
+  --ticket-time-size: 20px;
+  --ticket-time-line: 26px;
+  --metric-size: 28px;
+  --metric-line: 34px;
+
   /* Os pesos que a interface usa. Fora destes quatro, não há. */
   --w-regular: 400;
   --w-medium: 500;
@@ -225,12 +234,12 @@
    * ocupadas. Estes corpos existem para `src/kitchen/` e não são permitidos em
    * nenhuma outra tela.
    */
-  --k-num: 32px;
-  --k-num-line: 34px;
+  --k-num: 34px;
+  --k-num-line: 38px;
   --k-item: 18px;
-  --k-item-line: 24px;
+  --k-item-line: 26px;
   --k-meta: 15px;
-  --k-meta-line: 20px;
+  --k-meta-line: 22px;
 
   /* ==========================================================================
    * 8. ESPAÇAMENTO — SETE degraus, e nada fora deles.
@@ -254,27 +263,26 @@
   /* ==========================================================================
    * 9. RAIO E ELEVAÇÃO
    *
-   * 6 / 8 / 10 — o vocabulário de uma aplicação comum, não de wireframe nem de
-   * terminal. Mais aberto do que a versão anterior (2 / 3 / 4), que lia como
-   * canto quase vivo.
+   * 8 / 10 / 14 — chips compactos, controles táteis e superfícies amplas.
+   * A escala diferencia o tamanho do objeto sem transformar tudo em cápsula.
    * ======================================================================= */
-  --r-chip: 6px;
-  --r-field: 8px;
-  --r-card: 10px;
+  --r-chip: 8px;
+  --r-field: 10px;
+  --r-card: 14px;
   --r-round: 999px;
 
   /* A caixa de marcar — pequena o bastante (18px) para pedir um raio próprio. */
-  --r-xs: 4px;
+  --r-xs: 5px;
 
   /*
    * O segmentado e o stepper (o período do quadro de pedidos, o +5/+10/−5 do
    * preparo) continuam no mesmo raio aberto que já tinham — não precisam de
    * exceção nova, porque `--r-control` já é 8px, igual a `--r-field`.
    */
-  --r-control: 8px;
+  --r-control: 10px;
 
   /* O que sobe mais um degrau que o cartão: diálogo, folha lateral, menu. */
-  --r-sheet: 12px;
+  --r-sheet: 18px;
 
   /*
    * ELEVAÇÃO — a escala que a direção anterior não tinha. Cartão parado na
@@ -282,8 +290,9 @@
    * dela: é o que tira a tela do registro de wireframe sem precisar de peso
    * visual nenhum.
    */
-  --shadow-card: 0 1px 2px rgba(28, 25, 23, 0.06);
-  --shadow-raised: 0 16px 40px rgba(28, 25, 23, 0.14), 0 2px 8px rgba(28, 25, 23, 0.08);
+  --shadow-card: 0 1px 2px rgba(18, 22, 29, 0.04), 0 8px 24px rgba(18, 22, 29, 0.04);
+  --shadow-raised: 0 24px 56px rgba(18, 22, 29, 0.16), 0 4px 14px rgba(18, 22, 29, 0.08);
+  --shadow-shell: 0 1px 0 rgba(18, 22, 29, 0.06), 0 10px 30px rgba(18, 22, 29, 0.04);
 
   /*
    * O ÚNICO DEGRADÊ DO SISTEMA: a barra de maturação do pedido, de latão a
@@ -292,12 +301,8 @@
    */
   --grad-brasa: linear-gradient(90deg, #d9a441 0%, #e2761c 55%, #c22e07 100%);
 
-  /* A trama do console: hachura fina a 45°, que não se vê, se sente. */
-  --hachura: repeating-linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0.022) 0 1px,
-    transparent 1px 5px
-  );
+  /* Compatibilidade com composições antigas; o console atual não usa textura. */
+  --hachura: none;
 
   /* ==========================================================================
    * 9b. O CONSOLE — a lateral é escura NOS DOIS TEMAS
@@ -309,18 +314,18 @@
    * CLARO que o chão do tema escuro, e a moldura sumiu lá. Cada tema declara o
    * seu, sempre mais escuro que a própria `--bg` daquele tema.
    * ======================================================================= */
-  --console-bg: #211e1b;
-  --console-ink: #f0eeea;
-  --console-ink-2: #b3aea6;
-  --console-ink-3: #948e85;
-  --console-line: #34302b;
+  --console-bg: #181b20;
+  --console-ink: #f7f8fa;
+  --console-ink-2: #c3c8cf;
+  --console-ink-3: #929aa5;
+  --console-line: #2d323a;
   --console-hover: rgba(255, 255, 255, 0.06);
   /*
    * O halo do item ativo. Ele NÃO pode ser `--ember-wash`: no tema claro
    * aquele token é um pêssego claro, e sobre o console escuro ele viraria uma
    * mancha acesa atrás do texto.
    */
-  --console-active: #3a2415;
+  --console-active: #2b221d;
 
   /* ==========================================================================
    * 10. ENQUADRAMENTO
@@ -329,15 +334,17 @@
    * `--page-max` é medido A PARTIR do fim da lateral, não do viewport — a
    * coluna de conteúdo é alinhada à esquerda, nunca centrada na tela inteira.
    * ======================================================================= */
-  --sidebar-w: 212px;
-  --sidebar-rail: 52px;
-  --topbar-h: 46px;
-  --bottombar-h: 56px;
-  --page-pad: var(--sp-20);
-  --page-pad-mobile: var(--sp-12);
-  --page-max: 1280px;
-  --form-max: 820px;
-  --column-max: 300px;
+  --sidebar-w: 232px;
+  --sidebar-rail: 72px;
+  --topbar-h: 64px;
+  --bottombar-h: 68px;
+  --page-pad: var(--sp-24);
+  --page-pad-mobile: var(--sp-16);
+  --page-max: 1600px;
+  --form-max: 1040px;
+  --column-max: 320px;
+  --detail-panel-w: 420px;
+  --menu-rail-w: 240px;
 
   /* Alvo mínimo de toque: 24px por WCAG 2.5.8, 44px no celular. */
   --tap: 24px;
@@ -347,15 +354,15 @@
    * Altura dos controles. Um botão com padding próprio é como a densidade
    * começa a desandar — estas alturas valem para o painel inteiro.
    */
-  --control-h: 32px;
-  --control-h-sm: 24px;
-  --control-h-touch: 36px;
-  --field-h: 30px;
-  --field-h-touch: 40px;
+  --control-h: 38px;
+  --control-h-sm: 32px;
+  --control-h-touch: 44px;
+  --field-h: 40px;
+  --field-h-touch: 44px;
 
   /* Alvo de linha de lista: densa (conferência) e de leitura (cardápio). */
-  --row-dense-h: 36px;
-  --row-read-h: 48px;
+  --row-dense-h: 48px;
+  --row-read-h: 64px;
 
   /* ==========================================================================
    * 10b. GRÁFICO — especificação de marca, NÃO degrau de espaçamento
@@ -377,14 +384,11 @@
    *   coluna de tabela.
    * ======================================================================= */
   --chart-gap: 2px;
-  --chart-bar-max: 36px;
+  --chart-bar-max: 44px;
   /*
-   * A ALTURA CAIU DE 180 PARA 120. Sete números não justificam meia dobra de
-   * altura: a série continua legível — o que se lê nela é a PROPORÇÃO entre os
-   * dias, e proporção não depende do tamanho do desenho — e a seção seguinte
-   * passa a caber na mesma tela, que é o que faz a página ser percorrida.
+   * 168px preserva comparação entre dias sem transformar o gráfico em hero.
    */
-  --chart-h: 120px;
+  --chart-h: 168px;
   /*
    * A faixa de um ponto da série. A coluna (`--chart-bar-max`) ocupa parte
    * dela e a sobra é ar — mas a FAIXA também tem teto: sem ele, uma série de
@@ -405,8 +409,8 @@
    * 11. MOVIMENTO
    * Estes dois tokens viram 0s sob prefers-reduced-motion (no fim do arquivo).
    * ======================================================================= */
-  --motion-fast: 100ms;
-  --motion-base: 160ms;
+  --motion-fast: 140ms;
+  --motion-base: 200ms;
   --ease: cubic-bezier(0.2, 0, 0, 1);
 
   /* ==========================================================================
@@ -414,8 +418,41 @@
    * ======================================================================= */
   --z-sticky: 20;
   --z-popover: 40;
+  --z-drawer: 50;
   --z-modal: 60;
   --z-toast: 80;
+
+  /* Aliases semânticos: deixam componentes descreverem intenção, não legado. */
+  --brand: var(--ember);
+  --brand-press: var(--ember-press);
+  --brand-wash: var(--ember-wash);
+  --text: var(--ink);
+  --text-muted: var(--ink-2);
+  --text-subtle: var(--ink-3);
+  --s-1: var(--sp-4);
+  --s-2: var(--sp-8);
+  --s-3: var(--sp-12);
+  --s-4: var(--sp-16);
+  --s-5: var(--sp-20);
+  --s-6: var(--sp-24);
+  --s-7: var(--sp-32);
+  --title-size: var(--tt-size);
+  --title-line: var(--tt-line);
+  --section-size: var(--ts-size);
+  --section-line: var(--ts-line);
+  --label-size: var(--tl-size);
+  --label-line: var(--tl-line);
+  --label-tracking: var(--tl-track);
+  --body-size: var(--tb-size);
+  --body-line: var(--tb-line);
+  --meta-size: var(--ta-size);
+  --meta-line: var(--ta-line);
+  --weight-medium: var(--w-medium);
+  --weight-semibold: var(--w-semibold);
+  --weight-bold: var(--w-bold);
+  --page-padding: var(--page-pad);
+  --page-padding-mobile: var(--page-pad-mobile);
+  --detail-panel-width: var(--detail-panel-w);
 
   color-scheme: light;
 }
@@ -424,14 +461,14 @@
  * ============================================================================
  * TEMA ESCURO — as MESMAS variáveis semânticas, outras superfícies.
  *
- * É o tema principal do produto. Nenhuma regra de componente pode ser
+ * É uma expressão equivalente do produto. Nenhuma regra de componente pode ser
  * específica de tema: se você precisou de `[data-theme="dark"] .minha-classe`,
  * o token que você usou é o errado.
  *
  * DEGRAUS PERCEPTÍVEIS, não fuligem quase-preta uniforme: cada plano precisa
  * se distinguir do vizinho sem depender de sombra, que no escuro quase não
- * aparece. Os neutros mantêm o mesmo viés quente do claro — um a dois pontos
- * de R sobre B, sente-se e não se vê — só não é mais marrom de propósito.
+ * aparece. Os neutros são frios e discretos, sem cair no preto absoluto ou
+ * competir com o laranja da marca.
  * ============================================================================
  */
 [data-theme='dark'] {
@@ -441,23 +478,25 @@
    * duas vezes é como o valor volta a divergir de dentro do bloco — que é
    * exatamente o defeito que a separação por tema veio consertar.
    */
-  --bg: #161513;
-  --surface: #1d1c19;
-  --surface-raised: #262521;
-  --field: #131211;
+  --bg: #101216;
+  --surface: #171a1f;
+  --surface-raised: #20242b;
+  --surface-muted: #20242a;
+  --surface-selected: #2b1b14;
+  --field: #0d0f12;
 
-  --line: #322f2a;
-  --line-strong: #454037;
-  --line-control: #8a8377;
+  --line: #2a2f37;
+  --line-strong: #3a414c;
+  --line-control: #858d99;
 
-  --ink: #f2f0ec;
-  --ink-2: #b7b0a5;
-  --ink-3: #928c80;
+  --ink: #f5f7fa;
+  --ink-2: #c1c6ce;
+  --ink-3: #949ca8;
 
   /* No escuro a brasa acende: é o laranja do selo, sem escurecer. */
-  --ember: #ff6a1f;
-  --ember-press: #ff8a4d;
-  --ember-wash: #2a1509;
+  --ember: #ff7a2f;
+  --ember-press: #ff9a62;
+  --ember-wash: #32180b;
   --on-ember: #1a0c03;
   --on-ember-press: #1a0c03;
 
@@ -466,12 +505,14 @@
    * em que o laranja é da MARCA um segundo laranja semântico faz o olho ler
    * "ação" onde está escrito "atenção".
    */
-  --ok: #3fd489;
-  --ok-wash: #12241d;
-  --alert: #dfb04a;
-  --alert-wash: #2a220f;
-  --danger: #ff6b6b;
-  --danger-wash: #331b1a;
+  --ok: #45d49a;
+  --ok-wash: #10271f;
+  --alert: #f1bd62;
+  --alert-wash: #2a2110;
+  --danger: #ff716b;
+  --danger-wash: #351918;
+  --info: #8eb7ee;
+  --info-wash: #172537;
 
   --st-pendente: #e8b44a;
   --st-aceito: #7fa9e0;
@@ -500,8 +541,9 @@
    * o degrau de tom até `--surface-raised`, e a sombra só aprofunda isso.
    * Cartão parado leva uma sombra ainda mais discreta que no claro.
    */
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-raised: 0 16px 40px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 28px rgba(0, 0, 0, 0.16);
+  --shadow-raised: 0 24px 56px rgba(0, 0, 0, 0.56), 0 4px 14px rgba(0, 0, 0, 0.4);
+  --shadow-shell: 0 1px 0 rgba(255, 255, 255, 0.03), 0 10px 30px rgba(0, 0, 0, 0.2);
 
   --grad-brasa: linear-gradient(90deg, #e8b44a 0%, #ff8a3d 55%, #ff4d1a 100%);
 
@@ -511,13 +553,13 @@
    * correção do defeito real: um console que só existia no bloco claro ficava
    * mais claro que o chão escuro assim que o tema virava, e a moldura sumia.
    */
-  --console-bg: #0b0a09;
-  --console-ink: #f0eeea;
-  --console-ink-2: #b3aea6;
-  --console-ink-3: #928c80;
-  --console-line: #262320;
+  --console-bg: #090b0e;
+  --console-ink: #f7f8fa;
+  --console-ink-2: #c3c8cf;
+  --console-ink-3: #929aa5;
+  --console-line: #242931;
   --console-hover: rgba(255, 255, 255, 0.06);
-  --console-active: #3a2415;
+  --console-active: #2b1a12;
 
   color-scheme: dark;
 }

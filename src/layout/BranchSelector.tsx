@@ -32,8 +32,11 @@ export function BranchSelector() {
 
   const display = (
     <span className="branch__text">
-      <span className="branch__name">{name}</span>
-      {detail ? <span className="branch__detail">{detail}</span> : null}
+      <span className="branch__eyebrow">Filial atual</span>
+      <span className="branch__value">
+        <span className="branch__name">{name}</span>
+        {detail ? <span className="branch__detail">{detail}</span> : null}
+      </span>
     </span>
   );
 

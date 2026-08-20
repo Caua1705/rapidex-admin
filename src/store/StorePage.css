@@ -14,8 +14,9 @@
   display: flex;
   flex: 1;
   min-height: 0;
-  gap: var(--sp-24);
-  padding: var(--sp-16) var(--page-pad) var(--sp-32);
+  gap: var(--sp-20);
+  max-width: var(--page-max);
+  padding: var(--page-pad) var(--page-pad) var(--sp-32);
   overflow-y: auto;
   background: var(--bg);
 }
@@ -32,35 +33,46 @@
  * sumário de âncoras. O nome ficou; o que elas são hoje é `NavLink`.
  * ======================================================================= */
 .store__index {
-  flex: 0 0 148px;
+  flex: 0 0 184px;
   position: sticky;
   top: 0;
   align-self: flex-start;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid var(--line);
+  gap: var(--sp-4);
+  padding: var(--sp-8);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 
 .store__anchor {
-  padding: var(--sp-4) var(--sp-12);
-  margin-left: -1px;
-  border-left: 2px solid transparent;
-  color: var(--ink-3);
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
+  display: flex;
+  min-height: var(--control-h);
+  align-items: center;
+  padding: var(--sp-8) var(--sp-12);
+  border-radius: var(--r-control);
+  color: var(--ink-2);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
   text-decoration: none;
-  transition: color var(--motion-fast) var(--ease);
+  transition:
+    color var(--motion-fast) var(--ease),
+    background var(--motion-fast) var(--ease);
 }
 
 .store__anchor:hover {
+  background: var(--surface-muted);
   color: var(--ink);
 }
 
 /* A seção que está sendo lida: tinta cheia, peso e o trilho de brasa. */
 .store__anchor--on {
-  border-left-color: var(--ember);
+  background: var(--surface-selected);
   color: var(--ink);
-  font-weight: var(--w-bold);
+  font-weight: var(--w-semibold);
+  box-shadow: inset 3px 0 var(--ember);
 }
 
 /*
@@ -79,7 +91,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-24);
+  gap: var(--sp-20);
   max-width: var(--form-max);
 }
 
@@ -93,15 +105,14 @@
 .store__section {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-12);
+  gap: var(--sp-20);
 }
 
 .store__section-head {
   display: flex;
   align-items: baseline;
   gap: var(--sp-8);
-  padding-bottom: var(--sp-4);
-  border-bottom: 1px solid var(--line);
+  padding-inline: var(--sp-4);
 }
 
 .store__loading {
@@ -118,10 +129,9 @@
   align-items: center;
   gap: var(--sp-8);
   margin-left: auto;
-  padding: var(--sp-4) var(--sp-8);
-  border: 1px solid var(--line);
-  border-radius: var(--r-chip);
-  background: var(--surface);
+  padding: var(--sp-8) var(--sp-12);
+  border-radius: var(--r-control);
+  background: var(--surface-muted);
 }
 
 .store-status__dot {
@@ -348,6 +358,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-12);
+  padding: var(--sp-20);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 
 .store-form__section-head {
@@ -729,6 +744,7 @@
     flex-direction: column;
     gap: var(--sp-16);
     padding-inline: var(--page-pad-mobile);
+    padding-bottom: calc(var(--bottombar-h) + var(--sp-24));
     overflow-x: clip;
   }
 
@@ -754,24 +770,19 @@
     flex-direction: row;
     gap: var(--sp-4);
     overflow-x: auto;
-    border-left: 0;
-    border-bottom: 1px solid var(--line);
-    padding-bottom: var(--sp-4);
+    padding: var(--sp-4);
   }
 
   .store__anchor {
     flex: 0 0 auto;
     margin-left: 0;
-    border-left: 0;
-    border-bottom: 2px solid transparent;
     min-height: var(--tap-mobile);
     display: flex;
     align-items: center;
   }
 
   .store__anchor--on {
-    border-left-color: transparent;
-    border-bottom-color: var(--ember);
+    box-shadow: none;
   }
 
   .store__col {

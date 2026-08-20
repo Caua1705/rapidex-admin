@@ -21,10 +21,10 @@ const ROLE_LABELS: Record<string, string> = {
  * ELA MUDA DE FORMA TRÊS VEZES, e a regra é sempre a mesma: a informação não
  * desaparece, ela troca de lugar.
  *
- *   ≥1024  lateral de 216px, com os nomes e os grupos escritos
- *   640–1023  lateral recolhida em trilha de ícones (56px), grupos separados
+ *   ≥1180  lateral de 232px, com os nomes e os grupos escritos
+ *   768–1179  lateral recolhida em trilha de ícones (72px), grupos separados
  *             por vão; o nome vive no `title` e no leitor de tela
- *   <640   a lateral sai da tela e vira barra INFERIOR de quatro alvos, com
+ *   <768   a lateral sai da tela e vira barra INFERIOR de quatro alvos, com
  *          "Mais" abrindo o resto num folha (ver `BottomBar`)
  *
  * O que NÃO acontece em nenhum tamanho é `display: none` numa seção: esconder
@@ -32,6 +32,13 @@ const ROLE_LABELS: Record<string, string> = {
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, signOut } = useSession();
+  const initials = user?.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
 
   return (
     <div className="shell">
@@ -67,14 +74,20 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           <div className="shell__spacer" />
 
-          <span className="shell__user t-aux">
-            {user?.name}
-            <span className="ink-3"> · {ROLE_LABELS[user?.role ?? ''] ?? user?.role}</span>
-          </span>
-          <ThemeToggle />
-          <button type="button" className="shell__sair" onClick={signOut}>
-            Sair
-          </button>
+          <div className="shell__account">
+            <span className="shell__avatar" aria-hidden="true">
+              {initials}
+            </span>
+            <span className="shell__user">
+              <strong>{user?.name}</strong>
+              <span>{ROLE_LABELS[user?.role ?? ''] ?? user?.role}</span>
+            </span>
+            <span className="shell__account-divider" aria-hidden="true" />
+            <ThemeToggle />
+            <button type="button" className="shell__sair" onClick={signOut}>
+              Sair
+            </button>
+          </div>
         </header>
 
         <main className="shell__content" id="conteudo">
