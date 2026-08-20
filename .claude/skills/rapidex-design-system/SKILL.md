@@ -487,11 +487,33 @@ que abriu a rodada: o primeiro pedido começava a ~500px do topo, atrás de
 título, subtítulo, abas com régua própria, um cartão de filtros de 130px e três
 cabeçalhos de faixa.
 
-Hoje: a faixa de 52px (título · abas · contadores dos três estágios ·
-ferramentas) e daí para baixo só linha de pedido. Os contadores dos três
-estágios aparecem SEMPRE, zerados inclusive — é o que paga o fim das faixas de
-agrupamento: "Prontos 0" custa 70px de largura numa linha que já existia, e
-custava 40px de altura numa faixa que anunciava o nada.
+**DUAS FAIXAS, PORQUE SÃO QUATRO NATUREZAS.** Tudo já morou numa faixa só, na
+ordem em que foi escrito — e quatro coisas diferentes dividindo a mesma régua
+não têm hierarquia nenhuma. O sintoma mais visível era o contador de estágio
+numa fileira e o filtro de período em outra, sendo que os dois falam do MESMO
+recorte.
+
+| Faixa | Altura | Grupos |
+| ----- | ------ | ------ |
+| 1 — A TELA | 52px (`ds/PageBar`) | **navegação** (título e abas) à esquerda; **ação** (sino, atualizar) na margem direita |
+| 2 — A LISTA E A LOJA | 40px (`.orders__barra`) | **recorte** (busca · período · contadores) à esquerda; depois de um fio, **promessa** (preparo com o ajuste · entrega · tempo real) à direita |
+
+A regra que decide o grupo é uma pergunta: **isto recorta a lista?** Período,
+busca e contadores sim — os contadores são o RESULTADO do recorte, e é por isso
+que descer com o período foi o conserto principal. Preparo, entrega e tempo real
+não recortam nada: eles descrevem a LOJA, e misturados com o período davam a
+impressão de que ajustar o preparo mudaria a lista. Atualizar e o sino não se
+leem, se apertam — e sobem para o canto em que toda tela do painel põe a ação.
+
+Os contadores aparecem SEMPRE, zerados inclusive — é o que paga o fim das faixas
+de agrupamento: "Prontos 0" custa 70px de largura numa linha que já existia, e
+custava 40px de altura numa faixa que anunciava o nada. O marcador deles é o
+PONTO de `ds/StatusChip`, não o fio de 2px da lista: numa fileira horizontal um
+traço vertical entre dois nomes vira um separador, não uma marca de estágio.
+
+Abaixo de 900px de FAIXA (consulta de container, não de janela — em 1440 com o
+painel aberto ela tem 828), os dois grupos empilham e o fio que os separa deixa
+de ser vertical e passa a ser horizontal.
 
 O estágio é uma **coluna mesclada**: escrito na linha que abre o bloco, com o
 fio de cor descendo nas seguintes. Bloco sem pedido não é renderizado.
@@ -508,11 +530,30 @@ escondia justamente a lista que diz o que fazer em seguida. Abaixo de 1280px ela
 só aparece com seleção e flutua; abaixo de 720px vira tela cheia com os botões
 esticados no rodapé.
 
+**A TELA ESCOLHE O PRIMEIRO PEDIDO SOZINHA** na abertura, como o Gmail abre na
+primeira conversa: a coluna abria com uma frase explicando o que acontece se
+alguém clicar, e isso era um terço da tela gasto para ensinar o clique que o
+lojista dá cinquenta vezes por turno. Três condições seguram o comportamento —
+só onde o painel é COLUNA (`useDetailColumn`, ≥1280px: no telefone ele é a tela
+inteira e abrir Pedidos cairia num detalhe), só uma vez por visita (senão
+"Fechar detalhe" seria um botão que não faz nada) e só com a lista carregada.
+Sem nenhum pedido na lista, o painel não é renderizado.
+
 O cabeçalho tem a MESMA altura da faixa da lista, e é isso que faz as duas
 metades lerem como uma tela só. Dentro, blocos separados por fio: cliente,
 endereço, itens, observação, pagamento, histórico. O total leva `--row-time-*` e
 peso 700 sobre um fio `--line-strong` — e não é laranja: a brasa marca ação, não
 importância.
+
+**O BLOCO DO CLIENTE DIZ QUEM VOLTA SEMPRE**: "Cliente há 3 meses · 12 pedidos",
+ou "Primeiro pedido" para quem estreia. É a pergunta que o lojista faz ANTES de
+aceitar, e até então ela só existia noutra tela. O dado sai da MESMA rota de
+Clientes (`GET /admin/customers`, procurada por telefone) — não há rota nova,
+nem número estimado. O casamento é por dígitos (`phoneDigits`), e sem casamento
+exato a linha não aparece: histórico da pessoa errada ao lado do endereço de
+entrega é pior que histórico nenhum. A leitura é de APOIO, então o erro é
+silencioso e a filial é a mesma do quadro — dois números na tela respondendo ao
+mesmo recorte.
 
 ### Cozinha — `src/kitchen/`
 

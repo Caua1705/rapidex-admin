@@ -27,6 +27,15 @@ vi.mock('../api/orders', () => ({
   fetchOrderDetail: vi.fn(),
 }));
 
+/*
+ * O painel também lê o histórico do cliente (`useCustomerHistory`), e essa
+ * leitura é de APOIO: ela não pode aparecer neste teste nem como rede, nem como
+ * ruído. Uma lista vazia é a resposta honesta para "não existe esse cliente".
+ */
+vi.mock('../api/customers', () => ({
+  listCustomers: vi.fn(async () => ({ items: [], total: 0, limit: 5, offset: 0 })),
+}));
+
 import { fetchOrderDetail } from '../api/orders';
 import { OrderDetailPanel } from './OrderDetailPanel';
 
@@ -80,6 +89,7 @@ async function renderizarPainel() {
   const { container } = render(
     <OrderDetailPanel
       orderId="ordem-1"
+      branchId=""
       onClose={() => {}}
       onChangeStatus={async () => true}
       onCancelOrder={async () => true}

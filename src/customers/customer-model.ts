@@ -84,6 +84,28 @@ export function formatSince(isoDate: string | null | undefined, now: number = Da
 }
 
 /**
+ * O TELEFONE REDUZIDO AO QUE IDENTIFICA A PESSOA — só dígitos, sem o país.
+ *
+ * Ele existe porque o telefone é a CHAVE desta lista (o backend agrupa por
+ * ele), e a mesma pessoa chega em dois formatos: o `customer_phone_snapshot`
+ * gravado no pedido e o `customer_phone` agrupado da lista de clientes. Um pode
+ * ter vindo como "+55 85 99999-0000" e o outro como "85999990000", e comparar
+ * as duas strings cruas diria que são duas pessoas.
+ *
+ * O 55 do país sai só quando o que sobra é um número brasileiro inteiro (10 ou
+ * 11 dígitos): a condição do que SOBRA é o que impede a regra de comer o "55"
+ * de um número que por acaso comece com ele. O que não casa sai como veio — um
+ * número internacional é melhor comparado inteiro do que mutilado.
+ */
+export function phoneDigits(phone: string): string {
+  const somenteDigitos = phone.replace(/\D/g, '');
+  return somenteDigitos.startsWith('55') &&
+    (somenteDigitos.length === 12 || somenteDigitos.length === 13)
+    ? somenteDigitos.slice(2)
+    : somenteDigitos;
+}
+
+/**
  * "(85) 99999-0000".
  *
  * O telefone é o ÚNICO canal de contato que esta tela tem — e-mail e CPF não
@@ -99,21 +121,7 @@ export function formatSince(isoDate: string | null | undefined, now: number = Da
  * errado num formato brasileiro que ele não tem.
  */
 export function formatPhone(phone: string): string {
-  const somenteDigitos = phone.replace(/\D/g, '');
-
-  /*
-   * O 55 do país sai ANTES da conta, e só quando o que sobra é um número
-   * brasileiro inteiro (10 ou 11 dígitos). Um cadastro salvo como
-   * "+5585999990000" tem treze dígitos e cairia no passe-adiante abaixo,
-   * saindo na tela como um bloco corrido — que é exatamente o que esta função
-   * existe para evitar. A condição do que sobra é o que impede a regra de
-   * comer o "55" de um número que por acaso comece com ele.
-   */
-  const digits =
-    somenteDigitos.startsWith('55') &&
-    (somenteDigitos.length === 12 || somenteDigitos.length === 13)
-      ? somenteDigitos.slice(2)
-      : somenteDigitos;
+  const digits = phoneDigits(phone);
 
   if (digits.length === 11) {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
@@ -133,4 +141,44 @@ export function formatPhone(phone: string): string {
  */
 export function customerName(customer: CustomerListItem): string {
   return customer.customer_name.trim() || 'Sem nome';
+}
+
+/**
+ * "Cliente há 1 ano · 12 pedidos" — a linha do histórico no detalhe do pedido.
+ *
+ * ELA RESPONDE UMA PERGUNTA SÓ: esta pessoa volta sempre? É a pergunta que o
+ * lojista faz ANTES de aceitar, e a resposta muda o que ele faz com o pedido.
+ *
+ * TRÊS CASOS, TRÊS FRASES:
+ *
+ *   - QUEM ESTREIA ("Primeiro pedido"). `orders_count` 1 é a primeira compra, e
+ *     dizer "Cliente há 0 dias · 1 pedido" seria a mesma informação escrita da
+ *     forma mais fria possível. A frase curta é a que se lê de relance.
+ *   - QUEM VOLTA. "Cliente há 3 meses · 12 pedidos". A distância vem primeiro
+ *     porque é ela que separa o freguês do cliente de um mês.
+ *   - QUEM NÃO TEM DATA. `first_order_at` é `string | null` no contrato, e sem
+ *     ela sobra a contagem. Nada é estimado para preencher o buraco.
+ *
+ * "DESDE HOJE" E "DESDE ONTEM" existem porque `formatSince` devolve "hoje" e
+ * "ontem", e "Cliente hoje" não é português. De 2 dias em diante ela devolve
+ * "há N", que encaixa direto.
+ *
+ * A CONTAGEM INCLUI O PEDIDO ABERTO, e é assim que a tela de Clientes conta
+ * também. Subtrair um daria um número que não bate com o da outra tela, e o
+ * lojista teria dois totais para a mesma pessoa.
+ */
+export function customerHistoryLine(customer: CustomerListItem, now: number = Date.now()): string {
+  if (customer.orders_count <= 1) return 'Primeiro pedido';
+
+  const dias = daysSince(customer.first_order_at, now);
+  const pedidos = `${customer.orders_count} pedidos`;
+  if (dias === null) return pedidos;
+
+  const tempo =
+    dias === 0
+      ? 'desde hoje'
+      : dias === 1
+        ? 'desde ontem'
+        : formatSince(customer.first_order_at, now);
+  return `Cliente ${tempo} · ${pedidos}`;
 }

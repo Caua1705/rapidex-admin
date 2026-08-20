@@ -5,6 +5,7 @@ import { fetchOrderDetail } from '../api/orders';
 import type { OrderDetail, OrderItem } from '../api/types';
 import { XIcon } from '../ds/icons';
 import { StatusChip } from '../ds/StatusChip';
+import { customerHistoryLine, formatPhone } from '../customers/customer-model';
 import { CancelOrderDialog } from './CancelOrderDialog';
 import {
   ORDER_TYPE_LABELS,
@@ -15,6 +16,7 @@ import {
   labelFor,
 } from './format';
 import { readOptionGroups } from './order-options';
+import { useCustomerHistory } from './useCustomerHistory';
 import { stageOf } from './order-status';
 import {
   STATUS_LABELS,
@@ -51,12 +53,19 @@ function formatAddress(detail: OrderDetail): string {
  */
 export function OrderDetailPanel({
   orderId,
+  branchId,
   onClose,
   onChangeStatus,
   onCancelOrder,
   actionErrorMessage,
 }: {
   orderId: string | null;
+  /**
+   * A filial do quadro — o mesmo recorte da lista ao lado, e pode ser vazia
+   * ("todas as que eu enxergo"). Ela só serve ao histórico do cliente: os dois
+   * números que o lojista vê na tela precisam responder ao mesmo recorte.
+   */
+  branchId: string;
   onClose: () => void;
   /** Devolve true quando o backend aceitou a transição. */
   onChangeStatus: (orderId: string, status: string) => Promise<boolean>;
@@ -190,7 +199,7 @@ export function OrderDetailPanel({
 
         {!detail && !loadError && !vazio ? <p className="muted">Carregando…</p> : null}
 
-        {detail ? <DetailBody detail={detail} /> : null}
+        {detail ? <DetailBody detail={detail} branchId={branchId} /> : null}
       </div>
 
       {detail ? (
@@ -237,7 +246,16 @@ export function OrderDetailPanel({
   );
 }
 
-function DetailBody({ detail }: { detail: OrderDetail }) {
+function DetailBody({ detail, branchId }: { detail: OrderDetail; branchId: string }) {
+  /*
+   * O HISTÓRICO DO CLIENTE — "esta pessoa volta sempre?".
+   *
+   * Ele sai da MESMA rota da tela de Clientes, perguntada por telefone; não há
+   * rota nova nem dado inventado. Ver `useCustomerHistory` para o casamento por
+   * dígitos e para o motivo de o erro ser silencioso.
+   */
+  const historico = useCustomerHistory(detail.customer_phone_snapshot, branchId);
+
   return (
     <div className="detail">
       {isAwaitingOnlinePayment(detail.payment_status) ? (
@@ -252,8 +270,28 @@ function DetailBody({ detail }: { detail: OrderDetail }) {
         <h3 className="detail__heading">Cliente</h3>
         <div className="detail__row">
           <span>{detail.customer_name_snapshot}</span>
-          <span>{detail.customer_phone_snapshot}</span>
+          {/*
+            O TELEFONE SAI FORMATADO, como na tela de Clientes. Ele é lido em voz
+            alta para discar, e um bloco de onze dígitos corridos obriga a pessoa
+            a contar com o dedo na tela — o painel era o único lugar que ainda o
+            mostrava cru.
+          */}
+          <span className="tnum">{formatPhone(detail.customer_phone_snapshot)}</span>
         </div>
+
+        {/*
+          QUEM VOLTA SEMPRE, DITO ANTES DE ACEITAR.
+
+          A linha só aparece quando a resposta chegou e casou com este telefone.
+          Enquanto carrega, e quando a leitura falha, não há linha nenhuma: é um
+          dado de apoio, e um "carregando…" piscando a cada pedido aberto custa
+          mais atenção do que a informação vale.
+        */}
+        {historico.customer ? (
+          <p className="detail__cliente-historico" data-testid="customer-history">
+            {customerHistoryLine(historico.customer)}
+          </p>
+        ) : null}
       </section>
 
       <section className="detail__block">

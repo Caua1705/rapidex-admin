@@ -5,6 +5,7 @@ import {
   LANES,
   countFor,
   countForView,
+  firstVisibleOrder,
   groupIntoLanes,
   historyOrders,
   statusesForView,
@@ -120,5 +121,42 @@ describe('contadores', () => {
     };
     expect(countForView('andamento', counts)).toBe(5);
     expect(countForView('historico', counts)).toBe(43);
+  });
+});
+
+describe('firstVisibleOrder', () => {
+  /*
+   * A TELA ESCOLHE ESTE PEDIDO SOZINHA na abertura (ver `OrdersPage`), então
+   * "o primeiro" precisa ser o primeiro que o OLHO encontra — e não
+   * `orders[0]`, que é só o primeiro carregado.
+   */
+  it('é o primeiro da primeira faixa que tem pedido, não o primeiro carregado', () => {
+    const orders = [
+      orderWithStatus('a', 'preparing'),
+      orderWithStatus('b', 'pending'),
+      orderWithStatus('c', 'ready'),
+    ];
+    // `a` veio primeiro na resposta, mas "Novos" é a faixa de cima.
+    expect(firstVisibleOrder(orders, 'andamento')?.id).toBe('b');
+  });
+
+  it('pula faixa vazia', () => {
+    const orders = [orderWithStatus('a', 'ready'), orderWithStatus('b', 'preparing')];
+    expect(firstVisibleOrder(orders, 'andamento')?.id).toBe('b');
+  });
+
+  it('no histórico é o primeiro encerrado, na ordem em que veio', () => {
+    const orders = [
+      orderWithStatus('a', 'pending'),
+      orderWithStatus('b', 'completed'),
+      orderWithStatus('c', 'cancelled'),
+    ];
+    expect(firstVisibleOrder(orders, 'historico')?.id).toBe('b');
+  });
+
+  it('devolve nulo quando não há o que escolher — e é isso que segura a trava', () => {
+    expect(firstVisibleOrder([], 'andamento')).toBeNull();
+    expect(firstVisibleOrder([orderWithStatus('a', 'completed')], 'andamento')).toBeNull();
+    expect(firstVisibleOrder([orderWithStatus('a', 'pending')], 'historico')).toBeNull();
   });
 });

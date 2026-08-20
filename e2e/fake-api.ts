@@ -122,11 +122,24 @@ function order(overrides: Partial<OrderListItem> & { id: string; order_number: n
 /** Os três pedidos com que toda tela do E2E começa. */
 function initialOrders(): OrderListItem[] {
   return [
+    /*
+     * O TELEFONE DE CADA PEDIDO É O DA PESSOA QUE ELE NOMEIA, e isso passou a
+     * importar: o detalhe do pedido mostra o histórico do cliente, procurado
+     * por telefone em `/admin/customers`. Com os três pedidos herdando o mesmo
+     * telefone padrão, o teste não teria como provar que o painel mostra o
+     * histórico da pessoa CERTA — e mostrar o histórico da pessoa errada ao
+     * lado do endereço de entrega é o defeito que mais importa aqui.
+     *
+     * Os três cobrem casos diferentes de propósito: Ana Paula é a freguesa
+     * antiga (12 pedidos), Marcos Lima é o cliente de alguns meses (5) e Rafael
+     * Nunes está no PRIMEIRO pedido, que é a frase curta.
+     */
     // Pix ainda não pago: é o card que precisa aparecer destacado.
     order({
       id: 'ord-1001',
       order_number: 1001,
       customer_name_snapshot: 'Marcos Lima',
+      customer_phone_snapshot: '85988887777',
       payment_method: 'pix',
       payment_status: 'pending',
       created_at: minutesAgo(4),
@@ -136,6 +149,7 @@ function initialOrders(): OrderListItem[] {
       id: 'ord-1002',
       order_number: 1002,
       customer_name_snapshot: 'Ana Paula',
+      customer_phone_snapshot: '85999990000',
       payment_method: 'cash',
       payment_status: 'on_delivery',
       created_at: minutesAgo(9),
@@ -145,6 +159,7 @@ function initialOrders(): OrderListItem[] {
       id: 'ord-1003',
       order_number: 1003,
       customer_name_snapshot: 'Rafael Nunes',
+      customer_phone_snapshot: '8532224444',
       order_type: 'pickup',
       status: 'preparing',
       payment_method: 'credit_card',
@@ -934,6 +949,19 @@ export type FakeApi = {
   overridesOf: (branchId: string) => Record<string, unknown>;
   /** Empurra um pedido novo pelo SSE, como se outro cliente tivesse comprado. */
   pushNewOrder: (item: OrderListItem) => void;
+  /**
+   * Espera o navegador pendurar a conexão do SSE.
+   *
+   * `pushNewOrder` antes disso é um evento que nasce atrás do cursor da conexão
+   * que ainda vai chegar — ou seja, um evento que não é entregue a ninguém. O
+   * teste passava por sorte, quando a conexão vencia a corrida contra a linha
+   * seguinte do teste.
+   *
+   * Esperar `conn--live` na tela NÃO resolveria: este falso segura a resposta
+   * do SSE até haver o que mandar, então o `onopen` do EventSource — e portanto
+   * o "Tempo real" da barra — só acontece DEPOIS do primeiro evento.
+   */
+  waitForStream: () => Promise<void>;
   /** Muda o status por fora da tela, como faria outro atendente. */
   setStatusFromAnotherUser: (orderId: string, status: string) => void;
   /** Faz toda chamada autenticada responder 401 (sessão expirada). */
@@ -967,6 +995,15 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     stopped: false,
     /** Append-only: cada conexão SSE lê a partir do próprio cursor. */
     streamLog: [] as StreamEvent[],
+    /**
+     * Quantas conexões SSE estão PENDURADAS agora, esperando evento.
+     *
+     * Ele existe por causa de uma corrida real: `serveStream` marca o cursor no
+     * instante em que a conexão CHEGA ao handler, então um evento empurrado
+     * antes disso nasce atrás do cursor e nunca é entregue. O teste precisa
+     * poder esperar a conexão existir antes de empurrar — ver `waitForStream`.
+     */
+    streamConnections: 0,
     eventId: 0,
     categories: initialCategories(),
     products: initialProducts(),
@@ -1104,9 +1141,11 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
   async function serveStream(route: Route) {
     const cursor = state.streamLog.length;
     const limite = Date.now() + 15_000;
+    state.streamConnections += 1;
     while (state.streamLog.length === cursor && !state.stopped && Date.now() < limite) {
       await sleep(50);
     }
+    state.streamConnections -= 1;
 
     const frames = state.streamLog.slice(cursor).map((event) => {
       state.eventId += 1;
@@ -1893,6 +1932,12 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     },
     prepTimeOf: (branchId) => state.prepTime[branchId] ?? null,
     makeOrder: order,
+    async waitForStream() {
+      const limite = Date.now() + 10_000;
+      while (state.streamConnections === 0 && !state.stopped && Date.now() < limite) {
+        await sleep(20);
+      }
+    },
     pushNewOrder(item) {
       state.orders.unshift(item);
       state.streamLog.push({

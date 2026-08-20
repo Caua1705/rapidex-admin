@@ -20,6 +20,31 @@
  * `ds/PageBar` e a variante `barra` de `ds/Tabs`: eram a mesma peça que todas
  * as outras telas precisavam, e uma cópia por tela é como seis telas passam a
  * ler como seis produtos.
+ *
+ * ============================================================================
+ * DUAS FAIXAS, PORQUE SÃO QUATRO NATUREZAS
+ * ============================================================================
+ *
+ * Tudo isto já morou numa faixa só, na ordem em que foi escrito: abas, período,
+ * busca, contadores, preparo, entrega, tempo real, sino e atualizar. Quatro
+ * coisas de naturezas diferentes dividindo a mesma régua, sem nada dizendo qual
+ * era qual — e o sintoma mais visível era o contador de estágio numa fileira e
+ * o filtro de período em outra, sendo que os dois falam do MESMO recorte.
+ *
+ *   FAIXA 1 (52px, `ds/PageBar`) — A TELA
+ *     título e ABAS à esquerda; AÇÃO (sino, atualizar) encostada na margem
+ *     direita, que é o canto em que toda tela do painel põe a ação.
+ *
+ *   FAIXA 2 (40px, `.orders__barra`) — A LISTA E A LOJA
+ *     à esquerda o RECORTE (busca · período · contadores): o que esta lista
+ *     está mostrando. À direita, depois de um fio, a PROMESSA (preparo com o
+ *     ajuste · entrega · tempo real): o que a loja está prometendo agora, e que
+ *     não recorta nada.
+ *
+ * A hierarquia entre as duas é dita pela ALTURA e pela ORDEM, não por uma cor
+ * de fundo: duas faixas preenchidas empilhadas seriam duas barras cinzas antes
+ * do primeiro pedido. Ver o cabeçalho de `OrdersToolbar.tsx` para o porquê de
+ * cada controle estar no grupo em que está.
  */
 
 .orders {
@@ -38,11 +63,133 @@
 }
 
 /* ==========================================================================
- * OS CONTADORES DE ESTÁGIO — o grupo do meio da faixa
+ * A AÇÃO — na margem direita da faixa do título
+ * ======================================================================= */
+
+/*
+ * A AÇÃO ENCOSTA NA MARGEM DIREITA em qualquer largura — inclusive quando ela
+ * cai numa fileira só dela, no telefone. `ds/PageBar` alinha as ferramentas à
+ * esquerda quando elas envolvem, porque na maioria das telas o que está ali é
+ * conteúdo (uma busca, um botão escrito); aqui são dois ícones, e ícone solto
+ * no começo de uma fileira vazia lê como sobra, não como ação.
+ */
+.orders__acoes {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+}
+
+/* ==========================================================================
+ * A SEGUNDA FAIXA
+ * ======================================================================= */
+
+/*
+ * Ela gruda LOGO ABAIXO da faixa do título — `top: var(--topbar-h)` é a altura
+ * exata da de cima. Sem isso, rolar a lista deixaria o recorte para trás e o
+ * lojista continuaria vendo o título enquanto perde de vista o período que está
+ * governando o que ele lê.
+ *
+ * É um CONTAINER de consulta chamado `barra`, como a faixa de cima e pelo mesmo
+ * motivo: em 1440 com o painel de detalhe aberto ela tem 828px, e uma consulta
+ * de janela leria "1440, tem espaço de sobra".
+ */
+.orders__barra {
+  container: barra / inline-size;
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: var(--z-sticky);
+  min-height: 40px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--sp-20);
+  row-gap: var(--sp-4);
+  padding: var(--sp-4) var(--page-pad);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+/* --- o recorte: o que esta lista está mostrando -------------------------- */
+
+.filtros {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  column-gap: var(--sp-20);
+  row-gap: var(--sp-4);
+}
+
+/* --- a promessa: o que a loja está prometendo agora ---------------------- */
+
+/*
+ * O FIO À ESQUERDA é o que separa as duas naturezas dentro da mesma faixa. Ele
+ * anda COM o grupo (é um pseudo-elemento dele, não um elemento no meio da
+ * barra), então continua no lugar certo quando o recorte cresce ou encolhe.
+ */
+.promessa {
+  position: relative;
+  flex: 0 0 auto;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-16);
+  padding-left: var(--sp-20);
+}
+
+.promessa::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 18px;
+  background: var(--line-strong);
+}
+
+/*
+ * ==========================================================================
+ * QUANDO OS DOIS GRUPOS NÃO CABEM NA MESMA FILEIRA
+ * ==========================================================================
+ *
+ * A consulta é da BARRA, não da janela, e é por isso que ela existe: em 1440
+ * com o painel de detalhe aberto a faixa tem 828px, os dois grupos quebram, e
+ * a régua VERTICAL passa a aparecer no começo da segunda fileira — um traço
+ * solto, marcando nada. Uma consulta de janela leria "1440, cabe" e deixaria o
+ * traço lá.
+ *
+ * Empilhados, o que os separa é um fio HORIZONTAL no alto do segundo grupo: a
+ * mesma separação, no eixo em que ela faz sentido.
+ */
+@container barra (max-width: 900px) {
+  .promessa {
+    flex: 1 1 100%;
+    margin-left: 0;
+    padding-left: 0;
+    padding-top: var(--sp-8);
+    margin-top: var(--sp-4);
+    border-top: 1px solid var(--line);
+  }
+
+  .promessa::before {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+ * OS CONTADORES DE ESTÁGIO — o resultado do recorte
  *
  * OS TRÊS, SEMPRE — zerados inclusive. É esta linha que paga o fim das faixas
  * de agrupamento: "Prontos 0" custa 70px de largura numa linha que já existia,
  * e custava 40px de altura numa faixa que anunciava o nada.
+ *
+ * ELES MORAM NO GRUPO DO RECORTE, colados no período e na busca que os
+ * governam: "Novos 2" é quantos pedidos novos existem NAQUELE período e NAQUELA
+ * busca. Separados, eram dois números na tela sem nada dizendo que um manda no
+ * outro.
  * ======================================================================= */
 
 /*
@@ -67,11 +214,24 @@
   white-space: nowrap;
 }
 
-/* O mesmo fio de 2px que marca o bloco na lista, deitado em miniatura. */
-.contagem__fio {
-  width: 2px;
-  height: 14px;
+/*
+ * O MARCADOR DO CONTADOR É UM PONTO, e não o fio de 2px da lista.
+ *
+ * O fio funciona na LINHA de pedido porque ele é vertical ao lado de um bloco
+ * horizontal: ele diz "este grupo começa aqui". Numa fileira de três
+ * contadores, um traço vertical de 14px entre eles vira exatamente o que
+ * parece — um separador de lista, um "|" — e o estágio que ele deveria marcar
+ * some.
+ *
+ * O ponto é a marcação que o sistema já usa para status em contexto inline
+ * (`ds/StatusChip`), com o mesmo tamanho: 7px. Ele pertence ao número que vem
+ * depois dele, não ao vão que vem antes.
+ */
+.contagem__ponto {
+  width: 7px;
+  height: 7px;
   flex: 0 0 auto;
+  border-radius: var(--r-round);
   background: var(--st);
 }
 
@@ -82,26 +242,8 @@
 }
 
 /* ==========================================================================
- * AS FERRAMENTAS — sem cartão, sem borda, sem fundo
- *
- * O grupo já é alinhado à direita pela `ds-pagebar__tools`; o que sobra aqui é
- * o desenho de cada controle.
+ * OS CONTROLES DO RECORTE — sem cartão, sem borda, sem fundo
  * ======================================================================= */
-
-.filtros {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  column-gap: var(--sp-16);
-  row-gap: var(--sp-4);
-}
-
-.filtros__vao {
-  flex: 0 1 var(--sp-8);
-}
 
 /* O período: texto, e a sublinha é o estado. */
 .filtros__periodo {
@@ -390,43 +532,58 @@
  * ======================================================================= */
 
 @media (max-width: 767px) {
-  .filtros {
-    justify-content: flex-start;
-    gap: var(--sp-12);
+  /*
+   * NO TELEFONE AS DUAS FAIXAS EMPILHAM, e o agrupamento sobrevive à quebra: o
+   * recorte inteiro vem primeiro, a promessa depois, e o que os separa deixa de
+   * ser um fio vertical (que não faz sentido entre duas fileiras) e passa a ser
+   * um fio HORIZONTAL no alto do segundo grupo.
+   */
+  .orders__barra {
+    position: static;
+    align-items: stretch;
+    padding-inline: var(--page-pad-mobile);
   }
 
-  .filtros__vao {
-    display: none;
+  .filtros {
+    flex: 1 1 100%;
+    column-gap: var(--sp-12);
+  }
+
+  /*
+   * O EMPILHAMENTO DOS DOIS GRUPOS já vem da consulta de container acima (a
+   * faixa do telefone tem 358px, muito abaixo dos 900). O que sobra aqui é só
+   * o que é do TELEFONE: os controles da promessa podem quebrar entre si.
+   */
+  .promessa {
+    flex-wrap: wrap;
+    column-gap: var(--sp-12);
+    row-gap: var(--sp-4);
   }
 
   /*
    * A BUSCA VEM PRIMEIRO NO TELEFONE. Ela é a única ferramenta desta barra que
-   * alguém usa de pé no balcão — o período e as duas promessas são conferência
-   * de escritório.
+   * alguém usa de pé no balcão — o período é conferência de escritório.
    */
   .filtros__busca {
     flex: 1 1 100%;
     order: -1;
   }
 
-  /*
-   * O CONTROLE DE PREPARO PODE QUEBRAR — e precisa.
-   *
-   * Ele é `white-space: nowrap` e `inline-flex` porque no desktop ele é uma
-   * frase só ("Preparo 25–35 min na Pizzaria do Zé — Aldeota +5 +10 −5"). Em
-   * 390px essa frase mede uns 480px, e como ele não quebrava, o botão "−5"
-   * ficava FORA da tela: rolagem horizontal na página inteira, que é o que a
-   * régua de responsividade proíbe.
-   *
-   * Aqui ele volta a ser um bloco de largura inteira, com os passos caindo para
-   * a segunda linha quando não couberem ao lado do valor.
-   */
+  .filtros__periodo {
+    flex: 1 1 auto;
+  }
+
   /*
    * SÓ O CONTROLE DE AJUSTE toma a fileira inteira. `.prep` é a mesma classe
-   * das duas promessas — o preparo, que tem três botões, e a entrega, que é
-   * um valor de leitura. Com a regra em `.prep`, a entrega também ganhava uma
-   * fileira só para dizer "30–50 min", e a barra do telefone crescia uma linha
-   * inteira à toa.
+   * das duas promessas — o preparo, que tem três botões, e a entrega, que é um
+   * valor de leitura. Com a regra em `.prep`, a entrega também ganhava uma
+   * fileira só para dizer "30–50 min".
+   *
+   * E ele PRECISA quebrar: `.prep` é `white-space: nowrap` porque no desktop é
+   * uma frase só ("Preparo 25–35 min na Pizzaria do Zé — Aldeota +5 +10 −5"),
+   * que em 390px mede uns 480px. Sem quebrar, o botão "−5" ficava FORA da tela
+   * — rolagem horizontal na página inteira, que a régua de responsividade
+   * proíbe.
    */
   .prep--ajuste {
     flex: 1 1 100%;
@@ -441,7 +598,7 @@
 
   /*
    * NO TELEFONE A PALAVRA DA CONEXÃO VOLTA. A consulta de container a esconde
-   * abaixo de 1100px porque lá ela disputa espaço com sete outros controles na
+   * abaixo de 1100px porque lá ela disputa espaço com os outros controles da
    * mesma fileira; aqui a fileira é dela, e um ponto colorido sozinho, sem
    * hover para explicá-lo, não diz nada a ninguém.
    */
@@ -451,10 +608,6 @@
     height: auto;
     margin: 0;
     clip: auto;
-  }
-
-  .filtros__periodo {
-    flex: 1 1 auto;
   }
 
   .orders__alert,

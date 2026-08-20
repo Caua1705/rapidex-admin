@@ -70,6 +70,9 @@ test('o cartão conta a espera e acende quando passa do preparo da filial', asyn
   await expect(page.getByTestId('kitchen-wait-1003')).toHaveText('25 min');
   await expect(page.getByTestId('kitchen-card-1003')).toHaveAttribute('data-wait', 'due');
 
+  // A conexão do SSE precisa EXISTIR antes do empurrão: ver `waitForStream`.
+  await api.waitForStream();
+
   api.pushNewOrder(
     api.makeOrder({
       id: 'ord-3001',
@@ -195,6 +198,14 @@ test('pedido novo aceito chega sozinho pelo SSE', async ({ page }) => {
   // ligado" não serve de âncora: no falso, a conexão só é atendida quando há
   // evento, então ela fica legitimamente em "Reconectando…" até o primeiro.
   await expect(page.getByTestId('kitchen-card-1003')).toBeVisible();
+
+  /*
+   * E A COLUNA CARREGADA TAMBÉM NÃO BASTA: ela prova que a LISTA chegou, não
+   * que o SSE já está pendurado. Um evento empurrado antes disso nasce atrás do
+   * cursor da conexão que ainda vai chegar e não é entregue a ninguém — era o
+   * que fazia este teste falhar de vez em quando sob carga. Ver `waitForStream`.
+   */
+  await api.waitForStream();
 
   api.pushNewOrder(
     api.makeOrder({

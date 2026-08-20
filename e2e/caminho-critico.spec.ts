@@ -96,12 +96,20 @@ test('o detalhe é painel lateral: o quadro fica visível e o conteúdo troca', 
 
   const painel = page.getByTestId('order-panel');
 
-  // A COLUNA É PERMANENTE: sem seleção ela existe e explica o que faz. É o que
-  // impede o quadro de mudar de largura a cada clique — com a gaveta antiga,
-  // o cartão seguinte trocava de posição embaixo do ponteiro.
+  /*
+   * A TELA ESCOLHE O PRIMEIRO PEDIDO SOZINHA, como o Gmail abre na primeira
+   * conversa. Antes a coluna abria com uma frase explicando o que acontece se
+   * alguém clicar — um terço da tela gasto para ensinar o clique que o lojista
+   * dá cinquenta vezes por turno.
+   *
+   * #1001 é o primeiro da lista: a faixa "Novos" vem antes de "Em preparo".
+   */
   await expect(painel).toBeVisible();
-  await expect(painel).toContainText('Clique num pedido');
+  await expect(painel).toContainText('#1001');
+  await expect(painel).toContainText('Marcos Lima');
 
+  // A COLUNA É PERMANENTE: o quadro não muda de largura a cada clique — com a
+  // gaveta antiga, o cartão seguinte trocava de posição embaixo do ponteiro.
   await page.getByTestId('order-card-1002').click();
   await expect(painel).toContainText('#1002');
   // O quadro continua na tela, com as faixas todas.
@@ -114,11 +122,55 @@ test('o detalhe é painel lateral: o quadro fica visível e o conteúdo troca', 
   await expect(painel).toContainText('Rafael Nunes');
   await expect(painel).not.toContainText('#1002');
 
-  // Fechar volta ao estado vazio — a coluna fica, o quadro não se mexe.
+  /*
+   * Fechar volta ao estado vazio — a coluna fica, o quadro não se mexe.
+   *
+   * E NÃO REABRE SOZINHA: a escolha automática vale uma vez por visita. Sem
+   * essa trava, o botão "Fechar detalhe" seria um botão que não faz nada.
+   */
   await page.getByRole('button', { name: 'Fechar detalhe' }).click();
   await expect(painel).toContainText('Clique num pedido');
   await expect(painel).not.toContainText('#1003');
+  await expect(painel).not.toContainText('#1001');
   await expect(page.getByTestId('order-card-1003')).toBeVisible();
+});
+
+/*
+ * O HISTÓRICO DO CLIENTE, no detalhe do pedido.
+ *
+ * A pergunta é "esta pessoa volta sempre?", e ela é feita ANTES de aceitar. O
+ * dado sai da mesma rota da tela de Clientes, procurado por telefone — não há
+ * rota nova.
+ *
+ * O teste cobre os dois casos que a tela sabe escrever E o casamento por
+ * telefone: os três pedidos do falso têm telefones diferentes, então mostrar o
+ * histórico da pessoa errada aqui apareceria como número trocado.
+ */
+test('o detalhe diz há quanto tempo a pessoa é cliente e quantos pedidos fez', async ({ page }) => {
+  await fazerLogin(page);
+
+  const painel = page.getByTestId('order-panel');
+  const historico = painel.getByTestId('customer-history');
+
+  // Marcos Lima (#1001, escolhido sozinho): 5 pedidos, primeiro há 300 dias.
+  await expect(historico).toContainText('5 pedidos');
+  await expect(historico).toContainText('Cliente há');
+
+  // Ana Paula (#1002): a freguesa antiga.
+  await page.getByTestId('order-card-1002').click();
+  await expect(painel).toContainText('Ana Paula');
+  await expect(historico).toContainText('12 pedidos');
+
+  // O telefone aparece formatado, como na tela de Clientes.
+  await expect(painel).toContainText('(85) 99999-0000');
+
+  /*
+   * Rafael Nunes (#1003) está no PRIMEIRO pedido — e aí a frase é outra. Não
+   * existe "Cliente há 0 dias · 1 pedido": quem estreia merece a frase curta.
+   */
+  await page.getByTestId('order-card-1003').click();
+  await expect(painel).toContainText('Rafael Nunes');
+  await expect(historico).toHaveText('Primeiro pedido');
 });
 
 /*
@@ -183,6 +235,21 @@ test('transição recusada pelo backend vira mensagem clara na tela', async ({ p
 test('pedido novo chega sozinho pelo SSE', async ({ page }) => {
   await fazerLogin(page);
   await expect(page.getByTestId('order-card-1002')).toBeVisible();
+
+  /*
+   * ESPERA A CONEXÃO DO SSE EXISTIR ANTES DE EMPURRAR O EVENTO.
+   *
+   * O quadro pinta antes de o SSE conectar, e um evento empurrado nesse vão
+   * nasce atrás do cursor da conexão que ainda vai chegar: ele não é entregue a
+   * ninguém. O teste passava por sorte, quando a conexão vencia a corrida —
+   * e com a tela fazendo mais uma leitura na abertura (o detalhe do pedido
+   * escolhido sozinho), passou a perdê-la sob carga.
+   *
+   * Esperar "Tempo real" na barra não serviria: o falso segura a resposta do
+   * SSE até haver o que mandar, então o estado só vira "live" DEPOIS do
+   * primeiro evento. Ver `waitForStream` em `fake-api.ts`.
+   */
+  await api.waitForStream();
 
   api.pushNewOrder(
     api.makeOrder({
@@ -261,8 +328,9 @@ test('o seletor de filial do cabeçalho filtra o quadro', async ({ page }) => {
   await expect(seletor.locator('.branch__detail')).toHaveCount(0);
   await expect(page.getByTestId('order-card-1002')).toBeVisible();
 
-  // A barra de filtros não tem mais campo de filial: um só lugar decide isso.
-  await expect(page.locator('.filtros').getByLabel('Filial')).toHaveCount(0);
+  // NENHUM DOS DOIS GRUPOS da segunda faixa tem campo de filial — nem o do
+  // recorte, nem o da promessa. Um só lugar decide isso, e é o seletor do topo.
+  await expect(page.locator('.orders__barra').getByLabel('Filial')).toHaveCount(0);
 
   const requisicao = page.waitForRequest(
     (request) =>
@@ -445,6 +513,24 @@ test('filial fechada mostra a mensagem e não oferece contorno', async ({ page }
 test('401 em qualquer chamada limpa a sessão e volta ao login', async ({ page }) => {
   await fazerLogin(page);
   await expect(page.getByTestId('order-card-1002')).toBeVisible();
+
+  /*
+   * ESPERA O PAINEL TERMINAR DE CARREGAR ANTES DE VENCER O TOKEN.
+   *
+   * A tela escolhe o primeiro pedido sozinha na abertura, e essa escolha dispara
+   * DUAS leituras em cadeia: o detalhe (`GET /admin/orders/{id}`) e, com o
+   * telefone que ele traz, o histórico do cliente (`GET /admin/customers`). Sem
+   * esta espera, o token vencia no meio da cadeia: a sessão caía por causa
+   * dela, a tela ia para o login sozinha, e o clique abaixo — que é o assunto
+   * deste teste — nunca acontecia.
+   *
+   * A linha do histórico é a ÚLTIMA das duas a chegar, então esperar por ela é
+   * esperar o painel terminar. A espera não enfraquece a cobertura: ela só
+   * garante que a chamada que derruba a sessão é a do botão, e não uma que
+   * estava a caminho.
+   */
+  await expect(page.getByTestId('order-panel')).toContainText('#1001');
+  await expect(page.getByTestId('customer-history')).toBeVisible();
 
   // Token vencido no servidor: a próxima chamada responde 401.
   api.expireSession();

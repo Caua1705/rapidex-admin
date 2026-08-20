@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { customerKey, customerName, daysSince, formatPhone, formatSince } from './customer-model';
+import {
+  customerHistoryLine,
+  customerKey,
+  customerName,
+  daysSince,
+  formatPhone,
+  formatSince,
+  phoneDigits,
+} from './customer-model';
 import type { CustomerListItem } from '../api/types';
 
 function customer(overrides: Partial<CustomerListItem> = {}): CustomerListItem {
@@ -117,5 +125,79 @@ describe('customerName', () => {
 
   it('não mexe no nome que existe', () => {
     expect(customerName(customer())).toBe('Ana Paula');
+  });
+});
+
+describe('phoneDigits', () => {
+  /*
+   * ELE É A CHAVE DE COMPARAÇÃO entre duas telas: o pedido guarda
+   * `customer_phone_snapshot` e a lista de clientes guarda `customer_phone`, e
+   * a mesma pessoa chega nos dois em formatos diferentes. Se estes casos
+   * quebrarem, o detalhe do pedido passa a mostrar o histórico de outra pessoa
+   * — ou de nenhuma.
+   */
+  it('reduz formatos diferentes do mesmo número à mesma forma', () => {
+    expect(phoneDigits('(85) 99999-0000')).toBe('85999990000');
+    expect(phoneDigits('85999990000')).toBe('85999990000');
+    expect(phoneDigits('+55 85 99999-0000')).toBe('85999990000');
+    expect(phoneDigits('5585999990000')).toBe('85999990000');
+  });
+
+  it('tira o 55 do país só quando o que SOBRA é um número brasileiro inteiro', () => {
+    // 12 dígitos: 55 + 10 (fixo). Sai.
+    expect(phoneDigits('558532224444')).toBe('8532224444');
+    // 11 dígitos que POR ACASO começam com 55: não é código de país.
+    expect(phoneDigits('55987654321')).toBe('55987654321');
+  });
+
+  it('devolve o que não é número brasileiro sem mutilar', () => {
+    expect(phoneDigits('+1 415 555 0100')).toBe('14155550100');
+    expect(phoneDigits('')).toBe('');
+  });
+});
+
+describe('customerHistoryLine', () => {
+  /*
+   * A LINHA QUE O LOJISTA LÊ ANTES DE ACEITAR. Ela responde "esta pessoa volta
+   * sempre?", e cada caso tem uma frase própria — inclusive o caso em que o
+   * contrato não dá a data.
+   */
+  const agora = Date.parse('2026-08-20T15:00:00Z');
+
+  it('quem estreia ganha a frase curta, não "há 0 dias · 1 pedido"', () => {
+    const linha = customerHistoryLine(
+      customer({ orders_count: 1, first_order_at: '2026-08-20T14:00:00Z' }),
+      agora,
+    );
+    expect(linha).toBe('Primeiro pedido');
+  });
+
+  it('quem volta ganha a distância e a contagem, nessa ordem', () => {
+    const linha = customerHistoryLine(
+      customer({ orders_count: 12, first_order_at: '2025-08-20T14:00:00Z' }),
+      agora,
+    );
+    expect(linha).toBe('Cliente há 1 ano · 12 pedidos');
+  });
+
+  it('"desde hoje" e "desde ontem", porque "Cliente hoje" não é português', () => {
+    expect(
+      customerHistoryLine(
+        customer({ orders_count: 3, first_order_at: '2026-08-20T09:00:00Z' }),
+        agora,
+      ),
+    ).toBe('Cliente desde hoje · 3 pedidos');
+
+    expect(
+      customerHistoryLine(
+        customer({ orders_count: 2, first_order_at: '2026-08-19T09:00:00Z' }),
+        agora,
+      ),
+    ).toBe('Cliente desde ontem · 2 pedidos');
+  });
+
+  it('sem data no contrato, sobra a contagem — nada é estimado', () => {
+    const linha = customerHistoryLine(customer({ orders_count: 7, first_order_at: null }), agora);
+    expect(linha).toBe('7 pedidos');
   });
 });

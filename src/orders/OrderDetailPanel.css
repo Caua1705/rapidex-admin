@@ -150,6 +150,23 @@
 }
 
 /*
+ * O HISTÓRICO DO CLIENTE — "Cliente há 3 meses · 12 pedidos".
+ *
+ * Ela é a linha de apoio do bloco do cliente, e não uma linha de razão: não tem
+ * rótulo à esquerda e valor à direita, porque é uma FRASE, não um par. É a
+ * resposta a "esta pessoa volta sempre?", que o lojista faz antes de aceitar.
+ *
+ * Tinta de apoio e corpo auxiliar: ela qualifica o nome logo acima, não compete
+ * com ele. Quem manda no bloco continua sendo quem está pedindo.
+ */
+.detail__cliente-historico {
+  margin: var(--sp-4) 0 0;
+  color: var(--ink-3);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+}
+
+/*
  * A LINHA DE RAZÃO: rótulo à esquerda em tinta de apoio, valor à direita em
  * tinta cheia. É a mesma leitura por coluna da lista ao lado, reduzida a duas
  * colunas — o olho desce pelos valores sem reler os rótulos.

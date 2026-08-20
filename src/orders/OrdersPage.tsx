@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import type { OrderListItem } from '../api/types';
@@ -9,6 +9,7 @@ import {
   LANES,
   countFor,
   countForView,
+  firstVisibleOrder,
   groupIntoLanes,
   historyOrders,
   type BoardView,
@@ -18,10 +19,11 @@ import { Tabs } from '../ds/Tabs';
 import { OrderBlock } from './OrderBlock';
 import { OrderDetailPanel } from './OrderDetailPanel';
 import { OrderLine } from './OrderLine';
-import { OrdersFilters } from './OrdersFilters';
+import { OrdersActions, OrdersToolbar } from './OrdersToolbar';
 import { STATUS_LABELS } from './order-status';
 import { useNewOrderSound } from './useNewOrderSound';
 import { useOrderStream } from './useOrderStream';
+import { useDetailColumn } from './useDetailColumn';
 import { useOrdersBoard } from './useOrdersBoard';
 import { usePrepRange } from './usePrepRange';
 import './OrdersPage.css';
@@ -96,6 +98,42 @@ export function OrdersPage() {
   const historico = historyOrders(board.orders);
 
   /*
+   * ============================================================================
+   * A TELA ESCOLHE O PRIMEIRO PEDIDO SOZINHA
+   * ============================================================================
+   *
+   * Sem isso, a coluna de 400px do detalhe abria com uma frase explicando o que
+   * acontece se alguém clicar — um terço da tela gasto para ensinar o clique
+   * que o lojista dá cinquenta vezes por turno. Agora ela abre no pedido de
+   * cima, como o Gmail abre na primeira conversa.
+   *
+   * TRÊS CONDIÇÕES, E CADA UMA EVITA UM ESTRAGO:
+   *
+   *   1. SÓ ONDE O PAINEL É COLUNA (`useDetailColumn`). Abaixo de 1280px ele
+   *      flutua sobre a lista e, no telefone, é a tela inteira — escolher
+   *      sozinho ali faria "abrir Pedidos" virar "cair num detalhe com a lista
+   *      escondida atrás".
+   *
+   *   2. SÓ UMA VEZ POR VISITA (`jaEscolheu`). Sem a trava, fechar o painel o
+   *      reabriria no mesmo instante, e o botão "Fechar detalhe" viraria um
+   *      botão que não faz nada.
+   *
+   *   3. SÓ COM A LISTA JÁ CARREGADA. `firstVisibleOrder` devolve nulo enquanto
+   *      não há pedido, então a trava não queima no primeiro quadro vazio: ela
+   *      espera a lista chegar.
+   */
+  const detalheEhColuna = useDetailColumn();
+  const jaEscolheu = useRef(false);
+  const primeiroDaLista = firstVisibleOrder(board.orders, view)?.id ?? null;
+
+  useEffect(() => {
+    if (!detalheEhColuna || jaEscolheu.current) return;
+    if (selectedOrderId !== null || primeiroDaLista === null) return;
+    jaEscolheu.current = true;
+    setSelectedOrderId(primeiroDaLista);
+  }, [detalheEhColuna, selectedOrderId, primeiroDaLista]);
+
+  /*
    * Quantos pedidos os três blocos somam. É a soma dos CONTADORES do filtro,
    * não das linhas carregadas: com a primeira página cheia de concluídos, as
    * linhas em andamento podem ser zero enquanto o filtro tem pedidos abertos
@@ -147,6 +185,19 @@ export function OrdersPage() {
           inclusive, custando largura numa linha que já existia em vez de altura
           em três faixas.
         */}
+        {/*
+          FAIXA 1 — A TELA: onde estou e o que posso apertar.
+
+          Antes eram quatro blocos empilhados antes do primeiro pedido: título,
+          subtítulo explicando a tela, abas com régua própria e um cartão branco
+          de filtros com 130px de altura. O primeiro pedido começava a ~500px do
+          topo, e painel operacional não se apresenta.
+
+          Hoje esta faixa carrega só duas coisas: a NAVEGAÇÃO (as abas) à
+          esquerda, com o título, e a AÇÃO (som e atualizar) encostada na margem
+          direita — o canto em que toda tela do painel põe a ação. Tudo o que se
+          LÊ desceu para a segunda faixa. Ver o cabeçalho de `OrdersToolbar`.
+        */}
         <PageBar
           title="Pedidos"
           aside={
@@ -175,23 +226,43 @@ export function OrdersPage() {
                   O CONTADOR DIZ O QUE HÁ DO OUTRO LADO — por isso ele fica na
                   aba FECHADA, e sai da aberta. Na aba aberta ele seria a mesma
                   informação duas vezes na mesma dobra: os contadores de estágio
-                  ao lado já somam esse número.
+                  da segunda faixa já somam esse número.
                 */
                 count: view === aba.key ? undefined : countForView(aba.key, board.counts),
               }))}
             />
           }
-          meta={
+        >
+          <OrdersActions
+            isLoading={board.isLoading}
+            soundBlocked={sound.isBlocked}
+            isMuted={sound.isMuted}
+            onEnableSound={() => void sound.unblock()}
+            onToggleMute={sound.toggleMute}
+            onReload={() => void board.reload()}
+          />
+        </PageBar>
+
+        {/*
+          FAIXA 2 — A LISTA E A LOJA: o recorte à esquerda, a promessa à direita.
+        */}
+        <OrdersToolbar
+          filters={board.filters}
+          streamStatus={streamStatus}
+          onChange={board.updateFilters}
+          contagens={
             view === 'andamento' ? (
               <div className="contagens" aria-label="Pedidos por estágio">
                 {LANES.map((lane) => (
                   <span key={lane.key} className={`contagem is-${lane.stage}`}>
-                    <i className="contagem__fio" aria-hidden="true" />
+                    <i className="contagem__ponto" aria-hidden="true" />
                     {lane.title}
                     {/*
                       O contador vem de /admin/orders/status-counts e conta o
                       FILTRO inteiro, não só o que está carregado. Por isso ele
-                      pode ser maior que o número de linhas abaixo.
+                      pode ser maior que o número de linhas abaixo — e é por isso
+                      que ele mora AQUI, colado no período e na busca que o
+                      governam.
                     */}
                     <b data-testid={`badge-${lane.key}`}>{countFor(lane.statuses, board.counts)}</b>
                   </span>
@@ -199,19 +270,7 @@ export function OrdersPage() {
               </div>
             ) : null
           }
-        >
-          <OrdersFilters
-            filters={board.filters}
-            streamStatus={streamStatus}
-            isLoading={board.isLoading}
-            soundBlocked={sound.isBlocked}
-            isMuted={sound.isMuted}
-            onEnableSound={() => void sound.unblock()}
-            onToggleMute={sound.toggleMute}
-            onChange={board.updateFilters}
-            onReload={() => void board.reload()}
-          />
-        </PageBar>
+        />
 
         {board.errorMessage ? (
           <p className="alert alert--error orders__alert" role="alert">
@@ -279,18 +338,28 @@ export function OrdersPage() {
         </div>
       </div>
 
-      <OrderDetailPanel
-        orderId={selectedOrderId}
-        onClose={() => {
-          setSelectedOrderId(null);
-          board.clearActionError();
-        }}
-        onChangeStatus={board.changeOrderStatus}
-        onCancelOrder={board.cancelOrderWithReason}
-        actionErrorMessage={
-          board.actionError?.orderId === selectedOrderId ? board.actionError.message : null
-        }
-      />
+      {/*
+        SEM PEDIDO NENHUM NA LISTA, O PAINEL NÃO EXISTE.
+        Uma coluna de 400px dizendo "clique num pedido" ao lado de uma lista sem
+        nenhum pedido para clicar é a tela pedindo o impossível. Com pedidos, ela
+        continua permanente: é o que impede as linhas de andarem embaixo do
+        ponteiro a cada clique.
+      */}
+      {selectedOrderId !== null || primeiroDaLista !== null ? (
+        <OrderDetailPanel
+          orderId={selectedOrderId}
+          branchId={activeBranchId}
+          onClose={() => {
+            setSelectedOrderId(null);
+            board.clearActionError();
+          }}
+          onChangeStatus={board.changeOrderStatus}
+          onCancelOrder={board.cancelOrderWithReason}
+          actionErrorMessage={
+            board.actionError?.orderId === selectedOrderId ? board.actionError.message : null
+          }
+        />
+      ) : null}
     </div>
   );
 }

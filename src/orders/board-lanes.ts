@@ -91,6 +91,29 @@ export function groupIntoLanes(orders: OrderListItem[]): Record<string, OrderLis
   return grouped;
 }
 
+/**
+ * O PRIMEIRO PEDIDO QUE A TELA DESENHA — o de cima da lista, seja qual for a
+ * aba.
+ *
+ * Ele existe porque a tela escolhe um pedido sozinha na abertura (ver
+ * `OrdersPage`), e "o primeiro" não é `orders[0]`: em "Em andamento" a lista é
+ * a concatenação das faixas na ordem de `LANES`, e a primeira faixa pode estar
+ * vazia. `orders[0]` seria o primeiro pedido CARREGADO, que pode estar na
+ * terceira faixa e não ser o primeiro que o olho encontra.
+ *
+ * `null` quando não há nada para escolher.
+ */
+export function firstVisibleOrder(orders: OrderListItem[], view: BoardView): OrderListItem | null {
+  if (view === 'historico') return historyOrders(orders)[0] ?? null;
+
+  const grouped = groupIntoLanes(orders);
+  for (const lane of LANES) {
+    const primeiro = grouped[lane.key]?.[0];
+    if (primeiro) return primeiro;
+  }
+  return null;
+}
+
 /** Os pedidos do histórico, na ordem em que vieram. */
 export function historyOrders(orders: OrderListItem[]): OrderListItem[] {
   return orders.filter((order) => HISTORY_STATUSES.includes(order.status as OrderStatus));
