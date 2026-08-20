@@ -144,11 +144,7 @@ export type SourceRect = { sx: number; sy: number; size: number };
  * não perde definição por passar por um desenho do tamanho da tela — o quadro
  * na tela tem uns 260px, e a saída tem 1080.
  */
-export function sourceRectFor(
-  natural: NaturalSize,
-  frame: number,
-  crop: CropState,
-): SourceRect {
+export function sourceRectFor(natural: NaturalSize, frame: number, crop: CropState): SourceRect {
   const scale = coverScale(natural, frame) * crop.zoom;
   if (scale <= 0) return { sx: 0, sy: 0, size: 0 };
 

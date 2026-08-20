@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 
 import type { OrderListItem } from '../api/types';
-import { OrderCard } from './OrderCard';
+import { OrderLine } from './OrderLine';
 
 function orderFixture(overrides: Partial<OrderListItem> = {}): OrderListItem {
   return {
@@ -22,9 +22,16 @@ function orderFixture(overrides: Partial<OrderListItem> = {}): OrderListItem {
   };
 }
 
-describe('OrderCard', () => {
+describe('OrderLine', () => {
   it('mostra os dados que o lojista usa para decidir', () => {
-    render(<OrderCard order={orderFixture()} isSelected={false} onOpen={() => {}} />);
+    render(
+      <OrderLine
+        order={orderFixture()}
+        stageLabel="Em preparo"
+        isSelected={false}
+        onOpen={() => {}}
+      />,
+    );
 
     expect(screen.getByText('#137')).toBeInTheDocument();
     expect(screen.getByText('Maria Souza')).toBeInTheDocument();
@@ -38,27 +45,34 @@ describe('OrderCard', () => {
   // o pagamento online entrar.
   it('destaca pedido com pagamento online ainda não pago', () => {
     render(
-      <OrderCard
+      <OrderLine
         order={orderFixture({ payment_status: 'pending' })}
+        stageLabel="Novos"
         isSelected={false}
         onOpen={() => {}}
       />,
     );
 
     expect(screen.getByText(/não preparar/i)).toBeInTheDocument();
-    // O ticket é um só no sistema, e o modificador de alerta é o dele.
-    expect(screen.getByTestId('order-card-137').className).toContain('ds-ticket--alerta');
+    // A linha é uma só no sistema, e o modificador de alerta é o dela.
+    expect(screen.getByTestId('order-card-137').className).toContain('ds-row--alerta');
   });
 
   it('não destaca pedido pago nem pedido pago na entrega', () => {
     const { rerender } = render(
-      <OrderCard order={orderFixture()} isSelected={false} onOpen={() => {}} />,
+      <OrderLine
+        order={orderFixture()}
+        stageLabel="Em preparo"
+        isSelected={false}
+        onOpen={() => {}}
+      />,
     );
     expect(screen.queryByText(/não preparar/i)).not.toBeInTheDocument();
 
     rerender(
-      <OrderCard
+      <OrderLine
         order={orderFixture({ payment_status: 'on_delivery', payment_method: 'cash' })}
+        stageLabel="Novos"
         isSelected={false}
         onOpen={() => {}}
       />,
@@ -69,7 +83,14 @@ describe('OrderCard', () => {
 
   it('abre o detalhe ao clicar', async () => {
     const onOpen = vi.fn();
-    render(<OrderCard order={orderFixture()} isSelected={false} onOpen={onOpen} />);
+    render(
+      <OrderLine
+        order={orderFixture()}
+        stageLabel="Em preparo"
+        isSelected={false}
+        onOpen={onOpen}
+      />,
+    );
 
     await userEvent.click(screen.getByTestId('order-card-137'));
     expect(onOpen).toHaveBeenCalledTimes(1);

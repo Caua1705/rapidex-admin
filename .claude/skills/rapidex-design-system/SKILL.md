@@ -5,28 +5,23 @@ description: Fonte de verdade visual do Admin Rapidex. Use ao criar, alterar ou 
 
 # Design system do Admin Rapidex
 
-> **AVISO — FASE 1 DE UMA NOVA DIREÇÃO VISUAL ESTÁ NO CÓDIGO (2026-08-20).**
->
-> Os tokens, os primitivos e DUAS telas (Pedidos e Minha loja › Geral) já
-> seguem a direção nova; o resto do painel ainda não foi propagado, e este
-> documento ainda descreve a direção ANTERIOR. Enquanto a fase 3 não o
-> reescreve, a fonte de verdade das escolhas estéticas é
-> `src/styles/tokens.css` — leia o cabeçalho dele antes de confiar nas seções
-> de Tipografia, Espaçamento, Raios, Superfícies e Cor daqui.
->
-> O que já divergiu: escala tipográfica (título 24/700, seção 15/600, rótulo
-> 12/600 em `--ink-3`), raios (4/6/8/12/16), alturas de controle (36/30/44),
-> separação por TOM em vez de borda (`--card-edge`), sombra só onde há elevação
-> (`--shadow-card` é `none`), neutros quentes e `--ember` em `#c2410c`.
->
-> O que NÃO mudou e continua valendo: os limites invariáveis, a semântica de
-> status, a disciplina de tokens, contraste medido, `focus-visible`, movimento
-> reduzido e a regra de reutilização.
+Este documento descreve o painel que EXISTE, não o que se pretende construir.
+Cada número aqui está em `src/styles/tokens.css`, cada componente está em
+`src/ds/`, e cada regra tem um arquivo que a aplica. Se algo daqui divergir do
+código, o código está certo e este documento está velho — corrija o documento,
+nunca crie uma segunda linguagem visual para contornar a divergência.
 
-Este documento descreve o painel implementado. O código de referência está em
-`src/styles/tokens.css`, `src/styles/primitives.css`, `src/ds/`, `src/layout/`
-e nos estilos das páginas. Se uma regra daqui divergir do código, corrija a
-divergência; não crie uma segunda linguagem visual por página.
+Código de referência:
+
+| Camada         | Arquivo                                                       |
+| -------------- | ------------------------------------------------------------- |
+| Tokens         | `src/styles/tokens.css` — o único lugar com valor literal      |
+| Reset e foco   | `src/styles/reset.css`                                        |
+| Tipografia     | `src/styles/typography.css` — as classes `.t-*`               |
+| Primitivos CSS | `src/styles/primitives.css` — botão, campo, aviso, etiqueta    |
+| Componentes    | `src/ds/`                                                     |
+| Moldura        | `src/layout/AppShell.*`                                       |
+| Galeria viva   | `/ui`, só em desenvolvimento (`src/ui-gallery/`)              |
 
 ## Limites invariáveis
 
@@ -39,369 +34,703 @@ Trabalho de interface pode reorganizar markup e composição, mas preserva:
 - cálculos, filial, cashback, cupons, WhatsApp e integrações;
 - dados reais. Não criar exemplos, APIs, rotas ou funções inexistentes.
 
-Antes de alterar um componente funcional, identifique essas fronteiras. O
-backend continua sendo a autoridade mesmo quando a UI antecipa uma restrição.
+O backend continua sendo a autoridade mesmo quando a UI antecipa uma restrição.
+Páginas "Em breve" são estado vazio honesto, nunca tela falsa: sem botão morto,
+sem número de exemplo, sem barra de progresso.
 
-## Identidade
+## A direção — "Refinada"
 
-O Admin Rapidex é software comercial de operação e gestão de restaurantes.
-Deve transmitir confiança, velocidade, organização, precisão e estabilidade.
-O usuário precisa reconhecer em segundos onde está, o que requer atenção e
-qual ação é segura.
+Três direções visuais foram construídas lado a lado e comparadas na tela (uma
+tabela sóbria, um quadro de cartões arredondados e um console escuro denso). A
+escolhida foi a primeira, e ela se resume em sete decisões. Todas as seções
+seguintes são consequência delas.
 
-Personalidade:
+**1. A tipografia é a hierarquia.** IBM Plex Sans, autohospedada. Quem separa
+título de dado é corpo, peso e tinta — nunca caixa alta, nunca cor.
 
-- profissional e direta, sem ser impessoal;
-- densa quando a operação exige e calma nas áreas de gestão;
-- contemporânea, mas resistente a modismos;
-- claramente Rapidex pelo uso disciplinado da marca, não por decoração.
+**2. Neutros frios.** Cinza com um grão de azul, do papel ao carvão. O frio
+afasta os neutros do laranja da marca, e é o que permite a decisão 4.
 
-Princípios de decisão, nesta ordem:
+**3. A lateral é clara.** Ela era escura nos dois temas, e era a peça que mais
+fazia o painel ler como console de servidor. Hoje ela segue o tema.
 
-1. clareza operacional;
-2. legibilidade e hierarquia;
-3. consistência e velocidade de uso;
-4. acessibilidade;
-5. responsividade e acabamento;
-6. identidade e estética.
+**4. O laranja tem UM emprego: a ação primária.** Botão de aceitar, de avançar
+o pedido, de salvar, de criar. Ele NÃO pinta navegação, seleção, foco, rótulo,
+borda, ícone, gráfico ou destaque decorativo. Uma cor que aparece em oito
+lugares não destaca nenhum.
+
+**5. Pedido é linha, não cartão.** Onze cartões são onze molduras disputando a
+mesma atenção. A linha põe os campos em colunas alinhadas e deixa o alinhamento
+fazer o trabalho que a moldura fazia.
+
+**6. A tela é uma FOLHA.** Não existe cartão branco flutuando sobre chão cinza.
+O plano da página é `--surface` do começo ao fim; quem dá começo e fim a um
+bloco é um FIO e o respiro. Cartão sobre chão é a estética de painel
+administrativo de biblioteca pronta, e ela saiu inteira nesta rodada.
+
+**7. No celular a linha não dobra — ela troca de desenho.** A leitura por
+coluna é o ganho inteiro da direção e ela some assim que a linha dobra em duas.
+No telefone a densidade importa menos (o dono quer ver os 3 novos, não os 33),
+então lá vale legibilidade e alvo de toque.
+
+Princípios de decisão, quando estética competir com operação, nesta ordem:
+clareza operacional, legibilidade, hierarquia, consistência, velocidade de uso,
+acessibilidade, acabamento, identidade, estética.
 
 O painel não deve parecer ERP antigo, template administrativo genérico,
-wireframe, projeto acadêmico, equipamento industrial ou SaaS azul-cinza sem
-identidade. Premium significa alinhamento, ritmo, proporção e microinteração;
-não significa glassmorphism, gradiente decorativo, blur, sombra pesada ou card
-para toda informação.
+wireframe, projeto acadêmico ou SaaS azul-cinza sem identidade. Premium aqui
+significa alinhamento, ritmo, proporção e microinteração — nunca glassmorphism,
+gradiente decorativo, blur, sombra pesada ou cartão para toda informação.
 
 ## Tipografia
 
-A interface usa **Inter Variable**, autohospedada por
-`@fontsource-variable/inter`. Ela permanece por legibilidade, boa métrica em
-controles densos e numerais consistentes — não por herança visual.
+**IBM Plex Sans Variable**, autohospedada por `@fontsource-variable/ibm-plex-sans`
+(importada em `src/main.tsx`, sem CDN). Ela substituiu a Inter porque a
+neo-grotesca neutra por definição não tem defeito e não tem voz; a Plex tem osso
+de grotesca de engenharia sem virar sotaque, e é ela que faz a mesma escala ler
+como INSTRUMENTO. `eslint.config.js` barra qualquer outra família no `.tsx`;
+`scripts/check-design-tokens.mjs` barra família monoespaçada em qualquer `.css`.
 
-Há cinco níveis compartilhados:
+Cinco níveis, e só cinco. Cada classe declara corpo, entrelinha, peso,
+espacejamento e tinta juntos — meia definição é como um nível vira quatro
+variantes em quatro telas.
 
-| Papel                | Tokens                                         | Uso                               |
-| -------------------- | ---------------------------------------------- | --------------------------------- |
-| Título de página     | `--tt-size: 26px`, `--tt-line: 34px`, peso 650 | um por rota                       |
-| Título de seção/card | `--ts-size: 16px`, `--ts-line: 24px`, peso 600 | seções, painéis e dialogs         |
-| Label                | `--tl-size: 12px`, `--tl-line: 16px`, peso 600 | campos, colunas, metadados fortes |
-| Corpo                | `--tb-size: 14px`, `--tb-line: 20px`, peso 400 | dados e texto principal           |
-| Auxiliar             | `--ta-size: 13px`, `--ta-line: 18px`, peso 400 | hints, horários e notas           |
+| Nível | Classe      | Tokens                              | Uso                                        |
+| ----- | ----------- | ----------------------------------- | ------------------------------------------ |
+| 1     | `.t-title`  | 22px / 28 / 600 / −0.022em / `--ink`   | título de página — um por rota           |
+| 2     | `.t-section`| 15px / 22 / 600 / −0.01em / `--ink`    | cartão, coluna, aba, diálogo             |
+| 3     | `.t-label`  | 12px / 16 / 600 / +0.004em / `--ink-3` | nome de campo, cabeçalho de coluna        |
+| 4     | `.t-body`   | 14px / 20 / 400 / −0.006em / `--ink`   | o conteúdo                                |
+| 5     | `.t-aux`    | 13px / 18 / 400 / −0.002em / `--ink-3` | ajuda, meta, hora, contagem               |
+
+Além deles existe `.t-crumb` (13 / 600 / `--ink-2`): o nome da seção aberta
+DENTRO de uma tela, que é a continuação do título e não um segundo título.
+
+A prova de revisão: bata o olho em qualquer texto da tela e diga qual nível ele
+usa. Se não der para dizer, o texto está errado — não falta um nível.
 
 Regras:
 
-- títulos são compactos; não criar hero type em tela administrativa;
-- produto, cliente e seção têm peso 600 quando são o ponto de entrada;
-- labels usam caixa de frase; caixa alta com tracking não pertence ao sistema;
-- dinheiro, hora, tempo e número de pedido usam `.tnum`; colunas numéricas
-  usam também `.num` para alinhamento à direita;
-- não usar fonte monoespaçada por estética;
-- KPIs usam `--metric-size: 28px` e tickets usam
-  `--ticket-time-size: 20px`;
-- somente a Cozinha usa a escala de distância: número 34px, item 18px e meta
-  15px.
+- **Caixa alta com tracking não existe no sistema.** Nem na navegação, nem em
+  cabeçalho de coluna. `check-design-tokens.mjs` barra `text-transform: uppercase`
+  fora de `tokens.css`.
+- **Pesos:** 400, 500, 550, 600, 700 (`--w-regular` … `--w-bold`). O 550
+  (`--w-strong`) existe por causa da Plex: entre 500 e 600 há um degrau grande, e
+  o NOME de uma linha de lista (cliente, produto) precisa ficar acima do corpo
+  comum sem chegar ao peso de título. Ele é o peso do nome em `OrderRow`,
+  `CustomersPage` e `MenuPage` — os três usam o mesmo.
+- **Números de alta prioridade:** `--row-time-*` (16/20) é o cronômetro da linha
+  de pedido e o total do detalhe do pedido; `--metric-*` (28/34) é o número do
+  painel de Desempenho. Não há um terceiro.
+- **`.tnum`** trava a métrica tabular; **`.num`** acrescenta alinhamento à
+  direita. Eles valem em quatro casos e só neles: dinheiro, hora, tempo
+  decorrido e nº de pedido. Contagem numa frase ("12 itens") não leva.
+- **A Cozinha é a única exceção de corpo** (`--k-num` 34, `--k-item` 18), e o
+  motivo é físico — ver "Cozinha" mais abaixo.
 
 ## Espaçamento
 
-A escala única é 4, 8, 12, 16, 20, 24 e 32px:
-`--sp-4` a `--sp-32` ou os aliases semânticos `--s-1` a `--s-7`.
+Sete degraus, e nada fora deles: `--sp-4`, `--sp-8`, `--sp-12`, `--sp-16`,
+`--sp-20`, `--sp-24`, `--sp-32`.
 
-- 4–8px: relação interna de controle;
-- 12–16px: irmãos, linhas e padding compacto;
-- 20–24px: blocos e seções;
-- 32px: estados vazios e respiro excepcional.
+- **4** dentro de um controle: ícone ↔ texto, rótulo ↔ campo;
+- **8** entre controles irmãos; padding de linha densa;
+- **12** entre campos de uma mesma linha;
+- **16** padding de bloco;
+- **20** entre blocos de uma seção;
+- **24** entre seções, e o respiro lateral da tela (`--page-pad`);
+- **32** topo de tela e estado vazio — o único degrau generoso.
 
-Não introduzir degraus casuais para corrigir uma página. Larguras de coluna e
-medidas de gráfico podem ser específicas quando descrevem o conteúdo.
+Não existem `--sp-2` nem `--sp-6`, e é de propósito. Medidas de CONTEÚDO (largura
+de coluna, faixa de gráfico, altura de barra) não são espaçamento e moram em
+tokens próprios — `--col-*`, `--chart-*`, `--w-*`.
+
+Os aliases legados `--s-1`…`--s-7` e os `--section-size`/`--weight-semibold` da
+direção anterior **não existem mais**. Um alias sem consumidor não é
+compatibilidade: é uma segunda maneira de escrever a mesma coisa, esperando
+alguém escolher a errada.
 
 ## Raios
 
-- `--r-xs: 5px`: checkbox e controles muito pequenos;
-- `--r-chip: 8px`: tags e cápsulas;
-- `--r-control` / `--r-field: 10px`: botões, inputs e segmentados;
-- `--r-card: 14px`: cards, tabelas e grupos;
-- `--r-sheet: 18px`: dialogs, menus e sheets;
-- `--r-round`: avatar, pontos e contadores circulares.
+`--r-xs: 3`, `--r-chip: 5`, `--r-field`/`--r-control: 7`, `--r-card: 10`,
+`--r-sheet: 14`, `--r-round: 999`.
 
-Raios comunicam escala do objeto. Não inventar um raio por componente.
+O raio diz o TAMANHO do objeto, não o gosto de quem o escreveu:
 
-## Superfícies
+- **xs** — o quadrado do checkbox, a ponta da coluna do gráfico;
+- **chip** — etiqueta, cápsula, contador;
+- **field / control** — botão, campo, segmento;
+- **card** — bloco, menu flutuante, balão ancorado num controle;
+- **sheet** — o que ocupa a tela: diálogo e a folha do celular.
 
-Planos semânticos:
+Não inventar um raio por componente. `check-design-tokens.mjs` barra
+`border-radius` com valor solto fora de `tokens.css`.
 
-- `--bg`: chão da aplicação;
-- `--surface`: trabalho estável, como cards, listas e topbar;
-- `--surface-raised`: conteúdo acima do fluxo, como drawer, dialog e menu;
-- `--surface-muted`: agrupamento, cabeçalho de tabela e hover discreto;
-- `--surface-selected`: seleção sem moldura agressiva;
-- `--field`: área editável;
-- `--console-*`: sidebar e navegação móvel.
+## Superfícies, fios e elevação
 
-Aplicação:
+### Os planos
 
-- sidebar: console escuro nos dois temas;
-- topbar: `surface`, borda inferior e `--shadow-shell`;
-- cards: `surface`, borda `--line` e `--shadow-card` apenas quando o bloco
-  precisa de começo e fim;
-- tabelas: uma superfície externa, cabeçalho muted e linhas separadas;
-- drawers/dialogs/menus: `surface-raised` e `--shadow-raised`;
-- campos: `field` com contorno `--line-control`;
-- filtros: uma única superfície agrupadora, não um card por controle.
+| Token              | Papel                                                       |
+| ------------------ | ----------------------------------------------------------- |
+| `--surface`        | **a folha** — o plano de toda tela do painel                |
+| `--surface-raised` | o que SOBE: menu, balão, diálogo, gaveta, barra de salvar   |
+| `--surface-muted`  | agrupamento: trilho do segmentado, palco de amostra          |
+| `--surface-selected` | seleção sem moldura — cinza frio, nunca a marca            |
+| `--field`          | o plano do que se PREENCHE                                   |
+| `--bg`             | o chão do SHELL, e a única tela que o usa como plano é o login |
+| `--nav-*`          | a navegação — família própria, ver "Shell"                   |
+| `--k-*`            | a Cozinha — paleta saturada, um valor por tema, ver "Cozinha" |
 
-Evite cards dentro de cards. Use espaço e mudança tonal antes de acrescentar
-borda; use sombra quando houver elevação real ou quando a superfície precisar
-se separar do chão. Bordas estruturam listas, campos e limites relevantes —
-não contornam toda frase.
+`--bg` **não é plano de página**. Toda tela autenticada é uma folha em
+`--surface`; o login é a exceção porque ali não há tela por baixo, há uma janela
+com um cartão centrado.
+
+### A regra de separação, na ordem
+
+1. **TOM** — o padrão. Um degrau de plano já é começo e fim de bloco.
+2. **FIO** — quando o limite é operável (campo), quando uma lista precisa de
+   régua entre linhas, quando um grupo precisa de começo, ou quando o tom não
+   chega (tema escuro: `--card-edge`).
+3. **SOMBRA** — só quando há elevação de verdade, isto é, quando o elemento
+   passa POR CIMA de outro conteúdo: menu, balão, diálogo, gaveta, barra
+   grudenta, cartão do login.
+
+Três fios, três trabalhos:
+
+- `--line` separa (régua de lista, divisão de seção);
+- `--line-strong` ABRE um grupo (primeira linha de um bloco, cabeçalho de
+  coluna sobre os dados, total sobre as parcelas);
+- `--line-control` contorna o que se opera, e é o único medido contra as
+  superfícies (WCAG 1.4.11).
+
+`--card-edge` é transparente no claro e `--line` no escuro. Ele existe para que
+"borda em tudo" acabe sem precisar de um bloco `[data-theme="dark"]` por
+componente.
+
+**Não existe sombra de bloco parado.** O token `--shadow-card` foi removido
+justamente porque valia `none` — e um token que vale `none` é um convite a
+alguém lhe dar um valor. Sobraram dois: `--shadow-lift` (o segmento ativo do
+segmentado) e `--shadow-raised` (o que flutua de verdade).
 
 ## Cor
 
-### Claro
+Valores literais existem SÓ em `src/styles/tokens.css`. `npm run lint` cobra
+isso nos dois lados: `check-design-tokens.mjs` no CSS, `eslint.config.js` no
+TS/TSX. `check-contrast.mjs` mede 180 pares nos dois temas contra a WCAG 2.2 AA
+e falha o build se algum reprovar — ao criar uma combinação nova, acrescente o
+par lá.
 
-- background `#f5f6f7`;
-- surface `#ffffff`;
-- muted `#eef0f2`;
-- texto `#191c20`, apoio `#4d535b`, auxiliar `#69717b`;
-- marca `#b83f08`, pressed `#943205`, wash `#fff0e6`.
+### A marca
 
-### Escuro
+`--ember` / `--ember-press` / `--on-ember`. Um emprego: **a ação primária**.
+`.btn--primary`, o botão que avança o pedido, o "Novo item", o "Salvar".
 
-- background `#101216`;
-- surface `#171a1f`;
-- raised `#20242b`;
-- muted `#20242a`;
-- texto `#f5f7fa`, apoio `#c1c6ce`, auxiliar `#949ca8`;
-- marca `#ff7a2f`, pressed `#ff9a62`, wash `#32180b`.
+O que ela deixou de pintar nesta rodada, e para onde cada uso foi:
 
-### Semântica
+| Uso antigo                 | Hoje                                              |
+| -------------------------- | ------------------------------------------------- |
+| item ativo da navegação    | `--nav-active` + peso 600 + fio `--nav-rail`      |
+| linha/pedido selecionado   | `--surface-selected`                              |
+| anel de foco               | `--focus`, que é `--ink`                          |
+| sublinhado da aba ativa    | `--ink`                                           |
+| seleção de texto           | `--surface-selected`                              |
+| faixa do topo do login     | removida                                          |
+| fim do degradê de maturação| `--danger`                                        |
+| borda do campo em foco     | `--focus`                                         |
 
-Use somente tokens:
+Não existe mais `--ember-wash`: um wash da marca é, por construção, um convite a
+espalhar a marca.
 
-- sucesso `--ok` / `--ok-wash`;
-- atenção `--alert` / `--alert-wash`;
-- perigo `--danger` / `--danger-wash`;
-- informação `--info` / `--info-wash`;
-- estágios de pedido `--st-*` e `--st-*-wash`.
+A regra de revisão é literal: **se você escreveu `var(--ember)` e o elemento não
+é a ação primária da tela, o token está errado.**
 
-O laranja marca ação primária, navegação ativa, seleção e foco. Não colore
-checkbox/radio, toda superfície ou dado sem significado. Nenhum estado pode
-depender apenas de cor: combine texto, ícone, posição, ponto ou forma.
+### Semântica de estado
 
-Valores literais de cor ficam exclusivamente em `tokens.css`. O lint de tokens
-e o verificador de contraste cobram essa fronteira.
+`--ok` (no ar, à venda, variação para cima), `--alert` (esperando, atenção),
+`--danger` + `--danger-press` + `--on-danger` (perigo, variação para baixo),
+`--info` (isto é uma nota, não um problema). Cada um responde a UMA pergunta e
+nenhum é decorativo.
 
-## Shell global
+### Status do pedido
 
-O shell tem três formas:
+Sete estágios: pendente (ocre), aceito (marinho), preparando (ametista), pronto
+(verde), entrega (petróleo), concluído (ardósia), cancelado (carmim). Fundas e
+dessaturadas de propósito — elas são lidas a 60cm ao lado de texto, numa tela
+quase sem cor.
 
-- **≥1180px:** sidebar de 232px com logo, grupos, nomes e “Em breve”;
-- **768–1179px:** rail de 72px com ícones e nomes acessíveis;
-- **<768px:** sidebar vira barra inferior de quatro destinos; “Mais” abre uma
-  sheet com toda a navegação restante.
+Quem pinta um status **não escolhe matiz**: põe `is-<estágio>` no elemento e lê
+`--st` e `--st-wash`. Assim o chip, o fio da linha, o contador da faixa e o
+cartão da Cozinha saem sempre da mesma fonte, e acrescentar um estágio é
+acrescentar um token.
 
-A topbar mede 64px e agrupa seletor de filial, conta, tema e logout. Em desktop,
-conta usa avatar, nome e papel; em mobile, controles secundários se contraem,
-mas não perdem a função. O conteúdo inicia na mesma régua horizontal da topbar.
+Nenhum estado pode depender só de cor (WCAG 1.4.1): combine sempre texto,
+posição, forma ou ícone.
 
-Item ativo usa fundo discreto, maior peso e indicador laranja. Itens futuros
-continuam navegáveis e honestamente marcados; nunca recebem páginas ou dados
-falsos.
+## Shell
+
+`src/layout/AppShell.*`. Três formas, e a regra é sempre a mesma — a informação
+não desaparece, ela troca de lugar.
+
+| Largura   | Navegação                                                        |
+| --------- | ---------------------------------------------------------------- |
+| ≥ 1180px  | lateral de 212px, com nomes e grupos escritos                    |
+| 768–1179  | trilha de ícones de 68px; o nome vive no `title` e no leitor de tela |
+| < 768px   | barra INFERIOR de quatro alvos; "Mais" abre o resto numa folha    |
+
+A lateral é um plano do TEMA (`--nav-*`): no claro, um degrau acima do chão; no
+escuro, um degrau abaixo dele. O item ativo é dito por três coisas sem cor:
+tinta cheia, peso 600 e um fio de 2px na margem. É a mesma gramática do bloco de
+estágio na tabela de Pedidos, da categoria aberta no Cardápio e da seção aberta
+em Minha loja — um fio à esquerda diz "este é o grupo aberto".
+
+A barra do topo do shell mede `--topbar-h` (52px) e carrega o seletor de filial
+e a conta. Ela fica em `--z-shell`, ACIMA da faixa da tela (`--z-sticky`): as
+duas são grudentas, e com a mesma camada a lista de filiais abria atrás do
+filtro de Pedidos e o clique ia parar no filtro.
+
+## A faixa de 52px
+
+`src/ds/PageBar.tsx`. **Toda tela do painel começa com ela**, e é a peça que faz
+seis telas lerem como um produto.
+
+```tsx
+<PageBar title="Pedidos" aside={<Tabs … />} meta={<contadores />}>
+  <OrdersFilters … />
+</PageBar>
+```
+
+O que ela garante, igual em todas: o título nasce na mesma horizontal, as
+ferramentas ficam à direita na mesma linha e sem moldura, o limite de baixo é um
+fio de 1px, e ela gruda no topo enquanto o conteúdo rola.
+
+- `title` — nível 1, um por rota.
+- `crumb` — o nome da seção aberta DENTRO da tela ("Minha loja › Horários").
+- `aside` — o que vive com o título: abas, etiqueta de estado, ressalva de escopo.
+- `meta` — o grupo do meio: contadores.
+- `children` — as ferramentas.
+
+**Não existe subtítulo explicando a tela.** Quem abre "Clientes" sabe o que é a
+tela, e a frase custava uma dobra por turno para explicar o óbvio uma vez. O que
+existe é ressalva: uma frase que diz o que a tela NÃO tem, ou até onde a
+configuração alcança. Essa fica.
+
+A faixa ENVOLVE quando aperta — as ferramentas descem para uma segunda fileira
+de 34px alinhada à direita. Ela é um `container` de consulta chamado `barra`,
+porque o que decide se está apertada é a largura DELA e não a da janela: em
+1440 com o painel de detalhe aberto ela tem 828px.
 
 ## Componentes
 
-### Button
+A consistência vem do componente base. Se a diferença entre duas telas nasce do
+primitivo, conserte o primitivo. **Não existe segunda implementação** de botão,
+campo, busca, seleção, chave, aba, etiqueta, tabela, linha de pedido, chip de
+status, diálogo ou faixa de título — e quando existiu, foi assim que se
+resolveu: a variante entrou no componente (`SearchField variant="barra"`,
+`Tabs variant="barra"`, `StatusChip label`), não uma cópia na página.
 
-Alturas 38px, 32px compacto e 44px no toque. Variantes reais: padrão,
-`primary`, `danger`, `ghost`, `ghost-danger`, ícone e largura total. Todo botão
-tem hover, active, focus-visible, disabled e loading quando a ação já o fornece.
-Links com aparência de botão usam a mesma classe e não sublinham.
+### Botão — `primitives.css`
 
-### Input, textarea e select
+Alturas 34 / 28 (`--sm`) / 44 no toque. Variantes reais: padrão, `--primary`,
+`--danger`, `--ghost`, `--ghost-danger`, `.icon-btn`, `--block`.
 
-Compartilham altura, fonte, raio, field surface, border e foco. Labels ficam
-acima; hint e erro ficam próximos do campo que qualificam. Placeholder não
-substitui label. Select custom mantém semântica de teclado; date inputs nativos
-são aceitos quando preservam acessibilidade.
+Sem relevo: plano chapado, um fio, sem `box-shadow`. Peso 500 no comum e 600 no
+primário — numa barra com sete controles, sete rótulos em semibold são sete
+títulos disputando a mesma linha. **Se dois primários aparecem juntos, um deles
+não é a ação**: é uma alternativa, e alternativa é `.btn` comum.
 
-### Checkbox, radio e switch
+O destrutivo tem tinta própria (`--on-danger`) e escurece ao ser pressionado —
+não inverte para fundo claro, que fazia o botão parecer desligado no instante
+em que o dedo estava nele.
 
-Checkbox/radio marcados usam `--mark-bg` e `--mark-ink`, não a marca. Switch é
-único (`src/ds/Switch`), mede 36×20px e comunica estado por posição, cor e label
-acessível. Não duplicar implementações.
+### Campo — `primitives.css` e `ds/Input`
 
-### Tabs e segmented control
+`.input`/`.textarea` (classe) e `Input`/`Textarea`/`Select`/`SearchField`/`RangeInput`
+(componentes) compartilham altura, corpo, raio, plano, contorno e os cinco
+estados. Um formulário não pode ter dois tamanhos de campo conforme quem o
+escreveu usou o componente React ou a classe.
 
-Tabs mudam contexto de página e usam linha inferior no ativo. Segmented control
-escolhe uma alternativa compacta dentro do mesmo contexto; tem fundo muted e
-segmento ativo em surface. Ambos usam `aria-pressed` ou semântica equivalente.
+- Papel branco com um fio `--line-control`; sem baixo-relevo, sem fundo cinza.
+- **No foco o fio vira tinta cheia** e ganha o anel. Nunca a marca.
+- Rótulo é nível 3; **o VALOR é que se lê** (nível 4, `--ink`).
+- Placeholder não substitui rótulo.
+- **A largura do campo é medida de CONTEÚDO**: `--w-numero` (92), `--w-dinheiro`
+  (168), `--w-faixa` (236), `--w-texto-curto` (320). Um campo de dinheiro com
+  900px de largura é o sintoma mais visível de formulário cru — a caixa promete
+  um endereço e recebe "20,00".
 
-### Badge, tag e chip
+`SearchField` tem duas formas: `caixa` (padrão) e `barra`, que tira o contorno e
+deixa um fio embaixo. A segunda é a que vive dentro da `PageBar`, onde uma caixa
+de quatro lados no meio de uma linha de texto é o objeto que faz a faixa ler
+como bloco.
 
-Servem para estado curto, modalidade, pagamento ou contagem. A forma é compacta
-e a tinta é semântica. Não transformar todo metadado em chip. Status de pedido
-usa texto mais o estágio visual.
+### Escolha e chave — `ds/Choice`, `ds/Switch`
 
-### Card
+Checkbox e rádio marcados usam `--mark-bg`/`--mark-ink`, nunca a marca: um
+checkbox ligado não é a ação primária da tela. O desenho do check e do ponto é
+CSS puro em `currentColor` — nada de imagem, nada de SVG com cor literal.
 
-Card agrupa informação com relação forte e limite útil. Use `src/ds/Card`
-quando a anatomia cabe em header/body/actions. Não embrulhar seções apenas para
-preencher o fundo.
+A chave é única (`ds/Switch`) e comunica estado por posição, cor (`--ok`) e nome
+acessível. O erro de um grupo usa `--danger`, não a matiz de um estágio de
+pedido.
 
-### Tabela e linha de lista
+### Abas e segmentado
 
-`src/ds/DataTable` é a base. Desktop usa colunas reais, header muted, alinhamento
-numérico à direita, hover tonal e linha de 48–64px. Mobile transforma a linha
-em bloco rotulado; não resolve tabela inteira com scroll horizontal. Produto ou
-cliente é o ponto de entrada. Ações secundárias aparecem no hover/foco em mouse
-e permanecem visíveis no toque.
+`ds/Tabs` muda o CONTEXTO da tela: sublinhado de 2px em tinta cheia no ativo,
+teclado de setas (roving tabindex), sublinhado que desliza. `variant="barra"`
+ocupa a altura inteira da faixa de 52px e abre mão da própria régua, porque
+quem já desenha o fio ali embaixo é a `PageBar`.
 
-### OrderTicket
+`.seg` (segmentado) escolhe UMA alternativa dentro do mesmo contexto: trilho
+`--surface-muted`, segmento ativo em `--surface` com peso e `--shadow-lift`.
+Nenhum dos dois usa a marca — aba ativa é onde a pessoa ESTÁ, não o que ela deve
+fazer.
 
-Existe um único ticket em `src/ds/OrderTicket`; `OrderCard` apenas traduz dados
-da API. Hierarquia:
+### Etiqueta, chip de status e badge
 
-1. estágio e tempo decorrido;
-2. total;
-3. cliente;
-4. número e horário;
-5. entrega/retirada, pagamento e alerta.
+`.tag` é uma palavra sobre um plano de agrupamento, sem contorno. `StatusChip` é
+o chip de estágio: fundo `--st-wash`, ponto na matiz e **texto em tinta comum**
+— isso é medido, porque as três matizes mais claras da escala reprovariam sobre
+o próprio wash. `label` sobrescreve a palavra (para separar "Recusado" de
+"Cancelado") e nunca a matiz.
 
-O estágio usa trilho lateral e cor semântica. Seleção usa
-`surface-selected` e inset da marca, sem moldura pesada. Pagamento ainda não
-confirmado aparece como alerta compacto; não pintar o card inteiro.
+Não transformar todo metadado em chip.
 
-### Filtros
+### Tabela — `ds/DataTable`
 
-Filtros relacionados ocupam uma superfície única. Período e busca vêm primeiro;
-controles operacionais e conexão formam o segundo grupo. Em mobile eles quebram
-por grupo e mantêm largura integral onde necessário.
+Desktop: colunas reais, **cabeçalho como rótulo sobre um fio `--line-strong`**
+(não uma faixa cinza), alinhamento numérico à direita, hover tonal, linha de
+`--row-dense-h`. `--tabela-pad` controla o respiro lateral: `--sp-16` dentro de
+um bloco, `--page-pad` numa tabela que corre até a margem.
 
-### Drawer de pedido
+No celular a tabela deixa de ser tabela: cada linha vira bloco e o cabeçalho da
+coluna reaparece ao lado do valor por `content: attr(data-col)`. Não se resolve
+tabela estreita com rolagem horizontal — some justamente a primeira coluna, que
+é a que identifica a linha.
 
-`OrderDetailPanel` mede 420px e é uma coluna permanente em desktop, evitando
-reflow do quadro entre seleções. Abaixo de 1280px só aparece com seleção e
-flutua sobre o quadro; abaixo de 720px vira tela cheia. Dentro,
-separe operação, cliente, entrega, itens, financeiro, histórico e ações por
-ritmo e linhas, não por cards aninhados. Total e ação seguinte devem ser fáceis
-de localizar; footer é persistente.
+`caption` não é opcional; pode ser visualmente escondida, nunca ausente.
 
-### Sheet, dialog e menu
+### Linha de pedido — `ds/OrderRow`
 
-Sheet nasce do rodapé e preserva safe area. Dialog centraliza no desktop e vira
-bottom sheet no mobile. Menu flutua próximo ao gatilho. Todos usam scrim,
-elevação, fechamento acessível, Escape/foco conforme a implementação e movimento
-curto que explica origem/destino.
+A unidade da lista, e o único componente de pedido do sistema. Não é uma
+`<table>`: a linha inteira é UMA ação (abrir o detalhe), e a única forma de uma
+tabela ter linha clicável é pendurar `onClick` numa `<tr>` — que é como uma tela
+perde o teclado. Aqui a linha é um `<button>` em `display: grid`.
 
-### Tooltip, toast e skeleton
+Hierarquia, na ordem em que um funcionário no pico precisa dela:
 
-Não há framework global para esses três. Ao trabalhar numa superfície que já
-os possua, use tokens de raised surface, meta type e movimento curto. Não crie
-toast, skeleton ou tooltip apenas para decorar nem substitua feedback persistente
-necessário. `title` pode explicar controle desabilitado simples; informação
-essencial deve estar visível.
+1. **estágio** — o fio de 2px na margem + o nome, escrito uma vez por bloco;
+2. **tempo** — tabular, o maior corpo da linha, com a barra de maturação;
+3. **cliente** — 14/550;
+4. **pedido** — nº e hora de entrada;
+5. **modalidade**;
+6. **pagamento** — forma e situação, e o único lugar onde a linha levanta a voz;
+7. **valor** — tabular, à direita.
 
-### Empty state, loading e alert
+A grade (`--grade-pedido`) é declarada UMA vez na lista e herdada por todas as
+linhas, inclusive as do histórico: duas grades separadas é como a coluna do
+valor começa a desalinhar entre um bloco e outro.
 
-Estado vazio diz o que ocorreu e, somente se já existe ação real, como sair.
-Loading não inventa conteúdo. Alertas usam `info`, `warn` ou `error`, ficam
-próximos da origem e preservam `role` adequado. Não repetir o mesmo alerta em
-cada seção.
+**Dois layouts, e só dois.** O largo e o COMPACTO, que entra por
+`@container lista (max-width: 700px)` — no telefone e também com o painel de
+detalhe aberto. O compacto NÃO é a linha larga dobrada: é outro desenho, com
+76px de alvo de toque, tempo/cliente/valor na primeira fileira e
+estágio·nº·hora·modalidade·pagamento na segunda, em 12px. O limiar de 700px foi
+medido: as seis colunas de largura fixa somam 568px e os vãos mais o respiro
+lateral somam 72, então abaixo de 700 o nome do cliente fica com menos de 60px —
+e uma coluna de 60px não é uma coluna.
+
+Cada `--col-*` é medida de CONTEÚDO, e é assim que ela deve ser ajustada: 104
+cabe "Em preparo" com o fio e o recuo da margem, 140 cabe "Aguardando pagamento"
+em 12px, 92 cabe "R$ 1.240,00". Encolher uma delas por gosto é como a célula
+quebra em três linhas e estica a linha inteira.
+
+`orders/OrderLine` é só o tradutor de `OrderListItem` para as propriedades da
+linha — essa fronteira é o que permite ao `ds/` compilar sem depender do
+`openapi.d.ts` gerado.
+
+### Barra de maturação — `ds/MaturationBar`
+
+O único ornamento permitido, e ela carrega DADO: um fio de 3px sob o tempo
+decorrido que preenche contra a janela de preparo da loja. Degradê contínuo
+(`--grad-maturacao`), de ardósia a ocre a carmim — não a marca, porque ela mede
+ESTADO. Acima de 85% ela pulsa (a única animação de repetição do sistema,
+abaixo de 3Hz por WCAG 2.3.1). Sem janela configurada ela não aparece: uma
+barra sem régua mediria o nada.
+
+### Folha, diálogo, menu e balão
+
+`ui/Modal` centraliza no desktop e vira folha de rodapé no celular. `ds/Sheet` é
+a navegação do telefone. Menu ancorado (`ds/Select`, o menu de ações do
+Cardápio) e balão ancorado (o ajuste de preparo, o balão do gráfico) usam
+`--surface-raised`, `--r-card` e `--shadow-raised`, saem do fluxo e ficam em
+`--z-popover`. **Um popover escrito no TSX sem folha de estilo vira um bloco cru
+no meio da barra** — foi exatamente o que aconteceu com `.prep__popover` antes
+desta rodada.
+
+### Avisos e estados
+
+`.alert--info` / `--warn` / `--error`: sem moldura, porque o wash já é a
+moldura, e com `role` adequado. Ficam próximos da origem e não se repetem por
+seção.
+
+Estado vazio diz o que aconteceu e, só se existir ação real, como sair.
+Carregando não inventa conteúdo — e "nenhum resultado" só é uma afirmação
+DEPOIS de carregar. Agrupamento vazio não é desenhado: um cabeçalho anunciando
+zero custa uma dobra por turno.
 
 ## Telas
 
-### Pedidos
+### Pedidos — `src/orders/`
 
-É a tela operacional principal. Em desktop, quadro e painel lateral preservam
-largura estável; abaixo de 1280px o detalhe sobrepõe o quadro somente durante a
-seleção. Tickets mantêm densidade e são agrupados por estágio. Ordem de leitura:
-estágio, tempo, cliente, pedido, modalidade, pagamento e valor. Histórico
-continua separado por tab.
+A tela operacional principal, e a que a direção resolve primeiro. O diagnóstico
+que abriu a rodada: o primeiro pedido começava a ~500px do topo, atrás de
+título, subtítulo, abas com régua própria, um cartão de filtros de 130px e três
+cabeçalhos de faixa.
 
-### Cozinha
+Hoje: a faixa de 52px (título · abas · contadores dos três estágios ·
+ferramentas) e daí para baixo só linha de pedido. Os contadores dos três
+estágios aparecem SEMPRE, zerados inclusive — é o que paga o fim das faixas de
+agrupamento: "Prontos 0" custa 70px de largura numa linha que já existia, e
+custava 40px de altura numa faixa que anunciava o nada.
 
-É exceção de distância. Mantém três lanes, cards maiores, ação de largura total
-e tipografia `--k-*`. Cada coluna pode ocupar a altura disponível porque é uma
-fila operacional; o scroll horizontal é local no viewport estreito, nunca da
-página inteira.
+O estágio é uma **coluna mesclada**: escrito na linha que abre o bloco, com o
+fio de cor descendo nas seguintes. Bloco sem pedido não é renderizado.
 
-### Cardápio
+As ferramentas não abrem nem fecham. Numa tela que fica aberta o turno inteiro,
+um filtro atrás de um botão "Filtros" é um filtro que ninguém lembra que ligou —
+o lojista jura que sumiu pedido e o que sumiu foi a memória de que ontem ele
+deixou o período em "últimos 7 dias".
 
-Desktop: categorias em rail de 240px e itens em lista tabular. Produto domina;
-preço, setor, situação e ação alinham em colunas. Tablet transforma categorias
-em faixa horizontal. Mobile reorganiza cada item sem esconder preço, setor,
-estado ou editar.
+### Detalhe do pedido — `orders/OrderDetailPanel`
 
-### Clientes
+Coluna permanente de 400px à direita: com a janela antiga, abrir o pedido
+escondia justamente a lista que diz o que fazer em seguida. Abaixo de 1280px ela
+só aparece com seleção e flutua; abaixo de 720px vira tela cheia com os botões
+esticados no rodapé.
 
-Busca e contagem formam uma barra. A tabela usa nome/telefone como primeira
-célula, valores tabulares e transformação móvel do DataTable. Não inventar
-detalhe ou filtros que o backend não fornece.
+O cabeçalho tem a MESMA altura da faixa da lista, e é isso que faz as duas
+metades lerem como uma tela só. Dentro, blocos separados por fio: cliente,
+endereço, itens, observação, pagamento, histórico. O total leva `--row-time-*` e
+peso 700 sobre um fio `--line-strong` — e não é laranja: a brasa marca ação, não
+importância.
 
-### Desempenho
+### Cozinha — `src/kitchen/`
 
-A sequência é período, veredito narrativo, KPIs comparáveis, dias, produtos e
-composição. Só usa métricas existentes. KPIs são uma grade tipográfica com
-separadores, não três cards gigantes. Seções analíticas usam grid quando há
-largura e voltam a uma coluna abaixo de 1200px. Variação combina sinal, seta e
-cor.
+**A única tela com PALETA própria, e o motivo é físico.** Ela é um monitor
+pendurado na parede, lido a dois metros por quem está com as mãos ocupadas:
 
-### Minha Loja
+- matiz **dessaturada** perde a identidade antes de perder a luminosidade, e a
+  três metros as matizes de status do painel viram mancha cinza — não dá para
+  separar "preparando" de "pronto" do outro lado do salão;
+- por isso a escala daqui é **saturada**, e a direção dela acompanha o plano.
 
-Navegação secundária é um rail de 184px em surface, visualmente subordinado à
-sidebar. No mobile vira faixa rolável. Cada grupo semântico do formulário usa
-uma superfície única; campos diferentes não são unidos por estética. Status da
-loja é compacto, com ponto, texto, consequência e switch. Save bar permanece
-visível quando o formulário já implementa esse comportamento.
+**ELA SEGUE O TEMA, como todas as outras.** O que muda entre os dois não é
+escolha, é a conta do contraste:
+
+| Tema   | A escala                                                     |
+| ------ | ------------------------------------------------------------ |
+| escuro | **acende**: matiz clara e saturada sobre carvão (`#33d68d`)   |
+| claro  | **aprofunda**: matiz funda e saturada sobre papel (`#06663a`) |
+
+`#33d68d` sobre branco dá 1.9:1 e some — não existe verde ao mesmo tempo claro e
+legível sobre papel. No claro quem faz o trabalho da luz é a saturação, e é isso
+que separa `--k-pronto` de `--st-pronto`: quase a mesma luminosidade, e não a
+mesma cor.
+
+Esta escala já foi FIXA no escuro nos dois temas, com o argumento de que um
+monitor de parede não acompanha a preferência de quem está no escritório. O
+argumento tinha um furo prático: quem administra é a mesma pessoa que pendura o
+monitor, e uma tela do painel que ignora o interruptor de tema lê como defeito.
+
+A implementação é reapontar os tokens SEMÂNTICOS dentro de `.kitchen` para a
+escala `--k-*`, e não escrever regra por componente: assim `.btn`, `.alert`,
+`.conn`, `ds/Switch` e o `is-<estágio>` de `tokens.css` caem na paleta da parede
+sozinhos, nos dois temas. A alternativa — um bloco `.kitchen .btn { … }` por
+componente — é a que garante que o próximo componente usado ali apareça com a
+paleta errada.
+
+O que ela herda do resto do painel é o esqueleto: espaçamento, raios, movimento
+e os cinco níveis. O que muda é o corpo de cada nível e a saturação da cor.
+
+Sem sidebar, sem filtro, sem busca, sem seletor de período. Nada de cliente,
+telefone, endereço ou total: a cozinha monta prato.
+
+### Cardápio — `src/menu/`
+
+Faixa de 52px (título · busca · "Novo item", o único laranja da tela), a frase de
+escopo dizendo de qual loja é a coluna Impressão, e o corpo em duas colunas: a
+de categorias separada por um FIO — a mesma peça que Minha loja usa — e a lista
+de itens correndo até a margem. As duas rolam separadas.
+
+A régua da categoria aberta é subordinada à faixa da tela: 44px contra 52, nível
+2 contra nível 1. Abaixo de 1024px a coluna de categorias deita e vira fita
+rolável; abaixo de 720px o item deixa de ser linha e vira bloco.
+
+### Clientes — `src/customers/`
+
+Faixa de 52px (título · busca · contagem) e uma tabela até a margem. A ressalva
+("e-mail e CPF são da conta do cliente na plataforma") fica acima da lista, uma
+vez, porque é a pergunta de quem abre a tela.
+
+Não abre o cliente, não linka para os pedidos dele e não ordena por coluna — o
+contrato não tem nada disso, e um link impreciso é pior que link nenhum.
+
+### Desempenho — `src/performance/`
+
+Uma tela que RESPONDE, não que exibe. A primeira coisa é uma FRASE, e ela sai de
+regras determinísticas sobre o que as rotas devolvem (`insights.ts`) — sem IA,
+sem estimativa. Toda frase tem limiar nomeado, e frase cuja condição não bate
+não aparece: não existe frase neutra de preenchimento.
+
+A forma, depois desta rodada:
+
+1. **uma banda de topo** com a resposta (22px/500), os três números crus
+   (`--metric-*`, com delta em `--ok`/`--danger` mais seta mais sinal) e as
+   ressalvas, fechada por um fio `--line-strong`;
+2. **o gráfico na largura inteira**, logo abaixo — é a peça que mais faz uma
+   tela de relatório ler como painel;
+3. **as quatro perguntas em grade de duas colunas**, separadas por fio, que
+   volta a uma coluna abaixo de 1100px.
+
+Nenhum cartão. Nenhuma métrica inventada. O gráfico é coluna (magnitude por
+categoria discreta), série única, marca neutra, sem legenda; o dia de pico leva
+rótulo direto e tinta cheia — a mesma informação que o rótulo já escreve, um
+degrau acima na escala de tinta. Dia sem venda tem altura zero, não um mínimo
+"para aparecer".
+
+Não filtra por filial, e DIZ isso: nenhuma das rotas aceita `branch_id`, e o
+seletor do topo ficaria parecendo um filtro que pegou.
+
+### Minha loja — `src/store/`
+
+Uma seção, uma página, uma rota. Faixa de 52px com o título, o nome da seção
+como `crumb`, a ressalva de escopo ao lado e o interruptor de abrir/fechar à
+direita — ele fecha UMA filial, a que o cabeçalho está mostrando, e não aparece
+em Operação, onde a mesma filial já tem a própria chave na lista.
+
+O corpo é a coluna de seções separada por fio (a mesma peça do Cardápio) e o
+formulário. **Uma folha, vários grupos**: o nome do grupo numa coluna própria de
+180px à esquerda, os campos em grade à direita, e um fio entre grupos. A barra
+de salvar gruda no fim da coluna e é uma das poucas coisas da tela com sombra,
+porque ela passa POR CIMA do formulário.
+
+Abaixo de 900px a coluna de seções deita e vira fita rolável.
+
+### Em breve — `pages/ComingSoonPage`
+
+A mesma faixa de 52px, com a etiqueta ao lado do título, e uma frase. É a faixa
+que faz esta tela pertencer ao painel em vez de parecer erro de rota. Sem botão
+morto, sem número de exemplo, sem barra de progresso.
 
 ## Responsividade e enquadramento
 
 Validar 390, 430, 768, 1024, 1280, 1440, 1920 e 2560px.
 
-- mobile: padding 16px, controles 44px, bottom navigation e drawers full-screen;
-- tablet: sidebar rail, categorias adaptadas e formulários sem esmagamento;
-- laptop: densidade preservada, detalhe de pedido flutuante abaixo de 1280px;
-- desktop: sidebar completa e conteúdo alinhado à esquerda;
-- telas largas: `--page-max: 1600px` limita páginas de leitura; Pedidos e
-  Cozinha podem usar mais largura por necessidade operacional.
+Os pontos de quebra do sistema:
 
-Não pode existir overflow horizontal global. Scroll lateral é exceção local e
-justificada: gráfico longo, faixa de categorias ou quadro de Cozinha. Informação
-crítica não some em breakpoint; ela muda de posição ou composição.
+| Ponto  | O que muda                                                        |
+| ------ | ----------------------------------------------------------------- |
+| 640    | `DataTable` volta a ser tabela                                    |
+| 720    | folhas, diálogos e listas viram bloco / tela cheia                |
+| 768    | a navegação sai da barra de baixo e vira trilha de ícones         |
+| 900    | a coluna de seções de Minha loja deita                            |
+| 1024   | a coluna de categorias do Cardápio deita; densidade de mouse       |
+| 1100   | a grade de duas colunas de Desempenho volta a uma                 |
+| 1180   | a lateral do shell ganha os nomes                                 |
+| 1280   | o painel de detalhe deixa de flutuar e vira coluna                |
+
+**Duas consultas são de CONTAINER, não de janela**, e é uma decisão de projeto:
+
+- `lista` (700px) — a linha de pedido troca de desenho pela largura da LISTA,
+  porque o mesmo aperto acontece com o painel de detalhe aberto numa tela de
+  1440;
+- `barra` (1100px) — a `PageBar` esconde o texto do estado de conexão pela
+  largura DELA, pelo mesmo motivo.
+
+Quando um valor é medida de conteúdo e não do sistema (a largura de uma coluna,
+a faixa mínima de um gráfico), ele pode ter o ponto de quebra dele — desde que o
+motivo esteja escrito na linha.
+
+**Não pode existir overflow horizontal global.** Rolagem lateral é exceção local
+e justificada: o gráfico longo de Desempenho, a fita de categorias, a fita de
+seções, o quadro da Cozinha. Informação crítica não some em breakpoint; ela muda
+de posição ou de composição.
+
+Tetos: `--page-max` (1600px) limita o CONTEÚDO de Clientes, Cardápio e
+Desempenho — a folha continua correndo até a margem. `--form-max` (1040px) e o
+teto de 1180px das seções largas limitam os formulários de Minha loja. Pedidos e
+Cozinha usam a largura toda por necessidade operacional.
 
 ## Tema escuro
 
-Dark mode usa os mesmos tokens semânticos e a mesma hierarquia. Não criar bloco
-`[data-theme='dark']` por componente. Separação vem de degraus de surface e
-linhas mais perceptíveis; sombras têm menor protagonismo. Marca e estados usam
-valores próprios para manter contraste. Ambos os temas devem passar no mesmo
-teste de contraste e parecer o mesmo produto.
+Os mesmos tokens semânticos, outras superfícies. **Não é "trocar branco por
+preto"**: mesmos degraus de plano, mesma hierarquia de tinta, mesma gramática de
+separação. O que muda é a direção da luz.
+
+Nenhuma regra de componente pode ser específica de tema. Se você precisou de
+`[data-theme="dark"] .minha-classe`, o token que você usou é o errado — é para
+isso que existem `--card-edge` e a família `--nav-*`.
+
+Degraus perceptíveis, não fuligem quase-preta uniforme: cada plano se distingue
+do vizinho sem depender de sombra, que no escuro quase não aparece. A marca
+acende (`#ff8a3d`), `--alert` puxa para o amarelo (em laranja ele faria o olho
+ler "ação" onde está escrito "atenção") e os washes são um sussurro.
+
+A Cozinha É redeclarada no bloco escuro: a escala dela inverte a direção da
+saturação junto com o plano (ver "Cozinha").
+
+Os dois temas passam no mesmo `check-contrast.mjs` e precisam parecer o mesmo
+produto.
 
 ## Interação, movimento e acessibilidade
 
-- foco global: 2px na marca com offset de 2px;
-- todos os controles: default, hover, active, focus-visible e disabled;
-- alvo mínimo 24px; 44px no mobile;
-- labels e nomes acessíveis permanecem mesmo quando um ícone é visual;
-- contraste WCAG 2.2 AA medido nos dois temas;
-- estado nunca depende somente de cor;
-- animações de 140–200ms explicam drawer, menu, switch e seleção;
-- `prefers-reduced-motion` reduz transições e animações;
-- sem animação de página, bounce, parallax ou fade decorativo.
+- **Foco:** `--focus` (tinta cheia), 2px, offset 2px, em `focus-visible`. Nunca a
+  marca — o foco aparece em todo controle, e a marca em todo controle é a marca
+  em lugar nenhum.
+- **Estados:** todo controle tem default, hover, active, focus-visible e
+  disabled; e loading onde a ação já o fornece.
+- **Alvo:** 24px mínimo (WCAG 2.5.8), 44px no celular. No toque nada encolhe.
+- **Nome acessível** permanece quando o ícone é o visual; `title` explica
+  controle travado, mas informação essencial fica visível.
+- **Contraste** WCAG 2.2 AA medido nos dois temas, no `npm run lint`.
+- **Estado nunca depende só de cor.**
+- **Movimento:** 140ms (`--motion-fast`) e 200ms (`--motion-base`), com
+  `--ease`. Eles explicam origem e destino de gaveta, menu, chave e seleção. Sob
+  `prefers-reduced-motion` os dois vão a zero — e `@keyframes` com `animation:`
+  precisa do próprio desligamento, porque o token não o alcança.
+- Sem animação de página, bounce, parallax ou fade decorativo.
+- O painel mostra texto escrito pelo CLIENTE FINAL (observação, nota, nome,
+  endereço). `eslint.config.js` barra `dangerouslySetInnerHTML`, `innerHTML`,
+  `insertAdjacentHTML`, `document.write` e `new Function` em todo o `src/`, teste
+  incluído.
 
-## Fonte de verdade e validação
+## Antes de criar, procure
 
-Antes de criar componente, procurar em `src/ds/`, `src/ui/` e `src/styles/`.
-Corrigir a base quando o defeito é sistêmico. Não duplicar button, select,
-switch, input, card, table, ticket, modal ou badge.
+Em `src/ds/`, `src/ui/` e `src/styles/`. Corrija a base quando o defeito é
+sistêmico. Não duplique botão, campo, busca, seleção, chave, aba, etiqueta,
+tabela, linha, chip de status, cartão, diálogo ou faixa de título.
 
-Ao concluir mudança visual relevante:
+Componente novo entra na galeria (`/ui`) **na mesma etapa em que nasce**, com
+todos os estados. Se um estado não está lá, ele não foi desenhado.
 
-1. executar `npm run lint`, `npm test` e `npx playwright test`;
-2. executar `npx playwright test -c design/shots/shots.config.ts`;
-3. inspecionar Pedidos com/sem detalhe, Cardápio, Desempenho, Minha Loja,
-   Clientes e Cozinha em claro e escuro;
-4. inspecionar Pedidos, Cardápio e Minha Loja no mobile;
-5. confirmar as oito larguras no teste `responsividade.spec.ts`;
-6. fazer uma segunda passagem visual antes de encerrar.
+## Verificação
 
-Nunca “corrigir” teste removendo cobertura. Diferencie regressão funcional,
-flutuação preexistente, seletor estrutural atualizado e screenshot legitimamente
-desatualizada.
+Ao concluir uma mudança visual relevante:
+
+1. `npm run lint` — ESLint, tokens, contraste e o hash da CSP;
+2. `npm test`;
+3. `npx playwright test`;
+4. `CAPTURAS=1 npx playwright test e2e/capturas.spec.ts --workers=1` — o arnês
+   fotografa Pedidos (com e sem detalhe), Cardápio, Clientes, Desempenho, Minha
+   loja, Cozinha e "Em breve" em 1440 e 390, claro e escuro, com o mesmo backend
+   falso do e2e. As imagens saem em `capturas/`, que é ignorada pelo git: elas
+   são para OLHAR numa revisão, não para versionar;
+5. **abra as capturas e faça uma segunda passagem** procurando aparência de
+   template, excesso de borda, hierarquia fraca, espaço morto, formulário cru,
+   tabela antiga, filtro amontoado, valor desalinhado, laranja em excesso e
+   mobile improvisado. A primeira versão nunca é a entrega.
+
+Nunca "corrigir" teste removendo cobertura. Quando o comportamento muda de
+propósito, a asserção muda de FORMA e continua cobrindo o mesmo requisito — foi
+o que aconteceu com o agrupamento vazio: "a coluna não escreve 'Nenhum pedido'"
+virou "a coluna não é desenhada".

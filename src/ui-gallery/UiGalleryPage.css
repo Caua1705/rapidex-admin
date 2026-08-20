@@ -5,36 +5,15 @@
  */
 .gal {
   min-height: 100%;
-  background: var(--bg);
-  color: var(--ink);
-}
-
-.gal__bar {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: var(--sp-12);
-  padding: var(--sp-24) var(--sp-16);
-  background: var(--field);
-}
-
-.gal__theme {
-  margin-left: auto;
-  min-height: var(--tap-mobile);
-  padding-inline: var(--sp-12);
-  border: 1px solid var(--line-control);
-  border-radius: var(--r-field);
   background: var(--surface);
   color: var(--ink);
-  font-size: var(--tb-size);
-  font-weight: var(--w-medium);
 }
 
 .gal__body {
   display: flex;
   flex-direction: column;
   gap: var(--sp-32);
-  padding: var(--sp-24) var(--sp-16) var(--sp-32);
+  padding: var(--sp-24) var(--page-pad) var(--sp-32);
   max-width: var(--form-max);
 }
 
@@ -68,15 +47,20 @@
   gap: var(--sp-8);
 }
 
-/* O palco é branco (ou o cartão do tema) para o componente aparecer no tom dele. */
+/*
+ * O PALCO é o plano de agrupamento, não um cartão flutuante. Ele tinha sombra
+ * de elevação — a mesma de um diálogo — em trinta amostras paradas na página, o
+ * que é exatamente o que a regra de elevação proíbe (tokens §9). Aqui o que o
+ * separa do resto é o TOM.
+ */
 .gal__palco {
   display: flex;
   flex-direction: column;
   gap: var(--sp-12);
   padding: var(--sp-16);
-  background: var(--surface);
+  border: 1px solid var(--card-edge);
   border-radius: var(--r-card);
-  box-shadow: var(--shadow-raised);
+  background: var(--surface-muted);
 }
 
 .gal__row {
@@ -89,4 +73,17 @@
 /* Amostra que só faz sentido na largura toda — uma linha de campos, por ex. */
 .gal__amostra--larga {
   grid-column: 1 / -1;
+}
+
+/*
+ * A LISTA DE PEDIDOS DA GALERIA. A grade das sete colunas mora na LISTA, e não
+ * na linha (ver `ds/OrderRow.css`), então a galeria precisa declarar a mesma —
+ * é o que prova que a amostra e a tela de verdade estão alinhadas na mesma
+ * régua.
+ */
+.gal__lista {
+  container: lista / inline-size;
+  border-bottom: 1px solid var(--line);
+  --grade-pedido: var(--col-estagio) var(--col-tempo) minmax(0, 1fr) var(--col-pedido)
+    var(--col-modalidade) var(--col-pagamento) var(--col-valor);
 }

@@ -1,17 +1,38 @@
 /*
  * ============================================================================
- * DESEMPENHO — uma frase, cinco seções e um gráfico
+ * DESEMPENHO — uma frase, um gráfico e quatro perguntas
  * ============================================================================
  *
- * A tela é longa por natureza. O que a mantém legível é o RITMO: cada pergunta
- * é um cartão, todos com o mesmo cabeçalho, o mesmo raio e o mesmo vão entre
- * si. Cartão aqui não é decoração — é o que dá começo e fim a cada bloco. Sem
- * ele, título de seção, parágrafo e tabela tinham a mesma presença e a página
- * lia como documento de texto corrido.
+ * O DIAGNÓSTICO: a tela lia como DOCUMENTO. Título, parágrafo, tabela, título,
+ * parágrafo, tabela — seis cartões brancos empilhados num chão cinza, todos do
+ * mesmo tamanho e com a mesma presença, numa página que rola. Não havia
+ * primeira leitura: o olho entrava em cima e não sabia para onde ir.
  *
- * A EXCEÇÃO DE RITMO É A PRIMEIRA COISA DA PÁGINA, e ela é proposital: o bloco
- * da frase não tem cabeçalho de seção e respira mais que todos os outros. É o
- * que o distingue de "mais um bloco de relatório".
+ * O QUE MUDOU É A FORMA, NÃO O CONTEÚDO. A frase-primeiro continua sendo a
+ * primeira coisa da tela e as nove frases determinísticas continuam todas lá
+ * (ver `insights.ts`). Nenhuma métrica foi inventada, nenhum número foi
+ * estimado, nada virou "um cartão gigante por indicador".
+ *
+ * As três coisas que a fizeram virar painel:
+ *
+ *   1. UMA BANDA DE TOPO. A resposta e os três números crus ocupam a largura
+ *      inteira e são separados do resto por um fio mais forte. É a única parte
+ *      da tela com corpo grande, e por isso ela é o ponto de entrada.
+ *
+ *   2. O GRÁFICO SUBIU E ABRIU. Ele é a peça que mais faz uma tela de
+ *      relatório ler como painel, e estava dentro de um cartão de metade de
+ *      largura, três blocos abaixo. Agora é uma faixa da largura inteira logo
+ *      depois da resposta.
+ *
+ *   3. AS QUATRO PERGUNTAS VIRARAM GRADE. Duas colunas separadas por fio, em
+ *      vez de quatro cartões em fila. A página encurtou pela metade e as duas
+ *      perguntas que se leem juntas ("o que vendeu" e "o que não virou venda")
+ *      passaram a caber na mesma dobra.
+ *
+ * E CARTÃO NÃO EXISTE MAIS AQUI. Quem dá começo e fim a cada bloco é o FIO,
+ * como na lista de pedidos e no detalhe do pedido — a mesma gramática. Seis
+ * retângulos brancos sobre cinza é a estética de painel administrativo de
+ * biblioteca pronta, e é o que a direção passou a rodada inteira tirando.
  */
 
 .perf {
@@ -19,43 +40,64 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-20);
-  padding: var(--page-pad);
   overflow-y: auto;
-  background: var(--bg);
-  max-width: var(--page-max);
+  background: var(--surface);
 }
 
-.perf__head {
+/* As datas do período "Escolher", na faixa do topo. */
+.perf__datas {
   display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
+  align-items: center;
+  gap: var(--sp-8);
 }
 
-/* --- a frase e o bloco que a carrega ---------------------------------------
- *
- * O BLOCO DA RESPOSTA — o único com padding generoso da página.
- *
- * Ele é cartão como as seções, mas respira mais: `--sp-20` contra os `--sp-16`
- * das outras. É a diferença de presença que faz a frase ler como resposta e
- * não como o primeiro de seis blocos iguais — e ela vem do espaço, não de uma
- * cor de fundo própria, que gastaria tinta sem carregar informação (§4).
+.perf__datas .input {
+  width: 148px;
+}
+
+.perf__alerta {
+  margin: var(--sp-12) var(--page-pad) 0;
+}
+
+.perf__estado {
+  margin: 0;
+  padding: var(--sp-32) var(--page-pad);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+}
+
+/* ==========================================================================
+ * A BANDA DE TOPO — a resposta e os três números
+ * ======================================================================= */
+
+/*
+ * ELA NÃO É UM CARTÃO. É uma banda da largura da tela, com respiro generoso e
+ * um fio FORTE embaixo — a mesma marcação que separa o total do resto no
+ * detalhe do pedido e o cabeçalho dos dados numa tabela. O que a distingue do
+ * resto da página é o espaço e o corpo da frase, não uma moldura.
  */
-.perf__resposta,
+.perf__topo,
 .perf__vazio {
   display: flex;
   flex-direction: column;
   gap: var(--sp-12);
-  padding: var(--sp-24);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-card);
-  box-shadow: var(--shadow-card);
+  padding: var(--sp-24) var(--page-pad);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+/*
+ * O TETO DE LEITURA. O relatório é texto e tabela: numa tela de 2560px a frase
+ * do topo chegaria a 200 caracteres por linha e as duas colunas ficariam a um
+ * metro uma da outra.
+ */
+.perf__topo,
+.perf__secoes {
+  max-width: var(--page-max);
 }
 
 .perf__vazio {
   gap: var(--sp-16);
-  padding: var(--sp-32) var(--sp-20);
+  padding-block: var(--sp-32);
 }
 
 .perf__frase {
@@ -70,12 +112,12 @@
  * A PRIMEIRA COISA DA TELA É UMA FRASE, NÃO UM NÚMERO.
  *
  * Ela reusa os tokens do nível 1 de corpo e entrelinha — não é um sexto nível
- * inventado: dentro deste bloco a frase É o título, e o resto (os três
+ * inventado: dentro desta banda a frase É o título, e o resto (os três
  * números, as ressalvas) a qualifica.
  *
  * O PESO É `--w-medium` E NÃO O 600 DO NÍVEL 1, e esta é a única divergência:
  * o nível 1 é calibrado para duas ou três palavras no alto da tela ("Cardápio",
- * "Minha loja"). Uma frase de vinte palavras em semibold no corpo 20 lê como
+ * "Minha loja"). Uma frase de vinte palavras em semibold no corpo 22 lê como
  * grito, não como resposta — e a hierarquia aqui não precisa do peso, porque
  * nada em volta dela disputa esse corpo.
  */
@@ -87,30 +129,6 @@
   color: var(--ink);
 }
 
-/* --- a barra de período --------------------------------------------------- */
-
-.perf__barra {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-12);
-  flex-wrap: wrap;
-  padding: var(--sp-8);
-  border: 1px solid var(--line);
-  border-radius: var(--r-card);
-  background: var(--surface);
-  box-shadow: var(--shadow-card);
-}
-
-.perf__datas {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-8);
-}
-
-.perf__datas .input {
-  width: 148px;
-}
-
 /*
  * O AVISO DE ESCOPO.
  *
@@ -119,9 +137,9 @@
  * qualquer meta —, e o que o destaca é o negrito em "todas as filiais", que é
  * a palavra que muda a leitura de todos os números acima.
  *
- * ELE MORA NO PÉ DO BLOCO DA FRASE, separado por um fio. Ao lado do período,
- * onde já esteve, ele era a primeira tinta da página e a frase virava a
- * segunda coisa a ser lida.
+ * ELE MORA NO PÉ DA BANDA, separado por um fio. Ao lado do período, onde já
+ * esteve, ele era a primeira tinta da página e a frase virava a segunda coisa
+ * a ser lida.
  */
 .perf__escopo {
   margin: 0;
@@ -137,59 +155,55 @@
   color: var(--ink-2);
 }
 
-.perf__alerta,
-.perf__estado {
-  margin: 0;
-}
-
-.perf__estado {
-  padding: var(--sp-32) 0;
-  font-size: var(--ta-size);
-}
-
-/* --- as seções ------------------------------------------------------------ */
+/* ==========================================================================
+ * AS SEÇÕES
+ * ======================================================================= */
 
 .perf__secoes {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: var(--sp-20);
-}
-
-.perf__resposta,
-.perf__secao {
-  grid-column: 1 / -1;
-}
-
-.perf__secao:nth-child(4),
-.perf__secao:nth-child(5) {
-  grid-column: span 6;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--sp-32);
 }
 
 /*
- * CADA SEÇÃO É UM CARTÃO — e isso é conserto de um defeito real: com tudo
- * solto na página, título de seção, parágrafo e tabela tinham quase a mesma
- * presença, e a tela lia como documento de texto corrido. O cartão dá a cada
- * pergunta uma borda de começo e fim, e o vão entre eles (`--sp-20`) faz o
- * ritmo que a rolagem precisa.
- *
- * Cartão parado leva borda E sombra sutil (§3): a sombra resolve a textura, a
- * borda resolve a forma no tema claro, onde as duas superfícies são quase
- * brancas.
+ * CADA SEÇÃO É UM BLOCO SEPARADO POR FIO — não um cartão. O que dá a cada
+ * pergunta começo e fim é a régua e o respiro, que é a mesma gramática da
+ * lista de pedidos.
  */
 .perf__secao {
   display: flex;
   flex-direction: column;
   gap: var(--sp-12);
-  padding: var(--sp-20);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-card);
-  box-shadow: var(--shadow-card);
+  min-width: 0;
+  padding: var(--sp-20) var(--page-pad);
+}
+
+/* A faixa do gráfico: largura inteira, e o fio que a fecha embaixo. */
+.perf__secao--largo {
+  border-bottom: 1px solid var(--line);
 }
 
 /*
- * O cabeçalho da seção perde o fio: dentro de um cartão ele seria uma segunda
- * régua a um vão da borda de cima. O que separa o título do conteúdo é o vão.
+ * A GRADE DAS QUATRO PERGUNTAS. Duas colunas, sem vão: o que separa uma da
+ * outra é o fio, e um vão entre colunas somado ao fio faria a régua parecer
+ * uma borda de cartão.
+ */
+.perf__grade {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.perf__grade .perf__secao:nth-child(even) {
+  border-left: 1px solid var(--line);
+}
+
+.perf__grade .perf__secao:nth-child(n + 3) {
+  border-top: 1px solid var(--line);
+}
+
+/*
+ * O cabeçalho da seção: nome e nota na mesma linha de base. Sem fio próprio —
+ * a régua da seção já está em volta dela.
  */
 .perf__secao-head {
   display: flex;
@@ -240,9 +254,21 @@
  * seguida, sem que ele dispute a primeira leitura.
  */
 
+/*
+ * TRÊS COLUNAS SEPARADAS POR FIO, e um teto de largura.
+ *
+ * Sem teto, em 1440px cada número ficava com 400px de faixa para um valor de
+ * 120 — os três se afastavam tanto que deixavam de ler como um conjunto e
+ * viravam três informações soltas na mesma linha. Encostados, eles são o que
+ * são: a conferência da frase que está logo acima.
+ *
+ * 260 e não 220: a linha de variação ("+12,5% vs. os 7 dias anteriores") mede
+ * uns 200px, e em 220 menos o respiro ela quebrava em duas — três colunas com
+ * alturas diferentes por causa de uma palavra.
+ */
 .numeros {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 260px));
   gap: 0;
   margin: 0;
   padding-block: var(--sp-8);
@@ -253,7 +279,7 @@
   flex-direction: column;
   gap: var(--sp-4);
   min-width: 0;
-  padding: var(--sp-8) var(--sp-20);
+  padding: var(--sp-4) var(--sp-20);
   border-left: 1px solid var(--line);
 }
 
@@ -550,6 +576,19 @@
   background: var(--ink);
 }
 
+/*
+ * O DIA DE PICO EM TINTA CHEIA. Ele já leva o rótulo direto com o valor; o
+ * tom mais escuro é a mesma afirmação no canal visual — o extremo é o que o
+ * olho procura primeiro num gráfico de colunas, e achá-lo deixa de depender de
+ * comparar sete alturas.
+ *
+ * NÃO É COR NOVA e não é métrica nova: é o mesmo dado que o rótulo já escreve,
+ * um degrau acima na escala de tinta.
+ */
+.grafico__dia--pico .grafico__barra {
+  background: var(--ink);
+}
+
 /* O rótulo direto do dia de pico — o extremo é o que o olho procura primeiro. */
 .grafico__pico {
   position: absolute;
@@ -629,33 +668,46 @@
 }
 
 /* ==========================================================================
- * CELULAR
+ * QUANDO A TELA APERTA
  * ======================================================================= */
 
-@media (max-width: 1199px) {
-  .perf__secao:nth-child(4),
-  .perf__secao:nth-child(5) {
-    grid-column: 1 / -1;
+/*
+ * A GRADE DESMONTA ANTES DO CELULAR. Duas colunas de tabela abaixo de 1100px
+ * deixam cada uma com ~430px, e a tabela de produtos tem quatro colunas com
+ * dinheiro em três delas: o nome do produto ficaria com 120px.
+ */
+@media (max-width: 1099px) {
+  .perf__grade {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .perf__grade .perf__secao:nth-child(even) {
+    border-left: 0;
+  }
+
+  .perf__grade .perf__secao:nth-child(n + 2) {
+    border-top: 1px solid var(--line);
   }
 }
 
 @media (max-width: 720px) {
-  .perf {
-    padding: var(--page-pad-mobile);
-  }
-
-  /*
-   * O CARTÃO APERTA NO CELULAR. Em 390px, `--sp-20` de padding dos dois lados
-   * come 40 dos 366 disponíveis — e o que cede é a largura da tabela, que é
-   * onde o dado está.
-   */
+  .perf__topo,
+  .perf__vazio,
   .perf__secao,
-  .perf__resposta {
-    padding: var(--sp-12);
+  .perf__estado {
+    padding-inline: var(--page-pad-mobile);
   }
 
-  .perf__vazio {
-    padding: var(--sp-24) var(--sp-12);
+  .perf__alerta {
+    margin-inline: var(--page-pad-mobile);
+  }
+
+  .perf__secoes {
+    padding-bottom: calc(var(--bottombar-h) + var(--sp-24));
+  }
+
+  .perf__datas {
+    flex: 1 1 100%;
   }
 
   /*
@@ -668,7 +720,7 @@
    */
   .numeros {
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--sp-12);
+    gap: 0;
   }
 
   .numeros__item {
@@ -693,10 +745,6 @@
 
   .numeros__delta {
     grid-column: 1 / -1;
-  }
-
-  .perf__datas {
-    flex: 1 1 100%;
   }
 
   .perf__datas .input {
@@ -734,5 +782,9 @@
   .grafico__dia {
     flex: 0 0 auto;
     min-width: var(--chart-band-mobile);
+  }
+
+  .grafico__barras {
+    height: var(--chart-h-mobile);
   }
 }

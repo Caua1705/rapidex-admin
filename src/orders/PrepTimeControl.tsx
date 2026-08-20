@@ -36,7 +36,7 @@ export function PrepTimeControl() {
    * nomeia — repetir aqui é a mesma informação duas vezes na mesma tela (§8).
    */
   const nomeFilial =
-    isAutoResolved && hasChoice && branch ? (branch.display_name?.trim() || branch.name) : '';
+    isAutoResolved && hasChoice && branch ? branch.display_name?.trim() || branch.name : '';
 
   const min = Number(baseMin);
   const max = Number(baseMax);
@@ -64,7 +64,7 @@ export function PrepTimeControl() {
   const temFaixa = prep.range !== null;
 
   return (
-    <div className="prep">
+    <div className="prep prep--ajuste">
       <span className="prep__label">Preparo</span>
 
       {temFaixa ? (

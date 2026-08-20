@@ -172,15 +172,27 @@
   min-width: 0;
 }
 
+/*
+ * A LEGENDA NÃO SE DESENHA AQUI — ela é um RÓTULO DE CAMPO, e quem desenha
+ * rótulo de campo é `styles/primitives.css`, junto de `.field__label`.
+ *
+ * Ela tinha as duas: 12/600/--ink-3 em primitives e 14/500/--ink aqui. Qual das
+ * duas vencia dependia da ordem em que o Vite injetava a folha do componente
+ * contra a folha global — ou seja, do grafo de módulos. Um grupo de rádios
+ * lia com um rótulo e o campo ao lado com outro, e ninguém tinha como saber
+ * qual dos dois era o certo olhando o arquivo.
+ */
 .ds-choice-group__legend {
   padding: 0;
   margin-bottom: var(--sp-4);
-  font-size: var(--tb-size);
-  line-height: var(--tb-line);
-  font-weight: var(--w-medium);
-  color: var(--ink);
 }
 
+/*
+ * O erro do grupo é `--danger`, e não `--st-cancelado`. As duas matizes são
+ * parecidas e o significado não: `--st-*` é a escala dos SETE ESTÁGIOS DO
+ * PEDIDO, e um formulário de configuração não tem estágio. Trocar a matiz do
+ * estágio "cancelado" passaria a repintar o erro de um campo.
+ */
 .ds-choice-group__error {
   display: flex;
   align-items: center;
@@ -189,5 +201,5 @@
   font-size: var(--ta-size);
   line-height: var(--ta-line);
   font-weight: var(--w-medium);
-  color: var(--st-cancelado);
+  color: var(--danger);
 }

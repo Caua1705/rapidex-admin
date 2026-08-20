@@ -23,6 +23,13 @@ import './Tabs.css';
  * O sublinhado desliza de uma aba para a outra. É a única animação da
  * navegação e ela diz de onde a seleção veio; sob prefers-reduced-motion ela
  * troca de posição na hora, sem deslizar.
+ *
+ * DENTRO DA FAIXA DE 52px (`variant="barra"`) elas ocupam a altura inteira da
+ * faixa e abrem mão da própria régua: quem já desenha o fio ali embaixo é a
+ * `PageBar`, e duas réguas a 1px de distância é a moldura dupla que a direção
+ * saiu tirando. Este é o modo que Pedidos usa — antes ele era um segundo par
+ * `.tabs`/`.tab` escrito à mão dentro de `OrdersPage.css`, e duas
+ * implementações de aba é como uma delas para de receber correção.
  */
 export type TabItem = {
   id: string;
@@ -38,12 +45,18 @@ export function Tabs({
   onChange,
   /** Liga cada aba ao painel correspondente por id (`<id>-painel`). */
   panelIdPrefix,
+  variant = 'bloco',
+  testIdPrefix = 'tab',
 }: {
   label: string;
   tabs: readonly TabItem[];
   value: string;
   onChange: (id: string) => void;
   panelIdPrefix?: string;
+  /** `barra` = dentro da faixa de 52px da `PageBar`. Ver o comentário acima. */
+  variant?: 'bloco' | 'barra';
+  /** O prefixo do `data-testid` de cada aba. */
+  testIdPrefix?: string;
 }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const activeIndex = tabs.findIndex((tab) => tab.id === value);
@@ -77,7 +90,12 @@ export function Tabs({
   }
 
   return (
-    <div className="ds-tabs" role="tablist" aria-label={label} onKeyDown={onKeyDown}>
+    <div
+      className={`ds-tabs${variant === 'barra' ? ' ds-tabs--barra' : ''}`}
+      role="tablist"
+      aria-label={label}
+      onKeyDown={onKeyDown}
+    >
       {tabs.map((tab, index) => {
         const ativa = tab.id === value;
         return (
@@ -95,7 +113,7 @@ export function Tabs({
             }}
             className={`ds-tab${ativa ? ' ds-tab--ativa' : ''}`}
             onClick={() => onChange(tab.id)}
-            data-testid={`tab-${tab.id}`}
+            data-testid={`${testIdPrefix}-${tab.id}`}
           >
             {tab.label}
             {tab.count !== undefined ? <span className="ds-tab__count">{tab.count}</span> : null}

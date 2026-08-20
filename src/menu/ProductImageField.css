@@ -18,7 +18,7 @@
 
 /* Arrastando um arquivo por cima: o alvo confirma que vai receber. */
 .foto__alvo.is-arrastando {
-  border-color: var(--ember);
+  border-color: var(--ink);
   border-style: solid;
 }
 

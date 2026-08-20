@@ -1,6 +1,15 @@
+/*
+ * A TABELA DE DADOS.
+ *
+ * O RESPIRO LATERAL É UMA VARIÁVEL, e não um número: `--tabela-pad` vale
+ * `--sp-16` numa tabela dentro de um bloco e `--page-pad` numa tabela que corre
+ * até a margem da tela (Clientes). Sem isso, a primeira coluna de uma lista
+ * cheia começava 8px antes do título que a nomeia lá em cima.
+ */
 .ds-tabela {
   width: 100%;
   border-collapse: collapse;
+  --tabela-pad: var(--sp-16);
 }
 
 .ds-tabela__caption {
@@ -81,10 +90,15 @@
    * O CABEÇALHO DE COLUNA É O NÍVEL 3 (12px / 600 / --ink-3), como todo rótulo
    * do sistema. Em 13px semibold ele tinha quase o corpo do dado embaixo e a
    * tabela lia como duas listas empilhadas em vez de cabeçalho e conteúdo.
+   *
+   * ELE NÃO É MAIS UMA FAIXA CINZA. Uma barra preenchida sobre uma lista de
+   * linhas separadas por fio é a moldura voltando por cima: quem diz "daqui
+   * para baixo começam os dados" é um fio mais forte, a mesma marcação que o
+   * bloco de estágio usa em Pedidos e que o total usa no detalhe do pedido.
    */
   .ds-tabela th {
-    padding: var(--sp-8) var(--sp-16);
-    background: var(--surface-muted);
+    padding: var(--sp-8) var(--tabela-pad);
+    border-bottom: 1px solid var(--line-strong);
     text-align: left;
     font-size: var(--tl-size);
     line-height: var(--tl-line);
@@ -102,7 +116,7 @@
   .ds-tabela td {
     display: table-cell;
     min-height: var(--row-dense-h);
-    padding: var(--sp-12) var(--sp-16);
+    padding: var(--sp-12) var(--tabela-pad);
     vertical-align: middle;
     border-bottom: 1px solid var(--line);
   }

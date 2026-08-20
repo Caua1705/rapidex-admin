@@ -55,8 +55,12 @@
   right: 0;
   bottom: 0;
   height: 2px;
-  /* Sem raio: o trilho da aba é um corte reto, como o resto da direção. */
-  background: var(--ember);
+  /*
+   * Sem raio e sem cor: o trilho da aba é um corte reto em tinta cheia. Aba
+   * ativa é onde a pessoa está, não o que ela deve fazer — o laranja é da ação
+   * (tokens §1).
+   */
+  background: var(--ink);
   transform: scaleX(0);
   transition: transform var(--motion-base) var(--ease);
 }
@@ -85,5 +89,31 @@
 @media (min-width: 1024px) {
   .ds-tab {
     min-height: var(--sp-32);
+  }
+}
+
+/* ==========================================================================
+ * A VARIANTE DA FAIXA — abas dentro da `ds/PageBar`
+ *
+ * Elas ocupam a ALTURA INTEIRA da faixa de 52px, e o sublinhado da aba ativa
+ * cai exatamente sobre o fio de baixo da faixa. É por isso que a faixa de abas
+ * abre mão da própria régua aqui: duas linhas de 1px a um pixel de distância é
+ * a moldura dupla que a direção passou a rodada inteira tirando.
+ * ======================================================================= */
+
+.ds-tabs--barra {
+  align-self: stretch;
+  box-shadow: none;
+  gap: var(--sp-16);
+}
+
+@media (min-width: 768px) {
+  .ds-tabs--barra .ds-tab {
+    /*
+     * `+1px` para o sublinhado passar POR CIMA do fio da faixa em vez de
+     * encostar nele: sem isso, a aba ativa fica com dois traços empilhados no
+     * mesmo pixel e o de baixo aparece nas beiradas.
+     */
+    min-height: calc(var(--topbar-h) + 1px);
   }
 }

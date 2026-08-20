@@ -41,7 +41,9 @@ function toQuery(range: ReportRange) {
  * ausência de dado.
  */
 export async function fetchSalesSummary(range: ReportRange): Promise<SalesSummary> {
-  return unwrap(await apiClient.GET('/admin/reports/summary', { params: { query: toQuery(range) } }));
+  return unwrap(
+    await apiClient.GET('/admin/reports/summary', { params: { query: toQuery(range) } }),
+  );
 }
 
 /**
@@ -63,9 +65,7 @@ export async function fetchSalesByDay(range: ReportRange): Promise<SalesByDay> {
  * virar "Outro" seria inventar uma forma de pagamento que existe de verdade no
  * cardápio de opções (ver `PAYMENT_METHOD_LABELS`).
  */
-export async function fetchPaymentMethodsReport(
-  range: ReportRange,
-): Promise<ReportPaymentMethods> {
+export async function fetchPaymentMethodsReport(range: ReportRange): Promise<ReportPaymentMethods> {
   return unwrap(
     await apiClient.GET('/admin/reports/payment-methods', { params: { query: toQuery(range) } }),
   );

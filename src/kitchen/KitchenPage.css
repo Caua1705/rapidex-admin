@@ -1,25 +1,96 @@
 /*
- * Cozinha. Toda cor sai de tokens.css.
+ * ============================================================================
+ * COZINHA — a única tela com PALETA própria, e o motivo é físico
+ * ============================================================================
  *
- * ESTA TELA É A ÚNICA EXCEÇÃO À DENSIDADE DO PAINEL, e é proposital: as outras
- * são lidas a 50cm com o mouse na mão; esta é um monitor de parede, lido a dois
- * metros por quem está com as mãos ocupadas. Por isso o nº do pedido usa
- * --k-num, o item --k-item e o botão ocupa o cartão inteiro — os três
- * tamanhos grandes da escala existem para cá e para lugar nenhum mais.
+ * As outras telas são lidas a 50cm, com o mouse na mão. Esta é um monitor
+ * pendurado na parede, lido a dois metros por quem está com as mãos ocupadas.
+ * Duas distâncias de leitura diferentes não podem ter a mesma paleta:
  *
- * O que ela NÃO herda é o excesso: o ritmo vertical, os raios e os vãos saem
- * da mesma escala do resto do painel.
+ *   - MATIZ DESSATURADA PERDE A IDENTIDADE ANTES DE PERDER A LUMINOSIDADE. As
+ *     matizes de status do painel (§5 dos tokens) são fundas e dessaturadas de
+ *     propósito, porque convivem a 60cm com um texto sobre papel. A três metros
+ *     elas viram mancha cinza, e não dá para separar "preparando" de "pronto"
+ *     do outro lado do salão.
  *
- * OS CINCO NÍVEIS CONTINUAM VALENDO — o que muda é o corpo de cada um:
+ *   - ENTÃO A ESCALA DAQUI É SATURADA, e a direção dela acompanha o plano:
+ *     acesa sobre carvão no tema escuro, funda sobre papel no tema claro.
+ *     `#33d68d` sobre branco dá 1.9:1 e some — não existe verde ao mesmo tempo
+ *     claro e legível sobre papel, então no claro quem faz o trabalho da luz é
+ *     a saturação.
  *
- *   1 título de página  "Cozinha", em --k-meta (igual ao painel)
- *   2 título de seção   nº do pedido (--k-num) e nome do item (--k-item)
- *   3 rótulo            cabeçalho da coluna, em --tb-size MAIÚSCULO
- *   4 corpo             adicional, observação, nota — --ts-size
- *   5 auxiliar          tipo do pedido, contagem — --tb-size
+ * ELA SEGUE O TEMA, COMO TODAS AS OUTRAS. Esta escala já foi fixa no escuro nos
+ * dois temas, com o argumento de que um monitor de parede não acompanha a
+ * preferência de quem está no escritório. O argumento tinha um furo prático:
+ * quem administra é a MESMA pessoa que pendura o monitor, e uma tela do painel
+ * que ignora o interruptor de tema lê como defeito.
+ *
+ * ============================================================================
+ * COMO ISSO É FEITO — reapontando token, não escrevendo regra por componente
+ * ============================================================================
+ *
+ * O bloco abaixo reaponta os tokens SEMÂNTICOS dentro de `.kitchen` para a
+ * escala `--k-*` (tokens §5b). O ganho é que nada mais precisa saber que está
+ * na Cozinha: `.btn`, `.alert`, `.conn`, `.ds-switch` e o `.is-<estágio>` de
+ * `tokens.css` continuam lendo `--surface`, `--ink`, `--danger` e `--st`, e
+ * todos caem na paleta da parede sozinhos.
+ *
+ * A alternativa — um bloco `.kitchen .btn { … }` por componente — é a que
+ * garante que o próximo componente usado aqui apareça branco no meio do carvão.
+ *
+ * O QUE ELA HERDA DO RESTO DO PAINEL É O ESQUELETO: a escala de espaçamento, os
+ * raios, o movimento e os cinco níveis de tipografia. O que muda é o CORPO de
+ * cada nível (`--k-num`, `--k-item`) e a cor. Mesmo sistema, outra
+ * distância.
  */
 
 .kitchen {
+  /* --- os planos, de baixo para cima ------------------------------------- */
+  --bg: var(--k-plano);
+  --surface: var(--k-plano-2);
+  --surface-muted: var(--k-plano-2);
+  --surface-raised: var(--k-plano-3);
+  --surface-selected: var(--k-plano-3);
+  --field: var(--k-plano);
+
+  --line: var(--k-line);
+  --line-strong: var(--k-line);
+  --line-control: var(--k-ink-3);
+  /* No escuro o cartão leva fio: dois planos a um degrau precisam de beirada. */
+  --card-edge: var(--k-line);
+
+  /* --- tinta -------------------------------------------------------------- */
+  --ink: var(--k-ink);
+  --ink-2: var(--k-ink-2);
+  --ink-3: var(--k-ink-3);
+
+  /* --- a marca: a ação primária é avançar o pedido ------------------------ */
+  --ember: var(--k-ember);
+  --ember-press: var(--k-ember-press);
+  --on-ember: var(--k-on-ember);
+  --on-ember-press: var(--k-on-ember);
+
+  /* --- semântica de estado ------------------------------------------------ */
+  --ok: var(--k-ok);
+  --alert: var(--k-alerta);
+  --alert-wash: var(--k-alerta-wash);
+  --danger: var(--k-perigo);
+  --danger-wash: var(--k-perigo-wash);
+  --on-danger: var(--k-plano);
+
+  /* --- os sete estágios --------------------------------------------------- */
+  --st-pendente: var(--k-pendente);
+  --st-aceito: var(--k-aceito);
+  --st-preparando: var(--k-preparando);
+  --st-pronto: var(--k-pronto);
+  --st-entrega: var(--k-entrega);
+  --st-concluido: var(--k-ink-3);
+  --st-cancelado: var(--k-cancelado);
+
+  /*
+   * Sem `color-scheme` próprio: a Cozinha segue o tema, então a barra de
+   * rolagem e os controles nativos já vêm certos da raiz.
+   */
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -38,7 +109,6 @@
   padding: var(--sp-8) var(--sp-20);
   border-bottom: 1px solid var(--line);
   background: var(--surface);
-  box-shadow: var(--shadow-shell);
 }
 
 /* Nível 1: o título da tela. */
@@ -66,7 +136,7 @@
 }
 
 .kitchen__alert {
-  margin: var(--sp-12) var(--sp-16) 0;
+  margin: var(--sp-12) var(--sp-20) 0;
 }
 
 /* --- as três colunas ------------------------------------------------------ */
@@ -75,14 +145,18 @@
   flex: 1;
   min-height: 0;
   display: flex;
-  gap: var(--sp-16);
-  padding: var(--sp-16) var(--sp-20) var(--sp-20);
+  gap: var(--sp-12);
+  padding: var(--sp-12) var(--sp-20) var(--sp-20);
   overflow-x: auto;
 }
 
 /*
  * Um terço da tela cada, sem encolher: cartão espremido quebra o nome do prato
  * em três linhas e acaba com a leitura de longe, que é a razão da tela existir.
+ *
+ * A COLUNA NÃO TEM MOLDURA. Ela é um plano um degrau acima do chão — o mesmo
+ * recurso do resto do painel, onde quem separa é o tom e não a borda. O que a
+ * fecha embaixo do cabeçalho é um fio, não um contorno de quatro lados.
  */
 .kitchen-column {
   flex: 1 1 0;
@@ -90,10 +164,8 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border: 1px solid var(--line);
   border-radius: var(--r-card);
-  background: var(--surface-muted);
-  box-shadow: var(--shadow-card);
+  background: var(--surface);
   overflow: hidden;
 }
 
@@ -105,15 +177,18 @@
   flex: 0 0 auto;
   padding: 0 var(--sp-16);
   border-bottom: 1px solid var(--line);
-  background: var(--surface);
 }
 
-/* A matiz vem da classe .is-<estágio> que o TSX põe no mesmo elemento. */
+/*
+ * O PONTO DA COLUNA VIROU FIO. A matiz vem da classe `.is-<estágio>` que o TSX
+ * põe no mesmo elemento, e a FORMA é a mesma do resto do sistema desde esta
+ * direção: um fio vertical de 2px diz "este grupo", na lista de pedidos e aqui.
+ * A dois metros um fio de 12px de altura é mais visível que um ponto de 8.
+ */
 .kitchen-column__dot {
-  width: 8px;
-  height: 8px;
+  width: 3px;
+  height: 20px;
   flex: 0 0 auto;
-  border-radius: var(--r-round);
   background: var(--st);
 }
 
@@ -162,10 +237,10 @@
   padding: var(--sp-12);
   /* A borda esquerda leva a matiz do status: de longe, ela é o que diz em que
      etapa o prato está sem precisar ler o cabeçalho da coluna. */
+  border: 1px solid var(--card-edge);
   border-left: 3px solid var(--st);
   border-radius: var(--r-field);
   background: var(--surface-raised);
-  box-shadow: var(--shadow-card);
 }
 
 .kitchen-card__head {
@@ -205,7 +280,7 @@
  */
 .kitchen-card[data-wait='due'] .kitchen-card__elapsed {
   background: var(--alert);
-  color: var(--on-ember);
+  color: var(--k-plano);
 }
 
 /*
@@ -227,7 +302,7 @@
 @keyframes kitchen-late {
   50% {
     background: var(--danger);
-    color: var(--on-ember);
+    color: var(--k-plano);
   }
 }
 

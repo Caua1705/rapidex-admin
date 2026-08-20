@@ -323,8 +323,8 @@ function SemSetor({ coverage }: { coverage: ReturnType<typeof useSectorCoverage>
 
       {coverage.strangeSector > 0 ? (
         <p className="alert alert--warn" data-testid="sector-coverage-strange">
-          {formatItemCount(coverage.strangeSector)} aponta para um setor que não é desta filial.
-          A via desses itens cai na impressora de resgate do programa de impressão.
+          {formatItemCount(coverage.strangeSector)} aponta para um setor que não é desta filial. A
+          via desses itens cai na impressora de resgate do programa de impressão.
         </p>
       ) : null}
     </div>

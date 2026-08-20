@@ -32,7 +32,9 @@ const draft: ProductDraft = {
   printSectorId: null,
 };
 
-function grupoPonto(options: { id: string; name: string; is_active: boolean }[]): ProductOptionGroup {
+function grupoPonto(
+  options: { id: string; name: string; is_active: boolean }[],
+): ProductOptionGroup {
   return {
     id: 'g-ponto',
     product_id: 'prod-1',
@@ -138,9 +140,7 @@ describe('ProductDialog · opção que tira o item de venda', () => {
      * apareceria.
      */
     await waitFor(() => expect(fetchProductDetail).toHaveBeenCalledTimes(2));
-    expect(await screen.findByTestId('product-blocked-warning')).toHaveTextContent(
-      /fora de venda/,
-    );
+    expect(await screen.findByTestId('product-blocked-warning')).toHaveTextContent(/fora de venda/);
   });
 
   it('NÃO pergunta quando ainda sobra outra opção ativa', async () => {
@@ -226,7 +226,9 @@ describe('ProductDialog · o bloco da foto nos dois modos', () => {
     expect(fetchProductDetail).not.toHaveBeenCalled();
 
     // Os grupos de complemento seguem só na edição.
-    expect(screen.queryByRole('heading', { name: 'Grupos de complemento' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Grupos de complemento' }),
+    ).not.toBeInTheDocument();
   });
 });
 

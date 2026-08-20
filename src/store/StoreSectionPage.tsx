@@ -18,52 +18,26 @@ import type { StoreOutletContext } from './StoreLayout';
  * mesmo tempo — seis formulários com estado sujo próprio e seis leituras de
  * API para mostrar um.
  *
- * A LINHA AUXILIAR DO CABEÇALHO É O QUE SOBROU DA PAREDE. Onde havia um cartão
- * com título em negrito, um parágrafo explicando o modelo de dados e um botão
- * por filial, hoje há uma frase no mesmo lugar em que Geral já dizia "vale para
- * o restaurante inteiro" — e ela é o par exato daquela: uma diz até onde a
- * configuração alcança, a outra também. Trocar de filial é no seletor do topo,
- * que é onde o lojista já espera, e que agora exibe a filial resolvida.
+ * O NOME DA SEÇÃO NÃO MORA MAIS AQUI: ele subiu para a faixa de 52px da tela,
+ * como continuação do título ("Minha loja › Horários de funcionamento"). Ver
+ * `StoreLayout`. O que restou nesta página é o FORMULÁRIO e a ressalva de
+ * escopo — e a seção passa a se nomear por `aria-label`, que diz a mesma coisa
+ * sem escrever a palavra duas vezes na mesma tela.
  *
- * Com uma filial só, `branchLabel` vem vazio e a linha não aparece: não há
- * escolha a fazer, e nomear a única filial seria escrever na tela uma palavra
- * que não distingue nada.
+ * A RESSALVA DE ESCOPO — "vale só para a filial X" — também não mora aqui: ela
+ * é a continuação do nome da seção e subiu junto com ele. Ver `StoreLayout`.
+ *
+ * O que sobrou nesta página é o formulário, e só ele.
  */
 export function StoreSectionPage({ id }: { id: StoreSectionId }) {
   const context = useOutletContext<StoreOutletContext>();
   const secao = STORE_SECTIONS.find((candidate) => candidate.id === id)!;
 
-  const nota =
-    secao.scope === 'branch'
-      ? context.branchLabel && `vale só para a filial ${context.branchLabel}`
-      : secao.nota;
-
   return (
     <section
       className={`store__section${secao.estreita ? ' store__section--estreita' : ''}`}
-      aria-labelledby={`${id}-titulo`}
+      aria-label={secao.titulo}
     >
-      {/*
-        O NOME DA SEÇÃO É SUBTÍTULO DA ROTA, não um segundo título.
-
-        Ele tinha o mesmo corpo (16px) do título de cada cartão do formulário
-        logo abaixo, e ficava a dois blocos do título da tela — três níveis
-        dentro de três pixels, que é como uma tela perde hierarquia. Como
-        `.t-crumb` ele lê como a continuação de "Minha loja", que é o que ele é:
-        o <h2> continua sendo <h2>, e `aria-labelledby` continua apontando para
-        ele.
-      */}
-      <div className="store__section-head">
-        <h2 className="t-crumb" id={`${id}-titulo`}>
-          {secao.titulo}
-        </h2>
-        {nota ? (
-          <span className="t-aux" data-testid="store-branch-note">
-            {nota}
-          </span>
-        ) : null}
-      </div>
-
       <Corpo id={id} context={context} />
     </section>
   );

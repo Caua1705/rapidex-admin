@@ -13,15 +13,23 @@ import {
   historyOrders,
   type BoardView,
 } from './board-lanes';
-import { OrderCard } from './OrderCard';
+import { PageBar } from '../ds/PageBar';
+import { Tabs } from '../ds/Tabs';
+import { OrderBlock } from './OrderBlock';
 import { OrderDetailPanel } from './OrderDetailPanel';
-import { OrderLane } from './OrderLane';
+import { OrderLine } from './OrderLine';
 import { OrdersFilters } from './OrdersFilters';
+import { STATUS_LABELS } from './order-status';
 import { useNewOrderSound } from './useNewOrderSound';
 import { useOrderStream } from './useOrderStream';
 import { useOrdersBoard } from './useOrdersBoard';
 import { usePrepRange } from './usePrepRange';
 import './OrdersPage.css';
+
+const ABAS = [
+  { key: 'andamento', label: 'Em andamento' },
+  { key: 'historico', label: 'Histórico' },
+] as const satisfies readonly { key: BoardView; label: string }[];
 
 export function OrdersPage() {
   const { activeBranchId } = useSession();
@@ -58,7 +66,7 @@ export function OrdersPage() {
    * A FILIAL AQUI É A DO FILTRO, NÃO A RESOLVIDA — de propósito, e é a
    * diferença para o controle de preparo na barra acima. O controle ESCREVE
    * numa filial, então resolver uma é o que o destrava. A barra MEDE pedidos:
-   * com "todas as filiais", o quadro mistura as duas lojas, e a janela da
+   * com "todas as filiais", a lista mistura as duas lojas, e a janela da
    * principal julgaria o pedido da Zona Norte contra a promessa da Aldeota.
    * Sem régua da filial certa, a barra não aparece — que é o mesmo critério da
    * Cozinha (ver `KitchenPage`).
@@ -88,9 +96,9 @@ export function OrdersPage() {
   const historico = historyOrders(board.orders);
 
   /*
-   * Quantos pedidos as três faixas somam. É a soma dos CONTADORES do filtro,
-   * não dos cartões carregados: com a primeira página cheia de concluídos, os
-   * cartões em andamento podem ser zero enquanto o filtro tem pedidos abertos
+   * Quantos pedidos os três blocos somam. É a soma dos CONTADORES do filtro,
+   * não das linhas carregadas: com a primeira página cheia de concluídos, as
+   * linhas em andamento podem ser zero enquanto o filtro tem pedidos abertos
    * mais adiante — e o estado vazio afirmaria o contrário.
    */
   const emAndamento = LANES.reduce(
@@ -98,7 +106,7 @@ export function OrdersPage() {
     0,
   );
   /*
-   * COM "TODAS AS FILIAIS", FECHADA SÓ VALE SE TODAS ESTIVEREM. O quadro mistura
+   * COM "TODAS AS FILIAIS", FECHADA SÓ VALE SE TODAS ESTIVEREM. A lista mistura
    * as lojas: com uma aberta e outra fechada, ainda entra pedido, e dizer "a
    * loja está fechada" mandaria o lojista abrir o que já está aberto. Nulo
    * enquanto a leitura não chegou — a tela não afirma nem uma coisa nem outra.
@@ -114,83 +122,96 @@ export function OrdersPage() {
 
   return (
     /*
-     * Quadro à esquerda, detalhe à direita: o detalhe deixou de ser janela
-     * porque, aberto, ele escondia justamente as faixas que dizem o que fazer
-     * em seguida. Clicar em outro cartão troca o conteúdo do painel.
+     * Lista à esquerda, detalhe à direita: o detalhe deixou de ser janela
+     * porque, aberto, ele escondia justamente os blocos que dizem o que fazer
+     * em seguida. Clicar em outra linha troca o conteúdo do painel.
      */
     <div className="orders">
       <div className="orders__main">
         {/*
-          TÍTULO E ABAS NA MESMA LINHA.
+          A FAIXA DE 52px — e é ela que responde ao diagnóstico que abriu esta
+          rodada.
 
-          As abas eram um bloco próprio, com régua de largura inteira, embaixo
-          do título e do subtítulo: três blocos empilhados antes do primeiro
-          pedido. Elas não são conteúdo — são o RECORTE do que está na tela,
-          que é a mesma natureza do título. Na linha dele, a tela ganha uma
-          dobra inteira de altura sem perder nada.
+          Antes eram quatro blocos empilhados antes do primeiro pedido: título,
+          subtítulo explicando a tela, abas com régua própria e um cartão branco
+          de filtros com 130px de altura. O primeiro pedido começava a ~500px do
+          topo, e painel operacional não se apresenta.
+
+          A FAIXA VIROU PRIMITIVO (`ds/PageBar`) depois que ela nasceu aqui:
+          era desta tela que vinha o diagnóstico, e um cabeçalho por tela é como
+          seis telas passam a ler como seis produtos. O SUBTÍTULO SAIU — quem
+          abre Pedidos sabe o que é a tela.
+
+          OS CONTADORES SUBIRAM PARA O GRUPO DO MEIO, e é o que paga o fim das
+          faixas de agrupamento: os três estágios aparecem sempre, zerados
+          inclusive, custando largura numa linha que já existia em vez de altura
+          em três faixas.
         */}
-        <header className="orders__header">
-          <div>
-            <h1 className="t-title">Pedidos</h1>
-            <p className="t-aux">Acompanhe a operação e priorize o que precisa de atenção agora.</p>
-          </div>
-          {/*
-          DUAS ABAS, E ELAS SEPARAM TRABALHO DE CONSULTA.
-          Concluído e cancelado ocupavam duas das sete colunas do quadro com o
-          que ninguém toca durante o turno. Aqui eles continuam a um clique —
-          e o clique é honesto, porque quem vai ao histórico está consultando.
-        */}
-          <div className="tabs" role="tablist" aria-label="Pedidos">
-            {(
-              [
-                { key: 'andamento', label: 'Em andamento' },
-                { key: 'historico', label: 'Histórico' },
-              ] as const
-            ).map((aba) => (
-              <button
-                key={aba.key}
-                type="button"
-                role="tab"
-                aria-selected={view === aba.key}
-                className={`tab${view === aba.key ? ' tab--on' : ''}`}
-                onClick={() => setView(aba.key)}
-                data-testid={`orders-tab-${aba.key}`}
-              >
-                {aba.label}
-                {/*
-                O CONTADOR DIZ O QUE HÁ DO OUTRO LADO — por isso ele fica na
-                aba FECHADA, e sai da aberta.
+        <PageBar
+          title="Pedidos"
+          aside={
+            /*
+              DUAS ABAS, E ELAS SEPARAM TRABALHO DE CONSULTA.
+              Concluído e cancelado ocupavam duas das sete colunas do quadro
+              antigo com o que ninguém toca durante o turno. Aqui eles
+              continuam a um clique — e o clique é honesto, porque quem vai ao
+              histórico está consultando.
 
-                Na aba aberta ele é a mesma informação duas vezes na mesma
-                dobra (§8): "Em andamento 3" em cima de faixas que já dizem
-                "Novos 2 · Em preparo 1 · Prontos e na rua 0" é exatamente o
-                "total que é a SOMA de contadores visíveis" que a regra
-                nomeia. No Histórico é o mesmo caso, com o rodapé de
-                paginação no lugar das faixas — e é o mesmo motivo pelo qual
-                aquele rodapé já só aparece quando há o que carregar.
-
-                Fechada, ela não repete nada: é o único jeito de saber que
-                entraram três pedidos enquanto se consultava o histórico.
-              */}
-                {view === aba.key ? null : (
-                  <span className="tab__count">{countForView(aba.key, board.counts)}</span>
-                )}
-              </button>
-            ))}
-          </div>
-        </header>
-
-        <OrdersFilters
-          filters={board.filters}
-          streamStatus={streamStatus}
-          isLoading={board.isLoading}
-          soundBlocked={sound.isBlocked}
-          isMuted={sound.isMuted}
-          onEnableSound={() => void sound.unblock()}
-          onToggleMute={sound.toggleMute}
-          onChange={board.updateFilters}
-          onReload={() => void board.reload()}
-        />
+              O COMPONENTE É O DO DESIGN SYSTEM (`ds/Tabs`), na variante da
+              faixa. Esta tela tinha o próprio par `.tabs`/`.tab` escrito à mão,
+              e duas implementações de aba é como uma delas para de receber o
+              teclado de setas que a outra já tinha.
+            */
+            <Tabs
+              label="Pedidos"
+              variant="barra"
+              testIdPrefix="orders-tab"
+              value={view}
+              onChange={(id) => setView(id as BoardView)}
+              tabs={ABAS.map((aba) => ({
+                id: aba.key,
+                label: aba.label,
+                /*
+                  O CONTADOR DIZ O QUE HÁ DO OUTRO LADO — por isso ele fica na
+                  aba FECHADA, e sai da aberta. Na aba aberta ele seria a mesma
+                  informação duas vezes na mesma dobra: os contadores de estágio
+                  ao lado já somam esse número.
+                */
+                count: view === aba.key ? undefined : countForView(aba.key, board.counts),
+              }))}
+            />
+          }
+          meta={
+            view === 'andamento' ? (
+              <div className="contagens" aria-label="Pedidos por estágio">
+                {LANES.map((lane) => (
+                  <span key={lane.key} className={`contagem is-${lane.stage}`}>
+                    <i className="contagem__fio" aria-hidden="true" />
+                    {lane.title}
+                    {/*
+                      O contador vem de /admin/orders/status-counts e conta o
+                      FILTRO inteiro, não só o que está carregado. Por isso ele
+                      pode ser maior que o número de linhas abaixo.
+                    */}
+                    <b data-testid={`badge-${lane.key}`}>{countFor(lane.statuses, board.counts)}</b>
+                  </span>
+                ))}
+              </div>
+            ) : null
+          }
+        >
+          <OrdersFilters
+            filters={board.filters}
+            streamStatus={streamStatus}
+            isLoading={board.isLoading}
+            soundBlocked={sound.isBlocked}
+            isMuted={sound.isMuted}
+            onEnableSound={() => void sound.unblock()}
+            onToggleMute={sound.toggleMute}
+            onChange={board.updateFilters}
+            onReload={() => void board.reload()}
+          />
+        </PageBar>
 
         {board.errorMessage ? (
           <p className="alert alert--error orders__alert" role="alert">
@@ -204,53 +225,58 @@ export function OrdersPage() {
           </p>
         ) : null}
 
-        {view === 'andamento' ? (
-          <div className="faixas" data-testid="board-lanes">
-            {LANES.map((lane) => (
-              <OrderLane
-                key={lane.key}
-                lane={lane}
-                orders={lanes[lane.key] ?? []}
-                count={countFor(lane.statuses, board.counts)}
-                windowMinutes={windowMinutes}
-                selectedOrderId={selectedOrderId}
-                onOpenOrder={setSelectedOrderId}
-              />
-            ))}
+        {/*
+          A LISTA É O CONTAINER DE CONSULTA (`container-type: inline-size`), e é
+          isso que faz a linha trocar de layout quando o painel de detalhe
+          abre — e não só quando a JANELA encolhe. Ver `ds/OrderRow.css`.
+        */}
+        <div className="orders__lista" data-testid="board-lanes">
+          {view === 'andamento' ? (
+            <>
+              {LANES.map((lane) => (
+                <OrderBlock
+                  key={lane.key}
+                  lane={lane}
+                  orders={lanes[lane.key] ?? []}
+                  windowMinutes={windowMinutes}
+                  selectedOrderId={selectedOrderId}
+                  onOpenOrder={setSelectedOrderId}
+                />
+              ))}
 
-            {/*
-              O QUADRO INTEIRO VAZIO É OUTRO ESTADO, e não a soma de três
-              faixas vazias. Uma faixa sem pedido continua sem escrever nada —
-              o zero do contador ao lado já diz —, mas as TRÊS zeradas juntas
-              deixavam a tela com três fios e nada mais: nem "está entrando
-              pedido?", nem "estou no dia certo?", nem o que fazer.
+              {/*
+                A LISTA INTEIRA VAZIA É OUTRO ESTADO, e não a soma de três
+                blocos vazios. Bloco sem pedido não é desenhado — mas os TRÊS
+                zerados deixavam a tela sem nada: nem "está entrando pedido?",
+                nem "estou no dia certo?", nem o que fazer.
 
-              Só depois de carregar: no primeiro quadro, "nenhum pedido" ainda
-              não é uma afirmação — é o esqueleto.
-            */}
-            {!board.isLoading && emAndamento === 0 ? (
-              <div className="quadro-vazio" data-testid="board-empty">
-                <p className="t-section">{vazio.title}</p>
-                <p className="t-aux">{vazio.hint}</p>
-                {vazio.action ? (
-                  <Link className="btn btn--sm" to={vazio.action.to}>
-                    {vazio.action.label}
-                  </Link>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        ) : (
-          <Historico
-            orders={historico}
-            selectedOrderId={selectedOrderId}
-            onOpenOrder={setSelectedOrderId}
-            isLoading={board.isLoading}
-            carregados={board.orders.length}
-            total={board.totalInFilter}
-            onLoadMore={() => void board.loadMore()}
-          />
-        )}
+                Só depois de carregar: no primeiro quadro, "nenhum pedido" ainda
+                não é uma afirmação — é o esqueleto.
+              */}
+              {!board.isLoading && emAndamento === 0 ? (
+                <div className="orders__vazio" data-testid="board-empty">
+                  <p className="t-section">{vazio.title}</p>
+                  <p className="t-aux">{vazio.hint}</p>
+                  {vazio.action ? (
+                    <Link className="btn btn--sm" to={vazio.action.to}>
+                      {vazio.action.label}
+                    </Link>
+                  ) : null}
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <Historico
+              orders={historico}
+              selectedOrderId={selectedOrderId}
+              onOpenOrder={setSelectedOrderId}
+              isLoading={board.isLoading}
+              carregados={board.orders.length}
+              total={board.totalInFilter}
+              onLoadMore={() => void board.loadMore()}
+            />
+          )}
+        </div>
       </div>
 
       <OrderDetailPanel
@@ -270,12 +296,13 @@ export function OrdersPage() {
 }
 
 /**
- * O HISTÓRICO — uma grade de pedidos encerrados, e nada além disso.
+ * O HISTÓRICO — a mesma lista, sem bloco.
  *
- * Sem faixa e sem cabeçalho de estágio: aqui todos os pedidos estão no mesmo
- * estado do ponto de vista de quem consulta ("acabou"), e o que separa um
- * concluído de um cancelado é a matiz do próprio cartão. Agrupá-los custaria
- * dois cabeçalhos para dizer o que a cor já diz.
+ * Aqui todos os pedidos estão no mesmo estado do ponto de vista de quem
+ * consulta ("acabou"), então não há bloco e não há coluna mesclada: cada linha
+ * traz o próprio rótulo, que é o que separa um concluído de um cancelado.
+ * Cada linha "abre" o próprio grupo de uma linha só, e é isso que faz o rótulo
+ * aparecer em todas: aqui a coluna mesclada não teria o que mesclar.
  *
  * SEM BARRA DE MATURAÇÃO: ela mede quanto falta para estourar, e um pedido de
  * ontem não tem o que estourar. Passar a régua aqui pintaria toda a lista de
@@ -299,34 +326,34 @@ function Historico({
   onLoadMore: () => void;
 }) {
   if (isLoading && orders.length === 0) {
-    return <p className="orders__vazio faint">Carregando…</p>;
+    return <p className="orders__aviso faint">Carregando…</p>;
   }
 
   if (orders.length === 0) {
-    return <p className="orders__vazio faint">Nenhum pedido encerrado no período.</p>;
+    return <p className="orders__aviso faint">Nenhum pedido encerrado no período.</p>;
   }
 
   return (
-    <div className="historico" data-testid="board-historico">
-      <div className="historico__grade">
-        {orders.map((order) => (
-          <OrderCard
-            key={order.id}
-            order={order}
-            windowMinutes={null}
-            isSelected={order.id === selectedOrderId}
-            onOpen={() => onOpenOrder(order.id)}
-          />
-        ))}
-      </div>
+    <div data-testid="board-historico">
+      {orders.map((order) => (
+        <OrderLine
+          key={order.id}
+          order={order}
+          stageLabel={STATUS_LABELS[order.status] ?? order.status}
+          abreBloco
+          windowMinutes={null}
+          isSelected={order.id === selectedOrderId}
+          onOpen={() => onOpenOrder(order.id)}
+        />
+      ))}
 
       {/*
         O rodapé só existe quando há o que carregar. Com tudo na tela, "40 de
         40" é a terceira vez que o mesmo número aparece — o contador da aba já
-        o disse, e os cartões estão logo acima.
+        o disse, e as linhas estão logo acima.
       */}
       {carregados < total ? (
-        <footer className="historico__rodape faint">
+        <footer className="orders__rodape faint">
           <span>
             <span className="tnum">{carregados}</span> de <span className="tnum">{total}</span> no
             período

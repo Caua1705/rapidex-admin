@@ -153,7 +153,7 @@ test('pedido com pagamento online não confirmado fica destacado e travado', asy
   await fazerLogin(page);
 
   const cardNaoPago = page.getByTestId('order-card-1001');
-  await expect(cardNaoPago).toHaveClass(/ds-ticket--alerta/);
+  await expect(cardNaoPago).toHaveClass(/ds-row--alerta/);
   await expect(cardNaoPago).toContainText('não preparar');
 
   await cardNaoPago.click();
@@ -224,10 +224,19 @@ test('o contador de status aparece uma vez só, e é na coluna', async ({ page }
   // Nada no topo do quadro repete isso: com tudo carregado, a linha some.
   await expect(page.getByTestId('period-summary')).toHaveCount(0);
 
-  // E a coluna vazia não escreve "Nenhum pedido" — o zero do cabeçalho basta,
-  // e a frase aparecia em cinco colunas ao mesmo tempo.
+  /*
+   * E O ESTÁGIO VAZIO NÃO É DESENHADO — nem com a frase "Nenhum pedido", nem
+   * com um cabeçalho anunciando o nada.
+   *
+   * A asserção mudou de forma junto com o quadro, e ficou MAIS forte: antes o
+   * bloco existia e o teste cobrava que ele não escrevesse a frase; hoje o
+   * bloco sem pedido não existe (ver `OrderBlock`), e é isso que o teste
+   * cobra. Quem diz o zero é o contador da faixa do topo, que continua sendo
+   * verificado na linha acima — um lugar só, como diz o nome deste teste.
+   */
   await expect(page.getByTestId('badge-prontos')).toHaveText('0');
-  await expect(page.locator('[data-lane="prontos"]')).not.toContainText('Nenhum pedido');
+  await expect(page.locator('[data-lane="prontos"]')).toHaveCount(0);
+  await expect(page.getByTestId('board-lanes')).not.toContainText('Nenhum pedido');
 
   // Mover um pedido reflete nos contadores, que é o que os torna confiáveis.
   await page.getByTestId('order-card-1002').click();

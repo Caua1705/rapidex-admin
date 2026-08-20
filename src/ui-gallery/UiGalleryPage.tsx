@@ -9,7 +9,8 @@ import {
   Field,
   FieldRow,
   Input,
-  OrderTicket,
+  OrderRow,
+  PageBar,
   RadioGroup,
   RangeInput,
   DataTable,
@@ -67,15 +68,16 @@ export function UiGalleryPage() {
 
   return (
     <div className="gal">
-      <header className="gal__bar">
-        <h1 className="t-title">Design system</h1>
-        <p className="t-aux">
-          Rota de desenvolvimento. Todo componente aparece aqui com todos os seus estados.
-        </p>
-        <button type="button" className="gal__theme" onClick={toggleTheme}>
+      {/*
+        A GALERIA USA A MESMA FAIXA DE 52px DAS TELAS DE VERDADE, e não é
+        cerimônia: se o primitivo não serve para o próprio catálogo dele, ele
+        não serve.
+      */}
+      <PageBar title="Design system" crumb="rota de desenvolvimento">
+        <button type="button" className="btn btn--sm" onClick={toggleTheme}>
           Tema: {theme === 'dark' ? 'escuro' : 'claro'}
         </button>
-      </header>
+      </PageBar>
 
       <div className="gal__body">
         <Secao titulo="Campo de texto" nota="A caixa é a mesma para todo controle de entrada.">
@@ -190,7 +192,11 @@ export function UiGalleryPage() {
               nenhuma, elas resolvem (ver `auth/branch-scope.ts`). Copiar aquela
               frase para a galeria a mantinha viva como se fosse padrão.
             */}
-            <Field label="Filial" disabled hint="Disponível depois de salvar as alterações abertas.">
+            <Field
+              label="Filial"
+              disabled
+              hint="Disponível depois de salvar as alterações abertas."
+            >
               <Select value="" onChange={() => {}} options={categorias} disabled />
             </Field>
           </Amostra>
@@ -289,99 +295,111 @@ export function UiGalleryPage() {
         </Secao>
 
         <Secao
-          titulo="Ticket de pedido"
-          nota="O fio no topo é a barra de maturação: preenche contra a janela de preparo da loja (aqui, 100 min) e muda de cor em 50% e 85%."
+          titulo="Linha de pedido"
+          nota="A unidade da lista. O estágio é a coluna mesclada — escrito na linha que ABRE o bloco, com o fio de cor descendo nas seguintes. O fio embaixo do tempo é a barra de maturação: preenche contra a janela de preparo da loja (aqui, 100 min). Estreite a lista para ver o layout compacto: ele é outro desenho, e não a linha dobrada em duas."
         >
-          <Amostra rotulo="No prazo">
-            <OrderTicket
-              stage="preparando"
-              number={1042}
-              elapsedLabel="18 min"
-              elapsedMinutes={18}
-              windowMinutes={100}
-              timeLabel="20:41"
-              customer="Marcos Lima"
-              total="R$ 192,90"
-              tags={['Entrega', 'Pix']}
-              onOpen={() => {}}
-            />
+          <Amostra rotulo="Um bloco de estágio" larga>
+            <div className="gal__lista">
+              <OrderRow
+                stage="preparando"
+                stageLabel="Em preparo"
+                abreBloco
+                number={1042}
+                elapsedLabel="18 min"
+                elapsedMinutes={18}
+                windowMinutes={100}
+                timeLabel="20:41"
+                customer="Marcos Lima"
+                modalidade="Entrega"
+                pagamento="Pix"
+                pagamentoNota="Pago"
+                total="R$ 192,90"
+                onOpen={() => {}}
+              />
+              <OrderRow
+                stage="preparando"
+                stageLabel="Em preparo"
+                number={1043}
+                elapsedLabel="62 min"
+                elapsedMinutes={62}
+                windowMinutes={100}
+                timeLabel="19:58"
+                customer="Ana Paula Nogueira"
+                modalidade="Entrega"
+                pagamento="Dinheiro"
+                pagamentoNota="Paga na entrega"
+                total="R$ 147,00"
+                onOpen={() => {}}
+              />
+              <OrderRow
+                stage="preparando"
+                stageLabel="Em preparo"
+                number={1044}
+                elapsedLabel="94 min"
+                elapsedMinutes={94}
+                windowMinutes={100}
+                timeLabel="19:26"
+                customer="Rafael Nunes"
+                modalidade="Retirada"
+                pagamento="Débito"
+                pagamentoNota="Pago"
+                total="R$ 89,90"
+                onOpen={() => {}}
+              />
+            </div>
           </Amostra>
 
-          <Amostra rotulo="Na janela (50%)">
-            <OrderTicket
-              stage="preparando"
-              number={1043}
-              elapsedLabel="62 min"
-              elapsedMinutes={62}
-              windowMinutes={100}
-              timeLabel="19:58"
-              customer="Ana Paula Nogueira"
-              total="R$ 147,00"
-              tags={['Entrega', 'Dinheiro']}
-              onOpen={() => {}}
-            />
-          </Amostra>
-
-          <Amostra rotulo="Estourando (85%)">
-            <OrderTicket
-              stage="preparando"
-              number={1044}
-              elapsedLabel="94 min"
-              elapsedMinutes={94}
-              windowMinutes={100}
-              timeLabel="19:26"
-              customer="Rafael Nunes"
-              total="R$ 89,90"
-              tags={['Retirada']}
-              onOpen={() => {}}
-            />
-          </Amostra>
-
-          <Amostra rotulo="Aguardando pagamento">
-            <OrderTicket
-              stage="pendente"
-              number={1045}
-              elapsedLabel="4 min"
-              elapsedMinutes={4}
-              windowMinutes={100}
-              timeLabel="21:02"
-              customer="Juliana Alves"
-              total="R$ 124,00"
-              tags={['Entrega', 'Pix']}
-              alerta="Aguardando pagamento — não preparar"
-              onOpen={() => {}}
-            />
-          </Amostra>
-
-          <Amostra rotulo="Escolhido">
-            <OrderTicket
-              stage="pronto"
-              number={1046}
-              elapsedLabel="41 min"
-              elapsedMinutes={41}
-              windowMinutes={100}
-              timeLabel="20:19"
-              customer="Pedro Henrique"
-              total="R$ 236,40"
-              tags={['Entrega']}
-              selected
-              onOpen={() => {}}
-            />
-          </Amostra>
-
-          <Amostra rotulo="Sem janela configurada">
-            <OrderTicket
-              stage="aceito"
-              number={1047}
-              elapsedLabel="7 min"
-              elapsedMinutes={7}
-              windowMinutes={null}
-              timeLabel="20:55"
-              customer="Camila Souza"
-              total="R$ 98,00"
-              tags={['Retirada', 'Crédito']}
-              onOpen={() => {}}
-            />
+          <Amostra rotulo="Aguardando pagamento, escolhida e sem janela" larga>
+            <div className="gal__lista">
+              <OrderRow
+                stage="pendente"
+                stageLabel="Novos"
+                abreBloco
+                number={1045}
+                elapsedLabel="4 min"
+                elapsedMinutes={4}
+                windowMinutes={100}
+                timeLabel="21:02"
+                customer="Juliana Alves"
+                modalidade="Entrega"
+                pagamento="Pix"
+                total="R$ 124,00"
+                alerta="Aguardando pagamento — não preparar"
+                onOpen={() => {}}
+              />
+              <OrderRow
+                stage="pronto"
+                stageLabel="Prontos e na rua"
+                abreBloco
+                number={1046}
+                elapsedLabel="41 min"
+                elapsedMinutes={41}
+                windowMinutes={100}
+                timeLabel="20:19"
+                customer="Pedro Henrique"
+                modalidade="Entrega"
+                pagamento="Pix"
+                pagamentoNota="Pago"
+                total="R$ 236,40"
+                selected
+                onOpen={() => {}}
+              />
+              <OrderRow
+                stage="aceito"
+                stageLabel="Aceitos"
+                number={1047}
+                elapsedLabel="7 min"
+                elapsedMinutes={7}
+                windowMinutes={null}
+                timeLabel="20:55"
+                customer="Camila Souza"
+                modalidade="Retirada"
+                pagamento="Crédito"
+                pagamentoNota="Pago"
+                total="R$ 98,00"
+                onOpen={() => {}}
+              />
+            </div>
           </Amostra>
         </Secao>
 
@@ -539,7 +557,7 @@ export function UiGalleryPage() {
           </Amostra>
 
           <Amostra rotulo="Folha inferior">
-            <button type="button" className="gal__theme" onClick={() => setFolha(true)}>
+            <button type="button" className="btn btn--sm" onClick={() => setFolha(true)}>
               Abrir a folha
             </button>
             <Sheet open={folha} title="Mudar o status" onClose={() => setFolha(false)}>

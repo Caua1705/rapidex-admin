@@ -37,7 +37,10 @@ import type {
 const PERIODO = { start_date: '2026-08-10', end_date: '2026-08-16', days: 7 };
 const ANTERIOR = { start_date: '2026-08-03', end_date: '2026-08-09', days: 7 };
 
-function comparison(percent: string | null, overrides: Partial<MetricComparison> = {}): MetricComparison {
+function comparison(
+  percent: string | null,
+  overrides: Partial<MetricComparison> = {},
+): MetricComparison {
   return {
     current: '1000.00',
     previous: '800.00',
@@ -207,7 +210,12 @@ describe('readVeredito', () => {
    * a tela continua inteira — com a frase, sem a causa.
    */
   it('sem o período anterior dia a dia, a frase existe sem a causa', () => {
-    const frase = readVeredito(summaryOf(), byDayOf([{ day: '2026-08-10', revenue: '100' }]), null, 'os 7 dias anteriores').text;
+    const frase = readVeredito(
+      summaryOf(),
+      byDayOf([{ day: '2026-08-10', revenue: '100' }]),
+      null,
+      'os 7 dias anteriores',
+    ).text;
     expect(frase).toContain('62%');
     expect(frase).not.toContain('puxado');
   });

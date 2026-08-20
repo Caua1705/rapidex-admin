@@ -8,14 +8,12 @@
   position: relative;
 }
 
-.login::before {
-  position: absolute;
-  inset: 0 0 auto;
-  height: 6px;
-  background: var(--ember);
-  content: '';
-}
-
+/*
+ * A FAIXA LARANJA DE 6px NO TOPO SAIU. Ela era decoração — o único emprego do
+ * laranja é a ação primária (tokens §1), e nesta tela a ação primária é o
+ * botão "Entrar", que já a carrega. Quem diz de quem é o painel é o selo no
+ * cartão, não um traço no topo da janela.
+ */
 /* O alternador de tema fica fora do cartão: ele é da janela, não do formulário. */
 .login__theme {
   position: absolute;
@@ -23,7 +21,15 @@
   right: var(--sp-12);
 }
 
-/* O cartão se separa do fundo pelo tom, como todo cartão do painel. */
+/*
+ * O ÚNICO CARTÃO FLUTUANTE PARADO DO SISTEMA, e ele é a exceção que confirma a
+ * regra: aqui não há tela por baixo, há uma JANELA — o cartão é a única coisa
+ * na página, centrado sobre o chão. É por isso que ele leva fio e sombra de
+ * elevação, que nenhum bloco de conteúdo do painel leva (tokens §9).
+ *
+ * É também o único lugar em que `--bg` aparece como plano de página: as telas
+ * do painel são folhas em `--surface` do começo ao fim.
+ */
 .login__box {
   width: 384px;
   max-width: 100%;

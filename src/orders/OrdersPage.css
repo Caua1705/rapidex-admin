@@ -1,139 +1,135 @@
 /*
- * ============================================================================
- * PEDIDOS — a tela mais densa do painel
- * ============================================================================
+ * PEDIDOS — a tela que a direção resolve primeiro.
  *
- * O QUE MUDOU NESTA RODADA:
+ * O DIAGNÓSTICO: o primeiro pedido começava a ~500px do topo. Título,
+ * subtítulo explicando a tela, abas com régua própria, cartão branco de filtros
+ * com 130px de altura e três cabeçalhos de faixa — cinco blocos de apresentação
+ * antes de um pedido. Painel operacional não se apresenta.
  *
- *   O CABEÇALHO VIROU UMA LINHA SÓ. Título, subtítulo e as duas abas ficavam em
- *   três blocos empilhados, e as abas ainda traziam uma régua de largura
- *   inteira: 140px de altura antes do primeiro pedido. Agora título e abas
- *   dividem a mesma linha, e o subtítulo desceu para o nível auxiliar.
+ * O QUE SOBROU: a faixa de 52px do sistema (`ds/PageBar`) com título, abas,
+ * contadores e ferramentas, e daí para baixo só linha de pedido.
  *
- *   A BARRA DE FILTRO PERDEU A MOLDURA e ganhou densidade. Ela continua sendo
- *   UMA superfície agrupadora — sem isso, as cápsulas de preparo somem no chão
- *   bege — mas sem borda, sem sombra e com os controles no tamanho compacto.
+ * As três coisas que pagaram essa conta:
+ *   1. o subtítulo saiu;
+ *   2. o cartão de filtro deixou de ser objeto e virou texto na mesma linha;
+ *   3. as faixas de estágio viraram COLUNA MESCLADA dentro da própria linha
+ *      (ver `ds/OrderRow` e `OrderBlock`) — bloco vazio não é desenhado, e o
+ *      contador dos três estágios subiu para a faixa do topo.
  *
- *   O CABEÇALHO DE FAIXA VIROU RÓTULO. Ele tinha contador em cápsula cinza,
- *   título em semibold e um fio: três objetos para dizer "começa aqui a fila
- *   dos novos". Ficaram o ponto na matiz do estágio, o nome, o número e o fio.
- *
- *   A GRADE APERTOU de 268 para 248px de coluna mínima. Numa tela de 1440 com
- *   o painel de detalhe aberto, é a diferença entre três e quatro tickets por
- *   linha.
+ * O CABEÇALHO E AS ABAS NÃO MORAM MAIS AQUI. Eles nasceram nesta tela e viraram
+ * `ds/PageBar` e a variante `barra` de `ds/Tabs`: eram a mesma peça que todas
+ * as outras telas precisavam, e uma cópia por tela é como seis telas passam a
+ * ler como seis produtos.
  */
 
 .orders {
   flex: 1;
   min-height: 0;
   display: flex;
-  background: var(--bg);
+  align-items: stretch;
+  background: var(--surface);
 }
 
 .orders__main {
   flex: 1;
   min-width: 0;
-  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-16);
-  padding: var(--page-pad);
-  overflow-y: auto;
-}
-
-/*
- * TÍTULO E ABAS NA MESMA LINHA. As abas são o recorte do que está na tela —
- * elas pertencem ao título, não ao conteúdo.
- */
-.orders__header {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--sp-12) var(--sp-24);
-}
-
-.orders__header p {
-  margin: var(--sp-4) 0 0;
-}
-
-.tabs {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-4);
-  padding: var(--sp-4);
-  border-radius: var(--r-control);
-  background: var(--surface-muted);
-}
-
-/*
- * AS DUAS ABAS VIRARAM SEGMENTADO. Sublinhado de aba é para navegação que troca
- * o contexto da página; "Em andamento" e "Histórico" são dois recortes do mesmo
- * quadro — a mesma pergunta que o segmentado de período responde logo abaixo, e
- * agora com o mesmo desenho.
- */
-.tab {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-8);
-  min-height: var(--control-h-sm);
-  padding-inline: var(--sp-12);
-  border-radius: var(--r-chip);
-  color: var(--ink-2);
-  font-size: var(--ta-size);
-  line-height: 1;
-  font-weight: var(--w-medium);
-  white-space: nowrap;
-  transition:
-    color var(--motion-fast) var(--ease),
-    background var(--motion-fast) var(--ease),
-    box-shadow var(--motion-fast) var(--ease);
-}
-
-.tab:hover {
-  color: var(--ink);
-  background: var(--hover);
-}
-
-.tab--on {
-  color: var(--ink);
-  background: var(--surface);
-  font-weight: var(--w-semibold);
-  box-shadow: var(--shadow-lift);
-}
-
-/* O contador diz o que há do outro lado; ele é apoio, não um objeto. */
-.tab__count {
-  color: var(--ink-3);
-  font-size: var(--tl-size);
-  font-weight: var(--w-semibold);
-  font-variant-numeric: tabular-nums;
 }
 
 /* ==========================================================================
- * A BARRA DE FILTRO
+ * OS CONTADORES DE ESTÁGIO — o grupo do meio da faixa
+ *
+ * OS TRÊS, SEMPRE — zerados inclusive. É esta linha que paga o fim das faixas
+ * de agrupamento: "Prontos 0" custa 70px de largura numa linha que já existia,
+ * e custava 40px de altura numa faixa que anunciava o nada.
  * ======================================================================= */
-.filtros {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--sp-8) var(--sp-12);
-  padding: var(--sp-8);
-  border-radius: var(--r-card);
-  background: var(--surface);
-}
 
 /*
- * O SEGMENTADO DE PERÍODO É MAIS APERTADO AQUI que na galeria: quatro opções
- * numa barra que também carrega busca e três botões, dentro de uma coluna que
- * mede 740px com o detalhe aberto. É a densidade da tela mandando na do
- * componente, e não o contrário.
+ * O VÃO ENTRE CONTADORES É MAIOR QUE O VÃO ENTRE O FIO E O NOME — 20 contra 8.
+ * Sem essa diferença, o fio de 2px de um contador fica à mesma distância do
+ * nome dele e do contador anterior, e o olho o lê como um separador de lista
+ * (um "|") em vez da marca de estágio que ele é.
  */
-.filtros > .seg .seg__opt {
-  padding-inline: var(--sp-8);
+.contagens {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-20);
+}
+
+.contagem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-8);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+/* O mesmo fio de 2px que marca o bloco na lista, deitado em miniatura. */
+.contagem__fio {
+  width: 2px;
+  height: 14px;
+  flex: 0 0 auto;
+  background: var(--st);
+}
+
+.contagem b {
+  font-weight: var(--w-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+/* ==========================================================================
+ * AS FERRAMENTAS — sem cartão, sem borda, sem fundo
+ *
+ * O grupo já é alinhado à direita pela `ds-pagebar__tools`; o que sobra aqui é
+ * o desenho de cada controle.
+ * ======================================================================= */
+
+.filtros {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  column-gap: var(--sp-16);
+  row-gap: var(--sp-4);
+}
+
+.filtros__vao {
+  flex: 0 1 var(--sp-8);
+}
+
+/* O período: texto, e a sublinha é o estado. */
+.filtros__periodo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+}
+
+.filtros__periodo-opt {
+  padding-bottom: 2px;
+  border-bottom: 1px solid transparent;
+  color: var(--ink-3);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  white-space: nowrap;
+  transition:
+    color var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease);
+}
+
+.filtros__periodo-opt:hover {
+  color: var(--ink-2);
+}
+
+.filtros__periodo-opt[aria-pressed='true'] {
+  color: var(--ink);
+  font-weight: var(--w-semibold);
+  border-bottom-color: var(--ink);
 }
 
 .filtros__datas {
@@ -143,125 +139,122 @@
   font-size: var(--ta-size);
 }
 
-.filtros__data .input {
-  width: 140px;
-  height: var(--control-h-sm);
-}
-
-.filtros__busca {
-  position: relative;
-  flex: 1 1 220px;
-  min-width: 0;
-  max-width: 340px;
-  display: flex;
+/* O rótulo de cada data é só para o leitor de tela; o alinhamento é do campo. */
+.filtros__data {
+  display: inline-flex;
   align-items: center;
-}
-
-.filtros__lupa {
-  position: absolute;
-  left: var(--sp-8);
-  z-index: 1;
-  display: flex;
-  color: var(--ink-3);
-  pointer-events: none;
-}
-
-.filtros__busca-campo {
-  height: var(--control-h-sm);
-  padding-left: var(--sp-24);
-}
-
-.filtros__dir {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: var(--sp-8);
 }
 
 /*
- * A SEGUNDA FAIXA, sempre em linha própria (`100%` de base): preparo e entrega
- * são as duas promessas que o cliente lê, e elas não competem por espaço com o
- * recorte do quadro.
- */
-.filtros__medidas {
-  flex: 1 0 100%;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--sp-8);
-}
-
-/*
- * PREPARO E ENTREGA — dois valores de leitura numa barra de controles.
+ * A BUSCA PERDEU A CAIXA — e quem tirou a caixa foi o COMPONENTE, não esta
+ * folha. Ver `ds/SearchField` com `variant="barra"`: um campo com borda de
+ * quatro lados no meio de uma linha de texto é o objeto que fazia a barra ler
+ * como bloco, e o fio de baixo diz "aqui se escreve" com um traço.
  *
- * O plano de agrupamento (`--surface-muted`) é o que os separa dos botões sem
- * dar contorno a nenhum dos dois: eles não são operáveis como um todo (só os
- * três steppers de preparo são), então uma caixa contornada mentiria.
+ * O que sobrou aqui é só a LARGURA que ela ocupa na barra.
  */
+.filtros__busca {
+  flex: 0 1 200px;
+  min-width: 120px;
+}
+
+/* Um campo de data sem moldura, para casar com a busca. */
+.input--bare {
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-size: var(--ta-size);
+}
+
+/* --- as duas promessas --------------------------------------------------- */
+
 .prep {
   position: relative;
-  min-height: var(--control-h-sm);
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: var(--sp-8);
-  padding-inline: var(--sp-8);
-  border-radius: var(--r-field);
-  background: var(--surface-muted);
+  white-space: nowrap;
 }
 
 .prep__label {
-  color: var(--ink-3);
   font-size: var(--tl-size);
   line-height: var(--tl-line);
   font-weight: var(--tl-weight);
   letter-spacing: var(--tl-track);
+  color: var(--ink-3);
 }
 
 .prep__range {
-  color: var(--ink);
   font-size: var(--ta-size);
   line-height: var(--ta-line);
-  font-weight: var(--w-semibold);
-  white-space: nowrap;
+  font-weight: var(--w-medium);
+  color: var(--ink);
 }
 
-.prep__range--empty,
-.prep__branch {
+.prep__range--empty {
   color: var(--ink-3);
   font-weight: var(--w-regular);
 }
 
+/* De qual loja é este número — qualificador do valor, não rótulo do controle. */
 .prep__branch {
-  min-width: 0;
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--tl-size);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
 }
 
 .prep__buttons {
-  display: flex;
+  display: inline-flex;
+  align-items: center;
   gap: var(--sp-4);
 }
 
+/*
+ * OS BOTÕES DE PASSO SÃO UM PAR, e não dois botões que por acaso estão juntos:
+ * eles encostam e as beiradas de fora arredondam, como um único controle
+ * segmentado. Era isso ou dois retângulos de 34px soltos no meio de uma barra
+ * que não tem mais nenhuma moldura.
+ */
 .prep__step {
-  min-width: var(--control-h-sm);
-  min-height: var(--control-h-sm);
-  padding-inline: var(--sp-4);
-  border-color: var(--line-strong);
-  background: var(--surface);
+  padding-inline: var(--sp-8);
+  font-variant-numeric: tabular-nums;
 }
 
+.prep__buttons .prep__step:not(:first-child) {
+  margin-left: -1px;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+
+.prep__buttons .prep__step:not(:last-child) {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+/*
+ * ==========================================================================
+ * O BALÃO DO PREPARO — e ele NÃO TINHA ESTILO NENHUM
+ * ==========================================================================
+ *
+ * `.prep__popover` era escrito no TSX e não existia em folha nenhuma: o erro de
+ * 409 e o formulário da faixa-base saíam como um bloco cru NO MEIO da barra de
+ * 52px, empurrando o filtro inteiro para baixo — exatamente o que o comentário
+ * do componente diz que não pode acontecer ("crescendo dentro dela, empurrariam
+ * os filtros de lugar a cada 409").
+ *
+ * Agora ele é o que sempre foi para ser: um balão que SAI do fluxo, ancorado no
+ * controle que o abriu, no plano de elevação do sistema — o mesmo de menu,
+ * diálogo e gaveta (tokens §9).
+ */
 .prep__popover {
   position: absolute;
-  top: calc(100% + var(--sp-8));
+  top: calc(100% + var(--sp-4));
   right: 0;
   z-index: var(--z-popover);
-  width: 300px;
+  width: 320px;
+  max-width: calc(100vw - var(--sp-32));
   display: flex;
   flex-direction: column;
   gap: var(--sp-12);
@@ -270,23 +263,34 @@
   border-radius: var(--r-card);
   background: var(--surface-raised);
   box-shadow: var(--shadow-raised);
+  white-space: normal;
 }
 
 .prep__message {
   margin: 0;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
   color: var(--ink-2);
-  font-size: var(--tb-size);
-  line-height: var(--tb-line);
 }
 
+/* O erro fala com a voz do estado, não com a do texto de apoio. */
+.prep__popover[role='alert'] .prep__message {
+  color: var(--danger);
+  font-weight: var(--w-medium);
+}
+
+/*
+ * Os dois campos são MINUTOS: 92px cada, e não a largura do balão. Um campo de
+ * 288px que recebe "45" é o sintoma mais visível de formulário cru — a caixa
+ * promete um endereço e recebe dois dígitos (tokens §10).
+ */
 .prep__base-fields {
   display: flex;
-  gap: var(--sp-8);
+  gap: var(--sp-12);
 }
 
-.prep__base-fields > * {
-  flex: 1;
-  min-width: 0;
+.prep__base-fields .field {
+  flex: 0 0 var(--w-numero);
 }
 
 .prep__base-actions {
@@ -295,227 +299,168 @@
   gap: var(--sp-8);
 }
 
-.orders__alert {
-  flex: 0 0 auto;
-}
-
-.orders__vazio {
-  padding: var(--sp-32) 0;
-  font-size: var(--ta-size);
+/*
+ * O ESTADO DA CONEXÃO: NO APERTO, SOBRA O PONTO.
+ *
+ * A consulta é da BARRA, não da janela — era `@media (max-width: 1439px)`, e em
+ * 1440 com o painel de detalhe aberto a barra tem 828px e a palavra
+ * "Reconectando…" continuava lá, empurrando as ferramentas para uma terceira
+ * fileira. A janela tinha espaço; a barra, não.
+ *
+ * O ponto continua dizendo o estado por cor E por posição, e o `title` do
+ * elemento continua carregando a palavra para quem para o ponteiro nele.
+ */
+@container barra (max-width: 1100px) {
+  .conn__texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
 }
 
 /* ==========================================================================
- * O QUADRO
+ * A LISTA
  * ======================================================================= */
-.faixas {
+
+/*
+ * `container-type: inline-size` é o que faz a linha de pedido trocar de layout
+ * quando o PAINEL DE DETALHE abre — e não só quando a janela encolhe. Sem
+ * isso, em 1440 com o painel aberto sobram ~780px para sete colunas, e a
+ * coluna do cliente ficaria com 24px. Ver `ds/OrderRow.css`.
+ */
+.orders__lista {
+  container: lista / inline-size;
   flex: 1;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-20);
+  overflow-y: auto;
+  padding-bottom: var(--sp-32);
+  /*
+   * A GRADE DAS SETE COLUNAS, declarada uma vez e herdada por todas as linhas —
+   * as dos blocos e as do histórico. Duas grades separadas é como a coluna do
+   * valor começa a desalinhar entre um bloco e outro.
+   */
+  --grade-pedido: var(--col-estagio) var(--col-tempo) minmax(0, 1fr) var(--col-pedido)
+    var(--col-modalidade) var(--col-pagamento) var(--col-valor);
 }
 
-.faixa {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-8);
+.orders__alert {
+  margin: var(--sp-12) var(--page-pad) 0;
 }
 
-.faixa__head {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-8);
-  min-height: var(--sp-20);
+.orders__aviso {
+  padding: var(--sp-32) var(--page-pad);
+  font-size: var(--ta-size);
 }
 
 /*
- * O PONTO É A MATIZ DO ESTÁGIO, e ele é a única cor do cabeçalho. Sem o halo de
- * wash em volta: numa tela com três faixas, três halos de 14px eram três
- * manchas antes de qualquer pedido.
+ * O ESTADO VAZIO. Ele é o único bloco desta tela com respiro generoso, e é
+ * proposital: quando não há pedido, o que a pessoa precisa é da resposta
+ * ("está entrando pedido?", "estou no dia certo?"), não de densidade.
  */
-.faixa__dot {
-  width: 7px;
-  height: 7px;
-  flex: 0 0 auto;
-  border-radius: var(--r-round);
-  background: var(--st, var(--ink-3));
-}
-
-.faixa__title {
-  margin: 0;
-  color: var(--ink);
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-  font-weight: var(--w-semibold);
-  white-space: nowrap;
-}
-
-/* O contador é número, não objeto: a cápsula cinza saiu. */
-.faixa__count {
-  color: var(--ink-3);
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-  font-weight: var(--w-medium);
-  font-variant-numeric: tabular-nums lining-nums;
-}
-
-.faixa__rule {
-  flex: 1;
-  height: 1px;
-  background: var(--line);
-}
-
-.faixa__cards,
-.historico__grade {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
-  gap: var(--sp-12);
-  align-items: start;
-}
-
-.quadro-vazio {
-  max-width: 54ch;
+.orders__vazio {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--sp-8);
-  padding: var(--sp-32) var(--sp-24);
-  border-radius: var(--r-card);
-  background: var(--surface);
-  border: 1px solid var(--card-edge);
+  padding: var(--sp-32) var(--page-pad);
+  border-top: 1px solid var(--line);
 }
 
-.historico {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-16);
-  max-width: var(--page-max);
+.orders__vazio .btn {
+  margin-top: var(--sp-4);
 }
 
-.historico__rodape {
+.orders__rodape {
   display: flex;
   align-items: center;
-  gap: var(--sp-12);
+  justify-content: space-between;
+  gap: var(--sp-16);
+  padding: var(--sp-16) var(--page-pad);
+  border-top: 1px solid var(--line);
   font-size: var(--ta-size);
 }
 
-@media (max-width: 1179px) {
-  .orders__main {
-    padding: var(--page-pad-mobile);
-  }
+/* ==========================================================================
+ * CELULAR
+ * ======================================================================= */
 
-  .filtros__dir {
-    width: 100%;
-    margin-left: auto;
-  }
-}
-
-@media (max-width: 1023px) {
-  /* No toque tudo volta a 44px; a barra deixa de ser compacta. */
-  .filtros__data .input,
-  .filtros__busca-campo {
-    height: var(--field-h-touch);
-  }
-
-  .filtros__busca-campo {
-    padding-left: var(--sp-32);
-  }
-
-  .filtros__lupa {
-    left: var(--sp-12);
-  }
-}
-
-@media (max-width: 720px) {
-  .orders__main {
+@media (max-width: 767px) {
+  .filtros {
+    justify-content: flex-start;
     gap: var(--sp-12);
   }
 
-  .orders__header {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: var(--sp-8);
-  }
-
-  .orders__header p {
+  .filtros__vao {
     display: none;
   }
 
-  .tabs {
-    width: 100%;
-  }
-
-  .tab {
-    flex: 1;
-    justify-content: center;
-  }
-
-  .filtros {
-    align-items: stretch;
-    padding: var(--sp-8);
-  }
-
-  .filtros > .seg {
-    width: 100%;
-  }
-
-  .filtros > .seg .seg__opt {
-    flex: 1;
-    padding-inline: var(--sp-4);
-  }
-
-  .filtros__busca,
-  .filtros__datas,
-  .filtros__dir,
-  .filtros__medidas {
+  /*
+   * A BUSCA VEM PRIMEIRO NO TELEFONE. Ela é a única ferramenta desta barra que
+   * alguém usa de pé no balcão — o período e as duas promessas são conferência
+   * de escritório.
+   */
+  .filtros__busca {
     flex: 1 1 100%;
-    max-width: none;
+    order: -1;
   }
 
-  .filtros__datas .filtros__data {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .filtros__data .input {
-    width: 100%;
-  }
-
-  .filtros__dir,
-  .filtros__medidas {
-    align-items: stretch;
-  }
-
-  .filtros__medidas .prep:first-child {
+  /*
+   * O CONTROLE DE PREPARO PODE QUEBRAR — e precisa.
+   *
+   * Ele é `white-space: nowrap` e `inline-flex` porque no desktop ele é uma
+   * frase só ("Preparo 25–35 min na Pizzaria do Zé — Aldeota +5 +10 −5"). Em
+   * 390px essa frase mede uns 480px, e como ele não quebrava, o botão "−5"
+   * ficava FORA da tela: rolagem horizontal na página inteira, que é o que a
+   * régua de responsividade proíbe.
+   *
+   * Aqui ele volta a ser um bloco de largura inteira, com os passos caindo para
+   * a segunda linha quando não couberem ao lado do valor.
+   */
+  /*
+   * SÓ O CONTROLE DE AJUSTE toma a fileira inteira. `.prep` é a mesma classe
+   * das duas promessas — o preparo, que tem três botões, e a entrega, que é
+   * um valor de leitura. Com a regra em `.prep`, a entrega também ganhava uma
+   * fileira só para dizer "30–50 min", e a barra do telefone crescia uma linha
+   * inteira à toa.
+   */
+  .prep--ajuste {
     flex: 1 1 100%;
+    flex-wrap: wrap;
+    white-space: normal;
+    row-gap: var(--sp-4);
   }
 
-  .prep__branch {
-    max-width: 100%;
-  }
-
-  .prep__buttons {
+  .prep--ajuste .prep__buttons {
     margin-left: auto;
   }
 
-  .prep__popover {
-    position: fixed;
-    inset: auto var(--page-pad-mobile) calc(var(--bottombar-h) + var(--sp-12));
+  /*
+   * NO TELEFONE A PALAVRA DA CONEXÃO VOLTA. A consulta de container a esconde
+   * abaixo de 1100px porque lá ela disputa espaço com sete outros controles na
+   * mesma fileira; aqui a fileira é dela, e um ponto colorido sozinho, sem
+   * hover para explicá-lo, não diz nada a ninguém.
+   */
+  .conn__texto {
+    position: static;
     width: auto;
+    height: auto;
+    margin: 0;
+    clip: auto;
   }
 
-  .faixas {
-    gap: var(--sp-16);
+  .filtros__periodo {
+    flex: 1 1 auto;
   }
 
-  .faixa__cards,
-  .historico__grade {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .quadro-vazio {
-    padding: var(--sp-24) var(--sp-16);
+  .orders__alert,
+  .orders__aviso,
+  .orders__vazio,
+  .orders__rodape {
+    padding-inline: var(--page-pad-mobile);
   }
 }

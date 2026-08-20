@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 
 import { DataTable, type Column } from '../ds/DataTable';
 import { TrendDownIcon, TrendUpIcon } from '../ds/icons';
+import { PageBar } from '../ds/PageBar';
 import { DayChart } from './DayChart';
 import {
   formatCurrency,
@@ -81,11 +82,13 @@ export function PerformancePage() {
 
   return (
     <div className="perf">
-      <header className="perf__head">
-        <h1 className="t-title">Desempenho</h1>
-      </header>
-
-      <div className="perf__barra">
+      {/*
+        A MESMA FAIXA DE 52px DE TODAS AS TELAS. O período era um cartão branco
+        contornado logo abaixo do título — um objeto de 50px de altura para
+        três palavras e, às vezes, dois campos de data. Ele é ferramenta de
+        tela, e ferramenta de tela mora na faixa da tela.
+      */}
+      <PageBar title="Desempenho">
         <div className="seg" role="group" aria-label="Período">
           {PERIODOS.map((periodo) => (
             <button
@@ -101,6 +104,11 @@ export function PerformancePage() {
           ))}
         </div>
 
+        {/*
+          As datas só aparecem em "Escolher". Mantê-las sempre na faixa custaria
+          dois campos de 148px para o caso raro de alguém querer uma janela
+          específica.
+        */}
         {range.preset === 'custom' ? (
           <div className="perf__datas">
             <input
@@ -122,8 +130,7 @@ export function PerformancePage() {
             />
           </div>
         ) : null}
-
-      </div>
+      </PageBar>
 
       {problem ? (
         <p className="alert alert--error perf__alerta" role="alert">
@@ -145,9 +152,7 @@ export function PerformancePage() {
       */}
       {!isLoading && !problem && vazio && summary ? (
         <section className="perf__vazio" data-testid="perf-vazio">
-          <p className="perf__frase perf__frase--topo">
-            Nenhum pedido foi faturado neste período.
-          </p>
+          <p className="perf__frase perf__frase--topo">Nenhum pedido foi faturado neste período.</p>
           <Excluidos summary={summary} />
           <Escopo />
         </section>
@@ -156,16 +161,22 @@ export function PerformancePage() {
       {!isLoading && !problem && !vazio ? (
         <div className="perf__secoes">
           {/* ================================================================
-              A. A FRASE
+              A. A FRASE — a banda de topo
 
               Pergunta que a seção responde: A SEMANA FOI BOA?
 
-              Ela não é um cartão e não tem título de seção: um rótulo
-              "Resumo" em cima da resposta a rebaixaria a mais um bloco de
-              relatório. É a única coisa da tela que fala em frase inteira, e é
-              a primeira que o olho encontra.
+              Ela não tem título de seção: um rótulo "Resumo" em cima da
+              resposta a rebaixaria a mais um bloco de relatório. É a única
+              coisa da tela que fala em frase inteira, é a primeira que o olho
+              encontra, e é ela que separa esta tela de um relatório impresso.
+
+              A BANDA NÃO É UM CARTÃO. Ela ocupa a largura da tela e é separada
+              do resto por um fio mais forte — a mesma marcação que o total do
+              pedido usa no detalhe e que o cabeçalho de coluna usa nas tabelas.
+              Um cartão branco sobre chão cinza aqui devolveria a tela ao
+              formato "painel administrativo de biblioteca pronta".
              ================================================================ */}
-          <section className="perf__resposta">
+          <section className="perf__topo">
             {errors.summary ? (
               <p className="alert alert--error" role="alert">
                 {errors.summary}
@@ -226,11 +237,17 @@ export function PerformancePage() {
           </section>
 
           {/* ================================================================
-              B. OS DIAS
+              B. OS DIAS — a largura inteira
 
               Pergunta: QUE DIAS SUSTENTARAM O PERÍODO E QUAIS NÃO APARECERAM?
+
+              O gráfico é a peça que mais faz esta tela ler como painel em vez
+              de documento, e por isso ele fica sozinho numa faixa da largura
+              inteira, logo abaixo da resposta. Espremido numa coluna de
+              metade, trinta dias viravam trinta riscos.
              ================================================================ */}
           <Secao
+            largo
             titulo="Os dias"
             nota={
               byDay
@@ -250,66 +267,76 @@ export function PerformancePage() {
           </Secao>
 
           {/* ================================================================
-              C. O QUE VENDEU
+              AS QUATRO PERGUNTAS QUE SOBRAM — duas colunas separadas por fio
 
-              Pergunta: O FATURAMENTO VEIO DE ONDE?
+              Elas eram quatro cartões empilhados, um por vez, numa página que
+              já rolava. Em duas colunas a tela deixa de ser uma fila e passa a
+              ser uma grade: o olho compara "o que vendeu" com "o que não virou
+              venda" sem rolar, que é a leitura que essas duas pedem juntas.
              ================================================================ */}
-          <Secao
-            titulo="O que vendeu"
-            nota={`os ${RANKING_SIZE} primeiros, por unidades`}
-            erro={errors.products}
-          >
-            {products ? <Produtos products={products} /> : null}
-          </Secao>
+          <div className="perf__grade">
+            {/* ==============================================================
+                C. O QUE VENDEU
 
-          {/* ================================================================
-              D. ENTREGA E RETIRADA
+                Pergunta: O FATURAMENTO VEIO DE ONDE?
+               ============================================================== */}
+            <Secao
+              titulo="O que vendeu"
+              nota={`os ${RANKING_SIZE} primeiros, por unidades`}
+              erro={errors.products}
+            >
+              {products ? <Produtos products={products} /> : null}
+            </Secao>
 
-              Pergunta: ESTOU GANHANDO MAIS ENTREGANDO OU O CLIENTE VINDO
-              BUSCAR?
-             ================================================================ */}
-          <Secao titulo="Entrega e retirada" erro={errors.summary}>
-            {summary ? (
-              <>
-                <TiposDePedido summary={summary} />
-                <Frase insight={readRetirada(summary)} />
-              </>
-            ) : null}
-          </Secao>
+            {/* ==============================================================
+                D. ENTREGA E RETIRADA
 
-          {/* ================================================================
-              E. O QUE NÃO VIROU VENDA
+                Pergunta: ESTOU GANHANDO MAIS ENTREGANDO OU O CLIENTE VINDO
+                BUSCAR?
+               ============================================================== */}
+            <Secao titulo="Entrega e retirada" erro={errors.summary}>
+              {summary ? (
+                <>
+                  <TiposDePedido summary={summary} />
+                  <Frase insight={readRetirada(summary)} />
+                </>
+              ) : null}
+            </Secao>
 
-              Pergunta: ESTOU PERDENDO PEDIDO EM QUÊ?
-             ================================================================ */}
-          <Secao titulo="O que não virou venda" erro={errors.cancellations}>
-            {cancellations ? <Cancelados cancellations={cancellations} /> : null}
-          </Secao>
+            {/* ==============================================================
+                E. O QUE NÃO VIROU VENDA
 
-          {/* ================================================================
-              F. O QUE SAI DO FATURAMENTO
+                Pergunta: ESTOU PERDENDO PEDIDO EM QUÊ?
+               ============================================================== */}
+            <Secao titulo="O que não virou venda" erro={errors.cancellations}>
+              {cancellations ? <Cancelados cancellations={cancellations} /> : null}
+            </Secao>
 
-              Pergunta: QUANTO SOBROU, DE VERDADE?
+            {/* ==============================================================
+                F. O QUE SAI DO FATURAMENTO
 
-              É aqui que a forma de pagamento aparece — em uma linha de texto, e
-              só quando ela concentra risco. Ver `readPagamento`.
-             ================================================================ */}
-          <Secao titulo="O que sai do faturamento" erro={errors.summary}>
-            {summary ? (
-              <>
-                <Composicao summary={summary} />
-                <Frase insight={readDesconto(summary)} />
-                {errors.commission ? (
-                  <p className="alert alert--error" role="alert">
-                    {errors.commission}
-                  </p>
-                ) : commission ? (
-                  <Comissao commission={commission} />
-                ) : null}
-                <Frase insight={readPagamento(payments)} />
-              </>
-            ) : null}
-          </Secao>
+                Pergunta: QUANTO SOBROU, DE VERDADE?
+
+                É aqui que a forma de pagamento aparece — em uma linha de texto,
+                e só quando ela concentra risco. Ver `readPagamento`.
+               ============================================================== */}
+            <Secao titulo="O que sai do faturamento" erro={errors.summary}>
+              {summary ? (
+                <>
+                  <Composicao summary={summary} />
+                  <Frase insight={readDesconto(summary)} />
+                  {errors.commission ? (
+                    <p className="alert alert--error" role="alert">
+                      {errors.commission}
+                    </p>
+                  ) : commission ? (
+                    <Comissao commission={commission} />
+                  ) : null}
+                  <Frase insight={readPagamento(payments)} />
+                </>
+              ) : null}
+            </Secao>
+          </div>
         </div>
       ) : null}
     </div>
@@ -379,15 +406,18 @@ function Secao({
   titulo,
   nota,
   erro,
+  largo = false,
   children,
 }: {
   titulo: string;
   nota?: string;
   erro?: string;
+  /** A seção ocupa a largura inteira, fora da grade de duas colunas. */
+  largo?: boolean;
   children: ReactNode;
 }) {
   return (
-    <section className="perf__secao">
+    <section className={`perf__secao${largo ? ' perf__secao--largo' : ''}`}>
       <div className="perf__secao-head">
         <h2 className="t-section">{titulo}</h2>
         {nota ? <span className="t-aux">{nota}</span> : null}
@@ -436,7 +466,8 @@ function Numero({
    * relance, que é justamente o trabalho: com os três, "subiu" ou "caiu" chega
    * antes de o olho ler o número.
    */
-  const Seta = leitura.direction === 'up' ? TrendUpIcon : leitura.direction === 'down' ? TrendDownIcon : null;
+  const Seta =
+    leitura.direction === 'up' ? TrendUpIcon : leitura.direction === 'down' ? TrendDownIcon : null;
 
   return (
     <div className="numeros__item">

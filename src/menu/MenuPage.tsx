@@ -8,6 +8,7 @@ import { CategoryActionsMenu } from './CategoryActionsMenu';
 import { CategoryDialog } from './CategoryDialog';
 import { CategoryRail } from './CategoryRail';
 import { PlusIcon } from '../ds/icons';
+import { PageBar } from '../ds/PageBar';
 import { SearchField } from '../ds/SearchField';
 import { formatPriceInput, isCategoryActive } from './menu-model';
 import { ProductDialog } from './ProductDialog';
@@ -102,50 +103,34 @@ export function MenuPage() {
   return (
     <div className="menu">
       {/*
-        O CABEÇALHO DA PÁGINA, que esta tela não tinha.
-        O título era o nome da categoria aberta — então "Cardápio" não aparecia
-        em lugar nenhum fora da lateral, e o painel começava sem dizer onde a
-        pessoa estava. Hoje o nível 1 é o nome da tela, como em toda outra, e a
-        categoria desce para o nível 2, dentro do cartão que ela nomeia.
+        A MESMA FAIXA DE 52px DE TODAS AS TELAS (`ds/PageBar`).
+
+        O título desta tela era o NOME DA CATEGORIA aberta — então "Cardápio"
+        não aparecia em lugar nenhum fora da lateral, e o painel começava sem
+        dizer onde a pessoa estava. Hoje o nível 1 é o nome da tela, como em
+        toda outra, e a categoria desce para o nível 2, na régua da lista que
+        ela nomeia.
+
+        A BUSCA SUBIU PARA CÁ. Ela morava dentro da régua da lista, disputando
+        a linha com o nome da categoria e com o menu de ações — três coisas de
+        naturezas diferentes na mesma barra. Ferramenta de tela mora na faixa
+        de tela, que é onde Pedidos e Clientes já a põem.
       */}
-      <header className="menu__head">
-        <div className="menu__head-text">
-          <h1 className="t-title">Cardápio</h1>
-
-          {/*
-            A FRASE DE ESCOPO, e é ela que carrega "de qual loja é a coluna
-            Impressão".
-
-            Esse recado morava no cabeçalho da própria coluna, e ali ele não
-            cabia: "Pizzaria do Zé — Aldeota" em 140px quebrava em duas linhas,
-            engordava a régua de rótulos e desalinhava "Item", "Preço" e
-            "Situação" do que nomeiam. Dita uma vez aqui, em prosa, ela sai
-            inteira e legível — o mesmo lugar em que Clientes diz o que a tela
-            não tem e Minha loja diz para qual filial ela grava.
-          */}
-          <p className="t-aux menu__note" data-testid="menu-sector-scope">
-            {branchChosen ? (
-              sectorBranchLabel ? (
-                <>
-                  O cardápio é do restaurante inteiro. Só a coluna Impressão é de uma loja: ela
-                  responde pela <strong>{sectorBranchLabel}</strong>.
-                </>
-              ) : (
-                <>
-                  O cardápio é do restaurante inteiro. A coluna Impressão diz em qual setor da
-                  cozinha cada item sai na comanda.
-                </>
-              )
-            ) : (
-              <>O cardápio é do restaurante inteiro: itens e categorias valem em todas as lojas.</>
-            )}
-          </p>
+      <PageBar title="Cardápio">
+        <div className="menu__busca">
+          <SearchField
+            label="Buscar item nesta categoria"
+            placeholder="Buscar item"
+            value={menu.searchDraft}
+            onValueChange={menu.setSearchDraft}
+            disabled={!selectedCategory}
+          />
         </div>
 
         {/*
-          A ação do dia mora no cabeçalho da página, com as outras telas, e não
-          mais dentro do cartão da lista: ali ela dividia a régua com o nome da
-          categoria e ficava ao lado de duas ações de outro peso.
+          A AÇÃO DO DIA, e o único laranja desta tela. Ela morava dentro do
+          cartão da lista, onde dividia a régua com o nome da categoria e ficava
+          ao lado de duas ações de outro peso.
         */}
         <button
           type="button"
@@ -156,7 +141,35 @@ export function MenuPage() {
           <PlusIcon />
           Novo item
         </button>
-      </header>
+      </PageBar>
+
+      {/*
+        A FRASE DE ESCOPO, e é ela que carrega "de qual loja é a coluna
+        Impressão".
+
+        Esse recado morava no cabeçalho da própria coluna, e ali ele não cabia:
+        "Pizzaria do Zé — Aldeota" em 140px quebrava em duas linhas, engordava a
+        régua de rótulos e desalinhava "Item", "Preço" e "Situação" do que
+        nomeiam. Dito uma vez aqui, em prosa, ele sai inteiro e legível — o
+        mesmo lugar em que Clientes diz o que a tela não tem.
+      */}
+      <p className="t-aux menu__note" data-testid="menu-sector-scope">
+        {branchChosen ? (
+          sectorBranchLabel ? (
+            <>
+              O cardápio é do restaurante inteiro. Só a coluna Impressão é de uma loja: ela responde
+              pela <strong>{sectorBranchLabel}</strong>.
+            </>
+          ) : (
+            <>
+              O cardápio é do restaurante inteiro. A coluna Impressão diz em qual setor da cozinha
+              cada item sai na comanda.
+            </>
+          )
+        ) : (
+          <>O cardápio é do restaurante inteiro: itens e categorias valem em todas as lojas.</>
+        )}
+      </p>
 
       {menu.errorMessage ? (
         <p className="alert alert--error" role="alert">
@@ -178,13 +191,12 @@ export function MenuPage() {
 
         <section className="menu__panel">
           {/*
-            A RÉGUA DO CARTÃO: quem é a lista à esquerda, como se busca nela à
-            direita.
+            A RÉGUA DA LISTA: o nome da categoria aberta e o que se faz COM ela.
 
-            A busca vivia numa faixa própria embaixo do cabeçalho, sozinha, com
-            seiscentos pixels de nada ao lado — e o cabeçalho, do outro lado,
-            era um nome com dois ícones minúsculos colados. Juntando os dois, a
-            faixa deixa de existir e a régua ganha as duas pontas.
+            Ela é subordinada à faixa da tela — 44px contra 52px, nível 2 contra
+            nível 1 — e é isso que faz "Cardápio › Pizzas" ler como uma coisa
+            dentro da outra, em vez de dois títulos do mesmo tamanho a dois
+            blocos de distância.
           */}
           <header className="menu__panel-head">
             <h2 className="t-section menu__panel-title">
@@ -223,16 +235,6 @@ export function MenuPage() {
                 ]}
               />
             ) : null}
-
-            <div className="menu__panel-search">
-              <SearchField
-                label="Buscar item nesta categoria"
-                placeholder="Buscar item"
-                value={menu.searchDraft}
-                onValueChange={menu.setSearchDraft}
-                disabled={!selectedCategory}
-              />
-            </div>
           </header>
 
           {menu.isLoadingCategories ? (

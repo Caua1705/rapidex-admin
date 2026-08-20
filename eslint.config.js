@@ -20,6 +20,14 @@ import prettier from 'eslint-config-prettier';
  * A metade CSS desta mesma regra está em scripts/check-design-tokens.mjs, que
  * roda no mesmo `npm run lint` — o ESLint não olha dentro de arquivo .css.
  */
+/*
+ * A ÚNICA família permitida no código de produto. Fica numa constante porque o
+ * seletor mistura aspas simples, aspas duplas e barras invertidas — escrito
+ * inline ele é ilegível, e ilegível é como uma regra vira "ninguém sabe o que
+ * ela cobra".
+ */
+const FONT_FAMILY_SELECTOR = String.raw`Literal[value=/font-family\s*:\s*(?!['"]?IBM Plex Sans)/i]`;
+
 const adherenceSelectors = [
   {
     selector: 'Literal[value=/#[0-9a-fA-F]{3,8}\\b/]',
@@ -30,14 +38,19 @@ const adherenceSelectors = [
     message: 'Valor em px solto — use um token (--sp-*, --t-*, --r-*) via var().',
   },
   /*
-   * A lista já foi `Archivo|JetBrains Mono` — as duas famílias de uma direção
-   * que saiu. A mono saiu do sistema POR COMPLETO (lia como terminal de
-   * servidor), e o número tabular hoje é `.tnum`/`.num` na mesma Inter. Manter
-   * a mono na lista de permitidas era o caminho aberto para ela voltar.
+   * UMA LETRA SÓ: IBM PLEX SANS.
+   *
+   * A lista já foi `Archivo|JetBrains Mono` e depois `Inter` — as famílias das
+   * duas direções que saíram. A mono saiu do sistema POR COMPLETO (lia como
+   * terminal de servidor) e o número tabular hoje é `.tnum`/`.num` na mesma
+   * Plex; a Inter saiu na direção "Refinada", porque a neo-grotesca neutra por
+   * definição não tem defeito e não tem voz. Manter qualquer uma das duas na
+   * lista de permitidas era o caminho aberto para ela voltar escondida num
+   * componente novo.
    */
   {
-    selector: 'Literal[value=/font-family\\s*:\\s*(?![\'\\"]?Inter)/i]',
-    message: 'Fonte fora do design system. A interface inteira é Inter, e não há mono.',
+    selector: FONT_FAMILY_SELECTOR,
+    message: 'Fonte fora do design system. A interface inteira é IBM Plex Sans, e não há mono.',
   },
 ];
 
@@ -78,7 +91,8 @@ const xssSinkSelectors = [
     message: 'insertAdjacentHTML injeta HTML. Use insertAdjacentText ou JSX.',
   },
   {
-    selector: "CallExpression[callee.property.name=/^(write|writeln)$/][callee.object.name='document']",
+    selector:
+      "CallExpression[callee.property.name=/^(write|writeln)$/][callee.object.name='document']",
     message: 'document.write injeta HTML e reescreve o documento.',
   },
   {
@@ -163,18 +177,13 @@ export default tseslint.config(
      */
     files: ['src/**/*.{ts,tsx}'],
     /*
-     * `src/prototipo/**` fica de fora pelo mesmo motivo que em
-     * scripts/check-design-tokens.mjs: são os protótipos de DIREÇÃO VISUAL, e
-     * a pergunta que eles fazem é se a paleta, a letra e a densidade atuais
-     * devem continuar. Uma regra que exige `Inter` e `var(--token)` numa tela
-     * que existe para propor outra letra e outros tokens só produziria três
-     * versões da mesma direção.
-     *
-     * Os seletores de XSS continuam valendo (o bloco anterior os aplica a todo
-     * o `src/`), e a exceção sai junto com a pasta quando a direção for
-     * escolhida.
+     * A ÚNICA exceção que sobrou é o teste. `src/prototipo/**` esteve aqui
+     * enquanto as três direções visuais existiam lado a lado — uma regra que
+     * exige `var(--token)` numa tela cuja pergunta é "e se os tokens fossem
+     * outros?" só produziria três repinturas da mesma direção. A direção foi
+     * escolhida, a pasta saiu, e a exceção saiu com ela.
      */
-    ignores: ['src/**/*.test.{ts,tsx}', 'src/prototipo/**'],
+    ignores: ['src/**/*.test.{ts,tsx}'],
     rules: {
       'no-restricted-syntax': ['error', ...xssSinkSelectors, ...adherenceSelectors],
     },

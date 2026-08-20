@@ -1,97 +1,124 @@
+/*
+ * ============================================================================
+ * O DETALHE DO PEDIDO — a segunda coluna da tela de Pedidos
+ * ============================================================================
+ *
+ * ELE ESTAVA ESCRITO NOS ALIASES ANTIGOS (`--s-1`, `--section-size`,
+ * `--weight-semibold`) e chamava dois tokens que a direção renomeou
+ * (`--ticket-time-size`, `--ticket-time-line`) — o total do pedido, que é o
+ * número mais caro do painel, estava caindo para o corpo herdado sem que nada
+ * reclamasse. Agora ele lê os mesmos tokens que a lista ao lado.
+ *
+ * A GRAMÁTICA É A DA LISTA, e é isso que faz as duas metades lerem como uma
+ * tela só:
+ *
+ *   - o cabeçalho tem a MESMA altura da faixa da lista (`--topbar-h`), então
+ *     "#1042" e "Pedidos" nascem na mesma horizontal;
+ *   - os blocos são separados por FIO, não por cartão: um painel de 400px com
+ *     seis caixas contornadas dentro é uma escada de molduras;
+ *   - o rótulo é nível 3 e o dado é nível 4 — quem se lê é o valor, como no
+ *     resto do sistema.
+ */
+
 .panel {
   position: relative;
   display: flex;
-  width: var(--detail-panel-width);
+  width: var(--detail-panel-w);
   min-width: 0;
   height: 100%;
-  flex: 0 0 var(--detail-panel-width);
+  flex: 0 0 var(--detail-panel-w);
   flex-direction: column;
   overflow: hidden;
   border-left: 1px solid var(--line);
   background: var(--surface);
-  box-shadow: none;
 }
 
-.panel--vazio {
-  box-shadow: none;
-}
+/* ==========================================================================
+ * CABEÇALHO — uma linha de 52px, alinhada com a faixa da lista
+ * ======================================================================= */
 
 .panel__header {
   display: flex;
-  min-height: 68px;
-  align-items: flex-start;
+  min-height: var(--topbar-h);
+  align-items: center;
   justify-content: space-between;
-  gap: var(--s-3);
-  padding: var(--s-5) var(--s-5) var(--s-4);
+  gap: var(--sp-8);
+  padding-inline: var(--sp-20);
   border-bottom: 1px solid var(--line);
 }
 
 .panel__title {
   display: flex;
   min-width: 0;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--s-2);
+  gap: var(--sp-8);
 }
 
+/*
+ * O NÚMERO DO PEDIDO é o título deste painel: nível 2, tabular, tinta cheia.
+ * Ele não é `.t-section` porque precisa do `tnum` junto, e um `<span>` com duas
+ * classes de tipografia é como um nível vira duas variantes.
+ */
 .panel__number {
-  width: 100%;
+  flex: 0 0 auto;
   color: var(--ink);
-  font-size: var(--section-size);
-  font-weight: var(--weight-semibold);
-  line-height: var(--section-line);
+  font-size: var(--ts-size);
+  line-height: var(--ts-line);
+  font-weight: var(--ts-weight);
+  letter-spacing: var(--ts-track);
 }
 
-.panel__status {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s-1);
-  min-height: 24px;
-  padding: 0 var(--s-2);
-  border-radius: var(--r-chip);
-  background: var(--st-wash);
-  color: var(--st);
-  font-size: var(--meta-size);
-  font-weight: var(--weight-semibold);
-  line-height: var(--meta-line);
+/* A modalidade acompanha o número, em tinta de apoio: ela localiza, não titula. */
+.panel__modo {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-3);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
 }
 
-.panel__status::before {
-  width: 6px;
-  height: 6px;
-  flex: none;
-  border-radius: 50%;
-  background: currentColor;
-  content: '';
-}
+/* ==========================================================================
+ * CORPO
+ * ======================================================================= */
 
 .panel__body {
   min-height: 0;
   flex: 1;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: var(--s-5);
+  padding: 0 var(--sp-20);
   scrollbar-gutter: stable;
 }
 
+/*
+ * O PAINEL SEM PEDIDO. Ele explica a coluna permanente antes da primeira
+ * seleção — no alto e à esquerda, na mesma abscissa do conteúdo, e não
+ * centralizado no meio de 400px de branco: texto centralizado num vão vazio é
+ * a estética de "página não encontrada", e esta coluna não é um erro.
+ */
 .panel__vazio {
-  max-width: 30ch;
-  margin: var(--s-7) auto 0;
+  max-width: 34ch;
+  margin: var(--sp-24) 0 0;
   color: var(--ink-3);
-  font-size: var(--body-size);
-  line-height: var(--body-line);
-  text-align: center;
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
 }
 
 .panel__footer {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: var(--s-2);
-  padding: var(--s-4) var(--s-5);
+  gap: var(--sp-8);
+  padding: var(--sp-12) var(--sp-20);
   border-top: 1px solid var(--line);
   background: var(--surface);
 }
+
+/* ==========================================================================
+ * OS BLOCOS
+ * ======================================================================= */
 
 .detail {
   display: grid;
@@ -99,77 +126,77 @@
 }
 
 .detail > .alert {
-  margin-bottom: var(--s-4);
+  margin-top: var(--sp-16);
 }
 
 .detail__block {
-  padding: var(--s-5) 0;
+  padding: var(--sp-16) 0;
   border-bottom: 1px solid var(--line);
-}
-
-.detail__block:first-of-type {
-  padding-top: 0;
 }
 
 .detail__block:last-child {
   border-bottom: 0;
+  padding-bottom: var(--sp-32);
 }
 
 /* Rótulo de bloco: o nível 3 do sistema, como todo rótulo. */
 .detail__heading {
-  margin: 0 0 var(--s-3);
+  margin: 0 0 var(--sp-8);
   color: var(--ink-3);
-  font-size: var(--label-size);
-  font-weight: var(--weight-semibold);
-  letter-spacing: var(--label-tracking);
-  line-height: var(--label-line);
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
 }
 
+/*
+ * A LINHA DE RAZÃO: rótulo à esquerda em tinta de apoio, valor à direita em
+ * tinta cheia. É a mesma leitura por coluna da lista ao lado, reduzida a duas
+ * colunas — o olho desce pelos valores sem reler os rótulos.
+ */
 .detail__row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline;
-  gap: var(--s-3);
-  padding: var(--s-1) 0;
+  gap: var(--sp-12);
+  padding: 3px 0;
   color: var(--ink-2);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
 }
 
 .detail__row > :last-child {
   color: var(--ink);
-  font-weight: var(--weight-medium);
   text-align: right;
 }
 
+/*
+ * O TOTAL. Ele é o número que se confere no caixa, e ganha o mesmo corpo de
+ * alta prioridade que o cronômetro da linha (`--row-time-*`) — é a régua do
+ * sistema para "número que se lê antes do texto em volta".
+ *
+ * ELE NÃO É LARANJA. A brasa marca a AÇÃO, não a importância (tokens §1); quem
+ * diz "este é o número" é o corpo, o peso e o fio acima dele.
+ */
 .detail__row--total {
-  margin-top: var(--s-3);
-  padding-top: var(--s-4);
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-12);
   border-top: 1px solid var(--line-strong);
   color: var(--ink);
-  font-size: var(--section-size);
-  font-weight: var(--weight-bold);
+  font-weight: var(--w-medium);
 }
 
-/*
- * O TOTAL NÃO É LARANJA. Ele é o dado mais importante do painel, e a brasa não
- * marca importância — ela marca ação, seleção, navegação ativa e foco (§1 dos
- * tokens). Quem diz "este é o número" é o corpo e o peso.
- */
 .detail__row--total > :last-child {
   color: var(--ink);
-  font-size: var(--ticket-time-size);
-  font-weight: var(--weight-bold);
-  line-height: var(--ticket-time-line);
+  font-size: var(--row-time-size);
+  line-height: var(--row-time-line);
+  font-weight: var(--w-bold);
+  letter-spacing: -0.02em;
 }
 
-.detail__notes,
-.items__observation {
-  margin: 0;
-  padding: var(--s-3);
-  border-radius: var(--r-control);
-  background: var(--alert-wash);
-  color: var(--ink);
-  line-height: var(--body-line);
-}
+/* ==========================================================================
+ * OS ITENS
+ * ======================================================================= */
 
 .items,
 .options,
@@ -181,7 +208,7 @@
 }
 
 .items__row {
-  padding: var(--s-3) 0;
+  padding: var(--sp-12) 0;
   border-bottom: 1px solid var(--line);
 }
 
@@ -198,77 +225,175 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: baseline;
-  gap: var(--s-2);
+  gap: var(--sp-8);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
 }
 
-/* A quantidade também não: "2×" é dado, e dado é tinta. */
+/* A quantidade é dado, e dado é tinta — nunca a marca. */
 .items__qty {
   color: var(--ink-2);
-  font-weight: var(--weight-semibold);
+  font-weight: var(--w-semibold);
   font-variant-numeric: tabular-nums lining-nums;
 }
 
-.items__name,
-.items__price {
+.items__name {
   color: var(--ink);
-  font-weight: var(--weight-semibold);
+  font-weight: var(--w-strong);
 }
 
-.items__price,
-.options__price {
+.items__price {
+  color: var(--ink);
+  font-weight: var(--w-strong);
   text-align: right;
 }
 
+/*
+ * OS ADICIONAIS FICAM RECUADOS SOB O NOME, e o recuo é a largura da coluna da
+ * quantidade mais o vão — é o que faz o adicional ler como filho do item, e
+ * não como um item a mais na conta.
+ */
 .options {
   display: grid;
-  gap: var(--s-2);
-  margin: var(--s-2) 0 0 calc(var(--s-5) + var(--s-1));
+  gap: var(--sp-8);
+  margin: var(--sp-4) 0 0 var(--sp-24);
 }
 
 .options__label {
   display: block;
-  margin-bottom: var(--s-1);
+  margin-bottom: 2px;
   color: var(--ink-3);
-  font-size: var(--meta-size);
-  font-weight: var(--weight-semibold);
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
 }
 
 .options__option {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--s-3);
+  gap: var(--sp-12);
   color: var(--ink-2);
-  font-size: var(--meta-size);
-  line-height: var(--meta-line);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+}
+
+.options__price {
+  text-align: right;
+}
+
+/*
+ * OBSERVAÇÃO — a única coisa deste painel escrita pelo CLIENTE, e a que a
+ * cozinha erra se não vir. O wash de atenção é a moldura dela; não leva borda
+ * por cima (o mesmo motivo de `.alert` em primitives.css).
+ */
+.detail__notes,
+.items__observation {
+  margin: 0;
+  padding: var(--sp-8) var(--sp-12);
+  border-radius: var(--r-field);
+  background: var(--alert-wash);
+  color: var(--alert);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+}
+
+.detail__notes {
+  color: var(--ink);
 }
 
 .items__observation {
-  margin: var(--s-3) 0 0 calc(var(--s-5) + var(--s-1));
-  padding: var(--s-2) var(--s-3);
-  color: var(--alert);
-  font-size: var(--meta-size);
-  line-height: var(--meta-line);
+  margin: var(--sp-8) 0 0 var(--sp-24);
 }
+
+/* ==========================================================================
+ * HISTÓRICO
+ * ======================================================================= */
 
 .detail__history {
   display: grid;
-  gap: var(--s-2);
+  gap: var(--sp-8);
 }
 
 .detail__history li {
   color: var(--ink-2);
-  font-size: var(--meta-size);
-  line-height: var(--meta-line);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
 }
 
+.detail__history strong {
+  color: var(--ink);
+  font-weight: var(--w-semibold);
+}
+
+/* ==========================================================================
+ * O DIÁLOGO DE CANCELAMENTO
+ *
+ * Ele NÃO TINHA FOLHA DE ESTILO. `.cancel`, `.cancel__warning`, `.cancel__meta`
+ * e `.cancel__error` eram escritos no TSX e não existiam em CSS nenhum: a ação
+ * mais consequente do painel — a única que não pode ser desfeita — saía como
+ * três parágrafos crus empilhados, com a área de texto colada no aviso e o
+ * contador de caracteres embaixo, alinhado à esquerda.
+ *
+ * Ele mora aqui, e não numa folha própria, porque é desta coluna que ele nasce:
+ * `OrderDetailPanel.css` é a folha que sempre está carregada quando o diálogo
+ * pode existir.
+ * ======================================================================= */
+
+.cancel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+}
+
+/*
+ * O AVISO É A PRIMEIRA COISA, e ele fala com a voz do estado — não é um
+ * `.alert--error`, porque nada deu errado ainda: é a consequência do botão que
+ * a pessoa está prestes a apertar.
+ */
+.cancel__warning {
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-semibold);
+}
+
+/*
+ * A LINHA DE APOIO DA ÁREA DE TEXTO: o que acontece com o motivo à esquerda, o
+ * contador à direita. Eles dividem a mesma linha porque qualificam o MESMO
+ * campo — empilhados, viravam duas notas soltas embaixo de uma caixa.
+ */
+.cancel__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-12);
+  margin-top: calc(var(--sp-8) * -1);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+}
+
+.cancel__meta .tnum,
+.cancel__meta > :last-child {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.cancel__error {
+  color: var(--danger);
+  font-weight: var(--w-medium);
+}
+
+/* ==========================================================================
+ * QUANDO A TELA APERTA
+ * ======================================================================= */
+
+/*
+ * Abaixo de 1280px a divisão em duas colunas esmagaria a lista, então o painel
+ * passa a flutuar sobre ela — e só com um pedido escolhido.
+ */
 @media (max-width: 1279px) {
-  /*
-   * `--topbar-height` e `--shadow-drawer` NÃO EXISTEM em tokens.css — as duas
-   * declarações eram inválidas, então o painel flutuante abaixo de 1280px
-   * ficava com `top: auto` (altura do conteúdo, e não da tela) e sem sombra
-   * nenhuma sobre o quadro. Os nomes certos são `--topbar-h` e
-   * `--shadow-raised`.
-   */
   .panel {
     position: fixed;
     z-index: var(--z-drawer);
@@ -276,7 +401,6 @@
     right: 0;
     bottom: 0;
     height: auto;
-    border-left: 1px solid var(--line);
     box-shadow: var(--shadow-raised);
   }
 
@@ -296,11 +420,21 @@
   .panel__header,
   .panel__body,
   .panel__footer {
-    padding-right: var(--page-padding-mobile);
-    padding-left: var(--page-padding-mobile);
+    padding-inline: var(--page-pad-mobile);
   }
 
+  /*
+   * NO TELEFONE O RODAPÉ É A AÇÃO DA TELA. Os botões esticam e ficam lado a
+   * lado em partes iguais: com o painel ocupando os 390px inteiros, dois
+   * botões encolhidos no canto direito seriam dois alvos pequenos no lugar
+   * mais difícil de alcançar com o polegar.
+   */
   .panel__footer {
-    padding-bottom: calc(var(--s-4) + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--sp-12) + env(safe-area-inset-bottom));
+  }
+
+  .panel__footer .btn {
+    flex: 1 1 0;
+    min-height: var(--control-h-touch);
   }
 }

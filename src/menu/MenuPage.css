@@ -1,93 +1,159 @@
+/*
+ * ============================================================================
+ * CARDÁPIO — a faixa do sistema, a coluna de categorias e a lista de itens
+ * ============================================================================
+ *
+ * ERAM DUAS CAIXAS CONTORNADAS lado a lado sobre o chão da página, cada uma com
+ * a sua borda, o seu raio e o seu cabeçalho interno. Numa tela que já tem a
+ * lateral do painel à esquerda, isso é a terceira e a quarta moldura na mesma
+ * vertical.
+ *
+ * Agora é uma folha só, com a mesma gramática de Pedidos e Clientes: a faixa
+ * de 52px do sistema (`ds/PageBar`) no alto, a coluna de categorias separada
+ * por um FIO — como a lateral do painel se separa do conteúdo —, e a lista
+ * correndo até a margem, com régua entre as linhas.
+ *
+ * As duas colunas rolam SEPARADAS: a de categorias é curta e a de itens é
+ * longa, e uma rolagem só faria a barra de categorias sumir para o alto
+ * enquanto alguém procura o item na décima linha.
+ */
+
 .menu {
-  display: flex;
+  flex: 1;
   min-height: 0;
-  max-width: var(--page-max);
-  flex: 1;
-  flex-direction: column;
-  gap: var(--sp-20);
-  overflow-y: auto;
-  padding: var(--page-pad);
-  background: var(--bg);
-}
-.menu__head {
   display: flex;
-  align-items: flex-start;
-  gap: var(--sp-16);
+  flex-direction: column;
+  background: var(--surface);
 }
-.menu__head-text {
-  display: grid;
+
+/* A busca é ferramenta da barra: ela não estica até o fim da linha. */
+.menu__busca {
+  flex: 0 1 280px;
   min-width: 0;
-  flex: 1;
-  gap: var(--sp-4);
 }
+
+.menu__new {
+  flex: 0 0 auto;
+}
+
+/*
+ * A FRASE DE ESCOPO. Ela diz de qual loja é a coluna Impressão, e por isso fica
+ * acima da lista: é a legenda de uma coluna, e legenda depois da tabela é
+ * legenda que ninguém lê.
+ */
 .menu__note {
   max-width: 78ch;
   margin: 0;
+  padding: var(--sp-12) var(--page-pad);
 }
+
 .menu__note strong {
   color: var(--ink-2);
   font-weight: var(--w-semibold);
 }
-.menu__new {
-  flex: none;
+
+.menu > .alert {
+  margin: 0 var(--page-pad) var(--sp-12);
 }
+
+/* ==========================================================================
+ * AS DUAS COLUNAS
+ * ======================================================================= */
+
 .menu__body {
+  flex: 1;
+  min-height: 0;
+  max-width: var(--page-max);
   display: grid;
   grid-template-columns: var(--menu-rail-w) minmax(0, 1fr);
-  align-items: start;
-  gap: var(--sp-20);
+  align-items: stretch;
+  border-top: 1px solid var(--line);
 }
-.rail,
-.menu__panel {
-  border: 1px solid var(--line);
-  border-radius: var(--r-card);
-  background: var(--surface);
-  box-shadow: var(--shadow-card);
-}
+
+/* ==========================================================================
+ * A COLUNA DE CATEGORIAS
+ *
+ * SEM CAIXA. O que a separa da lista é o mesmo fio de 1px que separa a lateral
+ * do painel do conteúdo — e é de propósito que seja o mesmo: ela É a navegação
+ * desta tela.
+ * ======================================================================= */
+
 .rail {
-  position: sticky;
-  z-index: var(--z-sticky);
-  top: 0;
   display: flex;
-  max-height: calc(100vh - var(--topbar-h) - var(--page-pad) * 2);
+  min-height: 0;
   flex-direction: column;
-  overflow: hidden;
+  border-right: 1px solid var(--line);
 }
+
 .rail__header {
   display: flex;
   min-height: var(--row-dense-h);
   flex: none;
   align-items: center;
   gap: var(--sp-8);
-  padding: var(--sp-8) var(--sp-8) var(--sp-8) var(--sp-16);
-  border-bottom: 1px solid var(--line);
+  padding: var(--sp-8) var(--sp-8) var(--sp-8) var(--page-pad);
 }
+
 .rail__header .t-label {
   flex: 1;
 }
+
 .rail__list {
   display: grid;
   min-height: 0;
   flex: 1;
-  gap: var(--sp-4);
+  align-content: start;
+  gap: 2px;
   overflow-y: auto;
-  padding: var(--sp-8);
+  padding: 0 var(--sp-8) var(--sp-16);
 }
+
 .rail__item {
   position: relative;
   display: flex;
   min-width: 0;
   align-items: center;
-  border-radius: var(--r-control);
+  border-radius: var(--r-field);
   transition: background var(--motion-fast) var(--ease);
 }
+
 .rail__item:hover {
-  background: var(--surface-muted);
+  background: var(--nav-hover);
 }
+
+/*
+ * A CATEGORIA ABERTA usa a MESMA marcação do item ativo da lateral: plano de
+ * realce, tinta cheia, peso e um fio de 2px na margem. Nenhum laranja — o
+ * laranja desta tela é o "Novo item" lá em cima, e mais nada (tokens §1).
+ */
 .rail__item--selected {
-  background: var(--surface-selected);
-  box-shadow: inset 3px 0 var(--ember);
+  background: var(--nav-active);
+  box-shadow: inset 2px 0 var(--nav-rail);
 }
+
+/*
+ * O REALCE DE QUEM ACABOU DE SE MOVER. Ele existe porque subir e descer troca
+ * duas linhas de lugar, e sem nada piscando o olho não sabe qual das duas se
+ * mexeu. Some sozinho no fim da animação, que é o evento que `onMoveSettled`
+ * espera para limpar o estado — sem a animação, o realce nunca terminava
+ * porque nunca começava.
+ */
+.rail__item[data-moved='true'] {
+  animation: rail-moveu var(--motion-base) var(--ease);
+}
+
+@keyframes rail-moveu {
+  from {
+    background: var(--surface-selected);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail__item[data-moved='true'] {
+    animation-duration: 1ms;
+  }
+}
+
 .rail__select {
   display: flex;
   min-width: 0;
@@ -100,10 +166,12 @@
   font-size: var(--tb-size);
   text-align: left;
 }
+
 .rail__item--selected .rail__select {
   color: var(--ink);
   font-weight: var(--w-semibold);
 }
+
 .rail__name {
   min-width: 0;
   flex: 1;
@@ -147,36 +215,49 @@
   cursor: not-allowed;
   opacity: var(--disabled-opacity);
 }
+/* ==========================================================================
+ * A LISTA DE ITENS
+ * ======================================================================= */
+
 .menu__panel {
   display: flex;
   min-width: 0;
+  min-height: 0;
   flex-direction: column;
+  overflow-y: auto;
 }
+
+/*
+ * A RÉGUA DA CATEGORIA — 44px, subordinada à faixa de 52px da tela. Ela gruda
+ * no alto da coluna: quem rola cem itens precisa continuar sabendo de qual
+ * categoria eles são.
+ */
 .menu__panel-head {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
   display: flex;
-  min-height: 64px;
+  min-height: 44px;
   flex: none;
   align-items: center;
   gap: var(--sp-8);
-  padding: var(--sp-12) var(--sp-16);
+  padding: var(--sp-4) var(--page-pad);
   border-bottom: 1px solid var(--line);
+  background: var(--surface);
 }
+
 .menu__panel-title {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.menu__panel-search {
-  min-width: 180px;
-  max-width: 320px;
-  flex: 1 1 260px;
-  margin-left: auto;
-}
+
 .menu__empty {
   margin: 0;
-  padding: var(--sp-32) var(--sp-20);
+  padding: var(--sp-32) var(--page-pad);
   font-size: var(--ta-size);
+  line-height: var(--ta-line);
 }
 .menu__table {
   --cols: minmax(220px, 1fr) 96px 116px var(--control-h);
@@ -196,15 +277,24 @@
   grid-template-columns: var(--cols);
   align-items: center;
   gap: var(--sp-12);
-  padding-inline: var(--sp-16);
+  padding-inline: var(--page-pad);
 }
+
+/*
+ * O CABEÇALHO DE COLUNA NÃO É MAIS UMA FAIXA CINZA — é um rótulo sobre um fio
+ * mais forte, a mesma marcação de `ds/DataTable`. Duas faixas preenchidas
+ * empilhadas (a régua da categoria e esta) eram duas barras cinzas antes do
+ * primeiro item.
+ *
+ * Ele gruda logo abaixo da régua da categoria: 44px é a altura dela.
+ */
 .menu__columns {
   position: sticky;
   z-index: var(--z-sticky);
-  top: 0;
-  min-height: 42px;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface-muted);
+  top: 44px;
+  min-height: var(--row-dense-h);
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--surface);
   color: var(--ink-3);
 }
 .menu__col-price,
@@ -227,11 +317,7 @@
   border-bottom: 0;
 }
 .item:hover {
-  background: var(--surface-muted);
-}
-.menu__panel > .menu__table:last-child .item:last-child {
-  border-end-start-radius: var(--r-card);
-  border-end-end-radius: var(--r-card);
+  background: var(--hover);
 }
 .item__thumb {
   width: 44px;
@@ -253,12 +339,14 @@
 .item__title {
   flex: 0 1 auto;
 }
+/* O nome do item é 14/550, o mesmo peso do nome na linha de pedido. */
 .item__name {
   min-width: 0;
   overflow: hidden;
   color: var(--ink);
   font-size: var(--tb-size);
-  font-weight: var(--w-semibold);
+  font-weight: var(--w-strong);
+  letter-spacing: -0.012em;
   line-height: var(--tb-line);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -279,8 +367,9 @@
 }
 .item__price {
   color: var(--ink);
-  font-weight: var(--w-medium);
+  font-weight: var(--w-strong);
   text-align: right;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 .item__sector {
   overflow: hidden;
@@ -322,7 +411,7 @@
   display: flex;
   align-items: center;
   gap: var(--sp-12);
-  padding: var(--sp-12) var(--sp-16);
+  padding: var(--sp-16) var(--page-pad);
   border-top: 1px solid var(--line);
   font-size: var(--ta-size);
 }
@@ -330,6 +419,14 @@
   position: relative;
   flex: none;
 }
+/*
+ * O MENU FLUTUANTE usa o raio de CARTÃO, e não o de folha.
+ *
+ * A escala de raio diz o TAMANHO do objeto: 14px é para o que ocupa a tela
+ * (diálogo, folha do celular), 10px para o que se ancora num controle. Este
+ * menu e a lista do seletor (ds/Select) são a mesma classe de objeto e agora
+ * têm o mesmo raio — antes um tinha 14 e o outro 10.
+ */
 .actions-menu__list {
   position: absolute;
   z-index: var(--z-popover);
@@ -338,7 +435,7 @@
   min-width: 240px;
   padding: var(--sp-4);
   border: 1px solid var(--line);
-  border-radius: var(--r-sheet);
+  border-radius: var(--r-card);
   background: var(--surface-raised);
   box-shadow: var(--shadow-raised);
 }
@@ -441,62 +538,112 @@
     height: var(--tap-mobile);
   }
 }
+/* ==========================================================================
+ * TABLET — a coluna de categorias deita
+ *
+ * Abaixo de 1024px não cabem 232px de categorias ao lado da lista sem espremer
+ * o nome do item. A coluna vira uma FILEIRA no alto, com rolagem horizontal —
+ * a mesma lista, deitada, e não um `<select>` que esconde onde a pessoa está.
+ * ======================================================================= */
+
 @media (max-width: 1023px) {
   .menu__body {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
   }
+
   .rail {
-    position: static;
-    max-height: none;
+    min-height: 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
   }
+
+  .rail__header {
+    padding-block: var(--sp-4);
+  }
+
   .rail__list {
     display: flex;
+    gap: var(--sp-4);
     overflow-x: auto;
     overflow-y: hidden;
+    padding: 0 var(--page-pad) var(--sp-8);
     scrollbar-width: thin;
   }
+
   .rail__item {
     min-width: max-content;
   }
+
   .rail__select {
     flex: none;
   }
+
+  /*
+   * AS SETAS DE REORDENAR DEITAM JUNTO COM A FITA.
+   *
+   * Empilhadas — que é como elas são na coluna vertical — cada uma pede 44px de
+   * alvo de toque, e a fita inteira passava a ter 88px de altura para mostrar
+   * três palavras. Lado a lado, o item volta a ter a altura do nome.
+   *
+   * Elas continuam sendo "para cima" e "para baixo": o que elas movem é a
+   * POSIÇÃO da categoria na ordem do cardápio, e essa ordem é a mesma que a
+   * fita desenha da esquerda para a direita.
+   */
+  .rail__reorder {
+    flex-direction: row;
+  }
+
   .menu__table--with-photo.menu__table--with-sector {
     --cols: 48px minmax(180px, 1fr) 88px 112px 104px var(--control-h);
   }
 }
+
+/* ==========================================================================
+ * CELULAR — a linha do item deixa de ser linha
+ *
+ * Aqui vale o mesmo princípio da linha de pedido (`ds/OrderRow`): abaixo de
+ * 720px a leitura por coluna não existe mais, então o item vira um BLOCO com
+ * alvo de toque folgado, e não uma linha de cinco colunas dobrada em três.
+ * ======================================================================= */
+
 @media (max-width: 720px) {
   .menu {
-    gap: var(--sp-16);
-    padding: var(--page-pad-mobile);
     padding-bottom: calc(var(--bottombar-h) + var(--sp-24));
   }
-  .menu__head {
-    flex-wrap: wrap;
-  }
-  .menu__new {
-    width: 100%;
-  }
+
+  .menu__note,
+  .menu__empty,
+  .menu__footer,
+  .menu__panel-head,
   .rail__header {
-    min-height: 44px;
+    padding-inline: var(--page-pad-mobile);
   }
+
+  .menu > .alert {
+    margin-inline: var(--page-pad-mobile);
+  }
+
   .rail__list {
-    padding: var(--sp-4);
+    padding-inline: var(--page-pad-mobile);
   }
-  .menu__panel-head {
-    min-height: 0;
-    flex-wrap: wrap;
-    padding: var(--sp-16);
+
+  .menu__busca {
+    flex: 1 1 100%;
   }
-  .menu__panel-search {
-    min-width: 100%;
-    max-width: none;
-    flex-basis: 100%;
-    margin-left: 0;
+
+  .menu__new {
+    flex: 1 1 auto;
   }
+
+  .rail__header {
+    min-height: var(--tap-mobile);
+  }
+
   .menu__columns {
     display: none;
   }
+
   .item,
   .menu__table--with-photo .item,
   .menu__table--with-sector .item,
@@ -504,51 +651,82 @@
     grid-template-columns: minmax(0, 1fr) auto auto;
     grid-auto-rows: auto;
     gap: var(--sp-8) var(--sp-12);
-    min-height: 88px;
-    padding: var(--sp-12);
+    min-height: var(--row-touch-h);
+    padding: var(--sp-12) var(--page-pad-mobile);
   }
+
   .item__main {
     grid-column: 1/-1;
   }
+
   .menu__table--with-photo .item__thumb {
     grid-row: 1/3;
     grid-column: 1;
   }
+
   .menu__table--with-photo .item__main {
     grid-column: 2/-1;
   }
+
   .item__main,
   .item__title {
     align-items: flex-start;
     flex-direction: column;
     gap: var(--sp-4);
   }
+
+  /*
+   * A DESCRIÇÃO SOME NO CELULAR — e sumia de verdade, não por decisão.
+   *
+   * `.item__description` é `flex: 1 1 0` para dividir a linha com o nome no
+   * desktop, onde `.item__main` é uma FILEIRA. No celular ele vira uma COLUNA,
+   * e aí `flex-basis: 0` passa a valer no eixo vertical: a descrição ficava com
+   * altura zero e o item aparecia sem nenhuma.
+   *
+   * Aqui ela volta a ter a altura do conteúdo e a quebrar em duas linhas, que é
+   * o que faz sentido num bloco de 358px.
+   */
   .item__description {
     width: 100%;
+    flex: 0 0 auto;
+    /* Duas linhas e um reticências: a descrição informa, não é o assunto. */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    white-space: normal;
+    overflow: hidden;
   }
+
   .item__price {
     grid-row: 2;
     grid-column: 1;
     text-align: left;
   }
+
   .menu__table--with-photo .item__price {
     grid-column: 2;
   }
+
   .item__sector {
     grid-column: 1/-1;
     grid-row: 3;
   }
+
   .item__state {
     grid-row: 2;
     grid-column: 2;
   }
+
   .menu__table--with-photo .item__state {
     grid-column: 3;
   }
+
   .item__edit {
     grid-row: 2;
     grid-column: 3;
   }
+
   .form__grid {
     grid-template-columns: minmax(0, 1fr);
   }

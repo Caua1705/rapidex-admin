@@ -135,38 +135,59 @@ const PAIRS = [
 
   // --- marca ---
   { fg: '--on-ember', bg: '--ember', min: 4.5, use: 'texto do botão primário' },
+  /*
+   * O DESTRUTIVO tem tinta própria (`--on-danger`) desde que deixou de ler
+   * `--on-ember`: "botão cheio" e "botão da marca" eram a mesma coisa e não são.
+   */
+  { fg: '--on-danger', bg: '--danger', min: 4.5, use: 'texto do botão destrutivo' },
+  {
+    fg: '--on-danger',
+    bg: '--danger-press',
+    min: 4.5,
+    use: 'texto do botão destrutivo pressionado',
+  },
   {
     fg: '--on-ember-press',
     bg: '--ember-press',
     min: 4.5,
     use: 'texto do botão primário pressionado',
   },
-  { fg: '--ember', bg: '--bg', min: 3, use: 'anel de foco sobre a página' },
-  { fg: '--ember', bg: '--surface', min: 3, use: 'anel de foco sobre cartão' },
-  { fg: '--ember', bg: '--surface-raised', min: 3, use: 'anel de foco em menu/diálogo' },
   /*
-   * `--ember-wash` NÃO carrega texto laranja em lugar nenhum, e é por isso que
-   * o par medido aqui é com `--ink`.
-   *
-   * O item ativo da navegação já tentou ser "laranja sobre laranja claro": no
-   * claro dava 3.11:1 e no escuro 4.17:1, os dois abaixo do mínimo para texto
-   * de 13px, e não existe um laranja que passe nos dois sem deixar de ser o
-   * laranja da marca. O item ativo virou tinta cheia + peso + um trilho de 2px
-   * na cor da marca — mais legível, e com a marca aparecendo menos.
+   * O ANEL DE FOCO deixou de ser a brasa e passou a ser `--ink` (tokens §6): o
+   * foco aparece em TODO controle, e enquanto ele fosse laranja o laranja
+   * aparecia em todo controle. Os pares continuam medidos — o que mudou é qual
+   * token está sendo medido.
    */
-  { fg: '--ink', bg: '--ember-wash', min: 4.5, use: 'texto selecionado (::selection)' },
+  { fg: '--focus', bg: '--bg', min: 3, use: 'anel de foco sobre a página' },
+  { fg: '--focus', bg: '--surface', min: 3, use: 'anel de foco sobre cartão' },
+  { fg: '--focus', bg: '--surface-raised', min: 3, use: 'anel de foco em menu/diálogo' },
+  { fg: '--focus', bg: '--nav-bg', min: 3, use: 'anel de foco na navegação' },
+  /*
+   * O anel tem `outline-offset: 2px`, então ele nunca é desenhado SOBRE o
+   * controle — é desenhado sobre o plano em volta dele. Os planos em volta que
+   * existem de verdade são estes dois: a barra de ferramentas (agrupamento) e o
+   * realce da navegação.
+   */
+  { fg: '--focus', bg: '--surface-muted', min: 3, use: 'anel de foco em barra de ferramentas' },
+  { fg: '--focus', bg: '--nav-active', min: 3, use: 'anel de foco no item ativo da navegação' },
+  /*
+   * A SELEÇÃO DE TEXTO é um plano NEUTRO (`--surface-selected`), e não mais o
+   * wash da marca: ela aparece em qualquer parágrafo de qualquer tela, e era
+   * mais um lugar onde o laranja chegava sem ser a ação primária. O par medido
+   * é o mesmo da linha selecionada, logo acima.
+   */
 
   /*
-   * O CONSOLE (a lateral), que é escuro nos DOIS temas — mas com um valor
-   * PRÓPRIO por tema, não compartilhado. Continua tendo pares dedicados aqui
-   * por um motivo diferente agora: um plano que só é redefinido num lugar do
-   * arquivo é o que mais costuma escapar da revisão quando alguém mexe só no
-   * bloco do tema escuro ou só no do claro.
+   * A NAVEGAÇÃO. Ela deixou de ser escura nos dois temas e passou a ser um
+   * plano DO TEMA (tokens §9b), então precisa ser medida nos dois — é
+   * justamente o plano que mais escapa da revisão, porque quem mexe no tema
+   * escuro raramente reabre o bloco do claro.
    */
-  { fg: '--console-ink', bg: '--console-bg', min: 4.5, use: 'item da navegação' },
-  { fg: '--console-ink-2', bg: '--console-bg', min: 4.5, use: 'item inativo da navegação' },
-  { fg: '--console-ink-3', bg: '--console-bg', min: 4.5, use: 'rótulo de grupo da navegação' },
-  { fg: '--ember', bg: '--console-bg', min: 3, use: 'trilho do item ativo da navegação' },
+  { fg: '--nav-ink', bg: '--nav-bg', min: 4.5, use: 'item ativo da navegação' },
+  { fg: '--nav-ink-2', bg: '--nav-bg', min: 4.5, use: 'item inativo da navegação' },
+  { fg: '--nav-ink-3', bg: '--nav-bg', min: 4.5, use: 'rótulo de grupo da navegação' },
+  { fg: '--nav-ink', bg: '--nav-active', min: 4.5, use: 'item da navegação sob o realce' },
+  { fg: '--nav-rail', bg: '--nav-bg', min: 3, use: 'fio do item ativo da navegação' },
 
   /*
    * Contorno de controle (1.4.11).
@@ -217,6 +238,57 @@ const PAIRS = [
   { fg: '--st-pendente', bg: '--bg', min: 3, use: 'fio de maturação sobre a página' },
   { fg: '--st-pronto', bg: '--bg', min: 3, use: 'fio de maturação sobre a página' },
   { fg: '--st-cancelado', bg: '--bg', min: 3, use: 'fio de maturação sobre a página' },
+
+  /*
+   * A COZINHA (tokens §5b) — a única escala acesa do sistema, medida contra o
+   * plano fundo do monitor de parede, que é o mesmo nos dois temas. Ela é lida
+   * a dois metros, então o mínimo aqui é o de TEXTO (4.5), não o de elemento
+   * gráfico: na Cozinha a matiz É o rótulo do estágio.
+   */
+  { fg: '--k-pendente', bg: '--k-plano', min: 4.5, use: 'estágio Pendente na Cozinha' },
+  { fg: '--k-aceito', bg: '--k-plano', min: 4.5, use: 'estágio Aceito na Cozinha' },
+  { fg: '--k-preparando', bg: '--k-plano', min: 4.5, use: 'estágio Preparando na Cozinha' },
+  { fg: '--k-pronto', bg: '--k-plano', min: 4.5, use: 'estágio Pronto na Cozinha' },
+  { fg: '--k-entrega', bg: '--k-plano', min: 4.5, use: 'estágio Saiu para entrega na Cozinha' },
+  { fg: '--k-cancelado', bg: '--k-plano', min: 4.5, use: 'estágio Cancelado na Cozinha' },
+  { fg: '--k-ink', bg: '--k-plano', min: 4.5, use: 'texto sobre o chão da Cozinha' },
+  { fg: '--k-ink-2', bg: '--k-plano', min: 4.5, use: 'meta sobre o chão da Cozinha' },
+
+  /*
+   * OS DOIS PLANOS QUE SOBEM. A coluna é `--k-plano-2` e o CARTÃO é
+   * `--k-plano-3`, que é o mais claro dos três — quem reprova primeiro é a
+   * tinta de apoio sobre ele, e é por isso que `--k-ink-3` foi clareado.
+   */
+  { fg: '--k-ink', bg: '--k-plano-2', min: 4.5, use: 'texto na coluna da Cozinha' },
+  { fg: '--k-ink-2', bg: '--k-plano-2', min: 4.5, use: 'meta na coluna da Cozinha' },
+  { fg: '--k-ink-3', bg: '--k-plano-2', min: 4.5, use: 'apoio na coluna da Cozinha' },
+  { fg: '--k-ink', bg: '--k-plano-3', min: 4.5, use: 'item do cartão da Cozinha' },
+  { fg: '--k-ink-2', bg: '--k-plano-3', min: 4.5, use: 'meta do cartão da Cozinha' },
+  { fg: '--k-ink-3', bg: '--k-plano-3', min: 4.5, use: 'rótulo de adicional no cartão' },
+
+  /* O fio de status na beirada do cartão é elemento gráfico (1.4.11). */
+  { fg: '--k-pendente', bg: '--k-plano-3', min: 3, use: 'fio de estágio no cartão da Cozinha' },
+  { fg: '--k-pronto', bg: '--k-plano-3', min: 3, use: 'fio de estágio no cartão da Cozinha' },
+  { fg: '--k-cancelado', bg: '--k-plano-3', min: 3, use: 'fio de estágio no cartão da Cozinha' },
+
+  /*
+   * A AÇÃO PRIMÁRIA DA COZINHA — o botão que avança o pedido. Ela é a brasa,
+   * como em toda tela (tokens §1); o que muda é que aqui ela é a do plano
+   * fundo, e fixa nos dois temas.
+   */
+  { fg: '--k-on-ember', bg: '--k-ember', min: 4.5, use: 'texto do botão de avançar na Cozinha' },
+  {
+    fg: '--k-on-ember',
+    bg: '--k-ember-press',
+    min: 4.5,
+    use: 'texto do botão de avançar pressionado',
+  },
+
+  /* O cronômetro: "entrou na janela" é tinta funda sobre âmbar cheio. */
+  { fg: '--k-plano', bg: '--k-alerta', min: 4.5, use: 'cronômetro na janela de entrega' },
+  /* "Estourou" é carmim sobre o wash dele. */
+  { fg: '--k-perigo', bg: '--k-perigo-wash', min: 4.5, use: 'cronômetro estourado' },
+  { fg: '--k-alerta', bg: '--k-alerta-wash', min: 4.5, use: 'aviso de atenção na Cozinha' },
 ];
 
 const themes = [

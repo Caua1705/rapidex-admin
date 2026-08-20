@@ -135,10 +135,7 @@ export async function uploadProductImage(
  * produto. Quem precisa saber se o produto saiu de venda por causa desta
  * mudança relê o produto depois; ver `menu/required-groups.ts`.
  */
-export async function setOptionActive(
-  optionId: string,
-  isActive: boolean,
-): Promise<ProductOption> {
+export async function setOptionActive(optionId: string, isActive: boolean): Promise<ProductOption> {
   return unwrap(
     await apiClient.PATCH('/admin/options/{option_id}', {
       params: { path: { option_id: optionId } },

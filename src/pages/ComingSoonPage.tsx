@@ -1,3 +1,4 @@
+import { PageBar } from '../ds/PageBar';
 import './ComingSoonPage.css';
 
 /**
@@ -16,9 +17,15 @@ import './ComingSoonPage.css';
 export function ComingSoonPage({ title, description }: { title: string; description: string }) {
   return (
     <div className="soon" data-testid="coming-soon">
+      {/*
+        A MESMA FAIXA DE 52px DE TODAS AS TELAS, e é ela que faz esta tela
+        PERTENCER ao painel em vez de parecer um erro de rota. A etiqueta fica
+        ao lado do título, onde ela responde "então esta tela existe?" para quem
+        chegou pelo endereço direto — e não repete o que a lateral já mostra.
+      */}
+      <PageBar title={title} aside={<span className="tag">Em breve</span>} />
+
       <div className="soon__block">
-        <span className="tag soon__tag">Em breve</span>
-        <h1 className="t-title">{title}</h1>
         <p className="soon__text">{description}</p>
       </div>
     </div>

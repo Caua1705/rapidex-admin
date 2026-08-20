@@ -109,7 +109,10 @@ export function DayChart({ days }: { days: readonly SalesByDayItem[] }) {
             const rotula = rotulaTodos || index === 0 || index === days.length - 1;
 
             return (
-              <li className="grafico__dia" key={day.day}>
+              <li
+                className={`grafico__dia${index === indiceDoPico && max > 0 ? ' grafico__dia--pico' : ''}`}
+                key={day.day}
+              >
                 <div className="grafico__coluna">
                   {index === indiceDoPico && max > 0 ? (
                     <span className="grafico__pico tnum">{formatCurrency(day.revenue_total)}</span>

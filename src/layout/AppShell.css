@@ -1,3 +1,19 @@
+/*
+ * A MOLDURA — e a lateral que deixou de ser escura.
+ *
+ * A navegação era um bloco de carvão nos dois temas, com pílula laranja no
+ * item ativo. Era a peça que mais fazia o painel ler como console de servidor,
+ * e era também o maior vazamento da regra da marca (tokens §1): o laranja
+ * aparecia em toda tela, o tempo todo, marcando onde a pessoa já sabia que
+ * estava.
+ *
+ * Agora a lateral é um PLANO DO TEMA (`--nav-*`, tokens §9b) e o item ativo é
+ * dito por três coisas sem cor: tinta cheia, peso 600 e um fio de 2px na
+ * margem. É a mesma gramática do bloco de estágio na tabela de Pedidos — um
+ * fio à esquerda diz "este é o grupo aberto" —, e é isso que faz a lateral e o
+ * conteúdo parecerem o mesmo produto.
+ */
+
 .shell {
   min-height: 100%;
   display: flex;
@@ -24,10 +40,16 @@
   flex-direction: column;
 }
 
+/*
+ * A BARRA DO SHELL FICA ACIMA DA BARRA DA TELA (`--z-shell`, tokens §12). As
+ * duas são grudentas e as duas ficam no alto; com a mesma camada, a da tela
+ * ganhava por vir depois na árvore e a lista de filiais abria atrás do filtro
+ * de Pedidos.
+ */
 .shell__bar {
   position: sticky;
   top: 0;
-  z-index: var(--z-sticky);
+  z-index: var(--z-shell);
   min-height: var(--topbar-h);
   display: flex;
   align-items: center;
@@ -35,7 +57,6 @@
   padding-inline: var(--page-pad-mobile);
   background: var(--surface);
   border-bottom: 1px solid var(--line);
-  box-shadow: var(--shadow-shell);
 }
 
 .shell__spacer {
@@ -72,16 +93,17 @@
   background: var(--hover);
 }
 
+/* --- celular: a lateral vira barra de baixo ------------------------------ */
+
 .shell__bottom {
   position: fixed;
   inset: auto 0 0;
-  z-index: var(--z-sticky);
+  z-index: var(--z-shell);
   height: calc(var(--bottombar-h) + env(safe-area-inset-bottom));
   display: flex;
   padding-bottom: env(safe-area-inset-bottom);
-  background: var(--console-bg);
-  border-top: 1px solid var(--console-line);
-  box-shadow: var(--shadow-raised);
+  background: var(--nav-bg);
+  border-top: 1px solid var(--nav-line);
 }
 
 .shell__tab {
@@ -94,7 +116,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--sp-4);
-  color: var(--console-ink-3);
+  color: var(--nav-ink-3);
   text-decoration: none;
   transition:
     color var(--motion-fast) var(--ease),
@@ -102,8 +124,8 @@
 }
 
 .shell__tab:hover {
-  color: var(--console-ink);
-  background: var(--console-hover);
+  color: var(--nav-ink);
+  background: var(--nav-hover);
 }
 
 .shell__tab-nome {
@@ -113,19 +135,23 @@
 }
 
 .shell__tab--ativa {
-  color: var(--console-ink);
-  font-weight: var(--w-bold);
+  color: var(--nav-ink);
+  font-weight: var(--w-semibold);
 }
 
+/*
+ * O MESMO FIO DA LATERAL, deitado. Ele é tinta, não brasa: no celular a barra
+ * de baixo é a navegação inteira, e um traço laranja nela seria o laranja
+ * presente em 100% das telas do telefone.
+ */
 .shell__tab--ativa::before {
   content: '';
   position: absolute;
   top: 0;
-  left: 30%;
-  right: 30%;
-  height: 3px;
-  border-radius: 0 0 var(--r-chip) var(--r-chip);
-  background: var(--ember);
+  left: 26%;
+  right: 26%;
+  height: 2px;
+  background: var(--nav-rail);
 }
 
 .shell__mais-grupo {
@@ -135,6 +161,8 @@
 .shell__mais-grupo .t-label {
   padding: var(--sp-4) var(--sp-12) var(--sp-8);
 }
+
+/* --- o seletor de filial, na barra do topo ------------------------------- */
 
 .branch {
   min-width: 0;
@@ -195,6 +223,8 @@
   color: var(--ink-3);
 }
 
+/* --- 768px: a trilha de ícones ------------------------------------------- */
+
 @media (min-width: 768px) {
   .shell {
     flex-direction: row;
@@ -220,8 +250,8 @@
     gap: var(--sp-20);
     padding: 0 var(--sp-8) var(--sp-20);
     overflow-y: auto;
-    background: var(--console-bg);
-    border-right: 1px solid var(--console-line);
+    background: var(--nav-bg);
+    border-right: 1px solid var(--nav-line);
   }
 
   .shell__brand {
@@ -246,17 +276,13 @@
     white-space: nowrap;
   }
 
-  .shell__brand .logo__mark {
-    border-color: var(--console-line);
-  }
-
   .shell__group,
   .shell__group ul {
     width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--sp-4);
+    gap: 2px;
   }
 
   .shell__link {
@@ -267,41 +293,39 @@
     align-items: center;
     justify-content: center;
     border-radius: var(--r-field);
-    color: var(--console-ink-2);
+    color: var(--nav-ink-2);
     text-decoration: none;
     transition:
       color var(--motion-fast) var(--ease),
-      background var(--motion-fast) var(--ease),
-      transform var(--motion-fast) var(--ease);
+      background var(--motion-fast) var(--ease);
   }
 
   .shell__link:hover {
-    color: var(--console-ink);
-    background: var(--console-hover);
-  }
-
-  .shell__link:active {
-    transform: translateY(1px);
+    color: var(--nav-ink);
+    background: var(--nav-hover);
   }
 
   .shell__link--active {
-    color: var(--console-ink);
-    background: var(--console-active);
+    color: var(--nav-ink);
+    background: var(--nav-active);
   }
 
+  /*
+   * O FIO DO ITEM ATIVO. 2px, tinta cheia, encostado na margem da trilha — a
+   * mesma marcação que o bloco de estágio usa na tabela de Pedidos.
+   */
   .shell__link--active::before {
     content: '';
     position: absolute;
-    left: -6px;
-    top: 11px;
-    bottom: 11px;
-    width: 3px;
-    border-radius: 0 var(--r-chip) var(--r-chip) 0;
-    background: var(--ember);
+    left: -8px;
+    top: 10px;
+    bottom: 10px;
+    width: 2px;
+    background: var(--nav-rail);
   }
 
   .shell__link--soon {
-    color: var(--console-ink-3);
+    color: var(--nav-ink-3);
   }
 
   .shell__link-icon {
@@ -315,10 +339,12 @@
   .shell__account-divider {
     display: block;
     width: 1px;
-    height: var(--sp-24);
+    height: var(--sp-20);
     background: var(--line);
   }
 }
+
+/* --- 1180px: a lateral escrita ------------------------------------------- */
 
 @media (min-width: 1180px) {
   .shell__nav {
@@ -340,7 +366,7 @@
     margin: 0;
     overflow: visible;
     clip: auto;
-    color: var(--console-ink);
+    color: var(--nav-ink);
     font-size: var(--ts-size);
   }
 
@@ -349,10 +375,10 @@
     width: auto;
     height: auto;
     margin: 0;
-    padding: var(--sp-8) var(--sp-8) var(--sp-4);
+    padding: var(--sp-4) var(--sp-8);
     overflow: visible;
     clip: auto;
-    color: var(--console-ink-3);
+    color: var(--nav-ink-3);
   }
 
   .shell__group,
@@ -362,16 +388,20 @@
 
   .shell__link {
     width: auto;
-    height: 40px;
+    height: 34px;
     justify-content: flex-start;
-    gap: var(--sp-12);
-    padding-inline: var(--sp-12);
+    gap: var(--sp-8);
+    padding-inline: var(--sp-8);
   }
 
   .shell__link--active::before {
     left: -12px;
-    top: var(--sp-8);
-    bottom: var(--sp-8);
+    top: var(--sp-4);
+    bottom: var(--sp-4);
+  }
+
+  .shell__link--active .shell__link-label {
+    font-weight: var(--w-semibold);
   }
 
   .shell__link-label {
@@ -397,7 +427,7 @@
     overflow: visible;
     clip: auto;
     font-size: var(--tl-size);
-    color: var(--console-ink-3);
+    color: var(--nav-ink-3);
   }
 
   .shell__avatar {

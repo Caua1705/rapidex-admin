@@ -59,9 +59,7 @@ describe('checkDeliveryConfig', () => {
    * recebe pedido nenhum quando ela recebe.
    */
   it('mínima acima da máxima não bloqueia a entrega', () => {
-    const problems = checkDeliveryConfig(
-      config({ delivery_min_fee: 20, delivery_max_fee: 10 }),
-    );
+    const problems = checkDeliveryConfig(config({ delivery_min_fee: 20, delivery_max_fee: 10 }));
 
     expect(problems).toHaveLength(1);
     expect(problems[0]?.blocksDelivery).toBeUndefined();

@@ -12,71 +12,79 @@
  * contraste medido — não vira número solto no componente.
  *
  * ============================================================================
- * A DIREÇÃO — papel e tinta
+ * A DIREÇÃO — "Refinada"
  * ============================================================================
  *
- * O diagnóstico que abriu esta rodada: o painel lia como FERRAMENTA INTERNA, e
- * não como produto. Os sintomas, e o que cada um virou aqui:
+ * Três direções visuais foram construídas lado a lado e comparadas na tela
+ * (uma tabela sóbria, um quadro de cartões arredondados e um console escuro
+ * denso). A escolhida foi a primeira, e ela se resume em cinco decisões:
  *
- *   1. TUDO COM O MESMO PESO. Título de seção, parágrafo e tabela disputavam a
- *      mesma faixa de 13 a 16px. A escala foi reaberta: o título de página
- *      desceu para 24px mas subiu para peso 700 com tracking negativo, o título
- *      de seção desceu para 15px, e o RÓTULO (12px, peso 600, tinta de apoio)
- *      passou a ser quem nomeia grupo de formulário. Título deixou de disputar
- *      com dado porque parou de ter o corpo de um dado.
+ *   1. TIPOGRAFIA É A HIERARQUIA. IBM Plex Sans, autohospedada. Ela tem osso
+ *      de grotesca de engenharia — "a" de dois andares, "l" com cauda, "1" com
+ *      base — e por isso o painel lê como INSTRUMENTO, e não como aplicativo de
+ *      consumidor. Quem separa título de dado é corpo, peso e tinta; nunca
+ *      caixa alta, nunca cor.
  *
- *   2. BORDA EM TUDO. A separação padrão agora é TONAL: `--surface` sobre
- *      `--bg` é um degrau grande o bastante para dispensar contorno. Borda
- *      sobrou para três trabalhos — contornar o que se opera (`--line-control`),
- *      reger uma lista (`--line`) e fechar o cartão no tema escuro, onde tom
- *      sozinho não basta (`--card-edge`, que é transparente no claro).
+ *   2. NEUTROS FRIOS. Cinza com um grão de azul, do papel ao carvão. A direção
+ *      anterior era quente (cinza com resto de terra); o frio afasta os neutros
+ *      do laranja da marca, o que é o que permite a decisão 4.
  *
- *   3. COR SEM FUNÇÃO. A paleta tem quatro empregos e nenhum a mais: marca
- *      (ação, seleção, navegação ativa, foco), estado (--ok / --alert /
- *      --danger / --info), estágio do pedido (--st-*) e neutro. Fora disso a
- *      tela é papel e tinta.
+ *   3. A LATERAL É CLARA. Ela era escura nos dois temas, e essa era a peça que
+ *      mais fazia o painel parecer um console de servidor. Agora a navegação
+ *      segue o tema: plano claro no claro, plano fundo no escuro. O item ativo
+ *      não é pílula colorida — é tinta cheia, peso e um fio de 2px na margem.
  *
- *   4. FORMULÁRIO COM CARA DE HTML PADRÃO. Saiu o relevo — a sombra interna do
- *      campo e a sombra de 1px embaixo do botão — e o contorno pesado: o campo
- *      é branco com um fio de 3:1, e o que muda no foco é a marca.
+ *   4. O LARANJA TEM UM EMPREGO SÓ: A AÇÃO PRIMÁRIA. Botão de aceitar, de
+ *      avançar o pedido, de salvar. Ele NÃO pinta item de navegação, NÃO pinta
+ *      seleção, NÃO pinta anel de foco, NÃO pinta rótulo, borda ou ícone.
+ *      Uma cor que aparece em oito lugares não destaca nenhum: onde ela ainda
+ *      aparecia por hábito, entrou tinta neutra.
  *
- * O QUE FOI RECONSIDERADO E MANTIDO, de propósito:
+ *   5. PEDIDO É LINHA, NÃO CARTÃO. Onze cartões são onze molduras disputando a
+ *      mesma atenção; a linha de razão põe os campos em colunas alinhadas e
+ *      deixa o alinhamento fazer o trabalho que a moldura fazia. É de onde vêm
+ *      `--row-*`, `--w-*` e a régua de densidade deste arquivo.
  *
- *   - INTER, autohospedada. A letra não era o defeito: a escala era. Trocar de
- *     família custaria uma dependência nova e mexeria em toda métrica de
- *     controle sem resolver um sintoma sequer.
- *   - A LATERAL ESCURA nos dois temas. Ela ficou mais quente e mais funda, mas
- *     continua sendo o plano mais escuro da tela: é a moldura que diz produto,
- *     e clareá-la seria a única mudança desta rodada a atingir TODAS as telas.
- *
- * O QUE MUDOU DE TEMPERATURA: os neutros são quentes de verdade agora — cinza
- * com um resto de terra, não cinza-azulado. É o que tira a tela do registro
- * "SaaS azul-cinza sem identidade" sem gastar cor nenhuma.
+ * ============================================================================
  */
 
 :root,
 [data-theme='light'] {
   /* ==========================================================================
-   * 1. MARCA — a brasa
+   * 1. MARCA — a brasa, e o seu ÚNICO emprego
    *
-   * QUATRO EMPREGOS, e nenhum a mais: ação primária, item ativo da navegação,
-   * seleção e anel de foco. Ela não pinta checkbox, não pinta segmento ativo de
-   * filtro e não tinge superfície.
+   * AÇÃO PRIMÁRIA. Só isso. `.btn--primary`, e o botão de avançar o pedido.
+   *
+   * O que ela deixou de pintar nesta rodada, e para onde cada uso foi:
+   *   item ativo da navegação → tinta cheia + peso + fio neutro (§9b)
+   *   linha/ticket selecionado → `--surface-selected`, que é cinza frio (§2)
+   *   anel de foco             → `--focus`, que agora é `--ink` (§6)
+   *   segmento ativo de filtro → já era neutro, e continua
+   *
+   * A regra de revisão é literal: se você escreveu `var(--ember)` e o elemento
+   * não é a ação primária da tela, o token está errado.
    * ======================================================================= */
   --ember: #c2410c;
   --ember-press: #9a3208;
-  --ember-wash: #fdf0e7;
   --on-ember: #ffffff;
+  /*
+   * NÃO EXISTE MAIS `--ember-wash`. O fundo tingido da marca pintava o item
+   * ativo da navegação, a seleção de texto e a opção aberta da folha do celular
+   * — três lugares que não são a ação primária. Cada um deles foi para um plano
+   * neutro (`--nav-active`, `--surface-selected`), e o token ficou sem nenhum
+   * consumidor. Um wash da marca é, por construção, um convite a espalhar a
+   * marca: ele sai junto com os usos.
+   */
   --on-ember-press: #ffffff;
 
   /* ==========================================================================
    * 2. OS PLANOS — e a regra de quando separar com tom, borda ou sombra
    *
    *   --bg               o chão: área de trabalho
-   *   --surface          onde o trabalho acontece: cartão, coluna, lista
-   *   --surface-raised   o que SOBE mais um degrau: menu, diálogo, folha
+   *   --surface          onde o trabalho acontece: cartão, folha, lista
+   *   --surface-raised   o que SOBE mais um degrau: menu, diálogo, gaveta
    *   --surface-muted    agrupamento: cabeçalho de tabela, trilho de segmentado
-   *   --surface-selected seleção sem moldura
+   *   --surface-selected seleção sem moldura — cinza frio, nunca a marca
    *   --field            o plano do que se PREENCHE
    *
    * A REGRA, na ordem:
@@ -84,14 +92,14 @@
    *   2. BORDA — só quando o limite é operável (campo), quando uma lista
    *      precisa de régua entre linhas, ou quando o tom não chega (tema
    *      escuro: ver `--card-edge`).
-   *   3. SOMBRA — só quando há elevação de verdade: menu, diálogo, folha,
-   *      barra grudenta e o cartão sob o ponteiro.
+   *   3. SOMBRA — só quando há elevação de verdade: menu, diálogo, gaveta,
+   *      barra grudenta.
    * ======================================================================= */
-  --bg: #f2f1ef;
+  --bg: #eef1f6;
   --surface: #ffffff;
   --surface-raised: #ffffff;
-  --surface-muted: #edebe8;
-  --surface-selected: #fdf1e8;
+  --surface-muted: #e8ecf3;
+  --surface-selected: #e6ebf3;
   --field: #ffffff;
 
   /*
@@ -100,15 +108,15 @@
    * WCAG 1.4.11 não os alcança. `--line-control` CONTORNA o que se opera, e é
    * ele que é medido contra as superfícies.
    */
-  --line: #e5e2de;
-  --line-strong: #d5d1cb;
-  --line-control: #8d8880;
+  --line: #e1e6ee;
+  --line-strong: #ccd3de;
+  --line-control: #79828f;
 
   /*
    * A BORDA DO CARTÃO — transparente no claro, visível no escuro.
    *
    * É o token que faz "borda em tudo" acabar sem precisar de um bloco
-   * `[data-theme='dark']` por componente. No claro, branco sobre o chão bege já
+   * `[data-theme="dark"]` por componente. No claro, branco sobre o chão frio já
    * é o limite do cartão; no escuro, dois cinzas fundos a um degrau um do outro
    * precisam de um fio para o olho achar a beirada.
    */
@@ -117,12 +125,11 @@
   /*
    * A MARCA DE SELEÇÃO — checkbox e rádio marcados.
    *
-   * Fixa nos dois temas, como os tokens do console: um quadrado escuro com o
-   * traço em quase-branco, sempre — nunca a brasa. A brasa é avara (§1); um
-   * checkbox marcado não é ação primária nem item ativo de navegação.
+   * Tinta cheia com o traço na cor do papel, nos dois temas. Nunca a brasa: um
+   * checkbox marcado não é a ação primária da tela (§1).
    */
-  --mark-bg: var(--console-bg);
-  --mark-ink: var(--console-ink);
+  --mark-bg: #101623;
+  --mark-ink: #ffffff;
 
   /* ==========================================================================
    * 3. TINTA — três níveis, e o papel de cada um
@@ -130,9 +137,9 @@
    *   --ink-2  o que acompanha o dado (nome do cliente, descrição)
    *   --ink-3  o que só existe para localizar: rótulo, meta, hora, contagem
    * ======================================================================= */
-  --ink: #1c1a18;
-  --ink-2: #5c5751;
-  --ink-3: #6b665f;
+  --ink: #101623;
+  --ink-2: #47515f;
+  --ink-3: #5d6674;
 
   /* ==========================================================================
    * 4. SEMÂNTICA DE ESTADO — os únicos usos de cor fora da marca e do status
@@ -143,48 +150,133 @@
    *   --danger  perigo / variação para baixo
    *   --info    isto é uma nota, não um problema
    * ======================================================================= */
-  --ok: #0a7150;
-  --ok-wash: #dff0e8;
-  --alert: #855400;
-  --alert-wash: #fbefd6;
-  --danger: #b42318;
-  --danger-wash: #fce8e6;
-  --info: #305d99;
-  --info-wash: #e8eef8;
+  --ok: #0d6b4a;
+  --alert: #82550a;
+  --alert-wash: #f4eeda;
+  --danger: #ad2018;
+  --danger-press: #8a1912;
+  --danger-wash: #f9e7e5;
+  /*
+   * A tinta DENTRO do botão destrutivo. Ela existe porque o botão lia
+   * `--on-ember` — a tinta da brasa — para se escrever, e "cheio" não é o mesmo
+   * que "da marca". Com token próprio, mudar o laranja não repinta o perigo.
+   */
+  --on-danger: #ffffff;
+  --info: #2b5697;
+  --info-wash: #e6ecf7;
 
   /* ==========================================================================
-   * 5. STATUS DO PEDIDO — 7 estágios. As matizes carregam significado, não
-   * gosto: elas não mudaram de família nesta rodada, só os washes foram
-   * reaquecidos junto com os neutros.
+   * 5. STATUS DO PEDIDO — 7 estágios.
    *
-   *   pendente    latão     — parado, esperando alguém
-   *   aceito      aço       — na fila
+   * FUNDAS E DESSATURADAS DE PROPÓSITO: elas são lidas a 60cm, ao lado de um
+   * texto, e precisam conviver com uma tela quase sem cor. A exceção é a
+   * COZINHA, que é lida a dois metros e tem a sua própria escala acesa (§5b) —
+   * o único lugar do sistema onde a matiz sobe de saturação, e está documentado
+   * lá por quê.
+   *
+   *   pendente    ocre      — parado, esperando alguém
+   *   aceito      marinho   — na fila
    *   preparando  ametista  — em preparo
-   *   pronto      verde     — saiu
-   *   entrega     ciano     — na rua
-   *   concluído   neutro    — arquivo
-   *   cancelado   vermelho  — fim de linha
+   *   pronto      verde     — saiu da chapa
+   *   entrega     petróleo  — na rua
+   *   concluído   ardósia   — arquivo
+   *   cancelado   carmim    — fim de linha
    * ======================================================================= */
-  --st-pendente: #8a5e08;
-  --st-aceito: #2a5aa8;
-  --st-preparando: #6b36b8;
-  --st-pronto: #096546;
-  --st-entrega: #0f6d80;
-  --st-concluido: #6a5d4d;
-  --st-cancelado: #b72c24;
+  --st-pendente: #825409;
+  --st-aceito: #23457e;
+  --st-preparando: #5a3d92;
+  --st-pronto: #0f5e46;
+  --st-entrega: #135b6b;
+  --st-concluido: #4f5866;
+  --st-cancelado: #a3221a;
 
   /*
    * O fundo de cada chip de status. Hexadecimal medido, e não `color-mix`,
    * porque o verificador precisa conseguir ler o valor: uma cor que a máquina
    * não mede é uma cor que ninguém garante.
    */
-  --st-pendente-wash: #f6ecd8;
-  --st-aceito-wash: #e5eaf7;
-  --st-preparando-wash: #eee6f8;
-  --st-pronto-wash: #ddefe6;
-  --st-entrega-wash: #dfedf1;
-  --st-concluido-wash: #efece5;
-  --st-cancelado-wash: #f9e5e2;
+  --st-pendente-wash: #f4eeda;
+  --st-aceito-wash: #e6ecf7;
+  --st-preparando-wash: #ece7f7;
+  --st-pronto-wash: #dfeee7;
+  --st-entrega-wash: #deedf1;
+  --st-concluido-wash: #e9ecf2;
+  --st-cancelado-wash: #f9e7e5;
+
+  /* ==========================================================================
+   * 5b. A COZINHA — a escala SATURADA, e o motivo físico
+   *
+   * A Cozinha é um monitor pendurado na parede, lido a dois metros por quem
+   * está com as mãos ocupadas. As matizes de §5 são fundas e DESSATURADAS de
+   * propósito, o que é ótimo a 60cm e péssimo a três metros: à distância, matiz
+   * dessaturada perde a identidade antes de perder a luminosidade e vira mancha
+   * cinza. Não dá para distinguir "preparando" de "pronto" do outro lado do
+   * salão com o roxo e o verde do painel.
+   *
+   * ENTÃO ELA TEM ESCALA PRÓPRIA — mas SEGUE O TEMA, como todas as outras
+   * telas. Esta escala já foi fixa no escuro nos dois temas, com o argumento de
+   * que um monitor de parede não acompanha a preferência de quem está no
+   * escritório. O argumento tinha um furo prático: quem administra é a MESMA
+   * pessoa que pendura o monitor, e ver uma tela do painel ignorar o
+   * interruptor de tema lê como defeito, não como decisão.
+   *
+   * O QUE MUDA ENTRE OS DOIS TEMAS É A DIREÇÃO DA SATURAÇÃO, e isso não é
+   * escolha — é a conta do contraste:
+   *
+   *   - NO ESCURO ela ACENDE: matiz clara e saturada sobre plano fundo
+   *     (`#33d68d` sobre carvão). É a escala que se lê de longe num salão à
+   *     noite.
+   *   - NO CLARO ela APROFUNDA: matiz funda e saturada sobre papel. `#33d68d`
+   *     sobre branco dá 1.9:1 e some; não existe verde ao mesmo tempo claro e
+   *     legível sobre papel. O que substitui a luz aqui é a SATURAÇÃO — é isso
+   *     que separa `--k-pronto` (#06663a) de `--st-pronto` (#0f5e46), que são
+   *     quase a mesma luminosidade e não a mesma cor.
+   *
+   * A escala é permitida em `src/kitchen/` e em nenhum outro lugar. É a mesma
+   * exceção que a escala de corpo `--k-num`/`--k-item` já tinha (§7), pelo
+   * mesmo motivo físico, e agora com a cor entrando junto.
+   *
+   * Os TRÊS PLANOS têm a mesma leitura nos dois temas: `--k-plano` é o chão do
+   * quadro, `--k-plano-2` é a coluna e `--k-plano-3` é o cartão — e o cartão é
+   * sempre o que mais se destaca do chão.
+   */
+  --k-plano: #e6eaf1;
+  --k-plano-2: #f4f6fa;
+  --k-plano-3: #ffffff;
+  --k-line: #ccd3de;
+  --k-ink: #0d1219;
+  --k-ink-2: #3b4553;
+  --k-ink-3: #59626f;
+
+  --k-pendente: #8a5000;
+  --k-aceito: #164ea8;
+  --k-preparando: #6427a8;
+  --k-pronto: #06663a;
+  --k-entrega: #04607a;
+  --k-cancelado: #ad1409;
+
+  /*
+   * A MARCA E A SEMÂNTICA DA COZINHA.
+   *
+   * Elas existem porque a Cozinha reaponta os tokens semânticos dentro de
+   * `.kitchen` (ver `KitchenPage.css`) em vez de escrever regra por componente:
+   * assim o botão, o aviso e o ponto de conexão caem na paleta da parede sem
+   * que nenhum deles precise saber que está na Cozinha. Sem estes nomes, o
+   * bloco de reapontamento não teria de onde ler a marca e o alarme.
+   *
+   * `--k-alerta` e `--k-perigo` NÃO são matizes novas: são as mesmas de
+   * `--k-pendente` e `--k-cancelado`, com outro nome porque respondem a outra
+   * pergunta. O ocre é "esperando" tanto no estágio quanto no cronômetro; o
+   * carmim é "fim de linha" tanto no estágio quanto no alarme de atraso.
+   */
+  --k-ember: #c2410c;
+  --k-ember-press: #9a3208;
+  --k-on-ember: #ffffff;
+  --k-alerta: var(--k-pendente);
+  --k-alerta-wash: #f7ecd6;
+  --k-perigo: var(--k-cancelado);
+  --k-perigo-wash: #fbe3e1;
+  --k-ok: var(--k-pronto);
 
   /* ==========================================================================
    * 6. ESTADOS INTERATIVOS — valem para TODO elemento operável, e saem daqui.
@@ -193,25 +285,33 @@
   --active: color-mix(in oklab, var(--ink) 11%, transparent);
   --disabled-opacity: 0.45;
 
-  --focus: var(--ember);
+  /*
+   * O ANEL DE FOCO É TINTA, NÃO MARCA.
+   *
+   * Ele era `--ember`, e essa era a maior fuga do §1: o foco aparece em todo
+   * controle da tela, o que fazia a brasa aparecer em todo controle da tela.
+   * Em tinta cheia ele é mais contrastado que o laranja nos dois temas (o preto
+   * sobre papel e o quase-branco sobre carvão são os extremos da escala) e
+   * devolve o laranja para a ação.
+   */
+  --focus: var(--ink);
   --focus-width: 2px;
   --focus-offset: 2px;
 
-  --scrim: rgba(24, 20, 16, 0.45);
+  --scrim: rgba(12, 16, 24, 0.45);
 
   /* ==========================================================================
    * 7. TIPOGRAFIA — CINCO NÍVEIS, e só cinco.
    *
-   * INTER VARIABLE, autohospedada via @fontsource-variable/inter, sem CDN. Ela
-   * foi reconsiderada nesta rodada e ficou: a queixa era hierarquia, e
-   * hierarquia é escala e peso, não desenho de letra.
+   * IBM PLEX SANS VARIABLE, autohospedada via @fontsource-variable, sem CDN.
+   * A troca de família foi a decisão nº 1 da direção: a Inter é a neo-grotesca
+   * neutra por definição — não tem defeito e não tem voz. A Plex tem desenho
+   * próprio sem virar sotaque, e é ela que faz a mesma escala ler como
+   * ferramenta de quem entende do assunto.
    *
-   * O QUE MUDOU FOI A DISTÂNCIA ENTRE OS NÍVEIS. Antes eram 26 / 16 / 14 / 13:
-   * quatro corpos dentro de treze pixels, e a única forma de saber o que era
-   * título era medir. Agora a diferença é de PESO e TINTA tanto quanto de
-   * corpo:
+   * A ESCALA:
    *
-   *   1 --tt-*   título de página   24px / 700 / tracking negativo — um por rota
+   *   1 --tt-*   título de página   22px / 600 / tracking negativo — um por rota
    *   2 --ts-*   título de seção    15px / 600 — cartão, coluna, aba, diálogo
    *   3 --tl-*   rótulo             12px / 600 / --ink-3 — nome de campo, de
    *                                 coluna e de GRUPO de formulário
@@ -222,43 +322,40 @@
    * qual nível ele usa. Se não der para dizer, o texto está errado — não falta
    * um nível.
    * ======================================================================= */
-  --font-ui: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-ui:
+    'IBM Plex Sans Variable', 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   /*
-   * 1. Título de página. MENOR e MAIS PESADO que antes (era 26/650).
-   *
-   * Num painel operacional o título é marco, não manchete: o que a pessoa veio
-   * ler é o ticket embaixo dele. Encolher o corpo e engrossar o traço devolve a
-   * presença sem devolver a área.
+   * 1. Título de página. 22px e não 24: numa tela cujo primeiro pedido tem de
+   * começar a 52px do topo, o título divide a linha com o filtro, e 24px
+   * empurrava a linha para 60px. O peso 600 (e não 700) é a Plex — ela é mais
+   * escura que a Inter no mesmo peso.
    */
-  --tt-size: 24px;
-  --tt-line: 30px;
-  --tt-weight: 700;
-  --tt-track: -0.021em;
+  --tt-size: 22px;
+  --tt-line: 28px;
+  --tt-weight: 600;
+  --tt-track: -0.022em;
 
   /* 2. Título de seção. */
   --ts-size: 15px;
   --ts-line: 22px;
   --ts-weight: 600;
-  --ts-track: -0.006em;
+  --ts-track: -0.01em;
 
   /*
    * 3. Rótulo.
    *
-   * CAIXA ALTA COM TRACKING SAI DO SISTEMA POR COMPLETO — nem na sidebar, nem
-   * no cabeçalho de faixa. A distinção vem do peso e da tinta, não de gritar em
-   * maiúscula.
+   * CAIXA ALTA COM TRACKING NÃO EXISTE NO SISTEMA — nem na navegação, nem no
+   * cabeçalho de coluna. A distinção vem do peso e da tinta, não de gritar em
+   * maiúscula (`scripts/check-design-tokens.mjs` barra `text-transform:
+   * uppercase` fora deste arquivo).
    *
-   * ELE É O NOME DO CAMPO, e a escada do formulário passou a ser esta:
+   * A escada do formulário é esta:
    *
    *   15 / 600 / --ink    nome do grupo ("Pedido", "Taxa de serviço")
    *   12 / 600 / --ink-3  nome do campo ("Valor mínimo do pedido")
    *   14 / 400 / --ink    o VALOR — o mais forte da tela, porque é o dado
    *   13 / 400 / --ink-3  a ajuda embaixo
-   *
-   * Antes o nome do grupo tinha 16px e o do campo 13px, e o título da SEÇÃO da
-   * página tinha também 16px: três níveis dentro de três pixels, que é a forma
-   * nº 1 de uma tela ficar sem hierarquia.
    */
   --tl-size: 12px;
   --tl-line: 16px;
@@ -269,37 +366,46 @@
   --tb-size: 14px;
   --tb-line: 20px;
   --tb-weight: 400;
-  --tb-track: -0.003em;
+  --tb-track: -0.006em;
 
   --ta-size: 13px;
   --ta-line: 18px;
   --ta-weight: 400;
-  --ta-track: 0em;
+  --ta-track: -0.002em;
 
-  /* Números de alta prioridade: ticket operacional e KPI analítico. */
-  --ticket-time-size: 19px;
-  --ticket-time-line: 24px;
-  --metric-size: 30px;
-  --metric-line: 36px;
+  /*
+   * NÚMEROS DE ALTA PRIORIDADE.
+   *
+   * `--row-time-*` é o cronômetro da linha de pedido: é o campo que decide a
+   * prioridade no pico, e o único dado da lista que sobe de corpo.
+   * `--metric-*` é o número do painel de Desempenho.
+   */
+  --row-time-size: 16px;
+  --row-time-line: 20px;
+  --metric-size: 28px;
+  --metric-line: 34px;
 
-  /* Os pesos que a interface usa. Fora destes quatro, não há. */
+  /* Os pesos que a interface usa. Fora destes cinco, não há. */
   --w-regular: 400;
   --w-medium: 500;
   --w-semibold: 600;
   --w-bold: 700;
+  /*
+   * O peso 550 existe por causa da Plex: entre 500 e 600 há um degrau grande, e
+   * o nome do cliente na linha de pedido precisa ficar acima do corpo comum sem
+   * chegar ao peso de título. É a fonte variável pagando por si mesma.
+   */
+  --w-strong: 550;
 
   /*
-   * A COZINHA É A ÚNICA EXCEÇÃO À ESCALA, e por um motivo físico: é um monitor
-   * pendurado na parede, lido a dois metros por quem está com as mãos
-   * ocupadas. Estes corpos existem para `src/kitchen/` e não são permitidos em
+   * A COZINHA É A ÚNICA EXCEÇÃO À ESCALA DE CORPO, pelo mesmo motivo físico de
+   * §5b. Estes corpos existem para `src/kitchen/` e não são permitidos em
    * nenhuma outra tela.
    */
   --k-num: 34px;
   --k-num-line: 38px;
   --k-item: 18px;
   --k-item-line: 26px;
-  --k-meta: 15px;
-  --k-meta-line: 22px;
 
   /* ==========================================================================
    * 8. ESPAÇAMENTO — SETE degraus, e nada fora deles.
@@ -323,68 +429,68 @@
   /* ==========================================================================
    * 9. RAIO E ELEVAÇÃO
    *
-   * A escala fechou em 4 / 6 / 8 / 12 / 16. Raio grande engorda o objeto e faz
-   * cartão parecer botão gigante; a direção nova é mais reta e mais precisa, e
-   * o raio continua dizendo o TAMANHO do objeto, não o gosto de quem o
-   * escreveu.
+   * A escala é 4 / 6 / 8 / 10 / 14, e ela ENCOLHEU um degrau nesta rodada. Raio
+   * grande engorda o objeto e faz cartão parecer botão gigante; a direção é
+   * mais reta e mais precisa, e o raio continua dizendo o TAMANHO do objeto,
+   * não o gosto de quem o escreveu.
    * ======================================================================= */
-  --r-xs: 4px;
-  --r-chip: 6px;
-  --r-field: 8px;
-  --r-control: 8px;
-  --r-card: 12px;
-  --r-sheet: 16px;
+  --r-xs: 3px;
+  --r-chip: 5px;
+  --r-field: 7px;
+  --r-control: 7px;
+  --r-card: 10px;
+  --r-sheet: 14px;
   --r-round: 999px;
 
   /*
-   * ELEVAÇÃO — TRÊS degraus, e o primeiro é o mais importante.
+   * ELEVAÇÃO — DOIS degraus, e o resto é ZERO.
    *
-   * `--shadow-card` é NENHUMA: cartão parado na página não flutua, e a sombra
-   * que ele tinha era decoração medida em pixels. Quem separa cartão de chão é
-   * o degrau de tom (`--surface` sobre `--bg`).
+   * NÃO EXISTE SOMBRA DE CARTÃO. Existiu um `--shadow-card: none` aqui, e o
+   * `none` já dizia tudo: bloco parado na página não flutua. Quem separa um
+   * bloco do vizinho é o FIO e o respiro; quem separa o conteúdo do chão é o
+   * degrau de tom. O token saiu porque um token que vale `none` é um convite a
+   * alguém lhe dar um valor.
    *
-   * `--shadow-lift` é o cartão SOB O PONTEIRO e a barra que gruda no rodapé —
-   * as duas coisas que de fato saem do plano.
-   * `--shadow-raised` é o que flutua de verdade: menu, diálogo, folha.
+   * `--shadow-lift` é o degrau curto: o segmento ativo do segmentado.
+   * `--shadow-raised` é o que flutua de verdade — menu, balão, diálogo, gaveta,
+   * a barra de salvar e o cartão do login. Se o elemento não passa POR CIMA de
+   * outro conteúdo, ele não leva sombra.
    */
-  --shadow-card: none;
-  --shadow-lift: 0 1px 1px rgba(28, 22, 16, 0.05), 0 2px 6px rgba(28, 22, 16, 0.07);
-  --shadow-raised: 0 12px 32px rgba(28, 22, 16, 0.14), 0 2px 8px rgba(28, 22, 16, 0.08);
-  --shadow-shell: 0 1px 0 rgba(28, 22, 16, 0.05);
+  --shadow-lift: 0 1px 1px rgba(16, 22, 35, 0.05), 0 2px 6px rgba(16, 22, 35, 0.06);
+  --shadow-raised: 0 14px 36px rgba(16, 22, 35, 0.15), 0 2px 8px rgba(16, 22, 35, 0.08);
 
   /*
-   * O ÚNICO DEGRADÊ DO SISTEMA: a barra de maturação do pedido, de latão a
-   * brasa. Ela é a única escala contínua da tela. Qualquer outro degradê no
-   * projeto é erro — inclusive um segundo uso deste.
+   * O ÚNICO DEGRADÊ DO SISTEMA: a barra de maturação do pedido.
+   *
+   * Ele NÃO é mais a brasa. A barra mede quanto falta para a promessa de
+   * preparo estourar — é escala de estado, não marca —, e enquanto ela
+   * terminava no laranja da marca havia um quinto uso da brasa escondido na
+   * tela mais importante do painel. Agora vai de ardósia (sobra tempo) a ocre
+   * (apertou) a carmim (estourou), que são os tokens de §4 e §5.
    */
-  --grad-brasa: linear-gradient(90deg, #d9a441 0%, #e2761c 55%, #c22e07 100%);
-
-  /* Compatibilidade com composições antigas; o console atual não usa textura. */
-  --hachura: none;
+  --grad-maturacao: linear-gradient(90deg, #8b95a4 0%, #c08a26 58%, #ad2018 100%);
 
   /* ==========================================================================
-   * 9b. O CONSOLE — a lateral é escura NOS DOIS TEMAS
+   * 9b. A NAVEGAÇÃO — clara no tema claro, funda no escuro
    *
-   * Reconsiderada nesta rodada e MANTIDA. Ela é a moldura do produto: clareá-la
-   * seria a única mudança da fase 1 a atingir todas as telas de uma vez, e o
-   * diagnóstico que abriu a rodada não fala dela — fala do miolo.
+   * A lateral era ESCURA NOS DOIS TEMAS, e essa era a peça que mais fazia o
+   * painel parecer console de servidor: um bloco de carvão de 232px encostado
+   * numa tela de papel. Ela agora é um plano do TEMA — no claro, um degrau
+   * acima do chão; no escuro, um degrau abaixo dele.
    *
-   * O que mudou: o tom ficou QUENTE, no mesmo eixo dos neutros novos, em vez do
-   * azul-carvão de antes. Cada tema declara o seu, sempre mais escuro que a
-   * própria `--bg` daquele tema.
+   * O ITEM ATIVO NÃO É PÍLULA COLORIDA. É tinta cheia, peso 600 e um fio de
+   * 2px na margem esquerda — a mesma gramática da tabela de pedidos, onde o
+   * bloco de estágio também é dito por um fio. Nenhum laranja (§1).
    * ======================================================================= */
-  --console-bg: #1c1917;
-  --console-ink: #faf9f7;
-  --console-ink-2: #c9c3bb;
-  --console-ink-3: #98918a;
-  --console-line: #302b27;
-  --console-hover: rgba(255, 255, 255, 0.06);
-  /*
-   * O halo do item ativo. Ele NÃO pode ser `--ember-wash`: no tema claro
-   * aquele token é um pêssego claro, e sobre o console escuro ele viraria uma
-   * mancha acesa atrás do texto.
-   */
-  --console-active: #2e211a;
+  --nav-bg: #f7f9fc;
+  --nav-ink: #101623;
+  --nav-ink-2: #47515f;
+  --nav-ink-3: #5d6674;
+  --nav-line: #e1e6ee;
+  --nav-hover: rgba(16, 22, 35, 0.05);
+  --nav-active: #eaeef5;
+  /* O fio de 2px do item ativo — tinta, e é ele que carrega a marcação. */
+  --nav-rail: #101623;
 
   /* ==========================================================================
    * 10. ENQUADRAMENTO
@@ -393,46 +499,83 @@
    * `--page-max` é medido A PARTIR do fim da lateral, não do viewport — a
    * coluna de conteúdo é alinhada à esquerda, nunca centrada na tela inteira.
    * ======================================================================= */
-  --sidebar-w: 232px;
-  --sidebar-rail: 72px;
-  --topbar-h: 60px;
-  --bottombar-h: 68px;
+  --sidebar-w: 212px;
+  --sidebar-rail: 68px;
+  /*
+   * A BARRA DO TOPO ENCOLHEU de 60 para 52px, e a de Pedidos passou a ser a
+   * MESMA linha do título e do filtro. É a conta do diagnóstico que abriu a
+   * rodada: o primeiro pedido estava a ~500px do topo e passou a 52px.
+   */
+  --topbar-h: 52px;
+  --bottombar-h: 62px;
   --page-pad: var(--sp-24);
   --page-pad-mobile: var(--sp-16);
   --page-max: 1600px;
   --form-max: 1040px;
-  --column-max: 320px;
-  --detail-panel-w: 420px;
-  --menu-rail-w: 240px;
+  --detail-panel-w: 400px;
+  --menu-rail-w: 232px;
 
   /* Alvo mínimo de toque: 24px por WCAG 2.5.8, 44px no celular. */
   --tap: 24px;
   --tap-mobile: 44px;
 
-  /*
-   * ALTURA DOS CONTROLES — a densidade subiu um degrau.
-   *
-   * 38 → 36 no botão, 40 → 36 no campo. Não é economia de pixel: numa barra de
-   * filtro com sete controles, 2px por controle é a diferença entre a barra ler
-   * como uma linha e ler como um bloco. No toque nada encolhe (44px).
-   */
-  --control-h: 36px;
-  --control-h-sm: 30px;
+  /* ALTURA DOS CONTROLES. No toque nada encolhe (44px). */
+  --control-h: 34px;
+  --control-h-sm: 28px;
   --control-h-touch: 44px;
-  --field-h: 36px;
+  --field-h: 34px;
   --field-h-touch: 44px;
 
-  /* Alvo de linha de lista: densa (conferência) e de leitura (cardápio). */
-  --row-dense-h: 44px;
-  --row-read-h: 60px;
+  /*
+   * A RÉGUA DA LISTA.
+   *
+   *   --row-h        a linha de pedido no desktop: dois textos empilhados
+   *   --row-dense-h  linha de conferência (tabela de dados)
+   *   --row-read-h   linha de leitura (produto do cardápio, com imagem)
+   *   --row-touch-h  a linha no telefone, onde ela é OUTRO desenho: mais alta,
+   *                  porque no celular o dono quer ver os 3 novos, não os 33
+   */
+  --row-h: 54px;
+  --row-dense-h: 42px;
+  --row-read-h: 58px;
+  --row-touch-h: 76px;
+
+  /*
+   * AS COLUNAS DA LINHA DE PEDIDO. Elas são token porque a mesma grade é
+   * desenhada em três lugares — a lista, o cabeçalho e o histórico — e três
+   * cópias de sete larguras é como a coluna começa a desalinhar.
+   */
+  /*
+   * ELAS ENCOLHERAM NA SEGUNDA PASSAGEM, e o print é que mostrou por quê: com o
+   * painel de detalhe aberto em 1440, a lista fica com 828px. As larguras
+   * anteriores somavam 748px com os vãos, sobravam 80px para o nome do cliente
+   * — e a linha caía no layout compacto, que é o do telefone. A leitura por
+   * coluna, que é o ganho inteiro da direção, só apareceria em 1920.
+   *
+   * Cada uma agora é o CONTEÚDO mais folga, e nada além: 104 cabe "Em preparo"
+   * com o fio e o recuo da margem; 124 cabe "Paga na entrega"; 92 cabe
+   * "R$ 1.240,00". Somadas com vãos de 8px dão 624px, e sobram 204px para o
+   * cliente na tela apertada.
+   */
+  --col-estagio: 104px;
+  --col-tempo: 76px;
+  --col-pedido: 72px;
+  --col-modalidade: 84px;
+  /*
+   * 140 e não 124: a célula carrega "Aguardando pagamento" quando o pagamento
+   * online não entrou, e em 124px essa palavra quebrava em duas linhas mesmo em
+   * 12px — a linha inteira ia a três fileiras por causa de uma célula.
+   */
+  --col-pagamento: 140px;
+  --col-valor: 92px;
 
   /*
    * A LARGURA DE UM CAMPO É MEDIDA DE CONTEÚDO, não de coluna.
    *
    * Um campo de dinheiro com 900px de largura é o sintoma mais visível de
    * "formulário com aparência de HTML padrão": a caixa promete um endereço e
-   * recebe "20,00". Estes três tetos existem para que a caixa diga, pelo
-   * tamanho, o que cabe dentro dela.
+   * recebe "20,00". Estes tetos existem para que a caixa diga, pelo tamanho, o
+   * que cabe dentro dela.
    */
   --w-numero: 92px;
   --w-faixa: 236px;
@@ -447,10 +590,25 @@
    * amigos: `--sp-2` não existe DE PROPÓSITO (§8).
    * ======================================================================= */
   --chart-gap: 2px;
+  /*
+   * A FAIXA E A COLUNA CRESCERAM na segunda passagem. Com 92px de faixa e 40 de
+   * coluna, os sete dias mediam 658px numa banda de 1228 — o gráfico ficava
+   * encostado à esquerda com 570px de nada à direita, que é o "espaço morto"
+   * que a revisão procura. Com 120 e 44, a série ocupa 854px e a sobra vira
+   * margem em vez de buraco. Com 30 dias o `max-width: 100%` continua mandando.
+   */
   --chart-bar-max: 44px;
-  --chart-h: 168px;
-  --chart-band: 96px;
-  --chart-band-mobile: 48px;
+  /*
+   * A ALTURA DO GRÁFICO CRESCEU de 156 para 200px quando ele saiu de um cartão
+   * de meia largura e virou uma faixa da largura inteira: a proporção de uma
+   * série de sete colunas em 1200px de largura pede mais altura, senão o
+   * desenho vira uma tarja. No celular ele volta a ser baixo — lá a largura é
+   * que é escassa.
+   */
+  --chart-h: 200px;
+  --chart-h-mobile: 150px;
+  --chart-band: 120px;
+  --chart-band-mobile: 46px;
 
   /* ==========================================================================
    * 11. MOVIMENTO
@@ -462,44 +620,37 @@
 
   /* ==========================================================================
    * 12. CAMADAS
+   *
+   * A MOLDURA GANHA DA PÁGINA, e é para isso que `--z-shell` existe entre as
+   * duas. O painel tem DUAS barras grudentas empilhadas: a do shell (filial e
+   * conta) e a da tela (`ds/PageBar`). Com as duas em `--z-sticky`, quem paint
+   * a por cima é a que vem depois na árvore — a da tela —, e a lista de filiais
+   * aberta na barra de cima abria ATRÁS do filtro de Pedidos, com o clique
+   * indo parar no filtro. Um seletor que não dá para escolher.
+   *
+   * A regra que sai daí, e que vale para qualquer barra nova: cromo do shell
+   * em `--z-shell`, cromo da tela em `--z-sticky`, e o que flutua sobre os dois
+   * (menu, diálogo, gaveta) nas camadas de cima.
    * ======================================================================= */
   --z-sticky: 20;
+  --z-shell: 30;
   --z-popover: 40;
   --z-drawer: 50;
   --z-modal: 60;
-  --z-toast: 80;
 
-  /* Aliases semânticos: deixam componentes descreverem intenção, não legado. */
-  --brand: var(--ember);
-  --brand-press: var(--ember-press);
-  --brand-wash: var(--ember-wash);
-  --text: var(--ink);
-  --text-muted: var(--ink-2);
-  --text-subtle: var(--ink-3);
-  --s-1: var(--sp-4);
-  --s-2: var(--sp-8);
-  --s-3: var(--sp-12);
-  --s-4: var(--sp-16);
-  --s-5: var(--sp-20);
-  --s-6: var(--sp-24);
-  --s-7: var(--sp-32);
-  --title-size: var(--tt-size);
-  --title-line: var(--tt-line);
-  --section-size: var(--ts-size);
-  --section-line: var(--ts-line);
-  --label-size: var(--tl-size);
-  --label-line: var(--tl-line);
-  --label-tracking: var(--tl-track);
-  --body-size: var(--tb-size);
-  --body-line: var(--tb-line);
-  --meta-size: var(--ta-size);
-  --meta-line: var(--ta-line);
-  --weight-medium: var(--w-medium);
-  --weight-semibold: var(--w-semibold);
-  --weight-bold: var(--w-bold);
-  --page-padding: var(--page-pad);
-  --page-padding-mobile: var(--page-pad-mobile);
-  --detail-panel-width: var(--detail-panel-w);
+  /*
+   * OS ALIASES LEGADOS SAÍRAM.
+   *
+   * Existia aqui um bloco de 29 nomes que só existiam para não quebrar o código
+   * escrito antes desta escala: `--s-1`..`--s-7`, `--section-size`,
+   * `--weight-semibold`, `--page-padding`, `--detail-panel-width` e amigos. O
+   * último arquivo que ainda os lia era `orders/OrderDetailPanel.css`, e ele
+   * foi reescrito nesta rodada.
+   *
+   * Um alias que ninguém usa não é compatibilidade: é uma SEGUNDA maneira de
+   * escrever a mesma coisa, esperando alguém escolher a errada. Quem precisar
+   * de espaçamento usa `--sp-*`; de corpo, `--t*-size`; de peso, `--w-*`.
+   */
 
   color-scheme: light;
 }
@@ -508,47 +659,53 @@
  * ============================================================================
  * TEMA ESCURO — as MESMAS variáveis semânticas, outras superfícies.
  *
- * É uma expressão equivalente do produto. Nenhuma regra de componente pode ser
- * específica de tema: se você precisou de `[data-theme="dark"] .minha-classe`,
- * o token que você usou é o errado. É para isso que existe `--card-edge`.
+ * NÃO É "TROCAR BRANCO POR PRETO". É uma expressão equivalente do produto:
+ * mesmos degraus de plano, mesma hierarquia de tinta, mesma gramática de
+ * separação. O que muda é a direção da luz — no claro o que sobe fica mais
+ * claro; no escuro, o que sobe fica mais claro TAMBÉM, e o chão é que desce.
+ *
+ * Nenhuma regra de componente pode ser específica de tema: se você precisou de
+ * `[data-theme="dark"] .minha-classe`, o token que você usou é o errado. É para
+ * isso que existem `--card-edge` e a família `--nav-*`.
  *
  * DEGRAUS PERCEPTÍVEIS, não fuligem quase-preta uniforme: cada plano precisa se
  * distinguir do vizinho sem depender de sombra, que no escuro quase não
- * aparece. Os neutros são quentes e fundos, sem cair no preto absoluto ou
- * competir com o laranja da marca.
+ * aparece. Os neutros são frios e fundos, sem cair no preto absoluto.
  * ============================================================================
  */
 [data-theme='dark'] {
-  /*
-   * `--console-bg` NÃO entra aqui: ele é declarado uma vez só, no bloco 9b
-   * deste mesmo tema, junto com o resto da família `--console-*`.
-   */
-  --bg: #131211;
-  --surface: #1d1b19;
-  --surface-raised: #292624;
-  --surface-muted: #272421;
-  --surface-selected: #2d1c12;
-  --field: #141312;
+  --bg: #0d1016;
+  --surface: #151a22;
+  --surface-raised: #1e232d;
+  --surface-muted: #1b202a;
+  --surface-selected: #222834;
+  --field: #11151c;
 
-  --line: #302c29;
-  --line-strong: #423d38;
-  --line-control: #8f8981;
+  --line: #232936;
+  --line-strong: #333b4a;
+  --line-control: #838d9c;
 
   /*
    * NO ESCURO O CARTÃO LEVA FIO. Um degrau de tom que basta no claro (branco
-   * sobre bege) não basta aqui: `--surface` e `--bg` estão a uma unha de
-   * distância, e sem o fio a lista de tickets vira uma mancha só.
+   * sobre cinza frio) não basta aqui: `--surface` e `--bg` estão a uma unha de
+   * distância, e sem o fio a lista de pedidos vira uma mancha só.
    */
   --card-edge: var(--line);
 
-  --ink: #f7f6f4;
-  --ink-2: #c4beb6;
-  --ink-3: #99928a;
+  --ink: #e9edf4;
+  --ink-2: #a4aebd;
+  --ink-3: #8b95a4;
+
+  /*
+   * A marca de seleção inverte com o tema: tinta cheia é quase-branca aqui, e o
+   * traço volta a ser a cor do plano fundo.
+   */
+  --mark-bg: #e9edf4;
+  --mark-ink: #0d1016;
 
   /* No escuro a brasa acende: é o laranja do selo, sem escurecer. */
   --ember: #ff8a3d;
   --ember-press: #ffa568;
-  --ember-wash: #33190c;
   --on-ember: #1c0c02;
   --on-ember-press: #1c0c02;
 
@@ -557,33 +714,71 @@
    * está escrito "atenção", num sistema em que o laranja é da MARCA.
    */
   --ok: #45d49a;
-  --ok-wash: #10271f;
-  --alert: #f1bd62;
-  --alert-wash: #2a2110;
-  --danger: #ff716b;
-  --danger-wash: #351918;
-  --info: #8eb7ee;
-  --info-wash: #172537;
+  --alert: #f0bc63;
+  --alert-wash: #2a2211;
+  --danger: #ff7a72;
+  --danger-press: #ff9c96;
+  --danger-wash: #331a19;
+  --on-danger: #2a0d0b;
+  --info: #8fb6ee;
+  --info-wash: #16233a;
 
-  --st-pendente: #e8b44a;
-  --st-aceito: #7fa9e0;
-  --st-preparando: #c08ae8;
-  --st-pronto: #3fd489;
-  --st-entrega: #46c8e0;
-  --st-concluido: #a49a8b;
-  --st-cancelado: #ff6b6b;
+  --st-pendente: #e5b453;
+  --st-aceito: #86aee8;
+  --st-preparando: #bb93ee;
+  --st-pronto: #40d194;
+  --st-entrega: #4cc7e2;
+  --st-concluido: #9aa4b4;
+  --st-cancelado: #ff7a72;
 
   /*
    * OS WASHES SÃO UM SUSSURRO, não um preenchimento — a um passo do plano em
    * que se apoiam, o suficiente para dizer "isto é de outra natureza".
    */
-  --st-pendente-wash: #2b2411;
-  --st-aceito-wash: #1b232d;
-  --st-preparando-wash: #251f30;
-  --st-pronto-wash: #12241d;
-  --st-entrega-wash: #14252a;
-  --st-concluido-wash: #262420;
-  --st-cancelado-wash: #331b1a;
+  --st-pendente-wash: #2a2211;
+  --st-aceito-wash: #1a2130;
+  --st-preparando-wash: #241e33;
+  --st-pronto-wash: #0f241c;
+  --st-entrega-wash: #11242a;
+  --st-concluido-wash: #1e232d;
+  --st-cancelado-wash: #331a19;
+
+  /*
+   * ============================================================================
+   * A COZINHA NO ESCURO — a escala ACENDE (§5b)
+   * ============================================================================
+   *
+   * Mesmos três planos, mesma leitura, direção da luz invertida: o chão é o mais
+   * fundo e o cartão é o que sobe. As matizes saem de fundas-e-saturadas para
+   * claras-e-saturadas, que é a única forma de manter a leitura a dois metros
+   * quando o plano é carvão.
+   */
+  --k-plano: #0b0e13;
+  --k-plano-2: #161b24;
+  --k-plano-3: #1f2530;
+  --k-line: #2a313d;
+  --k-ink: #f2f5fa;
+  --k-ink-2: #a9b3c2;
+  /*
+   * `--k-ink-3` é um degrau mais claro que o `--ink-3` do tema escuro: o cartão
+   * da Cozinha sobe DOIS planos acima do chão, e medido contra `--k-plano-3` o
+   * valor do painel (#8b95a4) dava 4.16:1 e reprovava. Não é gosto — é a conta.
+   */
+  --k-ink-3: #8a94a3;
+
+  --k-pendente: #f0b93f;
+  --k-aceito: #6ea6f5;
+  --k-preparando: #c48cf5;
+  --k-pronto: #33d68d;
+  --k-entrega: #3fcbe8;
+  --k-cancelado: #ff6a62;
+
+  --k-ember: #ff8a3d;
+  --k-ember-press: #ffa568;
+  --k-on-ember: #1c0c02;
+  --k-alerta-wash: #33280f;
+  --k-perigo-wash: #3a1614;
+
 
   --scrim: rgba(0, 0, 0, 0.66);
 
@@ -591,24 +786,23 @@
    * No escuro a sombra quase não aparece: quem separa o que flutua do resto é o
    * degrau de tom até `--surface-raised`, e a sombra só aprofunda isso.
    */
-  --shadow-card: none;
   --shadow-lift: 0 1px 1px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-raised: 0 16px 40px rgba(0, 0, 0, 0.56), 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-shell: 0 1px 0 rgba(255, 255, 255, 0.03);
 
-  --grad-brasa: linear-gradient(90deg, #e8b44a 0%, #ff8a3d 55%, #ff4d1a 100%);
+  --grad-maturacao: linear-gradient(90deg, #7e8798 0%, #e5b453 58%, #ff7a72 100%);
 
   /*
-   * O console continua escuro NOS DOIS TEMAS, mas aqui ele tem o seu PRÓPRIO
-   * valor — mais escuro que a `--bg` deste tema, nunca mais claro.
+   * A NAVEGAÇÃO NO ESCURO: um degrau ABAIXO do chão, não um bloco de carvão
+   * isolado. O fio do item ativo continua sendo tinta cheia.
    */
-  --console-bg: #0c0b0a;
-  --console-ink: #faf9f7;
-  --console-ink-2: #c9c3bb;
-  --console-ink-3: #98918a;
-  --console-line: #262220;
-  --console-hover: rgba(255, 255, 255, 0.06);
-  --console-active: #2e1d12;
+  --nav-bg: #0a0d12;
+  --nav-ink: #e9edf4;
+  --nav-ink-2: #a4aebd;
+  --nav-ink-3: #8b95a4;
+  --nav-line: #1d222c;
+  --nav-hover: rgba(255, 255, 255, 0.06);
+  --nav-active: #191e27;
+  --nav-rail: #e9edf4;
 
   color-scheme: dark;
 }
@@ -618,7 +812,7 @@
  * STATUS COMO CLASSE
  *
  * Quem pinta um status não escolhe matiz: põe `is-<estágio>` no elemento e lê
- * `--st` e `--st-wash`. Assim o chip, o cabeçalho da faixa e o fio do ticket
+ * `--st` e `--st-wash`. Assim o chip, o fio da linha e o cabeçalho do bloco
  * saem sempre da mesma fonte, e acrescentar um estágio é acrescentar um token.
  * ============================================================================
  */

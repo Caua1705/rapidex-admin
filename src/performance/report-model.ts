@@ -83,7 +83,11 @@ export function readChange(comparison: MetricComparison, previousLabel: string):
   const percent = toNumber(comparison.change_percent);
 
   if (percent === null) {
-    return { text: `sem comparação — ${previousLabel} não teve movimento`, direction: 'none', isMissing: true };
+    return {
+      text: `sem comparação — ${previousLabel} não teve movimento`,
+      direction: 'none',
+      isMissing: true,
+    };
   }
 
   const arredondado = Math.round(percent * 10) / 10;

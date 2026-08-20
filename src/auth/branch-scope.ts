@@ -126,10 +126,7 @@ export function branchScopeForPath(pathname: string): BranchScope {
  * O critério da falta é o de `mainBranch()` — o MESMO que já decide o nome do
  * restaurante no cabeçalho, importado em vez de recopiado.
  */
-export function resolveBranch(
-  branches: readonly Branch[],
-  activeBranchId: string,
-): Branch | null {
+export function resolveBranch(branches: readonly Branch[], activeBranchId: string): Branch | null {
   const escolhida = branches.find((branch) => branch.id === activeBranchId);
   return escolhida ?? mainBranch(branches);
 }

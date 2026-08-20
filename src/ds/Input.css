@@ -43,7 +43,7 @@
  * afixo junto, senão ele corta "R$" ao meio.
  */
 .ds-control:focus-within {
-  border-color: var(--ember);
+  border-color: var(--focus);
   outline: var(--focus-width) solid var(--focus);
   outline-offset: var(--focus-offset);
 }
@@ -100,6 +100,51 @@
   line-height: 1;
   font-weight: var(--w-medium);
   user-select: none;
+}
+
+/*
+ * ==========================================================================
+ * A VARIANTE DE BARRA — o mesmo controle, sem a caixa
+ * ==========================================================================
+ *
+ * Dentro da faixa de 52px de uma tela (`ds/PageBar`) o campo perde o contorno
+ * de quatro lados e fica com um fio embaixo. O motivo é o mesmo que fez o
+ * cartão de filtros sair de Pedidos: uma caixa no meio de uma linha de texto é
+ * um OBJETO, e três objetos numa linha fazem a faixa voltar a ler como bloco.
+ *
+ * O que ela NÃO abre mão: altura de controle, alvo de toque, anel de foco,
+ * rótulo acessível e botão de limpar. É a mesma busca, com outra moldura.
+ */
+.ds-control--barra {
+  padding-inline: 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line-strong);
+  border-radius: 0;
+  min-height: var(--control-h);
+}
+
+.ds-control--barra:hover:not(.ds-control--disabled) {
+  border-bottom-color: var(--ink-3);
+}
+
+/*
+ * NO FOCO ELA GANHA O ANEL, como qualquer controle — e o anel contorna o campo
+ * inteiro, não só o fio. `outline-offset` negativo puxa o anel para dentro:
+ * sem caixa, um anel a 2px de distância flutuaria solto na barra.
+ */
+.ds-control--barra:focus-within {
+  border-bottom-color: var(--focus);
+  outline-offset: 0;
+}
+
+.ds-control--barra .ds-control__input {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+}
+
+.ds-control--barra .ds-control__icon {
+  color: var(--ink-3);
 }
 
 /* --- área de texto -------------------------------------------------------- */

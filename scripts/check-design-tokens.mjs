@@ -21,22 +21,6 @@ const cssRoot = join(projectRoot, 'src');
 /** O único arquivo onde um literal é a definição, e não uma fuga. */
 const TOKENS_FILE = join('src', 'styles', 'tokens.css');
 
-/*
- * `src/prototipo/` — os protótipos de DIREÇÃO VISUAL, e a única exceção.
- *
- * Eles existem justamente para perguntar se o sistema atual deve continuar
- * sendo o sistema: outra paleta, outra família tipográfica, outra escala de
- * raio, outra densidade. Cobrar `var(--token)` de uma tela cuja pergunta é "e
- * se os tokens fossem outros?" é a única forma garantida de nunca ter a
- * resposta — a verificação transformaria as três direções em três repinturas
- * da mesma.
- *
- * A exceção é uma PASTA, não um arquivo, e ela é temporária: quando a direção
- * for escolhida, a pasta sai e esta constante sai com ela. O que a escolhida
- * levar para `src/` entra pela porta da frente, virando token em tokens.css.
- */
-const PASTA_PROTOTIPO = join('src', 'prototipo') + sep;
-
 const FORBIDDEN = [
   /*
    * `transparent` e `currentColor` não são cor de marca: são "sem cor" e "a cor
@@ -72,9 +56,9 @@ const FORBIDDEN = [
    *
    * Uma direção anterior chegou a usar JetBrains Mono para tempo decorrido,
    * dinheiro e nº de pedido; isso saiu (ver o bloco do número em
-   * styles/typography.css). O painel inteiro é uma letra só, Inter, com
-   * `tabular-nums` onde precisa alinhar em coluna. Esta regra fecha a porta
-   * para a mono voltar escondida num componente novo.
+   * styles/typography.css). O painel inteiro é uma letra só, IBM Plex Sans,
+   * com `tabular-nums` onde precisa alinhar em coluna. Esta regra fecha a
+   * porta para a mono voltar escondida num componente novo.
    */
   {
     name: 'família de fonte monoespaçada (proibida)',
@@ -117,7 +101,6 @@ const problems = [];
 for (const file of collectCssFiles(cssRoot)) {
   const relativePath = relative(projectRoot, file);
   if (relativePath === TOKENS_FILE) continue;
-  if (relativePath.startsWith(PASTA_PROTOTIPO)) continue;
 
   const lines = blankComments(readFileSync(file, 'utf8')).split('\n');
   lines.forEach((line, index) => {

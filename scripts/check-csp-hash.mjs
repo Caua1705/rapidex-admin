@@ -39,7 +39,23 @@ if (inlineScripts.length === 0) {
 
 const faltando = [];
 
-for (const conteudo of inlineScripts) {
+/*
+ * O HASH É DO QUE O NAVEGADOR RECEBE, e não do que está no disco.
+ *
+ * Este repositório é editado no Windows com `core.autocrlf=true`: o
+ * `index.html` do disco tem CRLF, o do git tem LF, e o `dist/index.html` que o
+ * Vite gera — que é o arquivo REALMENTE servido — tem LF. Sem normalizar, esta
+ * verificação media os bytes errados: ela passava na máquina de quem escreveu
+ * (CRLF) e o hash gravado no vercel.json não batia com o do arquivo publicado.
+ * O resultado era o defeito exato que ela existe para impedir, só que invisível
+ * no lint: a CSP bloqueando o script do tema em PRODUÇÃO, com o painel piscando
+ * branco a cada F5 para quem usa o tema escuro.
+ *
+ * Normalizar aqui também é o que faz o mesmo comando dar o mesmo resultado no
+ * Windows e no CI Linux.
+ */
+for (const bruto of inlineScripts) {
+  const conteudo = bruto.split('\r\n').join('\n');
   const hash = createHash('sha256').update(conteudo, 'utf8').digest('base64');
   const diretiva = `'sha256-${hash}'`;
   if (!vercelJson.includes(diretiva)) {

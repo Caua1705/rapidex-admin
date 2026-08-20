@@ -76,17 +76,25 @@
   color: var(--on-ember-press);
 }
 
+/*
+ * O DESTRUTIVO. Ele lia `--on-ember` para a própria tinta — herança de quando
+ * "botão cheio" e "botão da marca" eram a mesma coisa. Agora ele tem a sua
+ * (`--on-danger`), e o estado pressionado ESCURECE em vez de inverter: virar
+ * fundo claro com texto vermelho no hover fazia o botão parecer que tinha sido
+ * desligado justamente no instante em que o dedo estava nele.
+ */
 .btn--danger {
   border-color: var(--danger);
   background: var(--danger);
-  color: var(--on-ember);
+  color: var(--on-danger);
   font-weight: var(--w-semibold);
 }
 
 .btn--danger:hover:not(:disabled),
 .btn--danger:active:not(:disabled) {
-  background: var(--danger-wash);
-  color: var(--danger);
+  border-color: var(--danger-press);
+  background: var(--danger-press);
+  color: var(--on-danger);
 }
 
 .btn--ghost,
@@ -227,8 +235,13 @@
 
 /*
  * A CAIXA. Sem baixo-relevo e sem preenchimento cinza: papel branco com um fio
- * que passa dos 3:1 da WCAG 1.4.11. No foco o fio vira brasa e ganha o anel —
- * é a única coisa que muda, e é o bastante.
+ * que passa dos 3:1 da WCAG 1.4.11. No foco o fio vira TINTA CHEIA e ganha o
+ * anel — é a única coisa que muda, e é o bastante.
+ *
+ * O fio de foco não é a brasa: o foco aparece em todo controle do painel, e
+ * enquanto ele fosse laranja o laranja aparecia em todo controle (tokens §1).
+ * `ds/Input.css` faz o mesmo no envelope com afixo — os dois lêem `--focus`,
+ * que é a mesma fonte.
  */
 .input,
 .textarea {
@@ -255,7 +268,7 @@
 
 .input:focus-visible,
 .textarea:focus-visible {
-  border-color: var(--ember);
+  border-color: var(--focus);
 }
 
 .textarea {

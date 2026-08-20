@@ -1,29 +1,29 @@
 /*
- * A tela de seção não construída.
+ * A TELA DE UMA SEÇÃO QUE AINDA NÃO EXISTE — e ela pertence ao sistema.
  *
  * Nenhum cartão, nenhuma borda, nenhum ícone grande: o que está aqui é uma
- * frase, e uma frase dentro de uma caixa decorada parece um anúncio. Ela fica
- * no alto à esquerda, na mesma abscissa em que o título de todas as outras
- * telas começa — quem trocou de seção não vê o texto pular de lugar.
+ * frase, e uma frase dentro de uma caixa decorada parece um anúncio. O que faz
+ * esta tela ler como parte do painel, e não como erro de rota, é a MESMA faixa
+ * de 52px das outras (`ds/PageBar`): o título nasce na mesma horizontal em que
+ * nasce o de Pedidos, e a etiqueta "Em breve" ocupa o lugar em que Pedidos põe
+ * as abas.
+ *
+ * Estado vazio refinado, nunca tela falsa: sem botão que não leva a lugar
+ * nenhum, sem número de exemplo, sem barra de progresso.
  */
+
 .soon {
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
-  padding: var(--page-pad) var(--page-pad);
+  background: var(--surface);
 }
 
 .soon__block {
-  max-width: 52ch;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--sp-8);
-}
-
-/* A etiqueta vem ANTES do título e é neutra: ela informa, não anuncia. */
-.soon__tag {
-  margin-bottom: var(--sp-4);
+  max-width: 56ch;
+  padding: var(--sp-24) var(--page-pad);
 }
 
 .soon__text {
@@ -34,7 +34,7 @@
 }
 
 @media (max-width: 720px) {
-  .soon {
-    padding: var(--page-pad-mobile) var(--page-pad-mobile);
+  .soon__block {
+    padding: var(--sp-20) var(--page-pad-mobile);
   }
 }

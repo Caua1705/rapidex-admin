@@ -1,0 +1,425 @@
+/*
+ * A LINHA DE PEDIDO.
+ *
+ * SEM MOLDURA E SEM SOMBRA. O que separa uma linha da outra é um fio de 1px de
+ * régua; o que separa um BLOCO do outro é um fio mais forte na primeira linha
+ * dele. É a gramática de uma folha de razão, e ela custa 1px onde o cartão
+ * custava borda, raio, sombra e 12px de respiro em volta.
+ *
+ * A GRADE VEM DE FORA. `--grade-pedido` é declarada uma vez na lista (ver
+ * OrdersPage.css) e herdada por todas as linhas, inclusive as do histórico:
+ * duas grades separadas é como a coluna do valor começa a desalinhar entre um
+ * bloco e outro.
+ */
+
+.ds-row {
+  display: grid;
+  grid-template-columns: var(--grade-pedido);
+  align-items: center;
+  column-gap: var(--sp-8);
+  width: 100%;
+  min-height: var(--row-h);
+  padding: var(--sp-8) var(--page-pad) var(--sp-8) 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--motion-fast) var(--ease);
+}
+
+.ds-row:hover {
+  background: var(--hover);
+}
+
+.ds-row--selecionada {
+  background: var(--surface-selected);
+}
+
+/*
+ * A LINHA QUE ABRE O BLOCO leva um fio mais forte — o mesmo recurso de uma
+ * tabela financeira, e não uma faixa nova com altura própria. Bloco sem pedido
+ * não tem primeira linha e, portanto, não ocupa nada: é assim que o
+ * "agrupamento vazio" deixa de existir em vez de ser desenhado com um zero.
+ */
+.ds-row--abre {
+  border-top-color: var(--line-strong);
+}
+
+/* --- 1. estágio: a coluna mesclada --------------------------------------- */
+
+.ds-row__estagio {
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding-left: var(--page-pad);
+  color: var(--st);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-weight: var(--w-semibold);
+  letter-spacing: var(--tl-track);
+}
+
+.ds-row__estagio-rotulo {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * A COLUNA MESCLADA, na prática: no layout largo o rótulo só existe na linha
+ * que abre o bloco. A CÉLULA continua ocupando a largura dela em todas — é o
+ * que mantém as outras seis colunas na mesma abscissa de linha para linha.
+ *
+ * O rótulo é passado a TODAS as linhas e escondido aqui, e não omitido no TSX,
+ * porque no layout compacto ele reaparece em todas (ver o fim deste arquivo).
+ */
+.ds-row:not(.ds-row--abre) .ds-row__estagio-rotulo {
+  display: none;
+}
+
+/*
+ * O FIO DE 2px. Ele desce em todas as linhas do bloco, com ou sem rótulo, e é
+ * o que mantém a leitura de "ainda estou no mesmo estágio" sem repetir a
+ * palavra. `top/bottom: -1px` faz o fio atravessar a régua entre as linhas em
+ * vez de ser picotado por ela.
+ */
+.ds-row__estagio::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -1px;
+  bottom: -1px;
+  width: 2px;
+  background: var(--st);
+}
+
+/*
+ * PAGAMENTO TRAVADO ACENDE O FIO, NÃO O RÓTULO. O fio responde "há um problema
+ * nesta linha"; o nome do estágio continua sendo o nome do estágio. Pintar
+ * "Novos" de vermelho faria o bloco inteiro parecer outro grupo.
+ */
+.ds-row--alerta .ds-row__estagio::before {
+  background: var(--danger);
+}
+
+/* --- 2. tempo: o maior corpo da linha ------------------------------------ */
+
+.ds-row__tempo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--sp-4);
+}
+
+.ds-row__decorrido {
+  font-size: var(--row-time-size);
+  line-height: var(--row-time-line);
+  font-weight: var(--w-strong);
+  letter-spacing: -0.02em;
+}
+
+/*
+ * A BARRA DE MATURAÇÃO mora sob o número, na largura da coluna. Ela era o fio
+ * no topo do cartão; com o cartão desfeito, o lugar dela é ao lado do dado que
+ * ela mede — e continua sendo a única coisa do sistema que existe só para ser
+ * vista.
+ */
+.ds-row__tempo .ds-maturacao {
+  width: 100%;
+}
+
+/* --- 3. cliente ---------------------------------------------------------- */
+
+.ds-row__cliente {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-strong);
+  letter-spacing: -0.012em;
+}
+
+/* --- 4. pedido: como ele é chamado --------------------------------------- */
+
+.ds-row__pedido {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ds-row__numero {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-weight: var(--w-medium);
+  color: var(--ink-2);
+}
+
+.ds-row__hora {
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  color: var(--ink-3);
+}
+
+/* --- 5. modalidade ------------------------------------------------------- */
+
+.ds-row__modalidade {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-2);
+}
+
+/* --- 6. pagamento -------------------------------------------------------- */
+
+.ds-row__pagamento {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ds-row__forma {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-2);
+}
+
+.ds-row__situacao {
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  color: var(--ink-3);
+}
+
+/*
+ * O ÚNICO LUGAR ONDE A LINHA LEVANTA A VOZ. Ele ocupa a célula inteira porque
+ * o que ele diz não é um atributo do pedido — é uma proibição: a cozinha não
+ * começa enquanto o pagamento online não entrar.
+ */
+.ds-row__alerta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  color: var(--danger);
+  font-weight: var(--w-semibold);
+}
+
+/*
+ * A ORDEM É A CAUSA EM CIMA, A ORDEM EMBAIXO — e os corpos são o INVERSO do
+ * caso normal, de propósito.
+ *
+ * No caso normal a forma de pagamento é o dado (13px) e a situação é o
+ * qualificador (12px). Aqui quem manda é a PROIBIÇÃO: "não preparar" é o que a
+ * cozinha precisa ler de relance, e "Aguardando pagamento" é o motivo. Além
+ * disso, "Aguardando pagamento" em 13px não cabe nos 124px da coluna e quebrava
+ * em duas linhas sozinho, esticando a linha inteira para três.
+ */
+.ds-row__alerta-situacao {
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+}
+
+.ds-row__alerta-acao {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+}
+
+/* --- 7. valor ------------------------------------------------------------ */
+
+.ds-row__valor {
+  text-align: right;
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-strong);
+  letter-spacing: -0.015em;
+}
+
+/*
+ * ==========================================================================
+ * O LAYOUT COMPACTO — o telefone, e a lista espremida pelo painel de detalhe
+ * ==========================================================================
+ *
+ * ELE NÃO É A LINHA LARGA DOBRADA EM DUAS. A leitura por coluna é o ganho
+ * inteiro da direção, e ela some assim que a linha dobra: sete campos
+ * embaralhados em duas fileiras não têm coluna nenhuma para o olho descer.
+ * Então abaixo de 900px a linha vira OUTRO desenho, com outra prioridade — no
+ * telefone o dono quer ver os três novos, não os trinta e três, e o que
+ * importa é legibilidade e alvo de toque.
+ *
+ * O LIMIAR É 700px, E ELE FOI MEDIDO. Era 900, e com o painel de detalhe
+ * aberto em 1440 a lista fica com 828 — o desktop inteiro caía no layout do
+ * telefone. As sete colunas cabem em 624px somadas; abaixo de 700 o nome do
+ * cliente fica com menos de 76px, e aí a coluna deixa de ser coluna de verdade.
+ *
+ * O QUE ELE FAZ:
+ *   - 76px de altura: alvo de toque folgado, com sobra sobre a WCAG 2.5.8
+ *   - fileira de cima: tempo (âncora, corpo de título), cliente e valor
+ *   - fileira de baixo: estágio · nº · hora · modalidade · pagamento, em 12px
+ *   - o estágio volta a ser escrito em TODAS as linhas: sem colunas alinhadas,
+ *     a coluna mesclada não significa mais nada
+ *   - o fio de 2px vira `box-shadow` do próprio botão, porque em `flex` um
+ *     pseudo-elemento seria mais um item na fileira
+ *
+ * `@container` e não `@media`: o gatilho é a largura da LISTA, não da janela.
+ * É o mesmo aperto com o painel de detalhe aberto numa tela de 1440px, e uma
+ * consulta de janela não enxergaria esse caso.
+ *
+ * A ordem visual é dada por `order`, e o `::after` de `flex-basis: 100%` é a
+ * QUEBRA DE FILEIRA — o jeito de dizer "daqui para baixo é a linha de apoio"
+ * sem um elemento a mais na árvore de acessibilidade.
+ */
+@container lista (max-width: 700px) {
+  .ds-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: var(--sp-8);
+    row-gap: var(--sp-4);
+    min-height: var(--row-touch-h);
+    padding: var(--sp-12) var(--page-pad-mobile);
+    box-shadow: inset 2px 0 0 var(--st);
+  }
+
+  .ds-row--alerta {
+    box-shadow: inset 2px 0 0 var(--danger);
+  }
+
+  .ds-row::after {
+    content: '';
+    order: 4;
+    flex: 0 0 100%;
+    height: 0;
+  }
+
+  .ds-row__tempo {
+    order: 1;
+    align-items: flex-start;
+    min-width: 62px;
+  }
+
+  .ds-row__decorrido {
+    font-size: var(--ts-size);
+    line-height: var(--ts-line);
+    font-weight: var(--w-semibold);
+  }
+
+  .ds-row__cliente {
+    order: 2;
+    flex: 1 1 auto;
+    font-size: var(--ts-size);
+    line-height: var(--ts-line);
+    font-weight: var(--w-semibold);
+  }
+
+  .ds-row__valor {
+    order: 3;
+    flex: 0 0 auto;
+  }
+
+  /* --- a fileira de apoio ------------------------------------------------ */
+
+  /*
+   * NO COMPACTO O ESTÁGIO VOLTA A SER ESCRITO EM TODAS AS LINHAS. Sem colunas
+   * alinhadas, a coluna mesclada não significa mais nada — e a célula em branco
+   * das linhas do meio do bloco produzia um separador solto no começo da linha
+   * de apoio ("· #1002 11:46").
+   */
+  .ds-row:not(.ds-row--abre) .ds-row__estagio-rotulo {
+    display: block;
+  }
+
+  .ds-row__estagio {
+    order: 5;
+    padding-left: 0;
+    font-size: var(--tl-size);
+    line-height: var(--tl-line);
+  }
+
+  .ds-row__estagio::before {
+    display: none;
+  }
+
+  .ds-row__pedido {
+    order: 6;
+  }
+
+  .ds-row__modalidade {
+    order: 7;
+  }
+
+  .ds-row__pagamento {
+    order: 8;
+    flex: 1 1 auto;
+  }
+
+  /*
+   * A PROIBIÇÃO OCUPA A FILEIRA INTEIRA. Ela é a frase mais longa da linha e a
+   * única que impede o preparo; espremida no fim da linha de apoio, ela
+   * quebrava sozinha e deixava o separador da modalidade pendurado no fim da
+   * fileira de cima ("… · Entrega ·").
+   */
+  .ds-row--alerta .ds-row__pagamento {
+    flex: 1 0 100%;
+  }
+
+  .ds-row--alerta .ds-row__modalidade::after {
+    content: none;
+  }
+
+  /* Os dois campos de duas linhas viram um campo de uma linha só. */
+  .ds-row__pedido,
+  .ds-row__pagamento {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--sp-4);
+  }
+
+  .ds-row__numero,
+  .ds-row__hora,
+  .ds-row__modalidade,
+  .ds-row__forma,
+  .ds-row__situacao,
+  .ds-row__alerta-situacao,
+  .ds-row__alerta-acao {
+    font-size: var(--tl-size);
+    line-height: var(--tl-line);
+  }
+
+  /*
+   * NO COMPACTO O ALERTA VOLTA A SER UMA FRASE. A fileira inteira é dele (ver
+   * acima), então não há célula estreita a respeitar — e "Aguardando pagamento
+   * · não preparar" numa linha lê melhor que duas linhas de 12px empilhadas.
+   */
+  .ds-row__alerta {
+    flex-direction: row;
+    gap: var(--sp-4);
+  }
+
+  .ds-row__alerta-situacao::after {
+    content: ' ·';
+  }
+
+  /*
+   * O PONTO SEPARADOR mora no CSS, e não no TSX: escrito na marcação ele
+   * entraria quatro vezes por linha na árvore de acessibilidade, e o leitor de
+   * tela anunciaria "ponto" entre cada campo.
+   */
+  .ds-row__estagio::after,
+  .ds-row__pedido::after,
+  .ds-row__modalidade::after {
+    content: '·';
+    margin-left: var(--sp-8);
+    color: var(--ink-3);
+    font-weight: var(--w-regular);
+  }
+}

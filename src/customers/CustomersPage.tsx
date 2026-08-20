@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 import { useSession } from '../auth/session-context';
 import { DataTable, type Column } from '../ds/DataTable';
+import { PageBar } from '../ds/PageBar';
 import { SearchField } from '../ds/SearchField';
 import { formatCurrency, formatDate } from '../orders/format';
 import { customerKey, customerName, formatPhone, formatSince } from './customer-model';
@@ -62,8 +63,13 @@ export function CustomersPage() {
     id: customerKey(customer),
     cliente: (
       <span className="cliente">
-        {/* Nível 2: nome de item de lista — o que a pessoa veio procurar. */}
-        <span className="t-section cliente__nome">{customerName(customer)}</span>
+        {/*
+          O NOME DA LINHA É 14/550, o MESMO da linha de pedido (`ds/OrderRow`).
+          Ele era nível 2 (15/600) — o corpo de um título de seção dentro de uma
+          célula de tabela —, e por isso cinquenta nomes empilhados liam como
+          cinquenta títulos. Quem identifica a linha é o peso, não o corpo.
+        */}
+        <span className="cliente__nome">{customerName(customer)}</span>
         {/* Telefone NÃO leva `.tnum`: não é número que se compara em coluna. */}
         <span className="t-aux cliente__fone">{formatPhone(customer.customer_phone)}</span>
       </span>
@@ -91,15 +97,14 @@ export function CustomersPage() {
 
   return (
     <div className="customers">
-      <header className="customers__head">
-        <h1 className="t-title">Clientes</h1>
-        <p className="t-aux customers__nota">
-          Quem já pediu nesta loja, agrupado por telefone. E-mail e CPF são da conta do cliente na
-          plataforma e não aparecem aqui.
-        </p>
-      </header>
-
-      <div className="customers__bar">
+      {/*
+        A MESMA FAIXA DE 52px DE TODAS AS TELAS (`ds/PageBar`). Esta tela tinha
+        um cabeçalho próprio com título, um parágrafo e, embaixo, um cartão
+        branco só para a busca e o contador — três blocos empilhados para uma
+        busca e um número. Agora a ferramenta vive na linha do título, como em
+        Pedidos, e a lista começa logo abaixo dela.
+      */}
+      <PageBar title="Clientes">
         <div className="customers__busca">
           <SearchField
             label="Buscar cliente por nome ou telefone"
@@ -119,15 +124,30 @@ export function CustomersPage() {
             {customers.total === 1 ? '1 cliente' : `${customers.total} clientes`}
           </span>
         ) : null}
-      </div>
+      </PageBar>
 
-      {customers.errorMessage ? (
-        <p className="alert alert--error customers__alerta" role="alert">
-          {customers.errorMessage}
+      <div className="customers__corpo">
+        {/*
+          A RESSALVA EXISTE PARA DIZER O QUE A TELA NÃO TEM.
+
+          "Cadê o e-mail do cliente?" é a primeira pergunta de quem abre esta
+          tela, e a resposta ("é da conta dele na plataforma, não do
+          relacionamento com esta loja") não cabe em lugar nenhum da tabela.
+          Dita uma vez aqui, ela não vira coluna vazia nem tarja repetida em
+          cinquenta linhas. Não é um subtítulo explicando a tela — é a única
+          coisa que a tabela não consegue dizer sozinha.
+        */}
+        <p className="t-aux customers__nota">
+          Quem já pediu nesta loja, agrupado por telefone. E-mail e CPF são da conta do cliente na
+          plataforma e não aparecem aqui.
         </p>
-      ) : null}
 
-      <div className="customers__lista">
+        {customers.errorMessage ? (
+          <p className="alert alert--error customers__alerta" role="alert">
+            {customers.errorMessage}
+          </p>
+        ) : null}
+
         {customers.isLoading ? (
           <p className="muted customers__estado">Carregando…</p>
         ) : (
@@ -159,7 +179,8 @@ export function CustomersPage() {
               {customers.isLoadingMore ? 'Carregando…' : 'Carregar mais'}
             </button>
             <span className="t-aux">
-              {customers.customers.length} de {customers.total}
+              <span className="tnum">{customers.customers.length}</span> de{' '}
+              <span className="tnum">{customers.total}</span>
             </span>
           </div>
         ) : null}

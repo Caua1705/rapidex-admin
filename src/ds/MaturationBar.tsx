@@ -6,12 +6,13 @@ import './MaturationBar.css';
  *
  *   <MaturationBar elapsedMinutes={62} windowMinutes={100} />
  *
- * O QUE ELA É: um fio de 3px no topo do ticket que preenche proporcionalmente
- * ao tempo decorrido contra a janela de preparo configurada da loja
- * (`tempo_estimado_max`), mudando de cor em 50% e em 85% (ver `maturation.ts`).
+ * O QUE ELA É: um fio de 3px sob o tempo decorrido da linha de pedido, que
+ * preenche proporcionalmente ao tempo contra a janela de preparo configurada
+ * da loja (`tempo_estimado_max`) e vai de ardósia a ocre a carmim (ver
+ * `--grad-maturacao` em tokens.css).
  *
  * POR QUE ELA EXISTE, E POR QUE É O ÚNICO ORNAMENTO PERMITIDO: numa fila de
- * trinta tickets, ler trinta números de minutos é trabalho. Trinta fios de
+ * trinta pedidos, ler trinta números de minutos é trabalho. Trinta fios de
  * comprimentos diferentes se lê de uma vez, de longe, sem ler nenhum número —
  * e a churrascaria do piloto prepara em 90 a 100 minutos, então a diferença
  * entre "acabou de entrar" e "vai estourar" é a informação mais cara da tela.
@@ -21,9 +22,10 @@ import './MaturationBar.css';
  * animação ambiente continuam proibidos em todo lugar, inclusive aqui.
  *
  * ACESSIBILIDADE: a barra é `aria-hidden`. Ela não é a fonte da informação — é
- * o atalho visual dela. O número de minutos fica escrito ao lado, no ticket, em
- * 19–28px; cor sozinha nunca diz nada aqui (1.4.1). Sem janela configurada na
- * loja, ela simplesmente não aparece: uma barra sem régua mediria o nada.
+ * o atalho visual dela. O número de minutos fica escrito logo acima, na coluna
+ * do tempo, no maior corpo da linha; cor sozinha nunca diz nada aqui (1.4.1).
+ * Sem janela configurada na loja, ela simplesmente não aparece: uma barra sem
+ * régua mediria o nada.
  */
 export function MaturationBar({
   elapsedMinutes,

@@ -21,6 +21,13 @@ import './Input.css';
  * O botão de limpar só existe quando há o que limpar, entra na ordem de
  * tabulação e devolve o foco ao campo — limpar a busca e ficar sem foco em
  * lugar nenhum é como o teclado se perde.
+ *
+ * DUAS FORMAS, UM COMPONENTE. `variant="barra"` tira a caixa e deixa só um fio
+ * embaixo: é a forma que a busca tem dentro da faixa de 52px (`ds/PageBar`),
+ * onde um contorno de quatro lados no meio de uma linha de texto é o objeto que
+ * faz a barra ler como bloco. A tela de Pedidos tinha uma segunda busca escrita
+ * à mão só por causa disso — e a escrita à mão não tinha botão de limpar, não
+ * tinha rótulo acessível ligado ao campo e não tinha estado desabilitado.
  */
 export function SearchField({
   label,
@@ -28,6 +35,7 @@ export function SearchField({
   onValueChange,
   placeholder,
   disabled = false,
+  variant = 'caixa',
   id,
 }: {
   label: string;
@@ -35,6 +43,8 @@ export function SearchField({
   onValueChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  /** `barra` = sem caixa, com fio embaixo. Ver o comentário acima. */
+  variant?: 'caixa' | 'barra';
   id?: string;
 }) {
   const field = useFieldState();
@@ -42,7 +52,16 @@ export function SearchField({
   const controlId = id ?? field?.controlId ?? generated;
 
   return (
-    <span className={`ds-control ds-control--search${disabled ? ' ds-control--disabled' : ''}`}>
+    <span
+      className={[
+        'ds-control',
+        'ds-control--search',
+        variant === 'barra' ? 'ds-control--barra' : '',
+        disabled ? 'ds-control--disabled' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
       <label className="sr-only" htmlFor={controlId}>
         {label}
       </label>

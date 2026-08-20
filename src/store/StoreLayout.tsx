@@ -1,5 +1,7 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
+import { PageBar } from '../ds/PageBar';
+
 import { useAdoptedBranch } from '../auth/use-branch-scope';
 import { StoreStatusCard } from './StoreStatusCard';
 import { STORE_SECTIONS } from './store-sections';
@@ -67,7 +69,16 @@ export function StoreLayout() {
    * cinco lojas. É também por isso que o interruptor do cabeçalho some lá: a
    * chave daquela filial já está na lista, uma linha abaixo.
    */
-  const emOperacao = useLocation().pathname.replace(/\/+$/, '').endsWith('/operacao');
+  const rota = useLocation().pathname.replace(/\/+$/, '');
+  const emOperacao = rota.endsWith('/operacao');
+  /*
+   * O NOME DA SEÇÃO ABERTA SOBE PARA A FAIXA, como continuação do título.
+   *
+   * Ele morava dentro da página, em `StoreSectionPage`, a um bloco de distância
+   * de "Minha loja" — dois títulos empilhados para dizer um lugar só. Na faixa
+   * ele lê como o que é: "Minha loja › Horários de funcionamento".
+   */
+  const secaoAberta = STORE_SECTIONS.find((secao) => rota.endsWith(`/${secao.id}`));
   const { branch, branchId, hasChoice } = useAdoptedBranch(!emOperacao);
   const mostrarInterruptor = !emOperacao;
 
@@ -83,74 +94,105 @@ export function StoreLayout() {
    */
   const operation = useBranchOperation('');
 
+  /** Nome da filial adotada, para a ressalva de escopo. Vazio sem escolha. */
+  const branchLabel = hasChoice && branch ? branch.display_name?.trim() || branch.name : '';
+
+  /*
+   * A RESSALVA DE ESCOPO VIVE COM O NOME DA SEÇÃO, e não solta no alto do
+   * formulário.
+   *
+   * Ela é um FRAGMENTO de propósito — "vale para o restaurante inteiro" —
+   * porque foi escrita para continuar o nome da seção: "Geral · vale para o
+   * restaurante inteiro". Quando o nome subiu para a faixa e ela ficou para
+   * trás, virou uma frase sem sujeito começando em minúscula no topo da
+   * coluna. Ou ela vira uma sentença inteira, ou ela sobe junto — e subir
+   * junto é o que mantém a leitura que ela sempre teve.
+   *
+   * Com uma filial só, `branchLabel` vem vazio e a linha não aparece: não há
+   * escolha a fazer, e nomear a única filial seria escrever na tela uma palavra
+   * que não distingue nada.
+   */
+  const escopo =
+    secaoAberta?.scope === 'branch'
+      ? branchLabel && `vale só para a filial ${branchLabel}`
+      : secaoAberta?.nota;
+
   const context: StoreOutletContext = {
     settings,
     branchDetail,
     operation,
     branchId,
-    branchLabel: hasChoice && branch ? branch.display_name?.trim() || branch.name : '',
+    branchLabel,
   };
 
   return (
     <div className="store">
       {/*
-        A NAVEGAÇÃO DA SEÇÃO. Ela não imita a lateral do produto: sem ícone,
-        sem caixa, sem plano próprio. A lateral diz em que parte do produto
-        você está; isto diz em que parte de UMA tela — dois componentes com o
-        mesmo desenho fariam o lojista achar que trocou de seção do painel.
+        A FAIXA DE 52px DO SISTEMA. O interruptor de abrir/fechar vive nela, à
+        direita, como qualquer ferramenta de tela.
+
+        ELE FECHA UMA FILIAL, a que o cabeçalho está mostrando — não a rede. É
+        por isso que o cabeçalho exibir a filial adotada deixou de ser só uma
+        cortesia: sem ele, o interruptor não diria o que está fechando.
+
+        E ELE NÃO APARECE EM OPERAÇÃO. Lá a mesma filial já tem a própria chave
+        na lista, e a mesma informação duas vezes na mesma tela faria o lojista
+        ver dois interruptores para uma loja e ter que descobrir sozinho que são
+        o mesmo.
       */}
-      <nav className="store__index" aria-label="Seções de Minha loja">
+      <PageBar
+        title="Minha loja"
+        crumb={secaoAberta?.titulo}
+        aside={
+          escopo ? (
+            <span className="t-aux store__escopo" data-testid="store-branch-note">
+              {escopo}
+            </span>
+          ) : null
+        }
+      >
+        {mostrarInterruptor ? (
+          <StoreStatusCard
+            operacao={operation.branchOf(branchId)}
+            isLoading={operation.isLoading}
+            isSaving={operation.isSaving(branchId, 'is_open')}
+            errorMessage={operation.errorFor(branchId)}
+            onToggle={(next) => void operation.toggle(branchId, 'is_open', next)}
+          />
+        ) : null}
+      </PageBar>
+
+      <div className="store__body">
         {/*
-          NENHUMA SEÇÃO FICA ATENUADA. As de filial já ficaram, quando abri-las
-          sem filial escolhida levava a um bloco que pedia uma — a atenuação era
-          o aviso de que o clique não ia dar em nada. Com a filial resolvida na
-          entrada, todas as seis abrem no formulário delas, e um item de
-          navegação a meio tom passaria a mentir sobre o que vem depois do
-          clique.
+          A NAVEGAÇÃO DA SEÇÃO. Ela é uma COLUNA separada por um fio, como a de
+          categorias no Cardápio — a mesma peça, o mesmo desenho. Sem ícone e
+          sem plano próprio: a lateral do painel diz em que parte do PRODUTO
+          você está; isto diz em que parte de UMA tela.
         */}
-        {STORE_SECTIONS.map((secao) => (
-          <NavLink
-            key={secao.id}
-            to={secao.id}
-            className={({ isActive }) => `store__anchor${isActive ? ' store__anchor--on' : ''}`}
-            data-testid={`store-anchor-${secao.id}`}
-          >
-            {secao.label}
-          </NavLink>
-        ))}
-      </nav>
-
-      <div className="store__col">
-        <header className="store__head">
-          <h1 className="t-title">Minha loja</h1>
-
+        <nav className="store__index" aria-label="Seções de Minha loja">
           {/*
-            Abrir/fechar fica na linha do título e FORA das páginas: é a ação
-            mais clicada desta tela e a única com efeito imediato no que o
-            cliente vê. Dentro de uma das seis, ela custaria uma navegação no
-            momento em que a cozinha já não dá conta.
-
-            ELA FECHA UMA FILIAL, a que o cabeçalho está mostrando — não a rede.
-            É por isso que o cabeçalho exibir a filial adotada deixou de ser só
-            uma cortesia: sem ele, o interruptor não diria o que está fechando.
-
-            E ELE NÃO APARECE EM OPERAÇÃO. Lá a mesma filial já tem a própria
-            chave na lista, e a mesma informação duas vezes na mesma tela é o
-            defeito da §8: o lojista veria dois interruptores para uma loja e
-            teria que descobrir sozinho que são o mesmo.
+            NENHUMA SEÇÃO FICA ATENUADA. As de filial já ficaram, quando abri-las
+            sem filial escolhida levava a um bloco que pedia uma — a atenuação era
+            o aviso de que o clique não ia dar em nada. Com a filial resolvida na
+            entrada, todas as oito abrem no formulário delas, e um item de
+            navegação a meio tom passaria a mentir sobre o que vem depois do
+            clique.
           */}
-          {mostrarInterruptor ? (
-            <StoreStatusCard
-              operacao={operation.branchOf(branchId)}
-              isLoading={operation.isLoading}
-              isSaving={operation.isSaving(branchId, 'is_open')}
-              errorMessage={operation.errorFor(branchId)}
-              onToggle={(next) => void operation.toggle(branchId, 'is_open', next)}
-            />
-          ) : null}
-        </header>
+          {STORE_SECTIONS.map((secao) => (
+            <NavLink
+              key={secao.id}
+              to={secao.id}
+              className={({ isActive }) => `store__anchor${isActive ? ' store__anchor--on' : ''}`}
+              data-testid={`store-anchor-${secao.id}`}
+            >
+              {secao.label}
+            </NavLink>
+          ))}
+        </nav>
 
-        <Outlet context={context} />
+        <div className="store__col">
+          <Outlet context={context} />
+        </div>
       </div>
     </div>
   );

@@ -142,8 +142,13 @@ a {
   scroll-margin-block: var(--sp-32);
 }
 
+/*
+ * A SELEÇÃO DE TEXTO É CINZA FRIO, não o wash da marca: ela aparece em
+ * qualquer parágrafo de qualquer tela, e era mais um lugar onde o laranja
+ * chegava sem ser a ação primária (tokens §1).
+ */
 ::selection {
-  background: var(--ember-wash);
+  background: var(--surface-selected);
   color: var(--ink);
 }
 

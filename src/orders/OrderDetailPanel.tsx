@@ -4,6 +4,7 @@ import { messageFromUnknownError } from '../api/errors';
 import { fetchOrderDetail } from '../api/orders';
 import type { OrderDetail, OrderItem } from '../api/types';
 import { XIcon } from '../ds/icons';
+import { StatusChip } from '../ds/StatusChip';
 import { CancelOrderDialog } from './CancelOrderDialog';
 import {
   ORDER_TYPE_LABELS,
@@ -38,11 +39,15 @@ function formatAddress(detail: OrderDetail): string {
 }
 
 /**
- * Detalhe do pedido, fixo à direita do quadro.
+ * Detalhe do pedido, fixo à direita da lista.
  *
- * Painel e não janela: com a janela aberta, o quadro sumia atrás dela, e é o
- * quadro que diz o que fazer em seguida. Aqui o lojista lê o pedido com as
- * colunas à vista e, clicando em outro card, o conteúdo troca sem fechar nada.
+ * Painel e não janela: com a janela aberta, a lista sumia atrás dela, e é a
+ * lista que diz o que fazer em seguida. Aqui o lojista lê o pedido com as
+ * colunas à vista e, clicando em outra linha, o conteúdo troca sem fechar nada.
+ *
+ * O CABEÇALHO DELE TEM A MESMA ALTURA DA FAIXA DA LISTA (`--topbar-h`), e é o
+ * que faz as duas metades da tela lerem como uma tela só: o "#1042" nasce na
+ * mesma horizontal em que nasce o "Pedidos" ao lado.
  */
 export function OrderDetailPanel({
   orderId,
@@ -131,10 +136,19 @@ export function OrderDetailPanel({
           {detail ? (
             <>
               <span className="tnum panel__number">#{detail.order_number}</span>
-              <span className={`panel__status is-${stageOf(detail.status)}`}>
-                {STATUS_LABELS[detail.status] ?? detail.status}
-              </span>
-              <span className="faint">{labelFor(ORDER_TYPE_LABELS, detail.order_type)}</span>
+              {/*
+                O CHIP É O DO DESIGN SYSTEM, com a palavra do backend por
+                cima. `rejected` e `cancelled` são o mesmo estágio visual e
+                duas palavras diferentes, e aqui a diferença importa — o
+                `label` do chip existe exatamente para isso, em vez de esta
+                tela desenhar um segundo chip de status.
+              */}
+              <StatusChip
+                stage={stageOf(detail.status)}
+                label={STATUS_LABELS[detail.status] ?? detail.status}
+                size="sm"
+              />
+              <span className="panel__modo">{labelFor(ORDER_TYPE_LABELS, detail.order_type)}</span>
             </>
           ) : (
             <span className="t-label">Pedido</span>

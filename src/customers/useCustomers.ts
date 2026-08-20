@@ -78,11 +78,7 @@ export function useCustomers(branchId: string) {
     const requestId = requestRef.current;
     setIsLoadingMore(true);
     try {
-      const page = await listCustomers(
-        { branchId, search },
-        PAGE_SIZE,
-        customers.length,
-      );
+      const page = await listCustomers({ branchId, search }, PAGE_SIZE, customers.length);
       // Uma busca nova enquanto a página vinha: a resposta é de outra pergunta.
       if (requestId !== requestRef.current) return;
       setCustomers((current) => [...current, ...page.items]);

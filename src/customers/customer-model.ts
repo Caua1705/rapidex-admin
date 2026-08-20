@@ -69,10 +69,7 @@ export function daysSince(
  * a partir de "há 2 meses" a diferença entre 60 e 61 dias não muda decisão
  * nenhuma, e é a coluna de PRIMEIRO pedido que carrega a data exata.
  */
-export function formatSince(
-  isoDate: string | null | undefined,
-  now: number = Date.now(),
-): string {
+export function formatSince(isoDate: string | null | undefined, now: number = Date.now()): string {
   const days = daysSince(isoDate, now);
   if (days === null) return '—';
   if (days === 0) return 'hoje';
@@ -113,7 +110,8 @@ export function formatPhone(phone: string): string {
    * comer o "55" de um número que por acaso comece com ele.
    */
   const digits =
-    somenteDigitos.startsWith('55') && (somenteDigitos.length === 12 || somenteDigitos.length === 13)
+    somenteDigitos.startsWith('55') &&
+    (somenteDigitos.length === 12 || somenteDigitos.length === 13)
       ? somenteDigitos.slice(2)
       : somenteDigitos;
 

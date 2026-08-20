@@ -111,10 +111,17 @@
   background: var(--hover);
 }
 
+/*
+ * A OPÇÃO ABERTA usa a mesma marcação da lateral (ver AppShell.css): plano de
+ * realce da navegação, tinta cheia, peso — e nada de cor. A folha É a
+ * navegação no celular; pintá-la de laranja poria a marca em toda tela do
+ * telefone.
+ */
 .ds-sheet__opcao[aria-current='page'] {
-  background: var(--ember-wash);
-  color: var(--ember-press);
-  font-weight: var(--w-medium);
+  background: var(--nav-active);
+  color: var(--ink);
+  font-weight: var(--w-semibold);
+  box-shadow: inset 2px 0 var(--nav-rail);
 }
 
 .ds-sheet__opcao-icone {
@@ -124,7 +131,7 @@
 }
 
 .ds-sheet__opcao[aria-current='page'] .ds-sheet__opcao-icone {
-  color: var(--ember-press);
+  color: var(--ink);
 }
 
 .ds-sheet__opcao-nota {

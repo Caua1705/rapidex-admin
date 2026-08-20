@@ -134,13 +134,15 @@ describe('datesForPreset', () => {
      teria oito dias e a comparação do backend deixaria de bater. */
   it('7 dias inclui hoje, então volta 6', () => {
     const { startDate, endDate } = datesForPreset('last7', vazio);
-    const dias = (Date.parse(`${endDate}T12:00:00Z`) - Date.parse(`${startDate}T12:00:00Z`)) / 86_400_000;
+    const dias =
+      (Date.parse(`${endDate}T12:00:00Z`) - Date.parse(`${startDate}T12:00:00Z`)) / 86_400_000;
     expect(dias).toBe(6);
   });
 
   it('30 dias volta 29, pela mesma conta', () => {
     const { startDate, endDate } = datesForPreset('last30', vazio);
-    const dias = (Date.parse(`${endDate}T12:00:00Z`) - Date.parse(`${startDate}T12:00:00Z`)) / 86_400_000;
+    const dias =
+      (Date.parse(`${endDate}T12:00:00Z`) - Date.parse(`${startDate}T12:00:00Z`)) / 86_400_000;
     expect(dias).toBe(29);
   });
 
@@ -171,9 +173,9 @@ describe('datesForPreset', () => {
 
 describe('rangeProblem', () => {
   it('data invertida é barrada antes do 422 do backend', () => {
-    expect(
-      rangeProblem({ preset: 'custom', startDate: '2026-08-16', endDate: '2026-08-01' }),
-    ).toBe('A data inicial é depois da final.');
+    expect(rangeProblem({ preset: 'custom', startDate: '2026-08-16', endDate: '2026-08-01' })).toBe(
+      'A data inicial é depois da final.',
+    );
   });
 
   it('data faltando é barrada', () => {

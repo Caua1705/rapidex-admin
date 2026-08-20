@@ -1,14 +1,17 @@
 /*
  * ============================================================================
- * CLIENTES — cabeçalho, barra de busca e uma tabela
+ * CLIENTES — a faixa do sistema e uma tabela que corre até a margem
  * ============================================================================
  *
- * A tela mais simples do painel, e o CSS acompanha: quem desenha a lista é
- * `ds/DataTable` (que já vira blocos empilhados no celular), e aqui só ficam o
- * enquadramento e as duas linhas de texto que a tabela não cobre.
+ * ERAM TRÊS BLOCOS ANTES DA PRIMEIRA LINHA: um cabeçalho com título e
+ * parágrafo, um cartão branco contornado só para a busca e o contador, e um
+ * segundo cartão branco contornado em volta da tabela. Dois contornos, duas
+ * sombras e ~180px de altura para uma busca e um número.
  *
- * O teto de largura é o da página (`--page-max`), medido a partir do fim da
- * lateral — não centrado no viewport (§7).
+ * Agora é a mesma gramática de Pedidos: a faixa de 52px do sistema
+ * (`ds/PageBar`) com a busca à direita, e daí para baixo a lista até a margem.
+ * O que separa uma linha da outra é um fio; o que separa o cabeçalho de coluna
+ * dos dados é um fio mais forte. Nenhuma moldura.
  */
 
 .customers {
@@ -16,76 +19,55 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-20);
-  padding: var(--page-pad);
-  overflow-y: auto;
-  background: var(--bg);
-  max-width: var(--page-max);
-}
-
-.customers__head {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-}
-
-/*
- * A frase do cabeçalho existe para dizer o que a tela NÃO tem.
- *
- * "Cadê o e-mail do cliente?" é a primeira pergunta de quem abre esta tela, e a
- * resposta ("é da conta dele na plataforma, não do relacionamento com esta
- * loja") não cabe em lugar nenhum da tabela. Dita uma vez aqui em cima, ela
- * não vira coluna vazia nem tarja repetida em cinquenta linhas (§8).
- */
-.customers__nota {
-  margin: 0;
-  max-width: 68ch;
-}
-
-.customers__bar {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-12);
-  flex-wrap: wrap;
-  padding: var(--sp-8);
-  border: 1px solid var(--line);
-  border-radius: var(--r-card);
   background: var(--surface);
-  box-shadow: var(--shadow-card);
 }
 
+/* A busca não estica: ela é uma ferramenta na barra, não o assunto da tela. */
 .customers__busca {
-  flex: 1 1 260px;
+  flex: 0 1 300px;
   min-width: 0;
-  max-width: 340px;
 }
 
-/* O contador cede a linha inteira antes de espremer a busca (§7). */
+/* O contador cede a linha antes de espremer a busca. */
 .customers__total {
   flex: 0 0 auto;
-  margin-left: auto;
   white-space: nowrap;
 }
 
-.customers__alerta {
-  margin: 0;
+/*
+ * O TETO DE LEITURA. Numa tela de 2560px a tabela esticaria de ponta a ponta e
+ * "Ana Paula" ficaria a dois palmos de "R$ 748,50" — a linha deixa de ser
+ * linha. A folha continua correndo até a margem; quem para em `--page-max` é o
+ * CONTEÚDO dela.
+ */
+.customers__corpo {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  max-width: var(--page-max);
+  padding-bottom: var(--sp-32);
+  /* A tabela corre até a margem da tela, como a lista de Pedidos. */
+  --tabela-pad: var(--page-pad);
 }
 
-.customers__lista {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-16);
-  gap: var(--sp-8);
-  padding: 0 var(--sp-16) var(--sp-16);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-card);
-  box-shadow: var(--shadow-card);
+/*
+ * A RESSALVA. Ela diz o que a tela NÃO tem, e por isso fica acima da lista e
+ * não no rodapé: quem procura o e-mail do cliente precisa da resposta antes de
+ * varrer cinquenta linhas atrás de uma coluna que não existe.
+ */
+.customers__nota {
+  max-width: 72ch;
+  margin: 0;
+  padding: var(--sp-12) var(--page-pad);
+}
+
+.customers__alerta {
+  margin: 0 var(--page-pad) var(--sp-12);
 }
 
 /* Carregando e vazio moram no mesmo lugar da primeira linha da tabela. */
 .customers__estado {
-  padding: var(--sp-32) 0;
+  padding: var(--sp-32) var(--page-pad);
   font-size: var(--ta-size);
   line-height: var(--ta-line);
 }
@@ -93,31 +75,34 @@
 .customers__rodape {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--sp-12);
+  padding: var(--sp-16) var(--page-pad);
+  border-top: 1px solid var(--line);
 }
 
 /* --- as colunas ----------------------------------------------------------- */
 
 /*
- * SÓ A COLUNA DO NOME É FLUIDA (§8). Pedidos, total e as duas datas têm
- * largura própria e caem na mesma abscissa em todas as linhas — sem isso, cada
- * linha ancora o olho num lugar diferente conforme o comprimento do nome.
+ * SÓ A COLUNA DO NOME É FLUIDA. Pedidos, total e as duas datas têm largura
+ * própria e caem na mesma abscissa em todas as linhas — sem isso, cada linha
+ * ancora o olho num lugar diferente conforme o comprimento do nome.
  *
  * As medidas são de CONTEÚDO, não da escala de espaçamento: 96px é o que
  * "Pedidos" pede no cabeçalho, e 132px o que cabe em "R$ 1.234,56" e em
- * "Cliente desde" sem quebrar. É a exceção declarada da §2.
+ * "Cliente desde" sem quebrar.
  *
  * Só a partir de 640px: abaixo disso a tabela não é tabela (ver `DataTable`),
  * e largura de coluna não significa nada num bloco empilhado.
  */
 @media (min-width: 640px) {
-  .customers__lista th:nth-child(2) {
+  .customers__corpo th:nth-child(2) {
     width: 96px;
   }
 
-  .customers__lista th:nth-child(3),
-  .customers__lista th:nth-child(4),
-  .customers__lista th:nth-child(5) {
+  .customers__corpo th:nth-child(3),
+  .customers__corpo th:nth-child(4),
+  .customers__corpo th:nth-child(5) {
     width: 132px;
   }
 }
@@ -137,12 +122,17 @@
 }
 
 /*
- * O NOME É O ÚNICO DA LINHA EM SEMIBOLD (§1). O telefone abaixo, o total à
- * direita e as duas datas ficam em 400: com três pesos na mesma linha, nenhum
- * é ponto de entrada.
+ * O NOME É O ÚNICO DA LINHA COM PESO. O telefone abaixo, o total à direita e as
+ * duas datas ficam em 400: com três pesos na mesma linha, nenhum é ponto de
+ * entrada.
  */
 .cliente__nome {
   min-width: 0;
+  color: var(--ink);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-strong);
+  letter-spacing: -0.012em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -157,25 +147,28 @@
  * CELULAR
  *
  * A tabela já vira blocos sozinha (`ds/DataTable`). O que sobra aqui é o
- * respiro da página e o cartão da lista, que perde a borda: em 390px um
- * contorno a 12px de cada margem só estreita a linha que já está apertada.
+ * respiro da página e o espaço para a barra de baixo do shell.
  * ======================================================================= */
+
 @media (max-width: 720px) {
-  .customers {
-    padding: var(--page-pad-mobile);
+  .customers__corpo {
+    --tabela-pad: 0px;
+    padding-inline: var(--page-pad-mobile);
     padding-bottom: calc(var(--bottombar-h) + var(--sp-24));
   }
 
-  .customers__lista {
-    padding: 0;
-    background: transparent;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
+  .customers__nota,
+  .customers__estado,
+  .customers__rodape {
+    padding-inline: 0;
+  }
+
+  .customers__alerta {
+    margin-inline: 0;
   }
 
   .customers__busca {
-    max-width: none;
+    flex: 1 1 100%;
   }
 
   /*
@@ -191,12 +184,12 @@
    * só a repetição visual, e só aqui: numa tabela cuja primeira coluna não
    * identifica a linha, o rótulo continua fazendo falta.
    */
-  .customers__lista td:first-child {
+  .customers__corpo td:first-child {
     align-items: flex-start;
     padding-bottom: var(--sp-4);
   }
 
-  .customers__lista td:first-child::before {
+  .customers__corpo td:first-child::before {
     content: none;
   }
 }

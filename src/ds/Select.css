@@ -135,7 +135,7 @@
   flex: 0 0 auto;
   display: flex;
   width: 14px;
-  color: var(--ember);
+  color: var(--ink);
 }
 
 .ds-select__label {

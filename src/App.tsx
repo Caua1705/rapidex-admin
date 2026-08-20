@@ -11,10 +11,6 @@ import { OrdersPage } from './orders/OrdersPage';
 import { PerformancePage } from './performance/PerformancePage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { LoginPage } from './pages/LoginPage';
-import { PedidosA } from './prototipo/PedidosA';
-import { PedidosB } from './prototipo/PedidosB';
-import { PedidosC } from './prototipo/PedidosC';
-import { PrototipoIndex } from './prototipo/PrototipoIndex';
 import { StoreLayout } from './store/StoreLayout';
 import { StoreSectionPage } from './store/StoreSectionPage';
 import { STORE_SECTIONS } from './store/store-sections';
@@ -125,26 +121,6 @@ export function App() {
             não do lojista.
           */}
           {import.meta.env.DEV ? <Route path="/ui" element={<UiGalleryPage />} /> : null}
-
-          {/*
-            OS PROTÓTIPOS DE DIREÇÃO VISUAL — três tratamentos da tela de
-            Pedidos, existindo ao mesmo tempo para serem COMPARADOS.
-
-            FORA DO <RequireAuth> E FORA DO <AppShell>, e as duas coisas são
-            de propósito: cada direção desenha a PRÓPRIA navegação (é
-            justamente uma das variáveis em julgamento), e exigir sessão
-            transformaria "abrir o link e olhar" em "lembrar a senha". Nada
-            aqui lê a API — o conteúdo é `prototipo/pedidos-exemplo.ts`.
-
-            AO CONTRÁRIO DA GALERIA ACIMA, ELAS EXISTEM EM PRODUÇÃO: a decisão
-            é tomada olhando o preview da Vercel, não o servidor de
-            desenvolvimento de quem escreveu. Somem no dia em que a direção
-            for escolhida — a pasta inteira sai junto.
-          */}
-          <Route path="/prototipo" element={<PrototipoIndex />} />
-          <Route path="/prototipo/pedidos/a" element={<PedidosA />} />
-          <Route path="/prototipo/pedidos/b" element={<PedidosB />} />
-          <Route path="/prototipo/pedidos/c" element={<PedidosC />} />
 
           {PENDING_ENTRIES.map((entry) => (
             <Route

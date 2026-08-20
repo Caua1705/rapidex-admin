@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 
 import { App } from './App';
 import { ThemeProvider } from './theme/ThemeProvider';
-import '@fontsource-variable/inter';
+import '@fontsource-variable/ibm-plex-sans';
 import './styles/global.css';
 
 const container = document.getElementById('root');

@@ -1,0 +1,136 @@
+/*
+ * A FAIXA DE 52px. Ver `PageBar.tsx` para o porquê dela existir como
+ * primitivo, e não como um cabeçalho por tela.
+ */
+
+.ds-pagebar {
+  /*
+   * ELA É UM CONTAINER DE CONSULTA. O que decide se a barra está apertada é a
+   * largura DELA, não a da janela: em 1440 com o painel de detalhe aberto ela
+   * fica com 828px, e uma consulta de janela leria "1440, tem espaço de sobra".
+   */
+  container: barra / inline-size;
+  z-index: var(--z-sticky);
+  min-height: var(--topbar-h);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--sp-20);
+  row-gap: var(--sp-4);
+  padding-inline: var(--page-pad);
+  padding-block: 0 var(--sp-4);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.ds-pagebar--gruda {
+  position: sticky;
+  top: 0;
+}
+
+/*
+ * O TÍTULO E O MEIO TÊM A ALTURA DA FAIXA; AS FERRAMENTAS, NÃO.
+ *
+ * Os dois primeiros seguram os 52px da faixa e ficam centrados nela. As
+ * ferramentas medem o próprio conteúdo — e é isso que barateia a fileira
+ * extra: com `min-height: 52px` nelas, cada envolvimento custava uma faixa
+ * inteira, e a barra de Pedidos com o painel aberto chegava a 128px de altura
+ * antes do primeiro pedido. Com a altura do conteúdo, a mesma fileira custa 34.
+ */
+.ds-pagebar__id,
+.ds-pagebar__meta {
+  min-height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+}
+
+.ds-pagebar__tools {
+  min-height: var(--control-h);
+  display: flex;
+  align-items: center;
+}
+
+.ds-pagebar__id {
+  gap: var(--sp-16);
+  min-width: 0;
+}
+
+.ds-pagebar__titulo {
+  flex: 0 0 auto;
+}
+
+/*
+ * O NOME DA SEÇÃO. Ele é a continuação do título, então vive na mesma linha e
+ * um degrau abaixo em corpo e tinta — não embaixo dele, em 16px, a dois blocos
+ * de distância, que era como "Minha loja" e "Geral" viravam dois títulos.
+ */
+.ds-pagebar__crumb {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-pagebar__meta {
+  gap: var(--sp-16);
+  min-width: 0;
+}
+
+.ds-pagebar__tools {
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: flex-end;
+  gap: var(--sp-16);
+}
+
+/* ==========================================================================
+ * CELULAR — a faixa vira três fileiras, e a ordem muda
+ *
+ * No telefone as FERRAMENTAS ficam por último: quem abre o painel no celular
+ * está conferindo o turno, não montando um recorte. A ordem da FONTE serve ao
+ * teclado e ao leitor de tela (título → meta → ferramentas) e é a mesma; o que
+ * muda é só o empilhamento.
+ * ======================================================================= */
+
+@media (max-width: 767px) {
+  .ds-pagebar {
+    position: static;
+    align-items: stretch;
+    column-gap: var(--sp-12);
+    padding-inline: var(--page-pad-mobile);
+  }
+
+  .ds-pagebar__id,
+  .ds-pagebar__meta,
+  .ds-pagebar__tools {
+    min-height: 0;
+  }
+
+  .ds-pagebar__id {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: var(--sp-8) var(--sp-12);
+    padding-block: var(--sp-12) var(--sp-8);
+  }
+
+  .ds-pagebar__meta {
+    width: 100%;
+    gap: var(--sp-12);
+    padding-bottom: var(--sp-8);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .ds-pagebar__meta::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ds-pagebar__tools {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: var(--sp-12);
+    padding-bottom: var(--sp-12);
+  }
+}

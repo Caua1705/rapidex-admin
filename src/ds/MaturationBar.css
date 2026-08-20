@@ -1,23 +1,32 @@
 /*
  * A BARRA DE MATURAÇÃO — e o único degradê do sistema.
  *
- * Ela mora no topo do ticket, encostada nas duas bordas: é a primeira coisa
- * que existe no cartão e a única que se lê sem foco.
+ * ELA MUDOU DE ENDEREÇO. Enquanto o pedido era um cartão, ela morava no topo
+ * dele, encostada nas duas bordas — era a primeira coisa que existia no cartão.
+ * Com o pedido virando LINHA (ver `ds/OrderRow`), o cartão não existe mais e a
+ * barra desceu para junto do dado que ela mede: sob o tempo decorrido, na
+ * largura da coluna do tempo. É a mesma informação, colada no número em vez de
+ * pendurada numa moldura que saiu.
  *
- * O QUE MUDOU NA DIREÇÃO BRASA: antes o fio trocava de cor em três degraus
- * (verde → âmbar → vermelho). Agora ele é CONTÍNUO — `--grad-brasa`, de latão
- * a brasa —, porque o tempo também é contínuo e o degrau escondia a diferença
- * entre um pedido de 51% e um de 84% da janela, que é exatamente onde a
- * decisão acontece.
+ * O FIO É CONTÍNUO, e não três degraus de cor. `--grad-maturacao` vai de
+ * ardósia (sobra tempo) a ocre (apertou) a carmim (estourou) — porque o tempo
+ * também é contínuo, e o degrau escondia a diferença entre um pedido a 51% da
+ * janela e um a 84%, que é exatamente onde a decisão acontece.
+ *
+ * ELE NÃO É MAIS A BRASA, e essa é a correção de rota da direção "Refinada": o
+ * degradê terminava no laranja da marca, o que era um quinto emprego da brasa
+ * escondido na tela mais importante do painel. A barra mede ESTADO (quanto
+ * falta para a promessa estourar), e estado tem a paleta de §4/§5 dos tokens —
+ * a marca é da ação primária e de mais nada.
  *
  * O truque que faz a fração LER como fração: o degradê inteiro é pintado dentro
  * da largura do fio, com `no-repeat`. Um pedido que acabou de entrar mostra só
- * o latão da ponta esquerda; um que está estourando mostra a rampa inteira até
- * o vermelho. Sem `no-repeat`, o degradê ladrilharia e a barra pareceria cheia
- * desde o primeiro minuto.
+ * a ardósia da ponta esquerda; um que está estourando mostra a rampa inteira
+ * até o carmim. Sem `no-repeat`, o degradê ladrilharia e a barra pareceria
+ * cheia desde o primeiro minuto.
  *
  * Os três degraus continuam existindo em `maturation.ts` — mas agora eles
- * pintam o CONTORNO do estouro, não o fio. Ver `--estourando` abaixo.
+ * decidem o PULSO do estouro, não a cor do fio. Ver `--estourando` abaixo.
  */
 .ds-maturacao {
   display: block;
@@ -25,9 +34,9 @@
   width: 100%;
   flex: 0 0 auto;
   /*
-   * O trilho é o plano de agrupamento, e não `--field`: com o campo passando a
-   * ser BRANCO nesta direção, um trilho em `--field` desaparecia dentro do
-   * cartão branco e a barra deixava de ter começo e fim. O vazio também informa
+   * O trilho é o plano de agrupamento, e não `--field`: com o campo sendo
+   * BRANCO nesta direção, um trilho em `--field` desapareceria dentro da lista
+   * branca e a barra deixaria de ter começo e fim. O vazio também informa
    * (falta encher), então ele precisa ser visível.
    */
   background: var(--surface-muted);
@@ -38,7 +47,7 @@
   display: block;
   height: 100%;
   width: var(--preenchido, 0%);
-  background-image: var(--grad-brasa);
+  background-image: var(--grad-maturacao);
   background-repeat: no-repeat;
   background-size: 100% 100%;
   /*
@@ -50,7 +59,7 @@
 }
 
 /*
- * ESTOURANDO (acima de 85% da janela). O fio já está na ponta vermelha do
+ * ESTOURANDO (acima de 85% da janela). O fio já está na ponta carmim do
  * degradê; o que se acrescenta é PULSO — a única animação de repetição do
  * sistema, e ela existe porque um pedido estourado precisa ser visto por quem
  * não está olhando para a tela.
