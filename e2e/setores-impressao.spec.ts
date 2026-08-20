@@ -119,9 +119,7 @@ test('Impressão mostra quantos itens tem cada setor e quantos ficaram sem', asy
   );
 
   await expect(page.getByTestId('sector-coverage')).toContainText('5 itens');
-  await expect(page.getByTestId('sector-coverage')).toContainText(
-    'não imprime em setor nenhum',
-  );
+  await expect(page.getByTestId('sector-coverage')).toContainText('não imprime em setor nenhum');
 });
 
 test('cria, renomeia e desativa um setor', async ({ page }) => {

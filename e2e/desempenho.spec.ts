@@ -13,7 +13,13 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 
-import { installFakeApi, FAKE_BRANCH_2, LOGIN_EMAIL, LOGIN_PASSWORD, type FakeApi } from './fake-api';
+import {
+  installFakeApi,
+  FAKE_BRANCH_2,
+  LOGIN_EMAIL,
+  LOGIN_PASSWORD,
+  type FakeApi,
+} from './fake-api';
 import { escolherFilial } from './seletor';
 
 let api: FakeApi;

@@ -216,10 +216,10 @@ com dois ids e dois preços.
 Isto contradiz o parágrafo acima de um jeito que custa caro, e a diferença é a
 razão de esta seção existir:
 
-| Rota | Sem `branch_id` |
-| --- | --- |
-| `GET /admin/orders`, `/admin/customers` | todas as filiais do token — o recorte é uma opção |
-| `GET /admin/categories`, `/admin/products` | **o cardápio de cada loja, somado num só** |
+| Rota                                       | Sem `branch_id`                                   |
+| ------------------------------------------ | ------------------------------------------------- |
+| `GET /admin/orders`, `/admin/customers`    | todas as filiais do token — o recorte é uma opção |
+| `GET /admin/categories`, `/admin/products` | **o cardápio de cada loja, somado num só**        |
 
 Na segunda linha o resultado é 200, o JSON é válido e nada acende. O que aparece
 é a tela dobrada: "Promoções 10 / Promoções 10" na barra de categorias, cada
@@ -231,12 +231,12 @@ compilação em vez de uma lista dobrada na mão do lojista.
 
 Nas escritas o campo é obrigatório de verdade:
 
-| Rota | Onde a filial entra |
-| --- | --- |
-| `POST /admin/categories` | **no corpo**, obrigatório (422 sem ela) |
-| `PATCH /admin/categories/reorder` | **no corpo**, obrigatório; a lista completa é a da filial |
-| `POST /admin/products` | **não vai** — a filial vem da categoria (`category_id` já a determina) |
-| `PATCH /admin/products/{id}` | `category_id` só aceita categoria da MESMA filial (400) |
+| Rota                              | Onde a filial entra                                                    |
+| --------------------------------- | ---------------------------------------------------------------------- |
+| `POST /admin/categories`          | **no corpo**, obrigatório (422 sem ela)                                |
+| `PATCH /admin/categories/reorder` | **no corpo**, obrigatório; a lista completa é a da filial              |
+| `POST /admin/products`            | **não vai** — a filial vem da categoria (`category_id` já a determina) |
+| `PATCH /admin/products/{id}`      | `category_id` só aceita categoria da MESMA filial (400)                |
 
 **Produto não muda de filial.** Quem quer o mesmo item na outra loja cria um lá
 com a mesma `catalog_key` — campo opcional, texto livre, único dentro da filial,

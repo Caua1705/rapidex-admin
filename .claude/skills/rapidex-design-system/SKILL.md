@@ -13,15 +13,15 @@ nunca crie uma segunda linguagem visual para contornar a divergência.
 
 Código de referência:
 
-| Camada         | Arquivo                                                       |
-| -------------- | ------------------------------------------------------------- |
-| Tokens         | `src/styles/tokens.css` — o único lugar com valor literal      |
-| Reset e foco   | `src/styles/reset.css`                                        |
-| Tipografia     | `src/styles/typography.css` — as classes `.t-*`               |
-| Primitivos CSS | `src/styles/primitives.css` — botão, campo, aviso, etiqueta    |
-| Componentes    | `src/ds/`                                                     |
-| Moldura        | `src/layout/AppShell.*`                                       |
-| Galeria viva   | `/ui`, só em desenvolvimento (`src/ui-gallery/`)              |
+| Camada         | Arquivo                                                     |
+| -------------- | ----------------------------------------------------------- |
+| Tokens         | `src/styles/tokens.css` — o único lugar com valor literal   |
+| Reset e foco   | `src/styles/reset.css`                                      |
+| Tipografia     | `src/styles/typography.css` — as classes `.t-*`             |
+| Primitivos CSS | `src/styles/primitives.css` — botão, campo, aviso, etiqueta |
+| Componentes    | `src/ds/`                                                   |
+| Moldura        | `src/layout/AppShell.*`                                     |
+| Galeria viva   | `/ui`, só em desenvolvimento (`src/ui-gallery/`)            |
 
 ## Limites invariáveis
 
@@ -95,13 +95,13 @@ Cinco níveis, e só cinco. Cada classe declara corpo, entrelinha, peso,
 espacejamento e tinta juntos — meia definição é como um nível vira quatro
 variantes em quatro telas.
 
-| Nível | Classe      | Tokens                              | Uso                                        |
-| ----- | ----------- | ----------------------------------- | ------------------------------------------ |
-| 1     | `.t-title`  | 22px / 28 / 600 / −0.022em / `--ink`   | título de página — um por rota           |
-| 2     | `.t-section`| 15px / 22 / 600 / −0.01em / `--ink`    | cartão, coluna, aba, diálogo             |
-| 3     | `.t-label`  | 12px / 16 / 600 / +0.004em / `--ink-3` | nome de campo, cabeçalho de coluna        |
-| 4     | `.t-body`   | 14px / 20 / 400 / −0.006em / `--ink`   | o conteúdo                                |
-| 5     | `.t-aux`    | 13px / 18 / 400 / −0.002em / `--ink-3` | ajuda, meta, hora, contagem               |
+| Nível | Classe       | Tokens                                 | Uso                                |
+| ----- | ------------ | -------------------------------------- | ---------------------------------- |
+| 1     | `.t-title`   | 22px / 28 / 600 / −0.022em / `--ink`   | título de página — um por rota     |
+| 2     | `.t-section` | 15px / 22 / 600 / −0.01em / `--ink`    | cartão, coluna, aba, diálogo       |
+| 3     | `.t-label`   | 12px / 16 / 600 / +0.004em / `--ink-3` | nome de campo, cabeçalho de coluna |
+| 4     | `.t-body`    | 14px / 20 / 400 / −0.006em / `--ink`   | o conteúdo                         |
+| 5     | `.t-aux`     | 13px / 18 / 400 / −0.002em / `--ink-3` | ajuda, meta, hora, contagem        |
 
 Além deles existe `.t-crumb` (13 / 600 / `--ink-2`): o nome da seção aberta
 DENTRO de uma tela, que é a continuação do título e não um segundo título.
@@ -170,16 +170,16 @@ Não inventar um raio por componente. `check-design-tokens.mjs` barra
 
 ### Os planos
 
-| Token              | Papel                                                       |
-| ------------------ | ----------------------------------------------------------- |
-| `--surface`        | **a folha** — o plano de toda tela do painel                |
-| `--surface-raised` | o que SOBE: menu, balão, diálogo, gaveta, barra de salvar   |
-| `--surface-muted`  | agrupamento: trilho do segmentado, palco de amostra          |
-| `--surface-selected` | seleção sem moldura — cinza frio, nunca a marca            |
-| `--field`          | o plano do que se PREENCHE                                   |
-| `--bg`             | o chão do SHELL, e a única tela que o usa como plano é o login |
-| `--nav-*`          | a navegação — família própria, ver "Shell"                   |
-| `--k-*`            | a Cozinha — paleta saturada, um valor por tema, ver "Cozinha" |
+| Token                | Papel                                                          |
+| -------------------- | -------------------------------------------------------------- |
+| `--surface`          | **a folha** — o plano de toda tela do painel                   |
+| `--surface-raised`   | o que SOBE: menu, balão, diálogo, gaveta, barra de salvar      |
+| `--surface-muted`    | agrupamento: trilho do segmentado, palco de amostra            |
+| `--surface-selected` | seleção sem moldura — cinza frio, nunca a marca                |
+| `--field`            | o plano do que se PREENCHE                                     |
+| `--bg`               | o chão do SHELL, e a única tela que o usa como plano é o login |
+| `--nav-*`            | a navegação — família própria, ver "Shell"                     |
+| `--k-*`              | a Cozinha — paleta saturada, um valor por tema, ver "Cozinha"  |
 
 `--bg` **não é plano de página**. Toda tela autenticada é uma folha em
 `--surface`; o login é a exceção porque ali não há tela por baixo, há uma janela
@@ -227,16 +227,16 @@ par lá.
 
 O que ela deixou de pintar nesta rodada, e para onde cada uso foi:
 
-| Uso antigo                 | Hoje                                              |
-| -------------------------- | ------------------------------------------------- |
-| item ativo da navegação    | `--nav-active` + peso 600 + fio `--nav-rail`      |
-| linha/pedido selecionado   | `--surface-selected`                              |
-| anel de foco               | `--focus`, que é `--ink`                          |
-| sublinhado da aba ativa    | `--ink`                                           |
-| seleção de texto           | `--surface-selected`                              |
-| faixa do topo do login     | removida                                          |
-| fim do degradê de maturação| `--danger`                                        |
-| borda do campo em foco     | `--focus`                                         |
+| Uso antigo                  | Hoje                                         |
+| --------------------------- | -------------------------------------------- |
+| item ativo da navegação     | `--nav-active` + peso 600 + fio `--nav-rail` |
+| linha/pedido selecionado    | `--surface-selected`                         |
+| anel de foco                | `--focus`, que é `--ink`                     |
+| sublinhado da aba ativa     | `--ink`                                      |
+| seleção de texto            | `--surface-selected`                         |
+| faixa do topo do login      | removida                                     |
+| fim do degradê de maturação | `--danger`                                   |
+| borda do campo em foco      | `--focus`                                    |
 
 Não existe mais `--ember-wash`: um wash da marca é, por construção, um convite a
 espalhar a marca.
@@ -271,11 +271,11 @@ posição, forma ou ícone.
 `src/layout/AppShell.*`. Três formas, e a regra é sempre a mesma — a informação
 não desaparece, ela troca de lugar.
 
-| Largura   | Navegação                                                        |
-| --------- | ---------------------------------------------------------------- |
-| ≥ 1180px  | lateral de 212px, com nomes e grupos escritos                    |
-| 768–1179  | trilha de ícones de 68px; o nome vive no `title` e no leitor de tela |
-| < 768px   | barra INFERIOR de quatro alvos; "Mais" abre o resto numa folha    |
+| Largura  | Navegação                                                            |
+| -------- | -------------------------------------------------------------------- |
+| ≥ 1180px | lateral de 212px, com nomes e grupos escritos                        |
+| 768–1179 | trilha de ícones de 68px; o nome vive no `title` e no leitor de tela |
+| < 768px  | barra INFERIOR de quatro alvos; "Mais" abre o resto numa folha       |
 
 A lateral é um plano do TEMA (`--nav-*`): no claro, um degrau acima do chão; no
 escuro, um degrau abaixo dele. O item ativo é dito por três coisas sem cor:
@@ -493,9 +493,9 @@ não têm hierarquia nenhuma. O sintoma mais visível era o contador de estágio
 numa fileira e o filtro de período em outra, sendo que os dois falam do MESMO
 recorte.
 
-| Faixa | Altura | Grupos |
-| ----- | ------ | ------ |
-| 1 — A TELA | 52px (`ds/PageBar`) | **navegação** (título e abas) à esquerda; **ação** (sino, atualizar) na margem direita |
+| Faixa                | Altura                  | Grupos                                                                                                                                        |
+| -------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 — A TELA           | 52px (`ds/PageBar`)     | **navegação** (título e abas) à esquerda; **ação** (sino, atualizar) na margem direita                                                        |
 | 2 — A LISTA E A LOJA | 40px (`.orders__barra`) | **recorte** (busca · período · contadores) à esquerda; depois de um fio, **promessa** (preparo com o ajuste · entrega · tempo real) à direita |
 
 A regra que decide o grupo é uma pergunta: **isto recorta a lista?** Período,
@@ -568,8 +568,8 @@ pendurado na parede, lido a dois metros por quem está com as mãos ocupadas:
 **ELA SEGUE O TEMA, como todas as outras.** O que muda entre os dois não é
 escolha, é a conta do contraste:
 
-| Tema   | A escala                                                     |
-| ------ | ------------------------------------------------------------ |
+| Tema   | A escala                                                      |
+| ------ | ------------------------------------------------------------- |
 | escuro | **acende**: matiz clara e saturada sobre carvão (`#33d68d`)   |
 | claro  | **aprofunda**: matiz funda e saturada sobre papel (`#06663a`) |
 
@@ -686,16 +686,16 @@ Validar 390, 430, 768, 1024, 1280, 1440, 1920 e 2560px.
 
 Os pontos de quebra do sistema:
 
-| Ponto  | O que muda                                                        |
-| ------ | ----------------------------------------------------------------- |
-| 640    | `DataTable` volta a ser tabela                                    |
-| 720    | folhas, diálogos e listas viram bloco / tela cheia                |
-| 768    | a navegação sai da barra de baixo e vira trilha de ícones         |
-| 900    | a coluna de seções de Minha loja deita                            |
-| 1024   | a coluna de categorias do Cardápio deita; densidade de mouse       |
-| 1100   | a grade de duas colunas de Desempenho volta a uma                 |
-| 1180   | a lateral do shell ganha os nomes                                 |
-| 1280   | o painel de detalhe deixa de flutuar e vira coluna                |
+| Ponto | O que muda                                                   |
+| ----- | ------------------------------------------------------------ |
+| 640   | `DataTable` volta a ser tabela                               |
+| 720   | folhas, diálogos e listas viram bloco / tela cheia           |
+| 768   | a navegação sai da barra de baixo e vira trilha de ícones    |
+| 900   | a coluna de seções de Minha loja deita                       |
+| 1024  | a coluna de categorias do Cardápio deita; densidade de mouse |
+| 1100  | a grade de duas colunas de Desempenho volta a uma            |
+| 1180  | a lateral do shell ganha os nomes                            |
+| 1280  | o painel de detalhe deixa de flutuar e vira coluna           |
 
 **Duas consultas são de CONTAINER, não de janela**, e é uma decisão de projeto:
 
