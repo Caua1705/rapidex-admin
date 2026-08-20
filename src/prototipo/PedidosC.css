@@ -1,0 +1,603 @@
+/*
+ * DIREÇÃO C — CONSOLE.
+ *
+ * Escuro inteiro, navegação no topo, zero moldura. A regra de composição é
+ * uma só: nada que não seja pedido pode ocupar altura. Sobram 46px de barra em
+ * cima, 22px de teclas embaixo, e todo o resto é lista.
+ *
+ * Tipografia: IBM Plex Mono nos NÚMEROS (cronômetro, nº, valor) e Inter no
+ * texto. A mono aqui não é estilo: numa coluna de trinta linhas o que se lê é
+ * a coluna, e dígito de largura variável destrói a varredura. É a decisão que
+ * o design system atual proíbe de propósito — e por isso ela só pode existir
+ * numa direção que se apresente como OUTRO produto.
+ */
+
+.pc {
+  --pc-fundo: #0a0c10;
+  --pc-painel: #11141a;
+  --pc-realce: #171b23;
+  --pc-fio: #1e232d;
+  --pc-fio-forte: #2b323e;
+
+  --pc-tinta: #e7ecf3;
+  --pc-tinta-2: #98a3b4;
+  --pc-tinta-3: #646f81;
+
+  /* Matizes acesas: no escuro, cor é o canal mais rápido de leitura. */
+  --pc-novo: #38bdf8;
+  --pc-preparo: #fbbf24;
+  --pc-pronto: #34d399;
+  --pc-rua: #a78bfa;
+  --pc-alarme: #fb7185;
+  /* A brasa da marca: só o que está aceso na navegação e a tecla de ação. */
+  --pc-brasa: #ff8a3d;
+
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--pc-fundo);
+  color: var(--pc-tinta);
+  font-family: Inter, 'Inter Variable', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.3;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* ── A barra de 46px: navegação, contadores e filtro na mesma linha. ─────── */
+
+.pc__topo {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 46px;
+  flex: none;
+  padding: 0 14px;
+  background: var(--pc-painel);
+  border-bottom: 1px solid var(--pc-fio);
+}
+
+.pc__marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13.5px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--pc-tinta);
+}
+
+.pc__marca i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--pc-brasa);
+}
+
+.pc__nav {
+  display: flex;
+  gap: 2px;
+}
+
+.pc__nav a {
+  padding: 4px 9px;
+  border-radius: 5px;
+  color: var(--pc-tinta-2);
+  text-decoration: none;
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.pc__nav a:hover {
+  background: var(--pc-realce);
+  color: var(--pc-tinta);
+}
+
+.pc__nav a[data-ativo] {
+  background: var(--pc-realce);
+  color: var(--pc-brasa);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--pc-brasa);
+}
+
+.pc__contadores {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.pc__contador {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: var(--pc-realce);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--pc-tinta-2);
+}
+
+.pc__contador i {
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  background: var(--pc-e, var(--pc-tinta-3));
+}
+
+.pc__contador b {
+  font-weight: 600;
+  color: var(--pc-e, var(--pc-tinta));
+}
+
+.pc__contador[data-zero] {
+  background: none;
+  color: var(--pc-tinta-3);
+}
+
+.pc__contador[data-zero] b {
+  color: var(--pc-tinta-3);
+}
+
+.pc__contador[data-zero] i {
+  opacity: 0.35;
+}
+
+/*
+ * A matiz do estágio entra uma vez, no elemento que carrega `data-e`, e desce
+ * por herança para o cap, o cronômetro e a faixa. Os seletores são presos ao
+ * `.pc` de propósito: `data-e` também existe nas outras duas direções, e sem o
+ * prefixo este arquivo pintaria a tela das vizinhas.
+ */
+.pc [data-e='novo'] {
+  --pc-e: var(--pc-novo);
+}
+.pc [data-e='preparo'] {
+  --pc-e: var(--pc-preparo);
+}
+.pc [data-e='pronto'] {
+  --pc-e: var(--pc-pronto);
+}
+.pc [data-e='rua'] {
+  --pc-e: var(--pc-rua);
+}
+
+.pc__direita {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.pc__periodo {
+  display: flex;
+  gap: 1px;
+  padding: 1px;
+  border-radius: 5px;
+  background: var(--pc-realce);
+}
+
+.pc__periodo button {
+  border: 0;
+  background: none;
+  padding: 3px 9px;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--pc-tinta-2);
+  cursor: pointer;
+}
+
+.pc__periodo button[aria-pressed='true'] {
+  background: var(--pc-fio-forte);
+  color: var(--pc-tinta);
+}
+
+.pc__busca {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 150px;
+  padding: 3px 6px 3px 9px;
+  border-radius: 5px;
+  background: var(--pc-realce);
+}
+
+.pc__busca input {
+  width: 100%;
+  border: 0;
+  background: none;
+  outline: none;
+  font: inherit;
+  font-size: 12px;
+  color: var(--pc-tinta);
+}
+
+.pc__busca input::placeholder {
+  color: var(--pc-tinta-3);
+}
+
+.pc__busca kbd,
+.pc__teclas kbd {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--pc-fio-forte);
+  color: var(--pc-tinta-2);
+}
+
+.pc__vivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--pc-tinta-2);
+  white-space: nowrap;
+}
+
+.pc__vivo i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pc-pronto);
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.16);
+}
+
+.pc__sessao {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--pc-tinta-3);
+  white-space: nowrap;
+}
+
+/* ── A lista. ────────────────────────────────────────────────────────────── */
+
+.pc__lista {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 8px;
+}
+
+.pc__faixa {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 22px;
+  margin: 0;
+  padding: 0 14px;
+  background: var(--pc-fundo);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--pc-e, var(--pc-tinta-2));
+}
+
+.pc__faixa-cap {
+  width: 3px;
+  height: 11px;
+  border-radius: 1px;
+  background: var(--pc-e, var(--pc-tinta-3));
+}
+
+.pc__faixa b {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-weight: 500;
+  color: var(--pc-tinta-3);
+}
+
+.pc__faixa-fio {
+  flex: 1;
+  height: 1px;
+  background: var(--pc-fio);
+}
+
+/*
+ * TRÊS COLUNAS DE LINHA. É a diferença entre ver onze pedidos e ver trinta e
+ * três: a linha tem 40px e não precisa dos 1400px de largura da tela para
+ * dizer o que diz.
+ */
+.pc__grade {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 1px;
+  padding: 1px 8px 8px;
+}
+
+.pc__linha {
+  display: grid;
+  grid-template-columns: 3px 58px 42px minmax(0, 1fr) minmax(0, 84px) 62px 56px;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 40px;
+  padding: 0 8px 0 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  font: inherit;
+  color: var(--pc-tinta);
+  text-align: left;
+  cursor: pointer;
+  /*
+   * Um fio quase invisível embaixo de cada linha. Com três colunas correndo em
+   * paralelo, é ele que impede o olho de pular da linha 4 da coluna 1 para a
+   * linha 5 da coluna 2 — que é o erro típico de varredura em grade larga.
+   */
+  box-shadow: inset 0 -1px 0 #171b23;
+}
+
+.pc__linha:hover {
+  background: var(--pc-realce);
+}
+
+.pc__linha[data-sel] {
+  background: var(--pc-realce);
+  box-shadow: inset 0 0 0 1px var(--pc-fio-forte);
+}
+
+.pc__tempo {
+  min-width: 42px;
+  text-align: right;
+  justify-content: flex-end;
+}
+
+.pc__linha[data-tarde],
+.pc__linha[data-trava] {
+  --pc-e: var(--pc-alarme);
+}
+
+.pc__cap {
+  width: 3px;
+  height: 26px;
+  border-radius: 0 2px 2px 0;
+  background: var(--pc-e, var(--pc-tinta-3));
+}
+
+.pc__tempo {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--pc-e, var(--pc-tinta));
+  font-variant-numeric: tabular-nums;
+}
+
+.pc__tempo em {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--pc-alarme);
+}
+
+.pc__num {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--pc-tinta-3);
+}
+
+.pc__cliente {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.008em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc__modo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--pc-tinta-2);
+}
+
+.pc__modo svg {
+  flex: none;
+  color: var(--pc-tinta-3);
+}
+
+/*
+ * O corte precisa acontecer NUM ELEMENTO. Como texto solto dentro de um flex,
+ * "Dionísio Torres" não recebia `text-overflow` e invadia a coluna do
+ * pagamento — numa grade de três colunas, um bairro comprido apagava o campo
+ * do vizinho.
+ */
+.pc__destino {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc__pgto {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.01em;
+  color: var(--pc-tinta-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc__linha[data-trava] .pc__pgto {
+  color: var(--pc-alarme);
+  font-weight: 600;
+}
+
+.pc__valor {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--pc-tinta);
+}
+
+/*
+ * A ação vive no lugar do valor e só troca com ele no hover: numa lista de
+ * trinta linhas, trinta botões visíveis seriam trinta ruídos.
+ */
+.pc__tecla {
+  display: none;
+}
+
+.pc__linha:hover .pc__valor,
+.pc__linha[data-sel] .pc__valor {
+  display: none;
+}
+
+.pc__linha:hover .pc__tecla,
+.pc__linha[data-sel] .pc__tecla {
+  display: inline-block;
+  grid-column: 7;
+  text-align: right;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--pc-brasa);
+}
+
+.pc__linha[data-trava]:hover .pc__tecla,
+.pc__linha[data-trava][data-sel] .pc__tecla {
+  color: var(--pc-tinta-3);
+}
+
+/* ── O rodapé de teclas. ─────────────────────────────────────────────────── */
+
+.pc__teclas {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 22px;
+  flex: none;
+  padding: 0 14px;
+  background: var(--pc-painel);
+  border-top: 1px solid var(--pc-fio);
+  font-size: 11px;
+  color: var(--pc-tinta-3);
+}
+
+.pc__teclas span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.pc__teclas-fim {
+  margin-left: auto;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+}
+
+/* ── Estreitando: 2 colunas, depois 1. ───────────────────────────────────── */
+
+@media (max-width: 1340px) {
+  .pc__grade {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1000px) {
+  .pc__grade {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .pc {
+    position: static;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .pc__topo {
+    height: auto;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 8px 12px;
+  }
+
+  .pc__nav {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .pc__contadores {
+    order: 4;
+    width: 100%;
+    margin-left: 0;
+    overflow-x: auto;
+  }
+
+  .pc__direita {
+    gap: 8px;
+  }
+
+  .pc__sessao {
+    display: none;
+  }
+
+  .pc__busca {
+    width: 110px;
+  }
+
+  /* A linha perde a coluna do pagamento e a modalidade fica só no ícone. */
+  .pc__linha {
+    grid-template-columns: 3px 54px 40px minmax(0, 1fr) 24px 58px;
+    padding-right: 6px;
+  }
+
+  .pc__modo {
+    overflow: visible;
+    font-size: 0;
+  }
+
+  .pc__pgto {
+    display: none;
+  }
+
+  /*
+   * ...com UMA exceção, e ela é a razão de a regra existir: no pedido travado,
+   * "PGTO PEND" toma o lugar do valor. Entre saber quanto o pedido custa e
+   * saber que a cozinha não pode começar, no celular só cabe a segunda.
+   */
+  .pc__linha[data-trava] .pc__pgto {
+    display: block;
+    grid-column: 6;
+    text-align: right;
+  }
+
+  .pc__linha[data-trava] .pc__valor {
+    display: none;
+  }
+
+  /* Com uma coluna a menos, a tecla de ação troca de lugar com o valor ali. */
+  .pc__linha:hover .pc__tecla,
+  .pc__linha[data-sel] .pc__tecla {
+    grid-column: 6;
+  }
+
+  .pc__linha[data-trava] .pc__cap {
+    height: 34px;
+  }
+
+  .pc__teclas {
+    display: none;
+  }
+}

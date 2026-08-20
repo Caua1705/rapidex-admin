@@ -1,0 +1,52 @@
+/* Andaime de protótipo: cinza de ferramenta, canto de baixo, fora das paletas. */
+
+.proto-switch {
+  position: fixed;
+  right: 12px;
+  /* Acima dos 22px da barra de teclas da direção C, e sobre o vazio nas outras. */
+  bottom: 32px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 5px 4px 9px;
+  border-radius: 999px;
+  background: #1b1f27;
+  border: 1px solid #333b48;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  font-family: system-ui, sans-serif;
+}
+
+.proto-switch__rot {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: #7b8697;
+  margin-right: 3px;
+}
+
+.proto-switch__opt {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  color: #aab4c2;
+  text-decoration: none;
+}
+
+.proto-switch__opt:hover {
+  background: #2a313c;
+  color: #eef2f7;
+}
+
+.proto-switch__opt[data-on] {
+  background: #eef2f7;
+  color: #1b1f27;
+}
+
+.proto-switch__opt--sair {
+  font-weight: 500;
+  color: #6b7686;
+}

@@ -162,7 +162,19 @@ export default tseslint.config(
      * em vez de acumular (ver o bloco acima).
      */
     files: ['src/**/*.{ts,tsx}'],
-    ignores: ['src/**/*.test.{ts,tsx}'],
+    /*
+     * `src/prototipo/**` fica de fora pelo mesmo motivo que em
+     * scripts/check-design-tokens.mjs: são os protótipos de DIREÇÃO VISUAL, e
+     * a pergunta que eles fazem é se a paleta, a letra e a densidade atuais
+     * devem continuar. Uma regra que exige `Inter` e `var(--token)` numa tela
+     * que existe para propor outra letra e outros tokens só produziria três
+     * versões da mesma direção.
+     *
+     * Os seletores de XSS continuam valendo (o bloco anterior os aplica a todo
+     * o `src/`), e a exceção sai junto com a pasta quando a direção for
+     * escolhida.
+     */
+    ignores: ['src/**/*.test.{ts,tsx}', 'src/prototipo/**'],
     rules: {
       'no-restricted-syntax': ['error', ...xssSinkSelectors, ...adherenceSelectors],
     },

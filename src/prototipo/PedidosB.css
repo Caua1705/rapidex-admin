@@ -1,0 +1,750 @@
+/*
+ * DIREÇÃO B — APP.
+ *
+ * Cantos de 14–18px, superfícies macias, sombra baixa e larga em vez de borda
+ * dura, e COR COM FUNÇÃO: cada estágio tem uma matiz, e ela aparece três vezes
+ * — na pílula do topo, no topo da coluna e no cronômetro do cartão. O laranja
+ * da marca não é decoração: ele é o botão do que fazer agora.
+ *
+ * Tipografia: Plus Jakarta Sans. Geométrica de terminais arredondados, com o
+ * "a" de um andar — é a letra que faz a tela ler como aplicativo e não como
+ * planilha. Números com `tabular-nums` só onde alinham em coluna.
+ */
+
+.pb {
+  --pb-fundo: #f2f4f7;
+  --pb-superficie: #ffffff;
+  --pb-borda: #e9ecf1;
+  --pb-borda-forte: #dbe0e8;
+
+  --pb-tinta: #171b22;
+  --pb-tinta-2: #5a6474;
+  --pb-tinta-3: #8c96a6;
+
+  /* A marca. O laranja fica reservado à AÇÃO — o botão e o item aceso. */
+  --pb-brasa: #ea580c;
+  --pb-brasa-forte: #c2410c;
+  --pb-brasa-leve: #fff1e8;
+
+  /* Estado. Saturadas o bastante para serem lidas a três metros do balcão. */
+  --pb-novo: #2563eb;
+  --pb-novo-leve: #eaf1ff;
+  --pb-preparo: #b45309;
+  --pb-preparo-leve: #fdf3e3;
+  --pb-pronto: #15803d;
+  --pb-pronto-leve: #e8f7ed;
+  --pb-rua: #7c3aed;
+  --pb-rua-leve: #f2ecfe;
+  --pb-alarme: #dc2626;
+  --pb-alarme-leve: #fdecec;
+
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  background: var(--pb-fundo);
+  color: var(--pb-tinta);
+  font-family: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* ── Lateral clara, com o accent no item aceso. ──────────────────────────── */
+
+.pb__lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 14px 12px;
+  background: var(--pb-superficie);
+  border-right: 1px solid var(--pb-borda);
+  overflow-y: auto;
+}
+
+.pb__marca {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 2px 6px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.pb__selo {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  background: var(--pb-brasa);
+  color: var(--pb-superficie);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.pb__loja {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 9px 11px;
+  border-radius: 13px;
+  background: var(--pb-fundo);
+}
+
+.pb__loja-nome {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.pb__loja-estado {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--pb-pronto);
+}
+
+.pb__loja-estado i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pb-pronto);
+}
+
+.pb__grupo ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pb__grupo-titulo {
+  margin: 0 0 5px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--pb-tinta-3);
+}
+
+/* O item aceso é uma PÍLULA: fundo lavado de brasa, texto e ícone em brasa. */
+.pb__link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  color: var(--pb-tinta-2);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pb__link svg {
+  flex: none;
+  color: var(--pb-tinta-3);
+}
+
+.pb__link span {
+  flex: 1;
+  min-width: 0;
+}
+
+.pb__link b {
+  font-size: 11.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--pb-brasa);
+  color: var(--pb-superficie);
+}
+
+.pb__link:hover {
+  background: var(--pb-fundo);
+  color: var(--pb-tinta);
+}
+
+.pb__link[data-ativo] {
+  background: var(--pb-brasa-leve);
+  color: var(--pb-brasa-forte);
+}
+
+.pb__link[data-ativo] svg {
+  color: var(--pb-brasa);
+}
+
+.pb__conta {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px;
+  border-radius: 13px;
+  background: var(--pb-fundo);
+}
+
+.pb__avatar {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--pb-superficie);
+  border: 1px solid var(--pb-borda-forte);
+  font-size: 11.5px;
+  font-weight: 700;
+  flex: none;
+}
+
+.pb__conta strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pb__conta small {
+  display: block;
+  font-size: 11px;
+  color: var(--pb-tinta-3);
+}
+
+/* ── A faixa de ferramentas: 44px, sem moldura. ──────────────────────────── */
+
+.pb__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.pb__ferramentas {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 44px;
+  flex: none;
+  padding: 0 18px;
+}
+
+.pb__pilulas {
+  display: flex;
+  gap: 6px;
+}
+
+/*
+ * A pílula é contador E legenda. O estágio zerado continua aqui, com metade da
+ * tinta — é o que permite que a coluna dele não exista lá embaixo sem que a
+ * informação "não há nenhum pronto" desapareça da tela.
+ */
+.pb__pilula {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pb__pilula b {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.pb__pilula[data-e='novo'] {
+  background: var(--pb-novo-leve);
+  color: var(--pb-novo);
+}
+.pb__pilula[data-e='preparo'] {
+  background: var(--pb-preparo-leve);
+  color: var(--pb-preparo);
+}
+.pb__pilula[data-e='pronto'] {
+  background: var(--pb-pronto-leve);
+  color: var(--pb-pronto);
+}
+.pb__pilula[data-e='rua'] {
+  background: var(--pb-rua-leve);
+  color: var(--pb-rua);
+}
+
+.pb__pilula[data-zero] {
+  background: var(--pb-superficie);
+  color: var(--pb-tinta-3);
+}
+
+.pb__busca {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  max-width: 340px;
+  margin-left: auto;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--pb-superficie);
+  color: var(--pb-tinta-3);
+}
+
+.pb__busca input {
+  width: 100%;
+  border: 0;
+  background: none;
+  outline: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pb-tinta);
+}
+
+.pb__periodo {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--pb-superficie);
+}
+
+.pb__periodo-opt {
+  border: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pb-tinta-2);
+  cursor: pointer;
+}
+
+.pb__periodo-opt[aria-pressed='true'] {
+  background: var(--pb-tinta);
+  color: var(--pb-superficie);
+}
+
+.pb__vivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pb-pronto);
+  white-space: nowrap;
+}
+
+.pb__vivo i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pb-pronto);
+}
+
+/* ── O quadro: uma coluna por estágio COM pedido. ────────────────────────── */
+
+.pb__quadro {
+  display: grid;
+  grid-template-columns: repeat(var(--pb-n, 3), minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 18px 18px;
+  min-height: 0;
+  flex: 1;
+}
+
+.pb__quadro[data-colunas='1'] {
+  --pb-n: 1;
+}
+.pb__quadro[data-colunas='2'] {
+  --pb-n: 2;
+}
+.pb__quadro[data-colunas='3'] {
+  --pb-n: 3;
+}
+.pb__quadro[data-colunas='4'] {
+  --pb-n: 4;
+}
+
+.pb__coluna {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pb__coluna-topo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  flex: none;
+  padding: 0 4px;
+}
+
+.pb__coluna-nome {
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.pb__coluna-conta {
+  font-size: 11.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 1px 8px;
+  border-radius: 999px;
+}
+
+.pb__coluna[data-e='novo'] .pb__coluna-nome {
+  color: var(--pb-novo);
+}
+.pb__coluna[data-e='novo'] .pb__coluna-conta {
+  background: var(--pb-novo-leve);
+  color: var(--pb-novo);
+}
+.pb__coluna[data-e='preparo'] .pb__coluna-nome {
+  color: var(--pb-preparo);
+}
+.pb__coluna[data-e='preparo'] .pb__coluna-conta {
+  background: var(--pb-preparo-leve);
+  color: var(--pb-preparo);
+}
+.pb__coluna[data-e='pronto'] .pb__coluna-nome {
+  color: var(--pb-pronto);
+}
+.pb__coluna[data-e='pronto'] .pb__coluna-conta {
+  background: var(--pb-pronto-leve);
+  color: var(--pb-pronto);
+}
+.pb__coluna[data-e='rua'] .pb__coluna-nome {
+  color: var(--pb-rua);
+}
+.pb__coluna[data-e='rua'] .pb__coluna-conta {
+  background: var(--pb-rua-leve);
+  color: var(--pb-rua);
+}
+
+.pb__cartoes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  padding-bottom: 4px;
+}
+
+/* ── O cartão. ───────────────────────────────────────────────────────────── */
+
+.pb__cartao {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 13px 11px;
+  border-radius: 18px;
+  background: var(--pb-superficie);
+  border: 1px solid var(--pb-borda);
+  box-shadow: 0 1px 2px rgba(23, 27, 34, 0.04);
+  cursor: pointer;
+}
+
+.pb__cartao:hover {
+  border-color: var(--pb-borda-forte);
+  box-shadow: 0 4px 12px rgba(23, 27, 34, 0.07);
+}
+
+.pb__cartao[data-sel] {
+  border-color: var(--pb-c, var(--pb-tinta));
+  box-shadow: 0 0 0 3px var(--pb-c-leve, var(--pb-fundo));
+}
+
+.pb__cartao[data-e='novo'] {
+  --pb-c: var(--pb-novo);
+  --pb-c-leve: var(--pb-novo-leve);
+}
+.pb__cartao[data-e='preparo'] {
+  --pb-c: var(--pb-preparo);
+  --pb-c-leve: var(--pb-preparo-leve);
+}
+.pb__cartao[data-e='pronto'] {
+  --pb-c: var(--pb-pronto);
+  --pb-c-leve: var(--pb-pronto-leve);
+}
+.pb__cartao[data-e='rua'] {
+  --pb-c: var(--pb-rua);
+  --pb-c-leve: var(--pb-rua-leve);
+}
+
+.pb__cartao[data-tarde] {
+  --pb-c: var(--pb-alarme);
+  --pb-c-leve: var(--pb-alarme-leve);
+  border-color: var(--pb-alarme);
+}
+
+.pb__cartao[data-trava] {
+  --pb-c: var(--pb-alarme);
+  --pb-c-leve: var(--pb-alarme-leve);
+}
+
+.pb__cartao-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pb__tempo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  background: var(--pb-c-leve);
+  color: var(--pb-c);
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.pb__tempo em {
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.pb__numero {
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--pb-tinta-3);
+}
+
+.pb__cliente {
+  margin: 5px 0 0;
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pb__resumo {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--pb-tinta-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pb__marcas {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/*
+ * O ÍCONE FAZ TRABALHO DE LEITURA. A moto e a pessoa a pé são reconhecidas
+ * antes da palavra ao lado — e no celular, onde o bairro é cortado, o ícone é
+ * o que sobra dizendo que aquele pedido tem de sair para a rua.
+ */
+.pb__marca-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 10px;
+  background: var(--pb-fundo);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--pb-tinta-2);
+  white-space: nowrap;
+}
+
+.pb__marca-item[data-m='entrega'] svg {
+  color: var(--pb-rua);
+}
+
+.pb__marca-item[data-m='retirada'] svg {
+  color: var(--pb-pronto);
+}
+
+.pb__marca-item[data-pg='pendente'] {
+  background: var(--pb-alarme-leve);
+  color: var(--pb-alarme);
+}
+
+.pb__valor {
+  margin-left: auto;
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+}
+
+/* A ação em brasa: o laranja da marca é o "faça isto", e nada mais. */
+.pb__acao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--pb-brasa);
+  color: var(--pb-superficie);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pb__acao:hover {
+  background: var(--pb-brasa-forte);
+}
+
+/* Fora dos Novos, a ação é secundária: a decisão já foi tomada. */
+.pb__cartao:not([data-e='novo']) .pb__acao {
+  background: var(--pb-fundo);
+  color: var(--pb-tinta);
+}
+
+.pb__cartao:not([data-e='novo']) .pb__acao:hover {
+  background: var(--pb-borda);
+}
+
+.pb__trava {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 10px 0 0;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: var(--pb-alarme-leve);
+  color: var(--pb-alarme);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.pb__trava svg {
+  flex: none;
+}
+
+/* ── Celular: lateral vira barra de baixo, colunas empilham. ─────────────── */
+
+@media (max-width: 900px) {
+  .pb {
+    position: static;
+    display: block;
+    min-height: 100vh;
+    overflow: visible;
+    padding-bottom: 66px;
+  }
+
+  .pb__lateral {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 5;
+    flex-direction: row;
+    justify-content: space-around;
+    gap: 0;
+    height: 62px;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    border-right: 0;
+    border-top: 1px solid var(--pb-borda);
+    overflow: visible;
+  }
+
+  .pb__marca,
+  .pb__loja,
+  .pb__conta,
+  .pb__grupo-titulo,
+  .pb__link b {
+    display: none;
+  }
+
+  .pb__grupo {
+    flex: 1;
+  }
+
+  .pb__grupo ul {
+    flex-direction: row;
+    justify-content: space-around;
+  }
+
+  .pb__link {
+    flex-direction: column;
+    gap: 3px;
+    padding: 6px 4px;
+    border-radius: 12px;
+    font-size: 10.5px;
+    text-align: center;
+  }
+
+  .pb__ferramentas {
+    height: auto;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 14px;
+  }
+
+  .pb__pilulas {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .pb__busca {
+    max-width: none;
+    margin-left: 0;
+    order: 1;
+    height: 38px;
+  }
+
+  .pb__periodo {
+    order: 2;
+  }
+
+  .pb__vivo {
+    order: 2;
+    margin-left: auto;
+  }
+
+  .pb__quadro {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 0 14px 14px;
+  }
+
+  .pb__cartoes {
+    overflow: visible;
+  }
+
+  /* No empilhamento o topo da coluna vira a régua do estágio, e ela gruda. */
+  .pb__coluna-topo {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    height: 30px;
+    background: var(--pb-fundo);
+  }
+}
