@@ -1291,6 +1291,34 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/admin/reviews': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Reviews
+     * @description O que os clientes disseram no periodo, com o agregado junto.
+     *
+     *     O periodo recorta a data da AVALIACAO, nao a do pedido: a pergunta e "o
+     *     que os clientes disseram esta semana", e uma nota escrita hoje sobre um
+     *     pedido de terca pertence a hoje.
+     *
+     *     **`max_rating` nao mexe no `summary`.** Filtrar a lista para as notas
+     *     baixas nao pode fazer a media do periodo desabar na mesma tela — o
+     *     agregado sempre fala do periodo inteiro.
+     */
+    get: operations['list_reviews_admin_reviews_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/admin/settings': {
     parameters: {
       query?: never;
@@ -1970,6 +1998,51 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/restaurants/{restaurant_slug}/orders/track/{tracking_token}/review': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Review Order
+     * @description A nota do cliente sobre um pedido entregue.
+     *
+     *     **PUT e nao POST**, e a escolha e o contrato: um pedido tem no maximo uma
+     *     avaliacao (`uq_order_reviews_order_id`), e mandar de novo TROCA a que
+     *     estava la em vez de criar uma segunda. Quem apertou uma estrela por engano
+     *     manda de novo; quem tem rede ruim e reenviou nao cria duas notas.
+     *
+     *     **Sem login, de proposito.** Pedido de convidado e caso normal, e exigir
+     *     conta aqui cortaria justamente quem mais tem o que dizer. Quem autoriza e
+     *     o `tracking_token` desta URL — o mesmo que abre o acompanhamento do
+     *     pedido, com 256 bits e sem rota de reemissao.
+     *
+     *     ## Quando a rota aceita
+     *
+     *     - o pedido esta em `completed` (409 nos outros, inclusive `cancelled` e
+     *       `rejected`: nao houve entrega para avaliar);
+     *     - dentro de 14 dias da entrega (409 depois disso).
+     *
+     *     ## Os campos
+     *
+     *     - `rating`: 1 a 5, obrigatorio. UMA nota geral — ver
+     *       `CreateOrderReviewRequest` para por que nao ha nota separada de comida,
+     *       entrega e embalagem.
+     *     - `problem_tag`: opcional, e **so aceito com `rating` ate 3**. Mandar com
+     *       nota 4 ou 5 responde 422.
+     *     - `comment`: opcional, ate 500 caracteres.
+     */
+    put: operations['review_order_restaurants__restaurant_slug__orders_track__tracking_token__review_put'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/restaurants/{restaurant_slug}/orders/{tracking_token}/payment': {
     parameters: {
       query?: never;
@@ -2610,6 +2683,36 @@ export interface components {
       /** Total */
       total: number;
     };
+    /**
+     * AdminOrderReviewItem
+     * @description Uma avaliacao, como o lojista a ve.
+     *
+     *     NAO leva nome nem telefone do cliente. O `order_number` e o suficiente
+     *     para ele achar o pedido, e `GET /admin/orders/{id}` ja mostra a pessoa —
+     *     repetir dado pessoal numa segunda tela e superficie a mais sem leitor
+     *     novo.
+     */
+    AdminOrderReviewItem: {
+      /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
+      /** Comment */
+      comment?: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Order Number */
+      order_number: number;
+      /** Problem Tag */
+      problem_tag?:
+        ('atrasou' | 'veio_errado' | 'veio_frio' | 'faltou_item' | 'qualidade' | 'outro') | null;
+      /** Rating */
+      rating: number;
+    };
     /** AdminOrderStatusCount */
     AdminOrderStatusCount: {
       /** Count */
@@ -3044,6 +3147,41 @@ export interface components {
       service_fee_amount?: number | string | null;
       /** Service Fee Enabled */
       service_fee_enabled?: boolean | null;
+    };
+    /**
+     * AdminReviewSummary
+     * @description O agregado do periodo, e a razao de a etiqueta de problema existir.
+     *
+     *     `average` e `float`, e a regra do `Decimal` (armadilha 34) NAO se aplica:
+     *     media de nota nao e dinheiro, nao tem centavo e nao precisa de casa fixa.
+     *
+     *     `by_rating` traz as CINCO chaves sempre, inclusive as zeradas. Histograma
+     *     com buraco obriga o front a preencher o que falta, e cada front preenche
+     *     de um jeito.
+     *
+     *     `by_problem_tag` traz so as etiquetas que apareceram. Ao contrario das
+     *     notas, a lista pode crescer (`REVIEW_PROBLEM_TAGS`), e devolver zeros de
+     *     etiquetas novas nao ajudaria ninguem.
+     */
+    AdminReviewSummary: {
+      /** Average */
+      average?: number | null;
+      /** By Problem Tag */
+      by_problem_tag: {
+        [key: string]: number;
+      };
+      /** By Rating */
+      by_rating: {
+        [key: string]: number;
+      };
+      /** Total */
+      total: number;
+    };
+    /** AdminReviewsResponse */
+    AdminReviewsResponse: {
+      /** Items */
+      items: components['schemas']['AdminOrderReviewItem'][];
+      summary: components['schemas']['AdminReviewSummary'];
     };
     /**
      * AdminStreamTicketResponse
@@ -4093,6 +4231,25 @@ export interface components {
       /** Tracking Token */
       tracking_token: string;
     };
+    /**
+     * CreateOrderReviewRequest
+     * @description A avaliacao que o cliente manda. Nota obrigatoria, o resto opcional.
+     *
+     *     UMA nota geral, e nao notas separadas por comida/entrega/embalagem. O
+     *     motivo nao e so taxa de resposta: o formulario teria que mudar de forma
+     *     por `order_type`, porque pedido de RETIRADA nao tem entrega — e uma nota
+     *     de entrega nula ficaria indistinguivel de "nao respondeu", fazendo a
+     *     media por dimensao depender do mix de retirada da loja.
+     */
+    CreateOrderReviewRequest: {
+      /** Comment */
+      comment?: string | null;
+      /** Problem Tag */
+      problem_tag?:
+        ('atrasou' | 'veio_errado' | 'veio_frio' | 'faltou_item' | 'qualidade' | 'outro') | null;
+      /** Rating */
+      rating: number;
+    };
     /** CurrentCustomerResponse */
     CurrentCustomerResponse: {
       /**
@@ -4193,6 +4350,8 @@ export interface components {
       /** Orders */
       orders: components['schemas']['CustomerOrderHistoryItem'][];
       profile: components['schemas']['CurrentCustomerResponse'];
+      /** Reviews */
+      reviews: components['schemas']['CustomerReviewItem'][];
     };
     /** CustomerInput */
     CustomerInput: {
@@ -4247,6 +4406,30 @@ export interface components {
       subtotal: number;
       /** Total */
       total: number;
+    };
+    /**
+     * CustomerReviewItem
+     * @description Uma avaliacao do titular, na exportacao de dados dele.
+     *
+     *     Leva `order_number` e nao `order_id` pelo mesmo motivo do resto da
+     *     exportacao: o pacote e para a PESSOA ler, e o numero e o que ela
+     *     reconhece.
+     */
+    CustomerReviewItem: {
+      /** Comment */
+      comment?: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Order Number */
+      order_number: number;
+      /** Problem Tag */
+      problem_tag?:
+        ('atrasou' | 'veio_errado' | 'veio_frio' | 'faltou_item' | 'qualidade' | 'outro') | null;
+      /** Rating */
+      rating: number;
     };
     /**
      * CustomerSegment
@@ -4725,6 +4908,37 @@ export interface components {
       order_id: string;
       /** Order Number */
       order_number: number;
+    };
+    /**
+     * OrderReviewResponse
+     * @description A avaliacao gravada, devolvida para a tela confirmar o que ficou.
+     *
+     *     Nao leva `order_id`: quem chamou ja tem o token do pedido, e devolve-lo
+     *     so acrescentaria um identificador interno a uma resposta publica.
+     */
+    OrderReviewResponse: {
+      /** Comment */
+      comment?: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Problem Tag */
+      problem_tag?:
+        ('atrasou' | 'veio_errado' | 'veio_frio' | 'faltou_item' | 'qualidade' | 'outro') | null;
+      /** Rating */
+      rating: number;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
     };
     /** OrderTypeSplitItem */
     OrderTypeSplitItem: {
@@ -7870,6 +8084,46 @@ export interface operations {
       };
     };
   };
+  list_reviews_admin_reviews_get: {
+    parameters: {
+      query: {
+        /** @description Primeiro dia do periodo (inclusive) */
+        start_date: string;
+        /** @description Ultimo dia do periodo (inclusive) */
+        end_date: string;
+        /** @description Recorte por filial. Omitido, traz o restaurante inteiro. So restringe. */
+        branch_id?: string | null;
+        /** @description Traz somente notas ATE este valor. O uso real e max_rating=3. */
+        max_rating?: number | null;
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminReviewsResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   get_restaurant_settings_admin_settings_get: {
     parameters: {
       query?: never;
@@ -9072,6 +9326,56 @@ export interface operations {
         content: {
           'application/json': components['schemas']['OrderDetailResponse'];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  review_order_restaurants__restaurant_slug__orders_track__tracking_token__review_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        restaurant_slug: string;
+        tracking_token: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateOrderReviewRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OrderReviewResponse'];
+        };
+      };
+      /** @description Pedido nao encontrado, ou token invalido */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Pedido ainda nao entregue, ou prazo de avaliacao encerrado */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {
