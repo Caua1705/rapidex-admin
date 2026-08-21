@@ -88,6 +88,7 @@ export const PAPEL_POR_ROTA = {
   '/admin/reports/products': { GET: 'GERENCIA' },
   '/admin/reports/sales-by-day': { GET: 'GERENCIA' },
   '/admin/reports/summary': { GET: 'GERENCIA' },
+  '/admin/reviews': { GET: 'GERENCIA' },
   '/admin/settings': { GET: 'PESSOAS', PATCH: 'SOMENTE_DONO' },
 } as const satisfies Partial<
   Record<
