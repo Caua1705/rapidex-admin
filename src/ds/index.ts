@@ -33,6 +33,7 @@ export { faixaDe, razaoDeMaturacao, type Faixa } from './maturation';
 export { OrderRow } from './OrderRow';
 export { PageBar } from './PageBar';
 export { HelpPopover } from './HelpPopover';
+export { useAnchoredPanel } from './use-anchored-panel';
 export { Card } from './Card';
 export { DataTable, type Column } from './DataTable';
 export { STAGE_LABEL, type Stage } from './status';

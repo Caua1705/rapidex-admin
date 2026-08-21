@@ -43,6 +43,7 @@ export function RangeInput({
   prefix,
   separator = 'a',
   inputMode = 'numeric',
+  type,
   disabled,
   className,
 }: {
@@ -52,6 +53,18 @@ export function RangeInput({
   prefix?: string;
   separator?: string;
   inputMode?: 'numeric' | 'decimal';
+  /**
+   * A faixa de DATAS usa `type="date"`, e é o único motivo desta propriedade
+   * existir. Ela entrou aqui em vez de a tela montar dois `input type="date"`
+   * com um separador no meio: o filtro de Clientes teria virado a terceira
+   * escrita da mesma faixa (o painel já tem esta e a de Pedidos), e faixa de
+   * data é exatamente o objeto que este componente descreve — dois valores que
+   * são um dado, editados juntos e validados em par pelo backend.
+   *
+   * Com `type="date"` o `inputMode` não vale nada (o controle é um calendário,
+   * não um teclado), e é por isso que ele continua com o padrão numérico.
+   */
+  type?: 'date';
   disabled?: boolean;
   /** Teto de conteúdo da faixa inteira — ver `.ds-range--faixa` em Input.css. */
   className?: string;
@@ -70,6 +83,7 @@ export function RangeInput({
         placeholder={from.placeholder}
         prefix={prefix}
         suffix={suffix}
+        type={type}
         inputMode={inputMode}
         disabled={disabled}
       />
@@ -92,6 +106,7 @@ export function RangeInput({
         placeholder={to.placeholder}
         prefix={prefix}
         suffix={suffix}
+        type={type}
         inputMode={inputMode}
         disabled={disabled}
       />

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 
 import { HelpIcon } from './icons';
+import { useAnchoredPanel } from './use-anchored-panel';
 import './HelpPopover.css';
 
 /**
@@ -42,15 +43,9 @@ import './HelpPopover.css';
  * (`aria-expanded`), o painel vem logo depois dele na ordem do documento, e o
  * leitor de tela anda de um para o outro sem narração nossa.
  *
- * ----------------------------------------------------------------------------
- * O TECLADO
- * ----------------------------------------------------------------------------
- *
- *   Enter/Espaço  abrem e fecham
- *   Esc           fecha e DEVOLVE o foco ao ícone — sem isso quem fechou é
- *                 largado no fim do documento, como no `ds/Select`
- *   Tab           anda para dentro do painel; ao sair dele, fecha
- *   clique fora   fecha
+ * O TECLADO mora em `ds/use-anchored-panel`, junto do painel de filtros de
+ * Clientes: Esc fecha e devolve o foco ao ícone, clique fora fecha, Tab para
+ * fora fecha. Ver o hook para o porquê de cada um.
  */
 export function HelpPopover({
   label,
@@ -68,76 +63,35 @@ export function HelpPopover({
   const generated = useId();
   const paneId = `${generated}-ajuda`;
 
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-
-  const close = useCallback((devolverFoco: boolean) => {
-    setOpen(false);
-    if (devolverFoco) triggerRef.current?.focus();
-  }, []);
-
-  // Escape e clique fora, e só enquanto está aberta — a mesma dupla do
-  // `ds/Select`, pelo mesmo motivo: escutar o documento o tempo todo por causa
-  // de um painel que quase sempre está fechado.
-  useEffect(() => {
-    if (!open) return;
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        event.stopPropagation();
-        close(true);
-      }
-    }
-    function onPointerDown(event: PointerEvent) {
-      if (rootRef.current?.contains(event.target as Node)) return;
-      close(false);
-    }
-
-    document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('pointerdown', onPointerDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.removeEventListener('pointerdown', onPointerDown);
-    };
-  }, [open, close]);
-
   /*
-   * SAIR COM TAB FECHA. Sem isto, o painel fica aberto atrás de quem já andou
-   * para o campo de busca — e um bloco flutuante sobre a lista que ninguém
-   * pediu lê como defeito, não como ajuda.
-   *
-   * `relatedTarget` nulo é o foco saindo da janela (trocou de aba, clicou na
-   * barra do navegador): ali o painel FICA, porque quem volta espera encontrar
-   * a tela como deixou.
+   * Abrir, fechar, Esc, clique fora e Tab para fora saem de
+   * `ds/use-anchored-panel` — os mesmos cinco comportamentos do painel de
+   * filtros de Clientes. Eles moravam aqui, escritos à mão; um segundo painel
+   * ancorado no painel os copiaria linha por linha, e é assim que dois objetos
+   * do sistema passam a fechar de dois jeitos diferentes.
    */
-  function onFocusOut(event: React.FocusEvent<HTMLDivElement>) {
-    const proximo = event.relatedTarget as Node | null;
-    if (!proximo) return;
-    if (rootRef.current?.contains(proximo)) return;
-    setOpen(false);
-  }
+  const painel = useAnchoredPanel();
 
   return (
     <div
-      className={`ds-help${open ? ' ds-help--aberta' : ''}`}
-      ref={rootRef}
-      onBlur={onFocusOut}
+      className={`ds-help${painel.open ? ' ds-help--aberta' : ''}`}
+      ref={painel.rootRef}
+      onBlur={painel.onBlur}
     >
       <button
         type="button"
-        ref={triggerRef}
+        ref={painel.triggerRef}
         className="btn btn--ghost btn--sm icon-btn ds-help__gatilho"
         aria-label={label}
-        aria-expanded={open}
+        aria-expanded={painel.open}
         aria-controls={paneId}
         data-testid={testId}
-        onClick={() => (open ? close(false) : setOpen(true))}
+        onClick={painel.toggle}
       >
         <HelpIcon />
       </button>
 
-      {open ? (
+      {painel.open ? (
         <div className="ds-help__balao" id={paneId} role="group" aria-label={label}>
           <p className="t-section ds-help__titulo">{title}</p>
           {children}

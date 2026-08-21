@@ -47,6 +47,8 @@ export function UiGalleryPage() {
   const [busca, setBusca] = useState('');
   const [descricao, setDescricao] = useState('');
   const [de, setDe] = useState('90');
+  const [dataDe, setDataDe] = useState('2026-08-01');
+  const [dataAte, setDataAte] = useState('2026-08-21');
   const [ate, setAte] = useState('100');
   const [categoria, setCategoria] = useState('cortes');
   const [semEscolha, setSemEscolha] = useState('');
@@ -129,6 +131,34 @@ export function UiGalleryPage() {
                 from={{ value: de, onValueChange: setDe, label: 'Tempo mínimo, em minutos' }}
                 to={{ value: ate, onValueChange: setAte, label: 'Tempo máximo, em minutos' }}
                 suffix="min"
+              />
+            </Field>
+          </Amostra>
+
+          {/*
+            A FAIXA DE DATAS é a mesma peça, com `type="date"`. Ela existe porque
+            o filtro de Clientes recorta o último pedido por dois dias — e faixa
+            de data é exatamente o que este componente descreve: dois valores que
+            são um dado, editados juntos e validados em par pelo backend.
+          */}
+          <Amostra rotulo="Intervalo de datas">
+            <Field label="Último pedido" hint="O dia da loja, e o fim entra inteiro.">
+              <RangeInput
+                type="date"
+                from={{ value: dataDe, onValueChange: setDataDe, label: 'A partir de' }}
+                to={{ value: dataAte, onValueChange: setDataAte, label: 'Até' }}
+              />
+            </Field>
+          </Amostra>
+
+          <Amostra rotulo="Intervalo com erro">
+            <Field label="Ticket médio" error="O ticket mínimo é maior que o máximo.">
+              <RangeInput
+                prefix="R$"
+                inputMode="decimal"
+                className="ds-range--faixa"
+                from={{ value: '80', onValueChange: () => {}, label: 'Mínimo, em reais' }}
+                to={{ value: '20', onValueChange: () => {}, label: 'Máximo, em reais' }}
               />
             </Field>
           </Amostra>
