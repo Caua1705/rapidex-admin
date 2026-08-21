@@ -80,7 +80,8 @@ function renderDialog(
   initial: ProductDraft = draft,
   overrides: {
     onClose?: () => void;
-    onSave?: (draft: ProductDraft, price: number) => Promise<string | null>;
+    podeDefinirPreco?: boolean;
+    onSave?: (draft: ProductDraft, price: number | null) => Promise<string | null>;
     onImageUploaded?: () => void;
   } = {},
 ) {
@@ -99,6 +100,12 @@ function renderDialog(
         E2E, que sobem o painel inteiro.
       */
       catalogPairing={false}
+      /*
+        O CAMPO DE PREÇO LIGADO É O PADRÃO DESTES TESTES: eles cobrem o
+        diálogo do dono, que é quem tem a tela inteira. A ausência do campo
+        para o gerente tem teste próprio, mais abaixo.
+      */
+      podeDefinirPreco={overrides.podeDefinirPreco ?? true}
       onClose={overrides.onClose ?? (() => {})}
       // Devolve o id salvo, e não um `true`: é o id que permite pôr foto sem
       // fechar o diálogo.

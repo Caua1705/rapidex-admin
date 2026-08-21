@@ -6,7 +6,8 @@ import { ThemeToggle } from '../theme/ThemeToggle';
 import { RapidexLogo } from '../ui/RapidexLogo';
 import { BottomBar } from './BottomBar';
 import { BranchSelector } from './BranchSelector';
-import { NAV_GROUPS, type NavEntry } from './nav';
+import { type NavEntry } from './nav';
+import { useNavGroups } from './use-nav';
 import './AppShell.css';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -32,6 +33,11 @@ const ROLE_LABELS: Record<string, string> = {
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, signOut } = useSession();
+  /*
+   * A LISTA JÁ CHEGA RECORTADA PELO PAPEL — ver `use-nav.ts`. Item que leva a
+   * uma tela que responde 403 não é navegação, é convite a um beco.
+   */
+  const navGroups = useNavGroups();
   const initials = user?.name
     .split(/\s+/)
     .filter(Boolean)
@@ -47,7 +53,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <RapidexLogo size={22} />
         </div>
 
-        {NAV_GROUPS.map((group) => (
+        {navGroups.map((group) => (
           <div className="shell__group" key={group.title}>
             {/*
               O rótulo do grupo é `aria-hidden` porque ele já é o nome

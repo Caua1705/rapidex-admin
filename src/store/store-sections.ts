@@ -22,6 +22,8 @@
  * escolha) e deixa a página abrir; o que resta na tela é a linha auxiliar do
  * cabeçalho dizendo de qual filial é aquele formulário.
  */
+import type { Acao } from '../auth/permissions';
+
 export type StoreSectionId =
   'operacao' | 'geral' | 'valores' | 'filial' | 'horarios' | 'entrega' | 'pagamento' | 'impressao';
 
@@ -40,6 +42,21 @@ export type StoreSection = {
    */
   estreita?: true;
   scope: 'restaurant' | 'branch' | 'all-branches';
+  /**
+   * A ação que esta seção EXISTE para fazer. Ausente = todo papel a alcança.
+   *
+   * Uma seção de Minha loja é um formulário e uma barra de salvar: sem a
+   * escrita, o que sobra é um formulário que aceita digitação e nunca grava.
+   * Por isso a seção inteira some da lista, em vez de virar leitura — é a
+   * mesma regra do botão que não fica desabilitado.
+   *
+   * OPERAÇÃO E IMPRESSÃO NÃO TÊM AÇÃO AQUI, e não é esquecimento: as duas
+   * fazem sentido para quem está no balcão. Operação abre e fecha a loja
+   * (`store-status` é de quem opera) e Impressão mostra o programa e manda a
+   * via de teste. O que é da gerência DENTRO delas é escondido lá dentro,
+   * controle a controle.
+   */
+  acao?: Acao;
 };
 
 export const STORE_SECTIONS: readonly StoreSection[] = [
@@ -61,6 +78,8 @@ export const STORE_SECTIONS: readonly StoreSection[] = [
     titulo: 'Geral',
     nota: 'vale para o restaurante inteiro',
     scope: 'restaurant',
+    // `PATCH /admin/settings` é do dono: são os padrões de dinheiro da rede.
+    acao: 'loja.editarPadroes',
   },
   /*
    * VALORES vem logo depois de GERAL, e não junto das outras de filial: as duas
@@ -74,11 +93,32 @@ export const STORE_SECTIONS: readonly StoreSection[] = [
     label: 'Valores',
     titulo: 'Valores desta filial',
     scope: 'branch',
+    // A sobrescrita comercial da filial é dinheiro, e dinheiro é do dono.
+    acao: 'loja.editarValoresDaFilial',
   },
-  { id: 'filial', label: 'Filial', titulo: 'Filial', scope: 'branch' },
-  { id: 'horarios', label: 'Horários', titulo: 'Horários de funcionamento', scope: 'branch' },
-  { id: 'entrega', label: 'Entrega', titulo: 'Entrega', scope: 'branch' },
-  { id: 'pagamento', label: 'Pagamento', titulo: 'Formas de pagamento', scope: 'branch' },
+  { id: 'filial', label: 'Filial', titulo: 'Filial', scope: 'branch', acao: 'loja.editarFilial' },
+  {
+    id: 'horarios',
+    label: 'Horários',
+    titulo: 'Horários de funcionamento',
+    scope: 'branch',
+    acao: 'loja.editarHorarios',
+  },
+  // Entrega grava pelo mesmo PATCH da filial.
+  {
+    id: 'entrega',
+    label: 'Entrega',
+    titulo: 'Entrega',
+    scope: 'branch',
+    acao: 'loja.editarFilial',
+  },
+  {
+    id: 'pagamento',
+    label: 'Pagamento',
+    titulo: 'Formas de pagamento',
+    scope: 'branch',
+    acao: 'loja.editarPagamento',
+  },
   /*
    * "Impressão", e não mais "Setores de impressão": a tela deixou de ser só a
    * lista de setores e passou a ser onde a impressora é configurada de ponta a

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import type { PrintAgentPrinter, PrintSector } from '../api/types';
+import { usePermissoes } from '../auth/use-permissions';
 import { agentHint, agentLabel, agentState, formatAgo } from '../print-sectors/print-agent';
 import { checkSectorName } from '../print-sectors/print-sectors';
 import { formatItemCount } from '../print-sectors/sector-coverage';
@@ -68,6 +69,21 @@ import { Switch } from '../ds/Switch';
  *   `print_test`; reimprimir comanda de pedido é outra coisa e não existe.
  */
 export function PrintingTab({ branchId }: { branchId: string }) {
+  /*
+   * TRÊS PERMISSÕES DIFERENTES NA MESMA TELA, e é a tela do painel onde a
+   * diferença mais aparece:
+   *
+   *   ver o programa      de quem opera — é ele que está ao lado da impressora
+   *   mandar via de teste  de quem opera, pelo mesmo motivo
+   *   ver as impressoras   da gerência (é o inventário da máquina)
+   *   editar os setores    da gerência (é a configuração da cozinha)
+   *
+   * Para o atendente isto não vira uma tela vazia: ele continua vendo se o
+   * programa está rodando e continua podendo mandar uma via de teste, que é
+   * exatamente o que serve quando a comanda para no meio do turno.
+   */
+  const { pode } = usePermissoes();
+  const podeEditarSetores = pode('impressao.editarSetores');
   const printing = usePrintSectors(branchId);
   const agent = usePrintAgent(branchId);
   const coverage = useSectorCoverage(branchId, printing.sectors);
@@ -110,8 +126,15 @@ export function PrintingTab({ branchId }: { branchId: string }) {
       {/* --- 1. O PROGRAMA DE IMPRESSÃO ------------------------------------ */}
       <ProgramaBlock agent={agent} />
 
-      {/* --- 2. AS IMPRESSORAS -------------------------------------------- */}
-      <ImpressorasBlock agent={agent} />
+      {/*
+        --- 2. AS IMPRESSORAS --------------------------------------------
+
+        O bloco inteiro some para quem não alcança `GET .../printers`: não é um
+        botão dentro dele que falta, é a leitura. Desenhá-lo com a mensagem de
+        erro do 403 seria uma tarja vermelha permanente numa tela de
+        configuração, dizendo à pessoa que ela fez algo errado.
+      */}
+      {pode('impressao.verImpressoras') ? <ImpressorasBlock agent={agent} /> : null}
 
       {/* --- 3. OS SETORES ------------------------------------------------ */}
       <section className="store-form__section" data-testid="sectors-block">
@@ -152,19 +175,21 @@ export function PrintingTab({ branchId }: { branchId: string }) {
                     {/* Ação secundária de linha: ícone sem caixa, como no
                         cardápio. Contornada, ela virava uma grade de
                         caixinhas competindo com o nome do setor. */}
-                    <button
-                      type="button"
-                      className="btn btn--sm btn--ghost icon-btn sectors__rename"
-                      onClick={() => {
-                        setEditingId(sector.id);
-                        setProblem(null);
-                      }}
-                      aria-label={`Renomear ${sector.name}`}
-                      title="Renomear setor"
-                      data-testid={`print-sector-rename-${sector.id}`}
-                    >
-                      <EditIcon />
-                    </button>
+                    {podeEditarSetores ? (
+                      <button
+                        type="button"
+                        className="btn btn--sm btn--ghost icon-btn sectors__rename"
+                        onClick={() => {
+                          setEditingId(sector.id);
+                          setProblem(null);
+                        }}
+                        aria-label={`Renomear ${sector.name}`}
+                        title="Renomear setor"
+                        data-testid={`print-sector-rename-${sector.id}`}
+                      >
+                        <EditIcon />
+                      </button>
+                    ) : null}
                   </>
                 )}
 
@@ -180,12 +205,24 @@ export function PrintingTab({ branchId }: { branchId: string }) {
                   e a comanda da cozinha começar a sair no balcão, sem erro em
                   lugar nenhum.
                 */}
-                <SectorPrinterField
-                  sector={sector}
-                  printers={agent.printers}
-                  isSaving={printing.pendingIds.includes(sector.id)}
-                  onChange={(printerName) => void printing.setPrinter(sector.id, printerName)}
-                />
+                {podeEditarSetores ? (
+                  <SectorPrinterField
+                    sector={sector}
+                    printers={agent.printers}
+                    isSaving={printing.pendingIds.includes(sector.id)}
+                    onChange={(printerName) => void printing.setPrinter(sector.id, printerName)}
+                  />
+                ) : (
+                  /*
+                    SEM O SELETOR, O NOME DA IMPRESSORA CONTINUA ESCRITO. Some o
+                    controle, não o dado: saber em qual máquina a Chapa sai é
+                    metade do diagnóstico de "a comanda não saiu", e essa
+                    conversa acontece com quem está no balcão.
+                  */
+                  <span className="sectors__printer sectors__printer--vazio">
+                    {sector.printer_name ?? 'Definida no programa'}
+                  </span>
+                )}
 
                 {/*
                   QUANTOS ITENS SAEM POR AQUI — a informação que faz esta lista
@@ -209,13 +246,17 @@ export function PrintingTab({ branchId }: { branchId: string }) {
                         .join(' · ')}
                 </span>
 
-                <Switch
-                  hideLabel
-                  checked={sector.is_active}
-                  disabled={printing.pendingIds.includes(sector.id)}
-                  label={`${sector.name}: ${sector.is_active ? 'desativar' : 'ativar'}`}
-                  onChange={(next) => void printing.setActive(sector.id, next)}
-                />
+                {podeEditarSetores ? (
+                  <Switch
+                    hideLabel
+                    checked={sector.is_active}
+                    disabled={printing.pendingIds.includes(sector.id)}
+                    label={`${sector.name}: ${sector.is_active ? 'desativar' : 'ativar'}`}
+                    onChange={(next) => void printing.setActive(sector.id, next)}
+                  />
+                ) : (
+                  <span />
+                )}
               </li>
             ))}
           </ul>
@@ -225,45 +266,55 @@ export function PrintingTab({ branchId }: { branchId: string }) {
       </section>
 
       {/* --- 3b. NOVO SETOR ----------------------------------------------- */}
-      <section className="store-form__section">
-        <h2 className="store-form__heading">Novo setor</h2>
+      {podeEditarSetores ? (
+        <section className="store-form__section">
+          <h2 className="store-form__heading">Novo setor</h2>
 
-        <div className="sectors__new">
-          <label className="field sectors__new-field">
-            <span className="field__label">Nome do setor</span>
-            <input
-              className="input"
-              value={newName}
-              placeholder="Chapa, Bar, Sobremesa…"
-              onChange={(event) => {
-                setNewName(event.target.value);
-                setProblem(null);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  void handleCreate();
-                }
-              }}
-              data-testid="print-sector-new-name"
-            />
-          </label>
+          <div className="sectors__new">
+            <label className="field sectors__new-field">
+              <span className="field__label">Nome do setor</span>
+              <input
+                className="input"
+                value={newName}
+                placeholder="Chapa, Bar, Sobremesa…"
+                onChange={(event) => {
+                  setNewName(event.target.value);
+                  setProblem(null);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    void handleCreate();
+                  }
+                }}
+                data-testid="print-sector-new-name"
+              />
+            </label>
 
-          <button
-            type="button"
-            className="btn btn--primary"
-            disabled={newName.trim() === '' || printing.isCreating}
-            onClick={() => void handleCreate()}
-            data-testid="print-sector-create"
-          >
-            <PlusIcon />
-            {printing.isCreating ? 'Criando…' : 'Criar setor'}
-          </button>
-        </div>
-      </section>
+            <button
+              type="button"
+              className="btn btn--primary"
+              disabled={newName.trim() === '' || printing.isCreating}
+              onClick={() => void handleCreate()}
+              data-testid="print-sector-create"
+            >
+              <PlusIcon />
+              {printing.isCreating ? 'Criando…' : 'Criar setor'}
+            </button>
+          </div>
+        </section>
+      ) : null}
 
-      {/* --- 4. O TESTE DA COMANDA ---------------------------------------- */}
-      <TesteBlock agent={agent} sectors={printing.sectors} />
+      {/*
+        --- 4. O TESTE DA COMANDA ----------------------------------------
+
+        DE QUEM OPERA, e não da gerência: quem está ao lado da impressora quando
+        ela para é o balcão, e mandar uma via de exemplo é como se descobre se o
+        problema é o papel, a máquina ou o setor.
+      */}
+      {pode('impressao.mandarTeste') ? (
+        <TesteBlock agent={agent} sectors={printing.sectors} />
+      ) : null}
     </div>
   );
 }

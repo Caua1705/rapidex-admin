@@ -73,7 +73,19 @@ const VAZIO: Reports = {
  * o que fazer com ela — passá-la e ignorá-la seria a mesma mentira que a tela
  * está evitando ao escrever o escopo na cara do lojista.
  */
-export function usePerformance() {
+/**
+ * `branchId` VAZIO É "TODAS AS FILIAIS", e é o que o dono lê.
+ *
+ * Ele entrou nesta assinatura junto com o recorte nas rotas de relatório: sem
+ * mandá-lo, o backend responde 403 ao gerente (`ensure_pode_ler_dinheiro`).
+ * Quem decide se a leitura é possível é a TELA, antes de chamar — ver
+ * `podeLerDinheiro` em `auth/permissions.ts`; este hook só carrega o que lhe
+ * pedirem.
+ */
+export function usePerformance(
+  branchId: string,
+  { habilitado, comComissao }: { habilitado: boolean; comComissao: boolean },
+) {
   const [range, setRange] = useState<PerformanceRange>(() => ({
     preset: 'last7',
     ...datesForPreset('last7', { startDate: '', endDate: '' }),
@@ -107,11 +119,23 @@ export function usePerformance() {
       await Promise.allSettled([
         fetchSalesSummary(janela),
         fetchSalesByDay(janela),
-        anterior ? fetchSalesByDay(anterior) : Promise.resolve(null),
+        // O período anterior herda o MESMO recorte de filial: comparar a
+        // Aldeota desta semana com a rede da semana passada seria uma variação
+        // inventada.
+        anterior
+          ? fetchSalesByDay({ ...anterior, branchId: janela.branchId })
+          : Promise.resolve(null),
         fetchPaymentMethodsReport(janela),
         fetchProductSales(janela, RANKING_SIZE),
         fetchCancellations(janela),
-        fetchCommissionReport(janela),
+        /*
+         * A COMISSÃO É SÓ DO DONO, e para os outros ela não é nem pedida.
+         * Deixar a requisição sair e cair em `errors.commission` funcionaria —
+         * o `allSettled` já isola cada relatório —, mas seria um 403 por
+         * abertura de tela no log do backend para uma seção que a tela nem vai
+         * desenhar.
+         */
+        comComissao ? fetchCommissionReport(janela) : Promise.resolve(null),
       ]);
 
     if (requestId !== requestRef.current) return;
@@ -136,7 +160,7 @@ export function usePerformance() {
     });
     setErrors(proximosErros);
     setIsLoading(false);
-  }, []);
+  }, [comComissao]);
 
   useEffect(() => {
     // Período inválido não vira requisição: o backend responderia 422 e a tela
@@ -145,8 +169,18 @@ export function usePerformance() {
       setIsLoading(false);
       return;
     }
-    void load({ startDate: range.startDate, endDate: range.endDate });
-  }, [load, problem, range.startDate, range.endDate]);
+    /*
+     * DESABILITADO NÃO PEDE NADA. É o gerente sem filial escolhida: o backend
+     * responderia 403 nas cinco rotas de dinheiro (`ensure_pode_ler_dinheiro`),
+     * e a tela mostraria cinco tarjas vermelhas para dizer o que uma frase
+     * resolve. Ver `PerformancePage`.
+     */
+    if (!habilitado) {
+      setIsLoading(false);
+      return;
+    }
+    void load({ startDate: range.startDate, endDate: range.endDate, branchId });
+  }, [load, problem, habilitado, range.startDate, range.endDate, branchId]);
 
   const selectPreset = useCallback((preset: PerformancePreset) => {
     setRange((current) => ({ preset, ...datesForPreset(preset, current) }));
@@ -164,6 +198,8 @@ export function usePerformance() {
     isLoading,
     selectPreset,
     setCustomDate,
-    reload: () => void load({ startDate: range.startDate, endDate: range.endDate }),
+    reload: () => {
+      if (habilitado) void load({ startDate: range.startDate, endDate: range.endDate, branchId });
+    },
   };
 }

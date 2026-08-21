@@ -59,7 +59,7 @@ export function App() {
           <Route
             path="/clientes"
             element={
-              <RequireAuth>
+              <RequireAuth acao="clientes.ver">
                 <AppShell>
                   <CustomersPage />
                 </AppShell>
@@ -69,7 +69,7 @@ export function App() {
           <Route
             path="/desempenho"
             element={
-              <RequireAuth>
+              <RequireAuth acao="desempenho.ver">
                 <AppShell>
                   <PerformancePage />
                 </AppShell>

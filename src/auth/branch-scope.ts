@@ -70,15 +70,18 @@ export const ROUTE_BRANCH_SCOPE = {
   '/admin/customers': 'multi',
 
   /*
-   * OS RELATÓRIOS SÃO 'multi' POR UM MOTIVO DIFERENTE DAS DE CIMA.
+   * OS RELATÓRIOS SÃO 'multi' COMO AS DE CIMA — e este parágrafo já disse o
+   * contrário.
    *
-   * As outras aceitam `branch_id` e entendem vazio como "todas". Estas seis
-   * NÃO TÊM O PARÂMETRO: elas somam todas as filiais do token, sempre, e não
-   * há como pedir uma. Para a tabela o efeito é o mesmo ('multi' = a tela
-   * funciona com "todas as filiais" escolhida), mas a diferença importa na
-   * tela: o seletor do topo continua visível e não muda nada nela, e é por
-   * isso que `PerformancePage` escreve o escopo em vez de deixar o lojista
-   * concluir que o filtro pegou.
+   * Ele explicava que as seis NÃO TINHAM o parâmetro e somavam todas as
+   * filiais, sempre. Era verdade e deixou de ser na revisão `20260820_0026`:
+   * hoje as seis aceitam `branch_id` em query, vazio significa "todas as que eu
+   * enxergo", e o seletor do topo funciona nelas como funciona em Pedidos.
+   *
+   * A MUDANÇA NÃO É DE CONFORTO. `ensure_pode_ler_dinheiro` responde 403 ao
+   * gerente que não manda recorte, porque sem ele "ler o faturamento" é ler o
+   * do restaurante inteiro. Para o dono nada muda; para o gerente, o parâmetro
+   * é a diferença entre a tela abrir e a tela não abrir.
    */
   '/admin/reports/summary': 'multi',
   '/admin/reports/sales-by-day': 'multi',

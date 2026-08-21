@@ -34,6 +34,7 @@ export function ProductDialog({
   branchChosen,
   branchId,
   catalogPairing,
+  podeDefinirPreco,
   onClose,
   onSave,
   onImageUploaded,
@@ -55,9 +56,20 @@ export function ProductDialog({
    * transformaria "não tem segunda loja" em uma exceção na montagem.
    */
   catalogPairing: boolean;
+  /**
+   * O CAMPO DE PREÇO EXISTE PARA ESTE PAPEL.
+   *
+   * `PATCH /admin/products/{id}` é da gerência, mas o preço é do dono — é a
+   * única regra do backend em que quem decide é o CORPO e não a rota, e por
+   * isso ela chega aqui como propriedade em vez de sair do mapa de rotas.
+   *
+   * Vem de fora, e não de `usePermissoes()` aqui dentro, pelo mesmo motivo de
+   * `catalogPairing`: este diálogo é montado em teste sem provider nenhum.
+   */
+  podeDefinirPreco: boolean;
   onClose: () => void;
   /** Devolve o id salvo — é o que permite pôr foto sem fechar. `null` é falha. */
-  onSave: (draft: ProductDraft, price: number) => Promise<string | null>;
+  onSave: (draft: ProductDraft, price: number | null) => Promise<string | null>;
   /**
    * A foto subiu. A rota é própria e não passa por `onSave`, então a lista
    * atrás do diálogo continuaria mostrando a miniatura vazia sem este aviso.
@@ -99,7 +111,12 @@ export function ProductDialog({
   const criadoAqui = initial.id === null && draft.id !== null;
   const price = parsePriceInput(draft.price);
   const priceIsInvalid = draft.price.trim() !== '' && price === null;
-  const canSave = draft.name.trim().length > 0 && price !== null && !saving;
+  /*
+   * Sem o campo de preço na tela, ele não pode travar o salvamento: para o
+   * gerente o rascunho carrega o preço atual e ele nem aparece, então exigir
+   * que ele seja válido seria travar o botão por um campo invisível.
+   */
+  const canSave = draft.name.trim().length > 0 && (!podeDefinirPreco || price !== null) && !saving;
 
   const carregarDetalhe = useCallback(async (productId: string) => {
     const detail = await fetchProductDetail(productId);
@@ -192,10 +209,11 @@ export function ProductDialog({
    * enviar sem obrigar o lojista a reabrir o item que ele acabou de cadastrar.
    */
   async function handleSave() {
-    if (price === null) return;
+    if (podeDefinirPreco && price === null) return;
     const criando = draft.id === null;
     setSaving(true);
-    const saved = await onSave(draft, price);
+    // Nulo = o campo não vai no corpo. Ver `saveProduct` em `useMenu.ts`.
+    const saved = await onSave(draft, podeDefinirPreco ? price : null);
     setSaving(false);
     if (!saved) return;
 
@@ -298,21 +316,31 @@ export function ProductDialog({
         </label>
 
         <div className="form__grid">
-          <label className="field">
-            <span className="field__label">Preço</span>
-            <input
-              className="input tnum"
-              type="text"
-              inputMode="decimal"
-              placeholder="0,00"
-              value={draft.price}
-              aria-invalid={priceIsInvalid}
-              onChange={(event) => setDraft({ ...draft, price: event.target.value })}
-            />
-            {priceIsInvalid ? (
-              <span className="field__error-text">Informe um valor como 24,90.</span>
-            ) : null}
-          </label>
+          {/*
+            O CAMPO SOME PARA QUEM NÃO DEFINE PREÇO — não fica desabilitado.
+
+            Um campo travado com o preço dentro é a pior das três formas: ele
+            CONVIDA a corrigir o número, aceita o foco, e só recusa no salvar.
+            Ausente, o gerente edita o que ele edita (nome, descrição,
+            categoria) e o preço continua sendo o que o dono definiu.
+          */}
+          {podeDefinirPreco ? (
+            <label className="field">
+              <span className="field__label">Preço</span>
+              <input
+                className="input tnum"
+                type="text"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={draft.price}
+                aria-invalid={priceIsInvalid}
+                onChange={(event) => setDraft({ ...draft, price: event.target.value })}
+              />
+              {priceIsInvalid ? (
+                <span className="field__error-text">Informe um valor como 24,90.</span>
+              ) : null}
+            </label>
+          ) : null}
 
           <div className="field">
             <span className="field__label" aria-hidden="true">

@@ -40,23 +40,33 @@ export function CategoryRail({
    */
   productCountByCategory: Record<string, number>;
   onSelect: (categoryId: string) => void;
-  onMove: (index: number, direction: -1 | 1) => void;
+  /*
+   * OS TRÊS SÃO OPCIONAIS, e a ausência é o que esconde o controle.
+   *
+   * Reordenar e criar categoria são da GERÊNCIA. Passar um `undefined` daqui é
+   * melhor do que uma propriedade `podeEditar`: o componente não precisa
+   * conhecer papel nenhum, e "não há o que fazer" e "não tenho permissão"
+   * chegam nele como a mesma coisa — que, para o desenho, são.
+   */
+  onMove?: (index: number, direction: -1 | 1) => void;
   onMoveSettled: () => void;
-  onNew: () => void;
+  onNew?: () => void;
 }) {
   return (
     <div className="rail">
       <div className="rail__header">
         <h2 className="t-label">Categorias</h2>
-        <button
-          type="button"
-          className="btn btn--sm btn--ghost icon-btn"
-          onClick={onNew}
-          aria-label="Nova categoria"
-          title="Nova categoria"
-        >
-          <PlusIcon />
-        </button>
+        {onNew ? (
+          <button
+            type="button"
+            className="btn btn--sm btn--ghost icon-btn"
+            onClick={onNew}
+            aria-label="Nova categoria"
+            title="Nova categoria"
+          >
+            <PlusIcon />
+          </button>
+        ) : null}
       </div>
 
       <ul className="rail__list">
@@ -107,28 +117,30 @@ export function CategoryRail({
               </button>
 
               {/* Centradas no bloco do nome e escondidas até o ponteiro chegar. */}
-              <span className="rail__reorder">
-                <button
-                  type="button"
-                  className="rail__chevron"
-                  disabled={index === 0}
-                  onClick={() => onMove(index, -1)}
-                  aria-label={`Mover ${category.name} para cima`}
-                  title="Mover para cima"
-                >
-                  <ChevronUpIcon size={14} />
-                </button>
-                <button
-                  type="button"
-                  className="rail__chevron"
-                  disabled={index === categories.length - 1}
-                  onClick={() => onMove(index, 1)}
-                  aria-label={`Mover ${category.name} para baixo`}
-                  title="Mover para baixo"
-                >
-                  <ChevronDownIcon size={14} />
-                </button>
-              </span>
+              {onMove ? (
+                <span className="rail__reorder">
+                  <button
+                    type="button"
+                    className="rail__chevron"
+                    disabled={index === 0}
+                    onClick={() => onMove(index, -1)}
+                    aria-label={`Mover ${category.name} para cima`}
+                    title="Mover para cima"
+                  >
+                    <ChevronUpIcon size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className="rail__chevron"
+                    disabled={index === categories.length - 1}
+                    onClick={() => onMove(index, 1)}
+                    aria-label={`Mover ${category.name} para baixo`}
+                    title="Mover para baixo"
+                  >
+                    <ChevronDownIcon size={14} />
+                  </button>
+                </span>
+              ) : null}
             </li>
           );
         })}

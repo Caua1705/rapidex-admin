@@ -25,6 +25,9 @@ import {
 } from './insights';
 import { dayLabel, previousLabelFor, readChange, toNumber } from './report-model';
 import { RANKING_SIZE, usePerformance } from './usePerformance';
+import { useSession } from '../auth/session-context';
+import { usePermissoes } from '../auth/use-permissions';
+import { branchName } from '../layout/branch-heading';
 import type {
   Cancellations,
   CommissionReport,
@@ -66,16 +69,53 @@ const PERIODOS: readonly { value: PerformancePreset; label: string }[] = [
  *
  * - **Não tem gráfico por hora.** Não existe rota por hora no contrato: o mais
  *   fino que o backend entrega é o dia (`/reports/sales-by-day`).
- * - **Não filtra por filial, E DIZ ISSO.** Nenhuma das rotas aceita
- *   `branch_id`. Como o seletor de filial do cabeçalho continua visível em toda
- *   tela do painel, ele ficaria aqui parecendo um filtro que pegou.
+ * - **FILTRA POR FILIAL, e passou a filtrar.** Este parágrafo dizia o
+ *   contrário — "nenhuma das rotas aceita `branch_id`" — e era verdade até a
+ *   revisão `20260820_0026` do backend. Hoje as seis aceitam, e o seletor do
+ *   topo funciona aqui como funciona em Pedidos.
  *
  * O AVISO DE ESCOPO É DITO UMA VEZ, e não uma vez por seção (§8 da skill de
- * design): a mesma caixa repetida em seis blocos vira listra, não aviso.
+ * design): a mesma caixa repetida em seis blocos vira listra, não aviso. O que
+ * ele diz mudou junto: antes explicava que o seletor NÃO pegava; agora nomeia
+ * o recorte que está no ar.
+ *
+ * ----------------------------------------------------------------------------
+ * QUEM LÊ DINHEIRO: o dono sempre; a gerência só com UMA filial escolhida
+ * ----------------------------------------------------------------------------
+ *
+ * As cinco rotas de relatório são da GERÊNCIA, mas o backend responde 403 ao
+ * gerente que não manda recorte (`ensure_pode_ler_dinheiro`) — sem `branch_id`,
+ * "ler o faturamento" significa ler o do RESTAURANTE INTEIRO, e o resultado da
+ * Aldeota não é do gerente do Centro.
+ *
+ * Por isso, para o gerente em "Todas as filiais", esta tela não carrega nada e
+ * PEDE a filial em vez de disparar seis requisições que voltam 403. É a única
+ * tela do painel que pede uma escolha antes de mostrar — e é a exceção certa:
+ * as outras resolvem a filial sozinhas porque o que elas gravam cabe em uma
+ * loja qualquer; aqui a escolha MUDA O NÚMERO.
+ *
+ * A COMISSÃO É SÓ DO DONO, e não acompanhou as outras cinco: é o percentual
+ * negociado com a plataforma, não desempenho de loja.
  */
 export function PerformancePage() {
+  const { activeBranchId, branches } = useSession();
+  const { podeLerDinheiro, pode } = usePermissoes();
+  const podeLer = podeLerDinheiro(activeBranchId);
+
+  /*
+   * SEM PODER LER, NÃO SE PEDE. `usePerformance` dispara sete requisições no
+   * efeito de montagem; passar-lhe um recorte que o backend vai recusar seria
+   * sete 403 e uma tela de erro em vermelho para dizer "escolha uma filial".
+   * O período em branco desliga a carga (ver `rangeProblem` no hook).
+   */
   const { range, problem, reports, errors, isLoading, selectPreset, setCustomDate } =
-    usePerformance();
+    usePerformance(activeBranchId, {
+      habilitado: podeLer,
+      comComissao: pode('desempenho.verComissao'),
+    });
+
+  const filialAtiva = branches.find((filial) => filial.id === activeBranchId) ?? null;
+  const nomeDaFilial = filialAtiva ? branchName(filialAtiva) : '';
   const { summary, byDay, byDayPrevious, payments, products, cancellations, commission } = reports;
   const anterior = previousLabelFor(range.preset);
   const vazio = semMovimento(summary);
@@ -138,7 +178,28 @@ export function PerformancePage() {
         </p>
       ) : null}
 
-      {isLoading ? <p className="muted perf__estado">Carregando…</p> : null}
+      {/*
+        A GERÊNCIA PRECISA ESCOLHER UMA LOJA, e a tela pede em vez de tentar.
+
+        `ensure_pode_ler_dinheiro` recusa o gerente sem recorte: sem `branch_id`
+        estes números somam o restaurante inteiro, e o resultado da Aldeota não
+        é do gerente do Centro. Sem esta frase, a abertura da tela seriam cinco
+        requisições recusadas e cinco tarjas vermelhas dizendo, em linguagem de
+        erro, uma coisa que é uma instrução.
+
+        NÃO É "ACESSO NEGADO": é uma escolha que falta, e ela se faz no seletor
+        do topo, que já está na tela. Por isso a frase aponta para lá em vez de
+        oferecer um botão próprio — dois lugares para escolher filial é como os
+        dois passam a discordar.
+      */}
+      {!podeLer ? (
+        <p className="perf__frase perf__frase--topo" data-testid="perf-escolha-filial">
+          Escolha uma filial no seletor do topo para ver o desempenho dela. O resultado somado de
+          todas as lojas é do dono do restaurante.
+        </p>
+      ) : null}
+
+      {podeLer && isLoading ? <p className="muted perf__estado">Carregando…</p> : null}
 
       {/*
         SEM VENDA NO PERÍODO É UMA TELA, NÃO SEIS SEÇÕES ZERADAS.
@@ -150,15 +211,15 @@ export function PerformancePage() {
         excluídos continuam ali — porque zero faturado com três cancelados é
         exatamente o caso em que os três precisam ser vistos.
       */}
-      {!isLoading && !problem && vazio && summary ? (
+      {podeLer && !isLoading && !problem && vazio && summary ? (
         <section className="perf__vazio" data-testid="perf-vazio">
           <p className="perf__frase perf__frase--topo">Nenhum pedido foi faturado neste período.</p>
           <Excluidos summary={summary} />
-          <Escopo />
+          <Escopo nomeDaFilial={nomeDaFilial} temEscolha={branches.length > 1} />
         </section>
       ) : null}
 
-      {!isLoading && !problem && !vazio ? (
+      {podeLer && !isLoading && !problem && !vazio ? (
         <div className="perf__secoes">
           {/* ================================================================
               A. A FRASE — a banda de topo
@@ -231,7 +292,7 @@ export function PerformancePage() {
                   Descer NÃO é encolher: mesma tinta, mesmo corpo, e ele
                   continua aparecendo inclusive no período sem venda nenhuma.
                 */}
-                <Escopo />
+                <Escopo nomeDaFilial={nomeDaFilial} temEscolha={branches.length > 1} />
               </>
             ) : null}
           </section>
@@ -325,12 +386,20 @@ export function PerformancePage() {
                 <>
                   <Composicao summary={summary} />
                   <Frase insight={readDesconto(summary)} />
-                  {errors.commission ? (
-                    <p className="alert alert--error" role="alert">
-                      {errors.commission}
-                    </p>
-                  ) : commission ? (
-                    <Comissao commission={commission} />
+                  {/*
+                    A COMISSÃO É SÓ DO DONO. Para a gerência, o bloco não é
+                    desenhado nem em erro: ela não foi pedida (ver
+                    `usePerformance`), e uma tarja vermelha aqui diria que
+                    faltou carregar algo que nunca ia carregar.
+                  */}
+                  {pode('desempenho.verComissao') ? (
+                    errors.commission ? (
+                      <p className="alert alert--error" role="alert">
+                        {errors.commission}
+                      </p>
+                    ) : commission ? (
+                      <Comissao commission={commission} />
+                    ) : null
                   ) : null}
                   <Frase insight={readPagamento(payments)} />
                 </>
@@ -371,16 +440,31 @@ function Frase({ insight }: { insight: Insight | null }) {
 /**
  * O escopo dos números — dito uma vez na tela, no pé do bloco da frase.
  *
- * Nenhuma das rotas aceita `branch_id`, e o seletor de filial do topo continua
- * visível aqui como em toda tela do painel: sem esta linha ele pareceria um
- * filtro que pegou, e o lojista leria o faturamento de duas lojas como o de
- * uma.
+ * ELE MUDOU DE ASSUNTO. Dizia que os relatórios não separavam por loja e que o
+ * seletor do topo não pegava aqui — verdade até as seis rotas ganharem
+ * `branch_id`. Hoje o seletor pega, e a linha existe pelo motivo oposto: dizer
+ * QUAL recorte produziu estes números, porque "faturou R$ 12 mil" significa
+ * coisas diferentes para uma loja e para a rede.
+ *
+ * Com uma filial só no acesso não há o que distinguir, e a linha não aparece —
+ * a mesma regra do `hasChoice` de `use-branch-scope.ts`.
  */
-function Escopo() {
+function Escopo({ nomeDaFilial, temEscolha }: { nomeDaFilial: string; temEscolha: boolean }) {
+  if (!temEscolha) return null;
+
   return (
     <p className="perf__escopo" data-testid="perf-escopo">
-      Estes números somam <strong>todas as filiais</strong> — os relatórios não separam por loja,
-      então o seletor de filial do topo não muda nada aqui.
+      {nomeDaFilial ? (
+        <>
+          Estes números são <strong>da filial {nomeDaFilial}</strong> — troque no seletor do topo
+          para ver outra loja, ou a rede inteira.
+        </>
+      ) : (
+        <>
+          Estes números somam <strong>todas as filiais</strong> — escolha uma no seletor do topo
+          para ver o resultado de uma loja só.
+        </>
+      )}
     </p>
   );
 }

@@ -1,5 +1,7 @@
 import type { ComponentType } from 'react';
 
+import type { Acao } from '../auth/permissions';
+
 import {
   CashbackIcon,
   ChatIcon,
@@ -45,6 +47,19 @@ export type NavEntry = {
    * lojista, não da implementação.
    */
   soon?: string;
+  /**
+   * A ação que este item exige. Ausente = todo papel que entra no painel vê.
+   *
+   * NÃO É "esconder por segurança" — quem recusa é o backend, sempre. É que um
+   * item de navegação que leva a uma tela 403 é um item que só serve para
+   * frustrar: o atendente clica em Clientes, a lista não carrega, e ele conclui
+   * que o painel está quebrado.
+   *
+   * Só duas telas construídas precisam disso hoje, e as duas são a TELA
+   * INTEIRA, não um botão dentro dela: a lista de clientes devolve nome e
+   * telefone da base toda, e os relatórios são faturamento.
+   */
+  acao?: Acao;
 };
 
 export type NavGroup = {
@@ -73,7 +88,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
   {
     title: 'Crescimento',
     entries: [
-      { to: '/clientes', label: 'Clientes', Icon: CustomersIcon },
+      { to: '/clientes', label: 'Clientes', Icon: CustomersIcon, acao: 'clientes.ver' },
       {
         to: '/cupons',
         label: 'Cupons',
@@ -98,7 +113,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
        * sendo lida depois de a tela existir — e onde o escopo de filial é dito
        * por escrito em vez de prometido.
        */
-      { to: '/desempenho', label: 'Desempenho', Icon: PerformanceIcon },
+      { to: '/desempenho', label: 'Desempenho', Icon: PerformanceIcon, acao: 'desempenho.ver' },
     ],
   },
   {

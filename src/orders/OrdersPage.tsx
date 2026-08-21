@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 import type { OrderListItem } from '../api/types';
 import { useSession } from '../auth/session-context';
+import { usePermissoes } from '../auth/use-permissions';
 import { useBranchOperation } from '../store/useBranchOperation';
 import { emptyBoardState } from './empty-board';
 import {
@@ -35,6 +36,7 @@ const ABAS = [
 
 export function OrdersPage() {
   const { activeBranchId } = useSession();
+  const { pode } = usePermissoes();
   const board = useOrdersBoard();
   const sound = useNewOrderSound();
   /*
@@ -354,6 +356,13 @@ export function OrdersPage() {
             board.clearActionError();
           }}
           onChangeStatus={board.changeOrderStatus}
+          /*
+            CANCELAR É DA GERÊNCIA e avançar não é: são rotas diferentes
+            (`PATCH .../cancel` contra `PATCH .../status`). Para quem está no
+            balcão, isso é poder recusar um pedido que acabou de entrar e não
+            poder desfazer um que já está em produção.
+          */
+          podeCancelar={pode('pedidos.cancelar')}
           onCancelOrder={board.cancelOrderWithReason}
           actionErrorMessage={
             board.actionError?.orderId === selectedOrderId ? board.actionError.message : null

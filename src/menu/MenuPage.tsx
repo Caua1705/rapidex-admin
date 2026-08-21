@@ -6,6 +6,7 @@ import { catalogPairingApplies } from './catalog-key';
 import { branchName } from '../layout/branch-heading';
 import { usePrintSectors } from '../print-sectors/usePrintSectors';
 import { ApplySectorDialog } from './ApplySectorDialog';
+import { usePermissoes } from '../auth/use-permissions';
 import { CategoryActionsMenu } from './CategoryActionsMenu';
 import { CategoryDialog } from './CategoryDialog';
 import { CategoryRail } from './CategoryRail';
@@ -60,6 +61,7 @@ import './MenuPage.css';
  */
 export function MenuPage() {
   const { branchId, branch, hasChoice } = useAdoptedBranch();
+  const { pode, podeDefinirPreco } = usePermissoes();
   const menu = useMenu(branchId);
   /*
    * A chave de catálogo só existe para agrupar DUAS lojas no relatório. Com uma
@@ -93,6 +95,38 @@ export function MenuPage() {
    * `product-name.ts`.
    */
   const qualifiers = qualifiersByProduct(menu.products);
+
+  /*
+   * AS AÇÕES SOBRE A CATEGORIA ABERTA, filtradas pelo papel.
+   *
+   * Montadas antes do JSX porque a lista precisa ser MEDIDA — é o comprimento
+   * dela que decide se o menu de três pontinhos existe.
+   */
+  const acoesDaCategoria = [
+    ...(pode('cardapio.editarCategoria')
+      ? [
+          {
+            id: 'editar-categoria',
+            label: 'Editar categoria',
+            onSelect: openEditCategory,
+            testId: 'category-edit-open',
+          },
+        ]
+      : []),
+    ...(pode('cardapio.apontarSetorDaCategoria')
+      ? [
+          {
+            id: 'aplicar-setor',
+            label: 'Aplicar setor a todos os itens',
+            // Sem `disabledReason`: a filial está resolvida, então a ação
+            // sempre tem em qual loja aplicar. O diálogo é que nomeia a filial
+            // antes de confirmar.
+            onSelect: () => setApplyingSector(true),
+            testId: 'apply-sector-open',
+          },
+        ]
+      : []),
+  ];
 
   function openNewProduct() {
     if (!selectedCategory) return;
@@ -161,16 +195,23 @@ export function MenuPage() {
           A AÇÃO DO DIA, e o único laranja desta tela. Ela morava dentro do
           cartão da lista, onde dividia a régua com o nome da categoria e ficava
           ao lado de duas ações de outro peso.
+
+          ELA É DO DONO, e não da gerência como o resto do cardápio: `price` é
+          obrigatório em `POST /admin/products`, então quem cria item define
+          preço. O gerente edita nome, descrição e categoria de um item que já
+          existe — o campo de preço é que some para ele (ver `ProductDialog`).
         */}
-        <button
-          type="button"
-          className="btn btn--primary menu__new"
-          onClick={openNewProduct}
-          disabled={!selectedCategory}
-        >
-          <PlusIcon />
-          Novo item
-        </button>
+        {pode('cardapio.criarProduto') ? (
+          <button
+            type="button"
+            className="btn btn--primary menu__new"
+            onClick={openNewProduct}
+            disabled={!selectedCategory}
+          >
+            <PlusIcon />
+            Novo item
+          </button>
+        ) : null}
       </PageBar>
 
       {/*
@@ -222,9 +263,22 @@ export function MenuPage() {
           movedCategoryId={menu.movedCategoryId}
           productCountByCategory={menu.productCountByCategory}
           onSelect={menu.selectCategory}
-          onMove={(index, direction) => void menu.reorderCategory(index, direction)}
+          /*
+            SEM O HANDLER, SEM O CONTROLE. Reordenar e criar categoria são da
+            gerência; o balcão continua vendo a lista inteira e trocando de
+            categoria, que é o que ele veio fazer.
+          */
+          onMove={
+            pode('cardapio.reordenarCategorias')
+              ? (index, direction) => void menu.reorderCategory(index, direction)
+              : undefined
+          }
           onMoveSettled={menu.clearMovedCategory}
-          onNew={() => setCategoryDraft({ id: null, name: '', isActive: true })}
+          onNew={
+            pode('cardapio.criarCategoria')
+              ? () => setCategoryDraft({ id: null, name: '', isActive: true })
+              : undefined
+          }
         />
 
         <section className="menu__panel">
@@ -252,26 +306,13 @@ export function MenuPage() {
               mesmo menu, escritas por extenso — o que também é o que separa
               "renomear" de "sobrescrever o setor de todos os itens".
             */}
-            {selectedCategory ? (
-              <CategoryActionsMenu
-                actions={[
-                  {
-                    id: 'editar-categoria',
-                    label: 'Editar categoria',
-                    onSelect: openEditCategory,
-                    testId: 'category-edit-open',
-                  },
-                  {
-                    id: 'aplicar-setor',
-                    label: 'Aplicar setor a todos os itens',
-                    // Sem `disabledReason`: a filial está resolvida, então a
-                    // ação sempre tem em qual loja aplicar. O diálogo é que
-                    // nomeia a filial antes de confirmar.
-                    onSelect: () => setApplyingSector(true),
-                    testId: 'apply-sector-open',
-                  },
-                ]}
-              />
+            {/*
+              AS DUAS AÇÕES SÃO DA GERÊNCIA, e sem nenhuma delas o menu inteiro
+              não é desenhado: três pontinhos que abrem uma lista vazia são o
+              controle mais frustrante que uma tela pode ter.
+            */}
+            {selectedCategory && acoesDaCategoria.length > 0 ? (
+              <CategoryActionsMenu actions={acoesDaCategoria} />
             ) : null}
           </header>
 
@@ -337,7 +378,11 @@ export function MenuPage() {
                       sempre, então um campo esquecido nesta lista desfaria o
                       pareamento de um item porque alguém corrigiu o preço.
                     */
-                    onEdit={() => setProductDraft(productDraftFrom(product))}
+                    onEdit={
+                      pode('cardapio.editarProduto')
+                        ? () => setProductDraft(productDraftFrom(product))
+                        : undefined
+                    }
                   />
                 ))}
               </ul>
@@ -386,6 +431,7 @@ export function MenuPage() {
           branchChosen={branchChosen}
           branchId={branchId}
           catalogPairing={catalogPairing}
+          podeDefinirPreco={podeDefinirPreco}
           onClose={() => setProductDraft(null)}
           onSave={menu.saveProduct}
           // A foto sobe por rota própria, sem passar por `saveProduct`: sem

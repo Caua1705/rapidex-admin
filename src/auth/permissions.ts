@@ -1,0 +1,310 @@
+/**
+ * ============================================================================
+ * O QUE CADA PAPEL PODE APERTAR — a ponte entre o botão e a rota
+ * ============================================================================
+ *
+ * Desde a revisão `20260814_0020` do backend, o papel do lojista decide
+ * autorização em 62 rotas `/admin`, e a restrição está EM PRODUÇÃO. O painel
+ * não sabia: o atendente via botões que ele não podia apertar e levava 403 ao
+ * clicar. Do ponto de vista de quem está no balcão, isso não lê como "acesso
+ * restrito" — lê como sistema quebrado.
+ *
+ * ----------------------------------------------------------------------------
+ * ESTE ARQUIVO NÃO DECIDE NADA. ELE TRADUZ.
+ * ----------------------------------------------------------------------------
+ *
+ * Quem decide é `api/generated/papeis.ts`, GERADO da auditoria de papéis do
+ * backend (`npm run papeis:generate`). O que mora aqui é a única coisa que o
+ * backend não tem como saber: **qual botão do painel chama qual rota**.
+ *
+ *     botão "Novo item"  →  POST /admin/products  →  SOMENTE_DONO
+ *     └── a tela sabe ──┘   └── isto é gerado ──┘
+ *
+ * A ponte é escrita à mão porque não há de onde derivá-la, mas ela é TRAVADA
+ * pelo compilador nos dois lados: o caminho tem de existir no mapa gerado (que
+ * por sua vez tem de existir no contrato), e o método tem de ser um dos que
+ * aquela rota declara. Apontar uma ação para `PUT /admin/products` não compila.
+ *
+ * ----------------------------------------------------------------------------
+ * AS DUAS REGRAS QUE NÃO SÃO DE ROTA — e por isso são escritas, não geradas
+ * ----------------------------------------------------------------------------
+ *
+ * O backend tem duas decisões que uma tabela de rotas não expressa, porque quem
+ * decide não é a rota. Elas estão no fim deste arquivo, com o motivo, e têm
+ * teste próprio. Não são lacuna: são exceção nomeada.
+ *
+ * ----------------------------------------------------------------------------
+ * A REGRA DE TELA: SOME, NÃO DESABILITA
+ * ----------------------------------------------------------------------------
+ *
+ * Botão que a pessoa não pode apertar não é renderizado. Desabilitado sem
+ * explicação é pior que ausente — ela fica tentando, e um `title` não sobrevive
+ * ao toque. E não existe "esconder por segurança": quem recusa é o backend,
+ * sempre. Isto aqui é sobre não prometer o que não se cumpre.
+ */
+import {
+  CONJUNTOS,
+  PAPEL_POR_ROTA,
+  type ConjuntoDePapeis,
+  type Papel,
+} from '../api/generated/papeis';
+
+export type { Papel };
+
+/**
+ * Os pares (método, caminho) que o mapa gerado conhece, como um tipo.
+ *
+ * É o que faz `'PATCH /admin/orders/{order_id}/status'` ser uma chave válida e
+ * `'DELETE /admin/orders/{order_id}/status'` não ser. Sem isto, a ponte abaixo
+ * seria um monte de string solta — e string solta apontando para rota errada é
+ * um botão escondido para sempre, sem nada acendendo.
+ */
+type RotaComPapel = {
+  [Caminho in keyof typeof PAPEL_POR_ROTA]: {
+    [Metodo in keyof (typeof PAPEL_POR_ROTA)[Caminho]]: `${Metodo & string} ${Caminho & string}`;
+  }[keyof (typeof PAPEL_POR_ROTA)[Caminho]];
+}[keyof typeof PAPEL_POR_ROTA];
+
+/**
+ * AS AÇÕES DO PAINEL, pelo nome que elas têm na tela.
+ *
+ * A granularidade é a do BOTÃO, não a da rota: "avançar o pedido" e "cancelar o
+ * pedido" são dois controles diferentes na mesma linha e papéis diferentes, e
+ * chamá-los ambos de "mexer no pedido" perderia justamente a distinção que
+ * interessa.
+ */
+export type Acao =
+  // --- pedidos
+  | 'pedidos.ver'
+  | 'pedidos.avancarStatus'
+  | 'pedidos.cancelar'
+  | 'pedidos.ajustarPreparo'
+  | 'pedidos.tempoReal'
+  // --- cardápio
+  | 'cardapio.ver'
+  | 'cardapio.criarProduto'
+  | 'cardapio.editarProduto'
+  | 'cardapio.trocarDisponibilidade'
+  | 'cardapio.enviarFoto'
+  | 'cardapio.editarComplemento'
+  | 'cardapio.criarCategoria'
+  | 'cardapio.editarCategoria'
+  | 'cardapio.reordenarCategorias'
+  | 'cardapio.apontarSetorDoProduto'
+  | 'cardapio.apontarSetorDaCategoria'
+  // --- clientes e desempenho
+  | 'clientes.ver'
+  | 'desempenho.ver'
+  | 'desempenho.verComissao'
+  // --- minha loja
+  | 'loja.abrirFechar'
+  | 'loja.editarTiposDePedido'
+  | 'loja.editarPadroes'
+  | 'loja.editarValoresDaFilial'
+  | 'loja.editarFilial'
+  | 'loja.editarHorarios'
+  | 'loja.editarPagamento'
+  // --- impressão
+  | 'impressao.verPrograma'
+  | 'impressao.verImpressoras'
+  | 'impressao.mandarTeste'
+  | 'impressao.editarSetores';
+
+/**
+ * A ponte. Cada ação, a rota que ela chama.
+ *
+ * Quando um botão dispara mais de uma rota, aponta-se para a MAIS RESTRITA —
+ * "salvar Entrega" grava por `PATCH /admin/branches/{branch_id}`, e é ela que
+ * decide se o botão aparece.
+ */
+const ROTA_DA_ACAO = {
+  // --- pedidos --------------------------------------------------------------
+  'pedidos.ver': 'GET /admin/orders',
+  'pedidos.avancarStatus': 'PATCH /admin/orders/{order_id}/status',
+  /*
+   * CANCELAR É DA GERÊNCIA, avançar é de quem opera. É a distinção mais fina
+   * desta tabela e a que mais aparece: as duas ações moram na mesma linha de
+   * pedido, e no balcão só uma delas existe.
+   */
+  'pedidos.cancelar': 'PATCH /admin/orders/{order_id}/cancel',
+  'pedidos.ajustarPreparo': 'PATCH /admin/branches/{branch_id}/prep-time',
+  /*
+   * O ticket do stream é `PESSOAS_E_AGENTE` — o agente de impressão escuta o
+   * mesmo stream dos pedidos. Aqui ele serve só para o quadro não tentar abrir
+   * tempo real quando o papel não alcança a rota.
+   */
+  'pedidos.tempoReal': 'POST /admin/orders/stream-ticket',
+
+  // --- cardápio -------------------------------------------------------------
+  'cardapio.ver': 'GET /admin/products',
+  /*
+   * CRIAR PRODUTO É DO DONO, editar é da gerência, e a assimetria tem motivo:
+   * `price` é obrigatório na criação, então deixar o gerente criar produto é
+   * deixá-lo definir preço. Na edição o preço é opcional, e o backend barra só
+   * o campo — ver `podeDefinirPreco` no fim deste arquivo.
+   */
+  'cardapio.criarProduto': 'POST /admin/products',
+  'cardapio.editarProduto': 'PATCH /admin/products/{product_id}',
+  /* "Acabou a costela" é a ação mais frequente do turno, e é do balcão. */
+  'cardapio.trocarDisponibilidade': 'PATCH /admin/products/{product_id}/availability',
+  'cardapio.enviarFoto': 'POST /admin/products/{product_id}/image',
+  'cardapio.editarComplemento': 'PATCH /admin/options/{option_id}',
+  'cardapio.criarCategoria': 'POST /admin/categories',
+  'cardapio.editarCategoria': 'PATCH /admin/categories/{category_id}',
+  'cardapio.reordenarCategorias': 'PATCH /admin/categories/reorder',
+  'cardapio.apontarSetorDoProduto': 'PATCH /admin/products/{product_id}/printing-sector',
+  'cardapio.apontarSetorDaCategoria': 'PATCH /admin/categories/{category_id}/printing-sector',
+
+  // --- clientes e desempenho ------------------------------------------------
+  /*
+   * A LISTA DE CLIENTES É DA GERÊNCIA, e é a tela inteira, não um botão dela: a
+   * rota devolve nome e telefone da base toda, e é a que mais pesa numa senha
+   * vazada. Para o atendente, Clientes não é "sem ações" — é fora do alcance.
+   */
+  'clientes.ver': 'GET /admin/customers',
+  'desempenho.ver': 'GET /admin/reports/summary',
+  /*
+   * COMISSÃO É SÓ DO DONO, e não acompanhou os outros cinco relatórios quando
+   * eles passaram para a gerência: é o percentual negociado com a plataforma,
+   * não desempenho de loja, e não há recorte de filial que a torne assunto de
+   * quem toca o balcão.
+   */
+  'desempenho.verComissao': 'GET /admin/reports/commission',
+
+  // --- minha loja -----------------------------------------------------------
+  /* Fechar a loja no sábado à noite é de quem está lá. */
+  'loja.abrirFechar': 'PATCH /admin/branches/{branch_id}/store-status',
+  'loja.editarTiposDePedido': 'PATCH /admin/branches/{branch_id}/order-types',
+  'loja.editarPadroes': 'PATCH /admin/settings',
+  'loja.editarValoresDaFilial': 'PATCH /admin/branches/{branch_id}/settings',
+  'loja.editarFilial': 'PATCH /admin/branches/{branch_id}',
+  'loja.editarHorarios': 'PUT /admin/branches/{branch_id}/business-hours',
+  'loja.editarPagamento': 'POST /admin/branches/{branch_id}/payment-methods',
+
+  // --- impressão ------------------------------------------------------------
+  /*
+   * TRÊS PAPÉIS DIFERENTES NA MESMA TELA, e é o caso que mais justifica esta
+   * granularidade: o atendente vê o estado do programa e manda uma via de
+   * teste (é ele que está ao lado da impressora quando ela para), mas a lista
+   * de impressoras da máquina e a edição dos setores são da gerência.
+   */
+  'impressao.verPrograma': 'GET /admin/branches/{branch_id}/print-agent',
+  'impressao.verImpressoras': 'GET /admin/branches/{branch_id}/printers',
+  'impressao.mandarTeste': 'POST /admin/branches/{branch_id}/print-test',
+  'impressao.editarSetores': 'POST /admin/branches/{branch_id}/printing-sectors',
+} as const satisfies Record<Acao, RotaComPapel>;
+
+/**
+ * Quem pode uma ação.
+ *
+ * O `satisfies RotaComPapel` lá em cima já garante que o par existe no mapa
+ * gerado — mas a garantia se perde no `split`, que devolve strings comuns. O
+ * `throw` é para o caso que o compilador não alcança: alguém editar o arquivo
+ * gerado à mão, ou o `papeis:generate` gravar um mapa pela metade. Devolver uma
+ * lista vazia ali esconderia o botão de TODO MUNDO, calado — que é o defeito
+ * mais caro que este arquivo pode ter.
+ */
+export function papeisDaAcao(acao: Acao): readonly Papel[] {
+  const rota = ROTA_DA_ACAO[acao];
+  const [metodo, caminho] = rota.split(' ') as [string, keyof typeof PAPEL_POR_ROTA];
+  const conjunto = (PAPEL_POR_ROTA[caminho] as Record<string, ConjuntoDePapeis | undefined>)[
+    metodo
+  ];
+  if (!conjunto) {
+    throw new Error(`A ação "${acao}" aponta para ${rota}, que não está no mapa de papéis.`);
+  }
+  return CONJUNTOS[conjunto];
+}
+
+/**
+ * A pergunta que a tela faz.
+ *
+ * SEM PAPEL, NÃO PODE. Enquanto a sessão carrega, `papel` é nulo — e desenhar o
+ * botão para escondê-lo meio segundo depois é pior do que ele aparecer junto
+ * com o resto da tela.
+ */
+export function pode(papel: Papel | null | undefined, acao: Acao): boolean {
+  if (!papel) return false;
+  return papeisDaAcao(acao).includes(papel);
+}
+
+/* ==========================================================================
+ * AS DUAS REGRAS QUE A TABELA DE ROTAS NÃO EXPRESSA
+ *
+ * As duas estão escritas à mão de propósito, e não é preguiça de gerar: no
+ * backend elas TAMBÉM não estão na tabela, porque quem decide não é a rota. Ver
+ * `ensure_pode_definir_preco` e `ensure_pode_ler_dinheiro` em
+ * `api/dependencies/admin_scope.py`.
+ *
+ * O risco de as duas envelhecerem é real e assumido — em troca, sem elas a tela
+ * promete duas coisas que o backend recusa. Cada uma tem teste próprio, e o
+ * teste é o lugar onde a divergência aparece.
+ * ======================================================================= */
+
+/**
+ * QUEM ESCREVE DINHEIRO NO CARDÁPIO É O DONO.
+ *
+ * `PATCH /admin/products/{id}` é da GERÊNCIA e edita nome, descrição, categoria
+ * e preço pela mesma rota — o gerente precisa dos três primeiros. Quem decide
+ * aqui é o CORPO, não o caminho, então a rota não pode ser recusada inteira:
+ * some só o CAMPO de preço.
+ *
+ * O que isto protege: a conta de gerente valendo desconto ilimitado. Sem a
+ * regra, "editar produto" e "dar 99% em tudo" são a mesma permissão.
+ */
+export function podeDefinirPreco(papel: Papel | null | undefined): boolean {
+  return papel === 'owner';
+}
+
+/**
+ * QUEM LÊ FATURAMENTO: o dono sempre; a gerência só com o recorte de UMA
+ * filial.
+ *
+ * Os cinco relatórios de dinheiro declaram GERENCIA na rota, mas
+ * `ensure_pode_ler_dinheiro` responde 403 para o gerente que não mandou
+ * `branch_id` — e a diferença não é burocracia. Sem recorte, "ler o
+ * faturamento" significa ler o do RESTAURANTE INTEIRO, e dar isso ao gerente da
+ * loja do Centro é entregar-lhe o resultado da Aldeota, que não é dele. Com
+ * recorte, ele está lendo o resultado do próprio trabalho.
+ *
+ * `branchId` vazio é "todas as filiais" — ver `auth/branch-scope.ts`.
+ */
+export function podeLerDinheiro(papel: Papel | null | undefined, branchId: string): boolean {
+  if (papel === 'owner') return true;
+  if (papel === 'manager') return branchId !== '';
+  return false;
+}
+
+/**
+ * O `role` DO CONTRATO É `string`, E AQUI ELE VIRA `Papel` — OU NADA.
+ *
+ * `AdminUserResponse.role` é texto livre no OpenAPI (o backend o declara como
+ * `str`), então estreitá-lo é trabalho da tela. Papel desconhecido devolve
+ * `null`, e `pode(null, …)` é falso em tudo: se o backend criar um quinto
+ * papel, o painel esconde os botões em vez de mostrar os que vão dar 403.
+ *
+ * FALHAR FECHADO É A ESCOLHA CERTA AQUI e não é óbvio — esconder demais é uma
+ * funcionalidade que a pessoa não encontra, o que é ruim. Mostrar demais é a
+ * pessoa apertando e levando 403, que é o defeito que esta frente existe para
+ * apagar, e ela não tem como saber que o problema não é dela.
+ */
+export function papelDe(role: string | null | undefined): Papel | null {
+  const conhecidos = CONJUNTOS.PESSOAS_E_AGENTE;
+  return conhecidos.includes(role as Papel) ? (role as Papel) : null;
+}
+
+/**
+ * `print_agent` NÃO ENTRA NO PAINEL.
+ *
+ * É conta de MÁQUINA: a senha dela fica em texto puro no `config.ini` do
+ * computador do balcão, e o papel alcança quatro rotas — heartbeat, lista de
+ * impressoras, ticket do stream e as vias de um pedido. Nenhuma tela.
+ *
+ * O BACKEND NÃO PODE RECUSAR ISSO NO LOGIN, e é por isso que a recusa mora
+ * aqui: é por `POST /admin/auth/login` que o próprio agente se autentica, e
+ * barrar o papel lá pararia a impressão de todas as lojas. A porta é a mesma; o
+ * que muda é quem entra por ela.
+ */
+export function podeEntrarNoPainel(papel: Papel | null | undefined): boolean {
+  return papel !== undefined && papel !== null && papel !== 'print_agent';
+}

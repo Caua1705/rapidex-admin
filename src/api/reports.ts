@@ -2,10 +2,17 @@
  * Chamadas da tela de Desempenho.
  *
  * As seis rotas de relatório do contrato, e é literalmente o que existe: não há
- * relatório por hora (o mais fino é o dia) e NENHUMA delas aceita `branch_id`.
- * Quem lê estes números está lendo todas as filiais que o token alcança — a
- * tela diz isso por escrito, porque o seletor do topo continua visível e não
- * teria efeito aqui.
+ * relatório por hora — o mais fino é o dia.
+ *
+ * AS SEIS PASSARAM A ACEITAR `branch_id`, e este arquivo dizia o contrário até
+ * agora ("NENHUMA delas aceita"). Era verdade quando foi escrito e deixou de
+ * ser na revisão `20260820_0026` do backend. A diferença não é conforto de
+ * filtro: sem o parâmetro, `ensure_pode_ler_dinheiro` responde **403 ao
+ * gerente**, porque sem recorte "ler o faturamento" significa ler o do
+ * restaurante inteiro — e o resultado da Aldeota não é do gerente do Centro.
+ *
+ * Vazio continua sendo "todas as filiais que o token alcança", e é o que o dono
+ * lê. O filtro só RESTRINGE, nunca amplia.
  *
  * O PERÍODO É OBRIGATÓRIO nas seis (`start_date` e `end_date` não são
  * opcionais no contrato), e as datas são AAAA-MM-DD no dia da OPERAÇÃO
@@ -22,14 +29,23 @@ import type {
   SalesSummary,
 } from './types';
 
-/** O par de datas que toda rota daqui recebe. */
+/** O período e o recorte que toda rota daqui recebe. */
 export type ReportRange = {
   startDate: string; // AAAA-MM-DD
   endDate: string; // AAAA-MM-DD
+  /** Vazio = todas as filiais que o token alcança. Só o dono lê assim. */
+  branchId: string;
 };
 
 function toQuery(range: ReportRange) {
-  return { start_date: range.startDate, end_date: range.endDate };
+  return {
+    start_date: range.startDate,
+    end_date: range.endDate,
+    // Omitido, e não `null`: campo ausente é "todas", e é o que o contrato
+    // descreve. Mandar nulo explícito seria pedir a mesma coisa por um caminho
+    // que a rota não documenta.
+    ...(range.branchId ? { branch_id: range.branchId } : {}),
+  };
 }
 
 /**

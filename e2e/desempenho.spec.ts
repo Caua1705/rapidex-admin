@@ -21,6 +21,7 @@ import {
   type FakeApi,
 } from './fake-api';
 import { escolherFilial } from './seletor';
+import { branchName } from '../src/layout/branch-heading';
 
 let api: FakeApi;
 
@@ -192,31 +193,35 @@ test('o total de produtos vem com a ressalva do backend colada nele', async ({ p
 });
 
 /*
- * O ESCOPO, ESCRITO.
+ * O ESCOPO, ESCRITO — E ELE MUDOU DE ASSUNTO.
  *
- * Nenhuma das rotas aceita `branch_id`, e o seletor de filial do topo continua
- * visível em toda tela do painel. Sem o aviso, ele pareceria um filtro que
- * pegou, e o lojista leria o faturamento de duas lojas como o de uma.
+ * Este teste afirmava o contrário: que as rotas NÃO aceitavam `branch_id`, que
+ * o aviso dizia "o seletor do topo não muda nada aqui", e que trocar de filial
+ * devolvia o MESMO faturamento. Ele até previu a virada, por escrito — "se um
+ * dia o backend ganhar `branch_id`, este teste é o que avisa que o aviso ficou
+ * mentiroso". Ganhou, na revisão `20260820_0026`, e foi ele que avisou.
  *
- * O teste vai além do texto: troca de filial no topo e confere que o
- * faturamento NÃO muda — que é a afirmação que o aviso faz.
+ * O REQUISITO NÃO MUDOU, só a forma: a tela tem de dizer QUAL recorte produziu
+ * estes números, porque "faturou R$ 12 mil" significa coisas diferentes para
+ * uma loja e para a rede. Antes isso se provava mostrando que o seletor não
+ * pegava; agora, mostrando que ele pega e que o aviso o acompanha.
  */
-test('a tela avisa que soma todas as filiais, e o seletor do topo não a muda', async ({ page }) => {
+test('a tela diz de qual recorte são os números, e o seletor do topo os muda', async ({ page }) => {
   await abrirDesempenho(page);
 
   const aviso = page.getByTestId('perf-escopo');
   await expect(aviso).toContainText('todas as filiais');
-  await expect(aviso).toContainText('não muda nada aqui');
 
   const faturamento = page.locator('.numeros__item').filter({ hasText: 'Faturamento' });
   await expect(faturamento).toContainText('R$ 3.169,50');
 
   await escolherFilial(page, FAKE_BRANCH_2);
 
-  // O MESMO número: é exatamente isso que o aviso afirma. Se um dia o backend
-  // ganhar `branch_id`, este teste é o que avisa que o aviso ficou mentiroso.
-  await expect(faturamento).toContainText('R$ 3.169,50');
-  await expect(aviso).toBeVisible();
+  // O número MUDA, e o aviso passa a nomear a loja. Sem uma das duas coisas o
+  // lojista leria o faturamento de uma loja como o da rede, ou o contrário.
+  await expect(faturamento).toContainText('R$ 1.820,00');
+  await expect(aviso).toContainText('da filial');
+  await expect(aviso).toContainText(branchName(FAKE_BRANCH_2));
 });
 
 /*

@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { PageBar } from '../ds/PageBar';
 
 import { useAdoptedBranch } from '../auth/use-branch-scope';
+import { usePermissoes } from '../auth/use-permissions';
 import { StoreStatusCard } from './StoreStatusCard';
 import { STORE_SECTIONS } from './store-sections';
 import { useBranchDetail } from './useBranchDetail';
@@ -79,6 +80,16 @@ export function StoreLayout() {
    * ele lê como o que é: "Minha loja › Horários de funcionamento".
    */
   const secaoAberta = STORE_SECTIONS.find((secao) => rota.endsWith(`/${secao.id}`));
+  const { pode } = usePermissoes();
+  /*
+   * AS SEÇÕES QUE ESTE PAPEL ALCANÇA.
+   *
+   * Seção de Minha loja é formulário mais barra de salvar: sem a escrita, o que
+   * sobraria é um formulário que aceita digitação e nunca grava — pior do que
+   * não estar lá. Operação e Impressão continuam para todo mundo; o que é da
+   * gerência dentro delas é escondido controle a controle.
+   */
+  const secoes = STORE_SECTIONS.filter((secao) => !secao.acao || pode(secao.acao));
   const { branch, branchId, hasChoice } = useAdoptedBranch(!emOperacao);
   const mostrarInterruptor = !emOperacao;
 
@@ -178,7 +189,7 @@ export function StoreLayout() {
             navegação a meio tom passaria a mentir sobre o que vem depois do
             clique.
           */}
-          {STORE_SECTIONS.map((secao) => (
+          {secoes.map((secao) => (
             <NavLink
               key={secao.id}
               to={secao.id}

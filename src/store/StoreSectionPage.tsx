@@ -1,4 +1,6 @@
-import { useOutletContext } from 'react-router-dom';
+import { Navigate, useOutletContext } from 'react-router-dom';
+
+import { usePermissoes } from '../auth/use-permissions';
 
 import { BranchTab } from './BranchTab';
 import { BranchValuesTab } from './BranchValuesTab';
@@ -31,7 +33,21 @@ import type { StoreOutletContext } from './StoreLayout';
  */
 export function StoreSectionPage({ id }: { id: StoreSectionId }) {
   const context = useOutletContext<StoreOutletContext>();
+  const { pode } = usePermissoes();
   const secao = STORE_SECTIONS.find((candidate) => candidate.id === id)!;
+
+  /*
+   * A SEGUNDA GUARDA, e ela não é redundante com a lista filtrada ao lado: o
+   * endereço continua digitável, e uma aba deixada aberta antes de alguém ser
+   * rebaixado volta nesta rota no F5. Sem ela, o formulário monta e a barra de
+   * salvar responde 403.
+   *
+   * O destino é Operação — a seção que todo papel do painel alcança, e para
+   * onde /minha-loja já redireciona sozinha.
+   */
+  if (secao.acao && !pode(secao.acao)) {
+    return <Navigate to="/minha-loja/operacao" replace />;
+  }
 
   return (
     <section

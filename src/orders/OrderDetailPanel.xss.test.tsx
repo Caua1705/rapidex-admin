@@ -92,6 +92,12 @@ async function renderizarPainel() {
       branchId=""
       onClose={() => {}}
       onChangeStatus={async () => true}
+      /*
+        Ligado: estes testes cobrem o texto escrito pelo cliente final, e o
+        rodapé completo é o que dá mais superfície para um
+        `dangerouslySetInnerHTML` esquecido aparecer.
+      */
+      podeCancelar
       onCancelOrder={async () => true}
       actionErrorMessage={null}
     />,

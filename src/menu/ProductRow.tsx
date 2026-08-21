@@ -59,7 +59,8 @@ export function ProductRow({
   qualifier: string | null;
   isSaving: boolean;
   onToggleAvailability: () => void;
-  onEdit: () => void;
+  /** Ausente = este papel não edita item. Ver `auth/permissions.ts`. */
+  onEdit?: () => void;
 }) {
   const active = isProductActive(product);
   const available = isProductAvailable(product);
@@ -184,15 +185,17 @@ export function ProductRow({
         botões contornados, um por linha, é uma grade de caixinhas competindo
         com o nome do item, que é o que se veio ler.
       */}
-      <button
-        type="button"
-        className="btn btn--sm btn--ghost icon-btn item__edit"
-        onClick={onEdit}
-        aria-label={`Editar ${product.name}`}
-        title="Editar item"
-      >
-        <EditIcon />
-      </button>
+      {onEdit ? (
+        <button
+          type="button"
+          className="btn btn--sm btn--ghost icon-btn item__edit"
+          onClick={onEdit}
+          aria-label={`Editar ${product.name}`}
+          title="Editar item"
+        >
+          <EditIcon />
+        </button>
+      ) : null}
     </li>
   );
 }

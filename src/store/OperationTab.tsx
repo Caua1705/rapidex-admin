@@ -1,3 +1,4 @@
+import { usePermissoes } from '../auth/use-permissions';
 import { Switch } from '../ds/Switch';
 import type { BranchOperation } from '../api/types';
 import { estaNoAr, situacaoDaFilial } from './operation-state';
@@ -169,6 +170,41 @@ function Chave({
   valor: boolean;
   operation: ReturnType<typeof useBranchOperation>;
 }) {
+  const { pode } = usePermissoes();
+
+  /*
+   * OS TRÊS INTERRUPTORES DA LINHA SÃO DUAS PERMISSÕES DIFERENTES.
+   *
+   * Abrir e fechar a loja é `PATCH .../store-status`, de quem opera — é a ação
+   * do sábado à noite, e quem está lá é quem a aperta. Ligar e desligar entrega
+   * e retirada é `PATCH .../order-types`, da gerência: é decisão de como a loja
+   * vende, não de como ela está agora.
+   *
+   * O INTERRUPTOR SOME E O ESTADO FICA. Sem o controle, a coluna continua
+   * dizendo se a loja aceita entrega — some o que a muda, não o que ela é. Um
+   * `Switch` desabilitado seria pior nas duas pontas: ele parece quebrado e
+   * continua parecendo apertável.
+   */
+  const podeMexer =
+    campo === 'is_open' ? pode('loja.abrirFechar') : pode('loja.editarTiposDePedido');
+
+  if (!podeMexer) {
+    return (
+      <span className="op-row__chave">
+        <span className="op-row__chave-rotulo t-aux" aria-hidden="true">
+          {rotulo}
+        </span>
+        <span className="t-aux" data-testid={`operation-${campo}-${linha.branch_id}-leitura`}>
+          {valor ? 'Sim' : 'Não'}
+          <span className="sr-only">
+            {' '}
+            — {rotulo}: {linha.branch_name}
+          </span>
+        </span>
+      </span>
+    );
+  }
+
   return (
     <span className="op-row__chave">
       <span className="op-row__chave-rotulo t-aux" aria-hidden="true">

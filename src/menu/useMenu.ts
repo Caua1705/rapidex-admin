@@ -362,7 +362,19 @@ export function useMenu(branchId: string) {
    * vira modo edição sem fechar. `null` é a falha — quem chama não fecha.
    */
   const saveProduct = useCallback(
-    async (draft: ProductDraft, price: number): Promise<string | null> => {
+    /**
+     * `price` NULO SIGNIFICA "NÃO MANDE ESTE CAMPO", e não "preço zero".
+     *
+     * O backend confere `if payload.price is not None: ensure_pode_definir_preco`
+     * — ou seja, quem decide é o CORPO. Para o gerente não basta o campo sumir
+     * da tela: o rascunho vem preenchido com o preço atual, e reenviá-lo
+     * IGUAL ao que já está gravado é 403 do mesmo jeito. Ele tem de sair do
+     * corpo.
+     *
+     * Na criação isto nunca é nulo: `POST /admin/products` é do dono, e o dono
+     * sempre define preço.
+     */
+    async (draft: ProductDraft, price: number | null): Promise<string | null> => {
       const name = draft.name.trim();
       if (!name) return null;
 
@@ -393,7 +405,10 @@ export function useMenu(branchId: string) {
             category_id: draft.categoryId,
             name,
             description: draft.description.trim() || null,
-            price,
+            // Ver o comentário da assinatura: campo AUSENTE para quem não pode
+            // definir preço, e não `null` — nulo aqui seria uma tentativa de
+            // gravar, e o backend a recusaria.
+            ...(price === null ? {} : { price }),
             is_active: draft.isActive,
             is_available: draft.isAvailable,
             // SEMPRE presente, inclusive nulo: nulo é como o lojista separa
@@ -411,11 +426,17 @@ export function useMenu(branchId: string) {
             await setProductPrintSector(draft.id, draft.printSectorId);
           }
         } else {
+          /*
+           * Criar exige preço, e `POST /admin/products` é SOMENTE_DONO — quem
+           * chega aqui sempre pode defini-lo. O `?? 0` é para o compilador, e
+           * não um valor que a tela use: sem o preço, o diálogo não deixa
+           * salvar.
+           */
           const created = await createProduct({
             category_id: draft.categoryId,
             name,
             description: draft.description.trim() || null,
-            price,
+            price: price ?? 0,
             is_active: draft.isActive,
             is_available: draft.isAvailable,
             sort_order: products.length,

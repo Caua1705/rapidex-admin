@@ -826,14 +826,26 @@ function reportPeriod(start: string, end: string): Schemas['ReportPeriod'] {
   return { start_date: start, end_date: end, days: PERIODO_DIAS };
 }
 
-function initialSalesSummary(start: string, end: string): SalesSummary {
+/**
+ * O RESUMO, E ELE MUDA COM O RECORTE DE FILIAL.
+ *
+ * As seis rotas de relatório ganharam `branch_id` na revisão `20260820_0026` do
+ * backend, e o falso precisa honrá-lo — senão o painel poderia parar de mandar
+ * o parâmetro e nada ficaria vermelho. O número da filial é uma FRAÇÃO do da
+ * rede, e não outro número qualquer: é o que faz "a loja fatura menos que a
+ * rede" ser legível no print e no teste.
+ *
+ * Sem `branchId` é a soma de todas as lojas, que é o que o dono lê.
+ */
+function initialSalesSummary(start: string, end: string, branchId = ''): SalesSummary {
+  const daFilial = branchId !== '';
   return {
     restaurant_id: RESTAURANT_ID,
     period: reportPeriod(start, end),
     previous_period: reportPeriod(start, end),
-    orders_count: 54,
-    revenue_total: '3169.50',
-    average_ticket: '58.69',
+    orders_count: daFilial ? 31 : 54,
+    revenue_total: daFilial ? '1820.00' : '3169.50',
+    average_ticket: daFilial ? '58.71' : '58.69',
     breakdown: {
       subtotal_total: '2980.00',
       delivery_fee_total: '240.00',
@@ -1130,8 +1142,18 @@ export type FakeApi = {
   paymentMethods: () => PaymentMethod[];
   /** Setores de impressão que o "banco" tem agora. */
   printSectors: () => PrintSector[];
+  /**
+   * Entra como outro papel. Chamar ANTES do login.
+   *
+   * Os quatro de `admin_users.role`. É a única coisa que muda entre um lojista
+   * e outro do ponto de vista do painel — filial e restaurante saem do token
+   * do mesmo jeito.
+   */
+  entrarComoPapel: (papel: 'owner' | 'manager' | 'attendant' | 'print_agent') => void;
   /** Cada POST de via de teste, para conferir o corpo que a tela mandou. */
   printTests: () => { branchId: string; body: PrintTestRequest }[];
+  /** Cada PATCH de produto, com o corpo — é onde se prova campo AUSENTE. */
+  productPatches: () => { productId: string; body: Record<string, unknown> }[];
   /**
    * Empurra o último sinal do agente daquela filial.
    *
@@ -1283,10 +1305,20 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     } as Record<string, BusinessHour[]>,
     hoursPuts: [] as { branchId: string; periods: BusinessHourInput[] }[],
     paymentMethods: initialPaymentMethods(BRANCH_ID),
+    /*
+     * O PAPEL DE QUEM ESTÁ LOGADO.
+     *
+     * Mora no estado, e não em `FAKE_USER`, porque o teste de papéis troca de
+     * conta ANTES do login: o falso responde `/admin/auth/login` e
+     * `/admin/auth/me` com o papel escolhido, que é a única coisa que muda
+     * entre um lojista e outro para o painel.
+     */
+    papel: FAKE_USER.role,
     printSectors: initialPrintSectors(BRANCH_ID),
     printAgents: initialPrintAgents(),
     printers: initialPrinters(),
     printTests: [] as { branchId: string; body: PrintTestRequest }[],
+    productPatches: [] as { productId: string; body: Record<string, unknown> }[],
     /** Cada PATCH de setor na categoria inteira, para conferir o lote. */
     categorySectorCalls: [] as { categoryId: string; printSectorId: string | null }[],
     /** Cada PATCH de setor em UM produto, vindo da edição do item. */
@@ -1412,15 +1444,24 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       if (body.email !== LOGIN_EMAIL || body.password !== LOGIN_PASSWORD) {
         return json(route, 401, { detail: 'E-mail ou senha inválidos.' });
       }
+      /*
+       * O LOGIN ACEITA TODOS OS PAPÉIS, INCLUSIVE `print_agent` — e isso não é
+       * descuido do falso: é o contrato. É por esta rota que o agente de
+       * impressão se autentica com o e-mail e a senha do `config.ini`, e
+       * recusá-lo aqui pararia a impressão de todas as lojas. Quem recusa a
+       * conta de máquina é a TELA, depois do login.
+       */
       return json(route, 200, {
         access_token: ACCESS_TOKEN,
         token_type: 'bearer',
-        admin_user: FAKE_USER,
+        admin_user: { ...FAKE_USER, role: state.papel },
       });
     }
 
     if (method === 'GET' && path === '/admin/auth/me') {
-      return json(route, 200, FAKE_USER);
+      // O papel sai do banco a cada requisição, como no backend: rebaixar
+      // alguém vale na hora, sem esperar o token de 12h expirar.
+      return json(route, 200, { ...FAKE_USER, role: state.papel });
     }
 
     if (method === 'GET' && path === '/admin/branches') {
@@ -1562,7 +1603,8 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       }
 
       if (path === '/admin/reports/summary') {
-        return json(route, 200, initialSalesSummary(inicio, fim));
+        // `branch_id` só RESTRINGE: ausente = todas as filiais do token.
+        return json(route, 200, initialSalesSummary(inicio, fim, query.get('branch_id') ?? ''));
       }
 
       if (path === '/admin/reports/sales-by-day') {
@@ -2201,7 +2243,18 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         return json(route, 200, { ...found, option_groups: [] });
       }
       if (method === 'PATCH') {
-        Object.assign(found, request.postDataJSON());
+        const body = request.postDataJSON() as Record<string, unknown>;
+        /*
+         * O CORPO É GUARDADO INTEIRO, e não só aplicado.
+         *
+         * É a única forma de um teste provar a AUSÊNCIA de um campo: `price` do
+         * gerente não pode nem chegar ao backend — o contrato confere
+         * `if payload.price is not None`, então reenviar o preço IGUAL ao que já
+         * está gravado é 403 do mesmo jeito. Olhando só o produto resultante,
+         * "não mandou" e "mandou o mesmo valor" seriam indistinguíveis.
+         */
+        state.productPatches.push({ productId: found.id, body });
+        Object.assign(found, body);
         return json(route, 200, found);
       }
     }
@@ -2276,7 +2329,11 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     hoursPuts: () => state.hoursPuts,
     paymentMethods: () => state.paymentMethods,
     printSectors: () => state.printSectors,
+    entrarComoPapel(papel) {
+      state.papel = papel;
+    },
     printTests: () => state.printTests,
+    productPatches: () => state.productPatches,
     setPrintAgentSeconds(branchId, seconds) {
       state.printAgents[branchId] = {
         version: state.printAgents[branchId]?.version ?? null,

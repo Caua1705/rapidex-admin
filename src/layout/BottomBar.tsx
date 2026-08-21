@@ -3,7 +3,8 @@ import { NavLink, useLocation } from 'react-router-dom';
 
 import { Sheet } from '../ds/Sheet';
 import { MoreIcon } from '../ds/icons';
-import { NAV_GROUPS, type NavEntry } from './nav';
+import { type NavEntry } from './nav';
+import { useNavGroups } from './use-nav';
 
 /**
  * A navegação do celular: quatro alvos no rodapé, do lado do polegar.
@@ -24,7 +25,13 @@ export function BottomBar() {
   const [maisAberto, setMaisAberto] = useState(false);
   const { pathname } = useLocation();
 
-  const todos = NAV_GROUPS.flatMap((group) => group.entries);
+  /*
+   * A LISTA JÁ CHEGA RECORTADA PELO PAPEL. Com o atendente, "Clientes" não está
+   * em `todos`, então não está nem entre os quatro do rodapé nem dentro de
+   * "Mais" — e a folha do "Mais" não abre com um item que leva a um 403.
+   */
+  const navGroups = useNavGroups();
+  const todos = navGroups.flatMap((group) => group.entries);
   const principais = PRINCIPAIS.flatMap((to) => {
     const found = todos.find((entry) => entry.to === to);
     return found ? [found] : [];
@@ -72,7 +79,7 @@ export function BottomBar() {
         onClose={() => setMaisAberto(false)}
         data-testid="sheet-mais"
       >
-        {NAV_GROUPS.map((group) => {
+        {navGroups.map((group) => {
           const entradas = group.entries.filter((entry) => !PRINCIPAIS.includes(entry.to));
           if (entradas.length === 0) return null;
 

@@ -56,6 +56,7 @@ export function OrderDetailPanel({
   branchId,
   onClose,
   onChangeStatus,
+  podeCancelar,
   onCancelOrder,
   actionErrorMessage,
 }: {
@@ -70,6 +71,15 @@ export function OrderDetailPanel({
   /** Devolve true quando o backend aceitou a transição. */
   onChangeStatus: (orderId: string, status: string) => Promise<boolean>;
   /** Devolve true quando o backend aceitou o cancelamento. */
+  /**
+   * "Cancelar" existe para este papel.
+   *
+   * Vem como propriedade, e não de `usePermissoes()` aqui dentro, pelo mesmo
+   * motivo de `catalogPairing` em `ProductDialog`: este painel é montado em
+   * teste sem provider nenhum (`OrderDetailPanel.xss.test.tsx`), e ler a sessão
+   * daqui transformaria "quem é você" numa exceção na montagem.
+   */
+  podeCancelar: boolean;
   onCancelOrder: (orderId: string, reason: string) => Promise<boolean>;
   actionErrorMessage: string | null;
 }) {
@@ -133,6 +143,26 @@ export function OrderDetailPanel({
    * vira uma folha de tela inteira.
    */
   const vazio = orderId === null;
+
+  /*
+   * OS BOTÕES QUE ESTE PAPEL PODE APERTAR.
+   *
+   * CANCELAR É DA GERÊNCIA E RECUSAR NÃO É, e a diferença não é de gosto: são
+   * rotas diferentes. "Recusar" um pedido pendente vai por
+   * `PATCH /admin/orders/{id}/status` (quem opera pode), e cancelar vai por
+   * `PATCH /admin/orders/{id}/cancel`, que é rota própria e é da gerência.
+   * Para quem está no balcão, isso significa poder dizer "não vou aceitar este
+   * pedido" e não poder desfazer um que já entrou em produção.
+   *
+   * O BOTÃO SOME, não fica desabilitado. Os outros desta mesma fileira usam
+   * `disabled` + `title` quando a TRANSIÇÃO não é permitida — e ali é o certo,
+   * porque a razão é temporária ("o pagamento ainda não confirmou") e o botão
+   * volta a funcionar sozinho. Aqui a razão é quem a pessoa é, e ela não muda
+   * durante o turno: um botão permanentemente travado é um convite a insistir.
+   */
+  const alvos = detail
+    ? nextStatusesFor(detail.status).filter((target) => target !== 'cancelled' || podeCancelar)
+    : [];
 
   return (
     <aside
@@ -204,7 +234,7 @@ export function OrderDetailPanel({
 
       {detail ? (
         <footer className="panel__footer">
-          {nextStatusesFor(detail.status).map((target) => {
+          {alvos.map((target) => {
             const check = checkTransition(detail, target);
             const isCancel = target === 'cancelled';
             return (
@@ -227,7 +257,7 @@ export function OrderDetailPanel({
               </button>
             );
           })}
-          {nextStatusesFor(detail.status).length === 0 ? (
+          {alvos.length === 0 ? (
             <span className="faint">Estado final: este pedido não muda mais.</span>
           ) : null}
         </footer>

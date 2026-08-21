@@ -5,9 +5,19 @@
 import { createContext, useContext } from 'react';
 
 import type { AdminUser, Branch } from '../api/types';
+import type { Papel } from './permissions';
 
 export type SessionContextValue = {
   user: AdminUser | null;
+  /**
+   * O papel deste lojista, já estreitado de `string` para os quatro conhecidos.
+   *
+   * Fica no contexto, e não é derivado em cada tela, porque é a mesma pergunta
+   * em nove telas — e porque `user.role` é `string` no contrato: a estreita
+   * repetida daria a cada tela a chance de escrever `'onwer'` e o TypeScript
+   * concordar. `null` enquanto a sessão carrega, e `pode(null, …)` é falso.
+   */
+  papel: Papel | null;
   /** Filiais que este lojista enxerga. Vem do escopo do token. */
   branches: Branch[];
   /** Nome que aparece no topo. Ver comentário em SessionProvider. */
