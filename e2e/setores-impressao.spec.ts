@@ -10,7 +10,14 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { branchName } from '../src/layout/branch-heading';
-import { installFakeApi, FAKE_BRANCH, LOGIN_EMAIL, LOGIN_PASSWORD, type FakeApi } from './fake-api';
+import {
+  installFakeApi,
+  FAKE_BRANCH,
+  FAKE_BRANCH_2,
+  LOGIN_EMAIL,
+  LOGIN_PASSWORD,
+  type FakeApi,
+} from './fake-api';
 import { escolher, escolherFilial, opcoesDe } from './seletor';
 
 let api: FakeApi;
@@ -65,41 +72,204 @@ test('a tela Impressão lista os setores da filial resolvida', async ({ page }) 
   await expect(page.getByTestId('print-sector-sec-bar')).toContainText('Desativado');
 });
 
-/*
- * A TELA DE IMPRESSÃO INTEIRA, e o contrato dela com a honestidade.
+/* ==========================================================================
+ * O PROGRAMA DE IMPRESSÃO
  *
- * Três dos quatro blocos não têm backend: o programa de impressão não manda
- * heartbeat, não relata as impressoras da máquina e não tem rota de impressão
- * de teste. Eles mostram o estado honesto do que ainda não existe — e este
- * teste guarda justamente o que NÃO pode aparecer: nenhum ponto verde de
- * "conectado", nenhuma lista de impressoras fabricada, nenhum botão de teste
- * que não vai a lugar nenhum.
- */
-test('Impressão explica o programa local sem inventar estado de conexão', async ({ page }) => {
+ * Três dos quatro blocos desta tela eram texto explicando o que não existia:
+ * "o painel ainda não mostra se o programa está rodando", "as impressoras vão
+ * aparecer aqui", "um botão aqui vai mandar uma comanda de exemplo". As rotas
+ * saíram e os três passaram a ler delas.
+ *
+ * O REQUISITO QUE OS TESTES ANTIGOS GUARDAVAM NÃO MUDOU, só mudou de forma: a
+ * tela não pode INVENTAR estado. Antes isso se provava mostrando que não havia
+ * ponto verde nenhum; agora se prova mostrando que o ponto verde é o que o
+ * backend reportou, e que os três casos que ele distingue chegam distintos à
+ * tela.
+ * ======================================================================= */
+
+test('o bloco do programa mostra o estado que o backend reportou', async ({ page }) => {
   await fazerLogin(page);
   await abrirAbaImpressao(page);
 
-  // O que a tela precisa ensinar a quem nunca ouviu falar do programa.
-  await expect(page.getByTestId('print-agent-block')).toContainText(
-    'A comanda não sai do navegador',
-  );
-  await expect(page.getByTestId('print-agent-status')).toContainText(
-    'ainda não mostra se o programa está rodando',
+  const estado = page.getByTestId('print-agent-status');
+  await expect(estado).toContainText('Rodando agora');
+  // A versão responde "esta loja está com o programa velho?" numa ligação de
+  // suporte, e por isso ela fica na linha do estado e não numa própria.
+  await expect(estado).toContainText('versão 1.4.2');
+
+  // Com o programa no ar, a frase é a consequência — não o mecanismo.
+  await expect(page.getByTestId('print-agent-hint')).toContainText(
+    'Com ele desligado, nada é impresso',
   );
 
-  // Sem jargão: o lojista não tem por que saber o que é um agente ou um daemon.
+  /*
+   * SEM JARGÃO, como antes. O lojista não tem por que saber o que é um agente,
+   * um daemon ou um heartbeat — e o bloco inteiro fala de "programa de
+   * impressão" e "computador do balcão".
+   */
   const texto = (await page.getByTestId('print-agent-block').innerText()).toLowerCase();
   expect(texto).not.toContain('daemon');
   expect(texto).not.toContain('agente');
   expect(texto).not.toContain('headless');
+  expect(texto).not.toContain('heartbeat');
+});
 
-  // O bloco de impressoras EXPLICA a ausência da lista em vez de mostrar uma
-  // lista vazia sem motivo.
-  await expect(page.getByTestId('printers-empty')).toContainText(
-    'vão aparecer aqui, com um teste por impressora',
+/*
+ * O SEGUNDO ESTADO: instalado e fora do ar. É o que interessa no sábado à
+ * noite — nenhuma comanda está saindo, e a tela precisa dizer isso e o que
+ * fazer, não só pintar um ponto de vermelho.
+ */
+test('programa desligado: a tela diz há quanto tempo e o que conferir', async ({ page }) => {
+  api.setPrintAgentSeconds(FAKE_BRANCH.id, 3600);
+
+  await fazerLogin(page);
+  await abrirAbaImpressao(page);
+
+  const estado = page.getByTestId('print-agent-status');
+  await expect(estado).toContainText('Sem sinal há 1 hora');
+  await expect(estado).toHaveClass(/conn--offline/);
+
+  await expect(page.getByTestId('print-agent-hint')).toContainText('Nenhuma comanda está saindo');
+});
+
+/*
+ * O TERCEIRO ESTADO NÃO É UM CASO DO SEGUNDO, e é o que o contrato do backend
+ * frisa ao responder 200 (e não 404) para filial sem agente: "nunca instalado"
+ * se resolve indo instalar, "desligado" se resolve ligando o computador. A
+ * tela que confunde os dois manda o lojista procurar um programa que não está
+ * na máquina.
+ */
+test('filial sem programa instalado não é lida como programa desligado', async ({ page }) => {
+  await fazerLogin(page);
+  await escolherFilial(page, FAKE_BRANCH_2);
+  await abrirAbaImpressao(page);
+
+  const estado = page.getByTestId('print-agent-status');
+  await expect(estado).toContainText('Nunca instalado nesta loja');
+  // Cinza, não carmim: não há defeito, há uma loja que ainda não instalou.
+  await expect(estado).not.toHaveClass(/conn--offline/);
+
+  await expect(page.getByTestId('print-agent-hint')).toContainText(
+    'Enquanto ele não for instalado nesta loja',
   );
 
-  await expect(page.getByTestId('test-print-block')).toContainText('48 colunas');
+  // E a lista vazia diz POR QUE está vazia — sem isso o lojista procura defeito
+  // no cabo USB quando o que falta é o programa.
+  await expect(page.getByTestId('printers-empty')).toContainText('nunca rodou nesta loja');
+});
+
+test('as impressoras são as que o programa reportou, com a padrão marcada', async ({ page }) => {
+  await fazerLogin(page);
+  await abrirAbaImpressao(page);
+
+  const linhas = page.getByTestId('printer-row');
+  await expect(linhas).toHaveCount(2);
+  await expect(linhas.first()).toContainText('EPSON TM-T20');
+  // A padrão é a que recebe todo setor sem escolha — inclusive um setor criado
+  // depois da instalação, que é o caso em que a via sai no lugar errado.
+  await expect(linhas.first()).toContainText('Padrão');
+  await expect(linhas.nth(1)).toContainText('Bematech MP-4200 TH');
+  await expect(linhas.nth(1)).not.toContainText('Padrão');
+});
+
+/* ==========================================================================
+ * A IMPRESSORA DE CADA SETOR
+ *
+ * Deixou de morar no `config.ini` da máquina: o agente resolve pela escolha do
+ * PAINEL primeiro, e só cai no arquivo local quando não há escolha. A troca
+ * aconteceu porque o arquivo casa pelo NOME do setor — renomear "Cozinha"
+ * fazia a via cair na impressora padrão e a comanda começar a sair no balcão,
+ * sem erro em lugar nenhum.
+ * ======================================================================= */
+
+test('a impressora do setor é escolhida no painel, e nulo é uma escolha', async ({ page }) => {
+  await fazerLogin(page);
+  await abrirAbaImpressao(page);
+
+  const seletor = page.getByTestId('print-sector-printer-sec-chapa');
+  await expect(seletor).toContainText('EPSON TM-T20');
+
+  // Trocar para a outra impressora reportada.
+  await escolher(seletor, 'Bematech MP-4200 TH');
+  await expect
+    .poll(() => api.printSectors().find((entry) => entry.id === 'sec-chapa')?.printer_name)
+    .toBe('Bematech MP-4200 TH');
+
+  /*
+   * E DESFAZER MANDA `null`, não a ausência do campo: "definida no programa" é
+   * uma escolha do lojista (voltar para o `config.ini` da máquina), e é assim
+   * que continua imprimindo toda loja instalada antes desta coluna existir.
+   */
+  await escolher(seletor, 'Definida no programa');
+  await expect
+    .poll(() => api.printSectors().find((entry) => entry.id === 'sec-chapa')?.printer_name)
+    .toBeNull();
+});
+
+/* ==========================================================================
+ * O TESTE DA COMANDA
+ * ======================================================================= */
+
+test('o teste manda o setor escolhido e diz que a via está saindo', async ({ page }) => {
+  await fazerLogin(page);
+  await abrirAbaImpressao(page);
+
+  /*
+   * REGEX, e não texto exato: a opção carrega a família como dica ("Chapa
+   * setor"), que é o que separa uma praça de uma máquina numa lista só.
+   */
+  await escolher(page.getByTestId('print-test-destino'), /^Chapa/);
+  await page.getByTestId('print-test-send').click();
+
+  // O corpo leva o SETOR, e não a impressora: é o caso comum ("testar a
+  // Cozinha") e é ele que confere a corrente inteira, setor a impressora.
+  await expect.poll(() => api.printTests()).toHaveLength(1);
+  expect(api.printTests()[0]?.body).toEqual({ printing_sector_id: 'sec-chapa' });
+
+  await expect(page.getByTestId('print-test-result')).toContainText('Teste enviado');
+  await expect(page.getByTestId('print-test-result')).toContainText('Chapa');
+});
+
+/*
+ * O SETOR DESATIVADO NÃO É DESTINO. Ele continua na lista de setores (o que
+ * some da tela ninguém reativa), mas mandar uma via para uma praça desligada é
+ * conferir uma coisa que a loja não usa.
+ */
+test('o destino do teste oferece setores ativos e impressoras, não o desativado', async ({
+  page,
+}) => {
+  await fazerLogin(page);
+  await abrirAbaImpressao(page);
+
+  const opcoes = await opcoesDe(page.getByTestId('print-test-destino'));
+  const texto = opcoes.join(' | ');
+  expect(texto).toContain('Chapa');
+  expect(texto).toContain('EPSON TM-T20');
+  expect(texto).not.toContain('Bar');
+});
+
+/*
+ * A RESPOSTA É 202: o comando foi ENFILEIRADO, não impresso. Com o programa
+ * desligado a via sai quando ele voltar — e um "Teste enviado" verde nesse caso
+ * deixaria o lojista cinco minutos ao lado de uma impressora muda.
+ */
+test('com o programa desligado, o teste avisa que a via ficou na fila', async ({ page }) => {
+  api.setPrintAgentSeconds(FAKE_BRANCH.id, 3600);
+
+  await fazerLogin(page);
+  await abrirAbaImpressao(page);
+
+  await escolher(page.getByTestId('print-test-destino'), /^EPSON TM-T20/);
+  await page.getByTestId('print-test-send').click();
+
+  // O comando FOI gravado: o backend enfileira mesmo com o programa fora.
+  await expect.poll(() => api.printTests()).toHaveLength(1);
+  expect(api.printTests()[0]?.body).toEqual({ printer_name: 'EPSON TM-T20' });
+
+  const resultado = page.getByTestId('print-test-result');
+  await expect(resultado).toContainText('está desligado');
+  await expect(resultado).toContainText('sai quando ele voltar, não agora');
+  await expect(resultado).not.toContainText('confira o papel');
 });
 
 /*
@@ -118,7 +288,17 @@ test('Impressão mostra quantos itens tem cada setor e quantos ficaram sem', asy
     'nenhum item · Desativado',
   );
 
+  /*
+   * O TOTAL ENTRA NA ASSERÇÃO, e não só o "5 itens".
+   *
+   * A filial principal tem 6 produtos e a outra tem 7; a varredura já cruzou o
+   * cardápio da REDE com os setores de UMA filial, e o número saía "12 de 13" —
+   * impossível de zerar, porque todo item da outra loja caía em "sem setor".
+   * Com "de 6" escrito na asserção, o que está sendo medido é o RECORTE, e não
+   * um número que pode bater por acaso quando o cardápio do falso crescer.
+   */
   await expect(page.getByTestId('sector-coverage')).toContainText('5 itens');
+  await expect(page.getByTestId('sector-coverage')).toContainText('de 6');
   await expect(page.getByTestId('sector-coverage')).toContainText('não imprime em setor nenhum');
 });
 

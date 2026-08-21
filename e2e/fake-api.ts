@@ -24,6 +24,8 @@ type StreamEvent = Schemas['AdminOrderStreamEvent'];
 type Category = Schemas['AdminCategoryResponse'];
 type Product = Schemas['AdminProductResponse'];
 type PrintSector = Schemas['PrintingSectorResponse'];
+type PrintAgentPrinter = Schemas['PrintAgentPrinterResponse'];
+type PrintTestRequest = Schemas['PrintTestRequest'];
 type RestaurantSettings = Schemas['AdminRestaurantSettingsResponse'];
 type BranchOperation = Schemas['AdminBranchOperationResponse'];
 type BranchOverrides = Schemas['AdminBranchOperationOverrides'];
@@ -553,11 +555,66 @@ function initialPaymentMethods(branchId: string): PaymentMethod[] {
  * "Bar" nasce desativado para provar as duas metades da regra: ele não pode ser
  * OFERECIDO num produto, mas o nome dele continua aparecendo em quem já o tem.
  */
+/**
+ * Os dois setores da filial principal.
+ *
+ * `printer_name` cobre os DOIS estados, e eles são coisas diferentes: a Chapa
+ * tem uma impressora escolhida no painel, e o Bar não tem — nulo ali significa
+ * "deixar o programa decidir", ou seja, cair no `config.ini` da máquina. Um
+ * fixture com os dois nulos deixaria o seletor da linha sem nada para mostrar.
+ */
 function initialPrintSectors(branchId: string): PrintSector[] {
   return [
-    { id: 'sec-chapa', branch_id: branchId, name: 'Chapa', is_active: true, sort_order: 0 },
-    { id: 'sec-bar', branch_id: branchId, name: 'Bar', is_active: false, sort_order: 1 },
+    {
+      id: 'sec-chapa',
+      branch_id: branchId,
+      name: 'Chapa',
+      is_active: true,
+      sort_order: 0,
+      printer_name: 'EPSON TM-T20',
+    },
+    {
+      id: 'sec-bar',
+      branch_id: branchId,
+      name: 'Bar',
+      is_active: false,
+      sort_order: 1,
+      printer_name: null,
+    },
   ];
+}
+
+/* ==========================================================================
+ * O PROGRAMA DE IMPRESSÃO
+ *
+ * As duas filiais cobrem os dois estados que a tela tem de saber desenhar, e
+ * eles NÃO são o mesmo com intensidades diferentes:
+ *
+ * - a MATRIZ tem agente, viu sinal há 12 segundos e reportou duas impressoras.
+ *   É a loja instalada e funcionando;
+ * - a ZONA NORTE nunca teve agente. O backend responde 200 com tudo nulo (não
+ *   404), e a tela precisa dizer "nunca instalado" em vez de "desligado" — uma
+ *   se resolve indo instalar, a outra ligando o computador.
+ *
+ * O terceiro estado (instalado e fora do ar) é o mesmo da Matriz com o
+ * contador empurrado, e o teste que precisa dele usa `setPrintAgentSeconds`.
+ * Guardar SEGUNDOS, e não um carimbo, é o que impede o falso de envelhecer: um
+ * `last_seen_at` fixo viraria "há 3 meses" na semana que vem.
+ * ======================================================================= */
+type FakePrintAgent = { secondsSinceLastSeen: number; version: string | null };
+
+function initialPrintAgents(): Record<string, FakePrintAgent> {
+  return { [BRANCH_ID]: { secondsSinceLastSeen: 12, version: '1.4.2' } };
+}
+
+function initialPrinters(): Record<string, PrintAgentPrinter[]> {
+  const agora = new Date().toISOString();
+  return {
+    [BRANCH_ID]: [
+      { name: 'EPSON TM-T20', is_default: true, reported_at: agora },
+      { name: 'Bematech MP-4200 TH', is_default: false, reported_at: agora },
+    ],
+  };
 }
 
 /**
@@ -1073,6 +1130,16 @@ export type FakeApi = {
   paymentMethods: () => PaymentMethod[];
   /** Setores de impressão que o "banco" tem agora. */
   printSectors: () => PrintSector[];
+  /** Cada POST de via de teste, para conferir o corpo que a tela mandou. */
+  printTests: () => { branchId: string; body: PrintTestRequest }[];
+  /**
+   * Empurra o último sinal do agente daquela filial.
+   *
+   * É o que produz o terceiro estado da tela — instalado e FORA DO AR —, que
+   * não tem fixture próprio porque é o mesmo agente com o contador adiantado.
+   * Acima de 90 segundos o falso responde `is_online: false`, como o backend.
+   */
+  setPrintAgentSeconds: (branchId: string, seconds: number) => void;
   /** Cada PATCH de setor aplicado a uma categoria inteira. */
   categorySectorCalls: () => { categoryId: string; printSectorId: string | null }[];
   /** Cada PATCH de setor aplicado a UM produto. */
@@ -1217,6 +1284,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     hoursPuts: [] as { branchId: string; periods: BusinessHourInput[] }[],
     paymentMethods: initialPaymentMethods(BRANCH_ID),
     printSectors: initialPrintSectors(BRANCH_ID),
+    printAgents: initialPrintAgents(),
+    printers: initialPrinters(),
+    printTests: [] as { branchId: string; body: PrintTestRequest }[],
     /** Cada PATCH de setor na categoria inteira, para conferir o lote. */
     categorySectorCalls: [] as { categoryId: string; printSectorId: string | null }[],
     /** Cada PATCH de setor em UM produto, vindo da edição do item. */
@@ -1837,6 +1907,60 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       return json(route, 200, found);
     }
 
+    // --- o programa de impressão -------------------------------------------
+    //
+    // Antes de `/admin/branches/{id}`, pelo mesmo motivo dos horários: o padrão
+    // genérico casaria com estes três primeiro e devolveria uma filial no lugar
+    // do estado do agente.
+
+    const agentMatch = /^\/admin\/branches\/([^/]+)\/print-agent$/.exec(path);
+    if (method === 'GET' && agentMatch?.[1]) {
+      const branchId = agentMatch[1];
+      const agent = state.printAgents[branchId];
+
+      // Filial que nunca instalou responde 200 com o resto nulo, e não 404 —
+      // "ninguém instalou aqui" é uma resposta, não um erro.
+      if (!agent) return json(route, 200, { branch_id: branchId, is_online: false });
+
+      const segundos = agent.secondsSinceLastSeen;
+      return json(route, 200, {
+        branch_id: branchId,
+        // A MESMA janela de 90s do backend (`ONLINE_WINDOW_SECONDS`): o falso
+        // decide o `is_online` como o servidor decide, porque a tela LÊ esse
+        // campo em vez de recalcular a partir do carimbo.
+        is_online: segundos <= 90,
+        last_seen_at: new Date(Date.now() - segundos * 1000).toISOString(),
+        seconds_since_last_seen: segundos,
+        agent_version: agent.version,
+      });
+    }
+
+    const printersMatch = /^\/admin\/branches\/([^/]+)\/printers$/.exec(path);
+    if (method === 'GET' && printersMatch?.[1]) {
+      const branchId = printersMatch[1];
+      return json(route, 200, {
+        branch_id: branchId,
+        printers: state.printers[branchId] ?? [],
+      });
+    }
+
+    const printTestMatch = /^\/admin\/branches\/([^/]+)\/print-test$/.exec(path);
+    if (method === 'POST' && printTestMatch?.[1]) {
+      const branchId = printTestMatch[1];
+      const body = request.postDataJSON() as PrintTestRequest;
+      state.printTests.push({ branchId, body });
+
+      const agent = state.printAgents[branchId];
+      return json(route, 202, {
+        command_id: `cmd-${state.printTests.length}`,
+        branch_id: branchId,
+        created_at: new Date().toISOString(),
+        // 202 é "enfileirado", não "impresso". Este campo é o que a tela usa
+        // para não dizer "a via está saindo" quando o programa está desligado.
+        agent_is_online: agent !== undefined && agent.secondsSinceLastSeen <= 90,
+      });
+    }
+
     // --- minha loja: a filial ----------------------------------------------
 
     // Depois de prep-time, business-hours e payment-methods: todos começam com
@@ -2152,6 +2276,13 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     hoursPuts: () => state.hoursPuts,
     paymentMethods: () => state.paymentMethods,
     printSectors: () => state.printSectors,
+    printTests: () => state.printTests,
+    setPrintAgentSeconds(branchId, seconds) {
+      state.printAgents[branchId] = {
+        version: state.printAgents[branchId]?.version ?? null,
+        secondsSinceLastSeen: seconds,
+      };
+    },
     categorySectorCalls: () => state.categorySectorCalls,
     productSectorCalls: () => state.productSectorCalls,
     products: () => state.products,

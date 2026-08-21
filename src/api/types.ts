@@ -186,3 +186,42 @@ export type PrintSectorUpdate = Schemas['PrintingSectorUpdate'];
 export type PrintSectorRequest = Schemas['ProductPrintingSectorRequest'];
 export type ProductPrintSector = Schemas['ProductPrintingSectorResponse'];
 export type CategoryPrintSectorResult = Schemas['CategoryPrintingSectorResponse'];
+
+// --- o programa de impressão (o agente na máquina do balcão) --------------
+
+/*
+ * O SETOR É CONFIGURAÇÃO; O AGENTE É UMA MÁQUINA QUE EXISTE OU NÃO EXISTE.
+ *
+ * Os dois vivem na mesma tela e são recursos diferentes: um setor é uma linha
+ * que o lojista cria, o agente é o programa rodando (ou não) no computador da
+ * loja. Por isso as chamadas moram em `api/print-agent.ts`, e não junto das de
+ * setor.
+ */
+
+/**
+ * Último sinal e versão do programa daquela filial.
+ *
+ * FILIAL QUE NUNCA INSTALOU RESPONDE 200, não 404: `is_online: false` e o resto
+ * nulo. "Ninguém instalou aqui" é uma resposta que a tela precisa mostrar, e é
+ * diferente de "instalou e está desligado" — a primeira se resolve indo
+ * instalar, a segunda se resolve ligando o computador.
+ */
+export type PrintAgentStatus = Schemas['PrintAgentStatusResponse'];
+
+/** Uma impressora que o programa enxerga naquela máquina. */
+export type PrintAgentPrinter = Schemas['PrintAgentPrinterResponse'];
+export type PrintAgentPrinters = Schemas['PrintAgentPrintersResponse'];
+
+/**
+ * Para onde mandar a via de teste. Os dois campos são opcionais, e a ordem de
+ * resolução do backend é `printer_name` > a impressora do setor > a padrão do
+ * agente.
+ */
+export type PrintTestRequest = Schemas['PrintTestRequest'];
+
+/**
+ * O comando foi ENFILEIRADO — não "a via saiu". Quem imprime é o agente quando
+ * o stream entregar, então a resposta traz `agent_is_online`: sem ele o lojista
+ * vê sucesso e fica olhando uma impressora que não vai receber nada.
+ */
+export type PrintTestResult = Schemas['PrintTestResponse'];

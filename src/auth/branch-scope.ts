@@ -119,6 +119,18 @@ export const ROUTE_BRANCH_SCOPE = {
   '/admin/branches/{branch_id}/payment-methods': 'single',
   '/admin/branches/{branch_id}/prep-time': 'single',
   '/admin/branches/{branch_id}/printing-sectors': 'single',
+
+  /*
+   * O PROGRAMA DE IMPRESSÃO É DE UMA MÁQUINA, e máquina não tem versão "de
+   * todas as filiais": o computador está numa loja só. As três levam
+   * `{branch_id}` no path pelo mesmo motivo dos horários, e o backend recusa
+   * até o AGENTE que não esteja preso a uma filial (400) — um agente que
+   * pudesse escolher a loja se anunciaria como outra e receberia os comandos
+   * dela.
+   */
+  '/admin/branches/{branch_id}/print-agent': 'single',
+  '/admin/branches/{branch_id}/printers': 'single',
+  '/admin/branches/{branch_id}/print-test': 'single',
 } as const satisfies Partial<Record<keyof paths, BranchScope>>;
 
 /**

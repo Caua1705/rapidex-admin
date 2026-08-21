@@ -128,5 +128,52 @@ export function usePrintSectors(branchId: string) {
     [markPending],
   );
 
-  return { sectors, isLoading, isCreating, pendingIds, errorMessage, create, rename, setActive };
+  /**
+   * A IMPRESSORA DAQUELE SETOR — e por que ela mora no painel agora.
+   *
+   * O agente resolve a impressora de cada via em duas fontes, nesta ordem: a
+   * escolhida AQUI (`printer_name`, que viaja junto da via) e, na falta dela, o
+   * mapa do `config.ini` da máquina.
+   *
+   * O painel vem primeiro porque o `config.ini` casa pelo NOME do setor —
+   * renomear "Cozinha" para "Cozinha Quente" fazia a via deixar de casar, cair
+   * na impressora padrão e a comanda da cozinha começar a sair no balcão, sem
+   * erro nenhum em lugar nenhum. Com o id do setor carregando a escolha, o
+   * rename deixou de quebrar a impressão.
+   *
+   * `null` NÃO É VAZIO: é "deixar o programa decidir", ou seja, voltar para o
+   * `config.ini`. É um estado que o lojista escolhe, e é por isso que o seletor
+   * tem uma opção para ele em vez de um campo em branco.
+   */
+  const setPrinter = useCallback(
+    async (sectorId: string, printerName: string | null): Promise<boolean> => {
+      markPending(sectorId, true);
+      setErrorMessage(null);
+      try {
+        const updated = await updatePrintSector(sectorId, { printer_name: printerName });
+        setSectors((current) =>
+          sortSectors(current.map((sector) => (sector.id === sectorId ? updated : sector))),
+        );
+        return true;
+      } catch (error) {
+        setErrorMessage(messageFromUnknownError(error));
+        return false;
+      } finally {
+        markPending(sectorId, false);
+      }
+    },
+    [markPending],
+  );
+
+  return {
+    sectors,
+    isLoading,
+    isCreating,
+    pendingIds,
+    errorMessage,
+    create,
+    rename,
+    setActive,
+    setPrinter,
+  };
 }

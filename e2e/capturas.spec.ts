@@ -99,6 +99,17 @@ for (const tamanho of TAMANHOS) {
       await expect(page.getByRole('heading', { name: 'Minha loja' })).toBeVisible();
       await fotografar(page, 'minha-loja-geral', tamanho.nome, tema);
 
+      /*
+       * IMPRESSÃO ENTROU NO ARNÊS nesta rodada, e não por ser mais uma seção: é
+       * a tela com mais peças de estado por centímetro do painel — o ponto do
+       * programa, a lista da máquina, o seletor de impressora em cada linha de
+       * setor e a resposta do teste. Ela é usada EM PÉ, no balcão, e é onde o
+       * aperto do celular aparece primeiro.
+       */
+      await page.goto('/minha-loja/impressao');
+      await expect(page.getByTestId('print-agent-status')).toBeVisible();
+      await fotografar(page, 'minha-loja-impressao', tamanho.nome, tema);
+
       // A Cozinha tem PALETA própria (saturada, para leitura a dois metros) mas
       // segue o tema como todas as outras: acesa sobre carvão no escuro, funda
       // sobre papel no claro. As duas fotos dela são diferentes, e é isso que a
