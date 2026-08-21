@@ -136,6 +136,20 @@ export type ProductImage = Schemas['ProductImageResponse'];
 export type CustomerListItem = Schemas['AdminCustomerListItem'];
 export type CustomerListResponse = Schemas['AdminCustomerListResponse'];
 
+/*
+ * A CLASSIFICAÇÃO RFV — cinco códigos, em minúsculas e sem acento.
+ *
+ * O apelido sai do enum GERADO, e não de uma união escrita à mão com as cinco
+ * strings: é o que faz `Record<CustomerSegment, ...>` acender no
+ * `npm run typecheck` no dia em que o backend acrescentar um sexto valor. Uma
+ * união copiada continuaria compilando e a tela mostraria a linha sem rótulo.
+ *
+ * NÃO EXISTE `segment_label` no contrato, e é decisão do backend: rótulo em
+ * português vindo da API transformaria mudança de texto de tela em deploy de
+ * backend. Quem escreve "Em risco" é o painel (`customers/customer-segment.ts`).
+ */
+export type CustomerSegment = Schemas['CustomerSegment'];
+
 // --- relatórios (Desempenho) ----------------------------------------------
 
 /*

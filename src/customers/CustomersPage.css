@@ -35,6 +35,26 @@
 }
 
 /*
+ * O RECORTE DA CLASSIFICAÇÃO, ao lado do título.
+ *
+ * Ele vive no `aside` da faixa — o slot em que Minha loja põe a mesma coisa —,
+ * e a faixa GRUDA no topo enquanto a lista rola. É essa permanência que faz o
+ * trabalho: a dúvida ("por que a Maria virou Perdida?") aparece na linha 40, e
+ * uma frase que já rolou para fora não responde nada.
+ *
+ * Ele NÃO quebra em duas linhas: uma faixa de 52px com um pedaço de frase
+ * dobrado sob o título vira dois títulos. Quando não cabe, o nome da filial é
+ * cortado — o resto da sentença ("classificação da filial …") já diz que o
+ * recorte é de UMA loja, que é a metade que muda a decisão.
+ */
+.customers__escopo {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
  * O TETO DE LEITURA. Numa tela de 2560px a tabela esticaria de ponta a ponta e
  * "Ana Paula" ficaria a dois palmos de "R$ 748,50" — a linha deixa de ser
  * linha. A folha continua correndo até a margem; quem para em `--page-max` é o
@@ -84,27 +104,144 @@
 /* --- as colunas ----------------------------------------------------------- */
 
 /*
- * SÓ A COLUNA DO NOME É FLUIDA. Pedidos, total e as duas datas têm largura
- * própria e caem na mesma abscissa em todas as linhas — sem isso, cada linha
- * ancora o olho num lugar diferente conforme o comprimento do nome.
+ * SÓ A COLUNA DO NOME É FLUIDA. Classificação, pedidos, os dois valores e as
+ * duas datas têm largura própria e caem na mesma abscissa em todas as linhas —
+ * sem isso, cada linha ancora o olho num lugar diferente conforme o comprimento
+ * do nome. É esse alinhamento que faz a coluna de classificação ser lida de
+ * relance: os pontos de "Em risco" e "Perdido" descem numa abscissa só.
  *
- * As medidas são de CONTEÚDO, não da escala de espaçamento: 96px é o que
- * "Pedidos" pede no cabeçalho, e 132px o que cabe em "R$ 1.234,56" e em
- * "Cliente desde" sem quebrar.
+ * As medidas são de CONTEÚDO, não da escala de espaçamento, e são de CAIXA
+ * INTEIRA (`box-sizing: border-box` no reset): cada célula gasta `--tabela-pad`
+ * de cada lado, então 132px de coluna são 84px de texto quando o respiro é o da
+ * página.
  *
- * Só a partir de 640px: abaixo disso a tabela não é tabela (ver `DataTable`),
- * e largura de coluna não significa nada num bloco empilhado.
+ *   136  "Classificação" no cabeçalho, que é mais largo que "Ocasional"
+ *   104  "Pedidos"
+ *   132  "R$ 1.234,56"
+ *   160  "10 de 12 pedidos", a linha auxiliar do ticket — a mais larga da grade
+ *   140  "Cliente desde", e 144 "Último pedido": aqui manda o CABEÇALHO, que é
+ *        mais largo que "24/05/2026" e que "há 3 meses"
+ *
+ * SÓ A PARTIR DE 1180px, que é onde o respiro da célula volta a ser o da página
+ * (ver o bloco seguinte) e onde a lateral do shell ganha os nomes. As sete
+ * larguras somam 816px; abaixo disso elas não cabem junto de um nome legível, e
+ * uma coluna declarada mais larga do que o espaço existente não encolhe — ela
+ * empurra a tabela para fora da margem. Entre 640 e 1179px a distribuição fica
+ * com o navegador, que reparte o que há e nunca comprime uma coluna abaixo do
+ * cabeçalho dela.
  */
-@media (min-width: 640px) {
+@media (min-width: 1180px) {
   .customers__corpo th:nth-child(2) {
-    width: 96px;
+    width: 136px;
   }
 
-  .customers__corpo th:nth-child(3),
-  .customers__corpo th:nth-child(4),
-  .customers__corpo th:nth-child(5) {
+  .customers__corpo th:nth-child(3) {
+    width: 104px;
+  }
+
+  .customers__corpo th:nth-child(4) {
     width: 132px;
   }
+
+  .customers__corpo th:nth-child(5) {
+    width: 160px;
+  }
+
+  .customers__corpo th:nth-child(6) {
+    width: 140px;
+  }
+
+  .customers__corpo th:nth-child(7) {
+    width: 144px;
+  }
+}
+
+/*
+ * O RESPIRO DA CÉLULA, EM TRÊS FAIXAS — e é ele que faz sete colunas caberem.
+ *
+ * `--tabela-pad` é o ar de CADA célula. Com o respiro da página (24px de cada
+ * lado) são 336px gastos em branco numa tabela de sete colunas, e abaixo de
+ * 1180px esses 336px são exatamente a diferença entre a lista caber e a lista
+ * romper a margem — em 768px o conteúdo mínimo dava 769px numa faixa de 700.
+ *
+ * Apertar o ar é preferível a esconder coluna: a informação não some num ponto
+ * de quebra, ela chega mais perto da vizinha. E é preferível a rolar na
+ * horizontal, que sumiria justamente com a primeira coluna, que é a que
+ * identifica a linha.
+ *
+ *   ≥ 1180  o respiro da página, e a tabela alinha com o título da faixa
+ *   721 a 1179  8px de cada lado
+ *   ≤ 720  zero, e o ar volta para a página (ver o bloco de celular)
+ *
+ * ISTO SÓ PASSOU A FUNCIONAR NESTA RODADA. `ds/DataTable.css` declarava o valor
+ * padrão na própria `.ds-tabela`, e uma propriedade escrita no elemento vence a
+ * que desce do ancestral — a página escrevia e a tabela ignorava. Hoje o padrão
+ * é o fallback do `var()` de quem consome, e a página manda de verdade.
+ */
+@media (min-width: 721px) and (max-width: 1179px) {
+  .customers__corpo {
+    --tabela-pad: var(--sp-8);
+  }
+}
+
+/* --- a classificação ------------------------------------------------------ */
+
+/*
+ * A ETIQUETA DE CLASSE: um ponto na matiz e a palavra em tinta comum.
+ *
+ * Ela NÃO tem fundo tingido, ao contrário do chip de status, e o motivo está
+ * escrito por extenso em `SegmentTag.tsx`: o estágio do pedido é escrito uma
+ * vez por bloco, a classe é de cada linha, e cinquenta retângulos coloridos
+ * descendo uma coluna viram mancha em vez de leitura.
+ *
+ * A matiz vem de `--seg`, que as classes `is-seg-*` de `tokens.css` apontam
+ * para a semântica de estado. Este arquivo não conhece nenhuma cor.
+ *
+ * O NOME É `.classe`, e não `.seg`: `.seg` já é o segmentado do sistema, e o
+ * nome repetido dava à etiqueta o plano e o raio DELE — cinco pílulas cinzentas
+ * descendo a coluna, que é o objeto que esta etiqueta existe para não ser.
+ */
+.classe {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-8);
+  min-width: 0;
+  color: var(--ink);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  white-space: nowrap;
+}
+
+/* A FORMA — é ela que sobrevive ao daltonismo e à tela ruim do balcão. */
+.classe__ponto {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-round);
+  background: var(--seg);
+}
+
+/* --- o ticket médio ------------------------------------------------------- */
+
+/*
+ * O VALOR E, EMBAIXO, O DENOMINADOR — quando ele precisa ser dito.
+ *
+ * A segunda linha só existe nas linhas em que `orders_count` e
+ * `billable_orders_count` divergem (ver `billableNote`): é ali que "13 pedidos,
+ * R$ 748,50, ticket R$ 65,04" parece não fechar, e fecha. Nas outras a coluna
+ * "Pedidos" já é o denominador, e repetir o número em cinquenta linhas seria
+ * ruído para explicar o que está explicado.
+ */
+.ticket {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  align-items: flex-end;
+  min-width: 0;
+}
+
+.ticket__nota {
+  white-space: nowrap;
 }
 
 /* --- a célula do cliente -------------------------------------------------- */
@@ -191,5 +328,37 @@
 
   .customers__corpo td:first-child::before {
     content: none;
+  }
+
+  /*
+   * A CLASSE ENTRA NO BLOCO DE IDENTIDADE, e não como a segunda linha rotulada.
+   *
+   * "Classificação   ● Fiel" gastaria 40% da largura com a palavra
+   * "Classificação" para dizer uma coisa que o rótulo já diz sozinho — "Fiel"
+   * não precisa ser apresentado. Sem o rótulo e sem a altura mínima de alvo de
+   * toque (ela não é um alvo: não se clica numa classificação), ela cola no
+   * telefone logo acima e o bloco abre com quem é a pessoa e em que pé ela
+   * está, que é a leitura da tela.
+   *
+   * Isto vale enquanto a tabela é BLOCO. De 640px para cima ela volta a ser
+   * tabela e as duas regras ficam inertes sozinhas: `::before` já não tem
+   * conteúdo e `min-height` não afeta uma `table-cell`.
+   */
+  .customers__corpo td:nth-child(2) {
+    min-height: 0;
+    padding-top: 0;
+  }
+
+  .customers__corpo td:nth-child(2)::before {
+    content: none;
+  }
+
+  /*
+   * O TICKET ENCOSTA À ESQUERDA como todo valor do bloco empilhado: o alinhamento
+   * à direita existe para uma COLUNA se comparar consigo mesma, e num bloco de
+   * uma coluna só ele deixa o número flutuando longe do rótulo que o nomeia.
+   */
+  .ticket {
+    align-items: flex-start;
   }
 }

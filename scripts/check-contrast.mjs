@@ -240,6 +240,20 @@ const PAIRS = [
   { fg: '--st-cancelado', bg: '--bg', min: 3, use: 'fio de maturação sobre a página' },
 
   /*
+   * A CLASSIFICAÇÃO DO CLIENTE (`is-seg-*` em tokens.css, `customers/SegmentTag`).
+   *
+   * A etiqueta é um PONTO na matiz semântica mais a palavra em tinta comum —
+   * sem fundo tingido, ao contrário do chip de status. Então o par a medir é o
+   * ponto contra a folha, e ele é elemento gráfico informativo: 3:1 (1.4.11).
+   * O texto é `--ink` sobre `--surface`, par que já está medido lá em cima.
+   */
+  { fg: '--info', bg: '--surface', min: 3, use: 'ponto da classe Novo' },
+  { fg: '--ink-3', bg: '--surface', min: 3, use: 'ponto da classe Ocasional' },
+  { fg: '--ok', bg: '--surface', min: 3, use: 'ponto da classe Fiel' },
+  { fg: '--alert', bg: '--surface', min: 3, use: 'ponto da classe Em risco' },
+  { fg: '--danger', bg: '--surface', min: 3, use: 'ponto da classe Perdido' },
+
+  /*
    * A COZINHA (tokens §5b) — a única escala acesa do sistema, medida contra o
    * plano fundo do monitor de parede, que é o mesmo nos dois temas. Ela é lida
    * a dois metros, então o mínimo aqui é o de TEXTO (4.5), não o de elemento

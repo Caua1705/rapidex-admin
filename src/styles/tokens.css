@@ -845,6 +845,47 @@
 }
 
 /*
+ * ============================================================================
+ * A CLASSIFICAÇÃO DO CLIENTE COMO CLASSE
+ *
+ * Mesma gramática do bloco acima: quem pinta uma classe RFV não escolhe matiz,
+ * põe `is-seg-<classe>` no elemento e lê `--seg`. Quem consome é
+ * `customers/SegmentTag`.
+ *
+ * NÃO EXISTE UMA ESCALA NOVA AQUI, e é a decisão que importa: as cinco lêem a
+ * SEMÂNTICA DE ESTADO (§4), que é o que elas realmente dizem. Uma escala
+ * própria de cinco matizes seria uma segunda paleta de status numa tela que
+ * fica ao lado da de Pedidos, e o painel passaria a ter doze cores de estado
+ * para o lojista aprender.
+ *
+ *   novo       --info    é uma nota: relacionamento recente, nada a fazer
+ *   ocasional  --ink-3   tinta comum: não distingue nada, e não deveria
+ *   fiel       --ok      está tudo certo com esta pessoa
+ *   perdido    --danger  passou o quádruplo do ritmo dela
+ *   em_risco   --alert   passou o dobro — atenção, não perigo
+ *
+ * O NOME DA CLASSE É O CÓDIGO DO CONTRATO, sublinhado e tudo (`is-seg-em_risco`).
+ * Derivar a classe do valor do enum é o que dispensa um segundo mapa entre o
+ * código e um nome bonito — e um segundo mapa é onde a quinta classe some.
+ * ============================================================================
+ */
+.is-seg-novo {
+  --seg: var(--info);
+}
+.is-seg-ocasional {
+  --seg: var(--ink-3);
+}
+.is-seg-fiel {
+  --seg: var(--ok);
+}
+.is-seg-em_risco {
+  --seg: var(--alert);
+}
+.is-seg-perdido {
+  --seg: var(--danger);
+}
+
+/*
  * Movimento reduzido: a tela troca de estado INSTANTANEAMENTE, nunca deixa de
  * trocar. `@keyframes` com `animation:` precisa do seu próprio desligamento.
  */

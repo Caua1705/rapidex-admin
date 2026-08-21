@@ -16,9 +16,13 @@ function customer(overrides: Partial<CustomerListItem> = {}): CustomerListItem {
     customer_name: 'Ana Paula',
     customer_phone: '85999990000',
     orders_count: 3,
+    billable_orders_count: 3,
     total_spent: 120.5,
+    average_ticket: 40.17,
     first_order_at: '2026-03-12T20:00:00Z',
     last_order_at: '2026-08-15T20:00:00Z',
+    days_since_last_order: 5,
+    segment: 'fiel',
     ...overrides,
   };
 }

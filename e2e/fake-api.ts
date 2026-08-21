@@ -592,42 +592,96 @@ const CUSTOMER_BRANCH: Record<string, string> = {
   '85999990000': BRANCH_ID,
   '85988887777': BRANCH_ID,
   '85977776666': BRANCH_ID,
+  '85966665555': BRANCH_ID,
   '8532224444': '44444444-4444-4444-4444-444444444444',
 };
 
+/**
+ * OS CINCO CLIENTES DO FALSO, e cada um cobre um caso que a tela precisa saber
+ * desenhar — não uma base que pareça real.
+ *
+ * `segment`, `average_ticket`, `billable_orders_count` e `days_since_last_order`
+ * são CALCULADOS PELO BACKEND, sobre o recorte da consulta, e o falso os entrega
+ * prontos como a rota entrega. Recalculá-los aqui seria reimplementar a fórmula
+ * RFV dentro do arnês de teste — e um teste que refaz a conta do backend passa
+ * mesmo quando a tela lê o campo errado.
+ *
+ * O que cada linha cobre:
+ *
+ * - **Ana Paula** é `fiel` e tem pedido cancelado: `orders_count` 12 contra
+ *   `billable_orders_count` 10. É a linha em que os três números parecem não
+ *   fechar (12 pedidos, R$ 748,50, ticket R$ 74,85) e a tela tem que escrever o
+ *   denominador embaixo do ticket.
+ * - **Marcos Lima** é `perdido` — 95 dias sem aparecer.
+ * - **Sem nome** é `ocasional`, e é o cliente de balcão que não se identificou.
+ * - **Juliana Alves** é `em_risco` e NÃO TEM PEDIDO FATURÁVEL: os três dela
+ *   foram cancelados, então `average_ticket` vem 0.0 do backend. Escrever
+ *   "R$ 0,00" ali seria afirmar que ela gasta zero por pedido; a tela tem que
+ *   dizer que não há o que dividir.
+ * - **Rafael Nunes** é `novo` e mora na OUTRA filial — é ele que prova que o
+ *   seletor do topo recorta esta lista.
+ */
 function initialCustomers(): CustomerListItem[] {
   return [
     {
       customer_name: 'Ana Paula',
       customer_phone: '85999990000',
       orders_count: 12,
+      billable_orders_count: 10,
       total_spent: 748.5,
+      average_ticket: 74.85,
       first_order_at: daysAgo(400),
       last_order_at: daysAgo(0),
+      days_since_last_order: 0,
+      segment: 'fiel',
     },
     {
       customer_name: 'Marcos Lima',
       customer_phone: '85988887777',
       orders_count: 5,
+      billable_orders_count: 5,
       total_spent: 312,
+      average_ticket: 62.4,
       first_order_at: daysAgo(300),
       last_order_at: daysAgo(95),
+      days_since_last_order: 95,
+      segment: 'perdido',
     },
     {
       customer_name: '',
       customer_phone: '85977776666',
       orders_count: 2,
+      billable_orders_count: 2,
       total_spent: 89.9,
+      average_ticket: 44.95,
       first_order_at: daysAgo(60),
       last_order_at: daysAgo(1),
+      days_since_last_order: 1,
+      segment: 'ocasional',
+    },
+    {
+      customer_name: 'Juliana Alves',
+      customer_phone: '85966665555',
+      orders_count: 3,
+      billable_orders_count: 0,
+      total_spent: 0,
+      average_ticket: 0,
+      first_order_at: daysAgo(45),
+      last_order_at: daysAgo(20),
+      days_since_last_order: 20,
+      segment: 'em_risco',
     },
     {
       customer_name: 'Rafael Nunes',
       customer_phone: '8532224444',
       orders_count: 1,
+      billable_orders_count: 1,
       total_spent: 45,
+      average_ticket: 45,
       first_order_at: daysAgo(12),
       last_order_at: daysAgo(12),
+      days_since_last_order: 12,
+      segment: 'novo',
     },
   ];
 }

@@ -5,11 +5,22 @@
  * `--sp-16` numa tabela dentro de um bloco e `--page-pad` numa tabela que corre
  * até a margem da tela (Clientes). Sem isso, a primeira coluna de uma lista
  * cheia começava 8px antes do título que a nomeia lá em cima.
+ *
+ * O PADRÃO É UM FALLBACK, E NÃO UMA DECLARAÇÃO NA TABELA — e essa diferença é a
+ * razão de este comentário ter crescido. Enquanto `--tabela-pad: var(--sp-16)`
+ * era declarado AQUI, na própria `.ds-tabela`, ele vencia qualquer valor herdado
+ * do ancestral: uma propriedade posta no elemento sempre ganha da que desce até
+ * ele. Ou seja, a variável existia, a página a escrevia, e a tabela continuava
+ * com 16px — Clientes começava 8px à esquerda do título dela desde o dia em que
+ * a peça nasceu, que é EXATAMENTE o defeito descrito no parágrafo acima.
+ *
+ * Com o valor no `var(…, …)` de quem consome, a página volta a mandar. É isso
+ * que permite a uma tabela larga apertar o respiro em largura de tablet em vez
+ * de romper a margem.
  */
 .ds-tabela {
   width: 100%;
   border-collapse: collapse;
-  --tabela-pad: var(--sp-16);
 }
 
 .ds-tabela__caption {
@@ -97,7 +108,7 @@
    * bloco de estágio usa em Pedidos e que o total usa no detalhe do pedido.
    */
   .ds-tabela th {
-    padding: var(--sp-8) var(--tabela-pad);
+    padding: var(--sp-8) var(--tabela-pad, var(--sp-16));
     border-bottom: 1px solid var(--line-strong);
     text-align: left;
     font-size: var(--tl-size);
@@ -116,7 +127,7 @@
   .ds-tabela td {
     display: table-cell;
     min-height: var(--row-dense-h);
-    padding: var(--sp-12) var(--tabela-pad);
+    padding: var(--sp-12) var(--tabela-pad, var(--sp-16));
     vertical-align: middle;
     border-bottom: 1px solid var(--line);
   }
