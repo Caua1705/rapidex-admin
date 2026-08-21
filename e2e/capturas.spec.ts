@@ -87,6 +87,15 @@ for (const tamanho of TAMANHOS) {
       await expect(page.getByRole('heading', { name: 'Clientes' })).toBeVisible();
       await fotografar(page, 'clientes', tamanho.nome, tema);
 
+      /*
+       * A AJUDA ABERTA — o estado que tirou dois parágrafos da frente da
+       * tabela. No desktop é um balão ancorado no ícone; no celular ele deixa
+       * de flutuar e vira uma fileira da faixa, na largura inteira.
+       */
+      await page.getByTestId('customers-ajuda').click();
+      await expect(page.getByTestId('customers-nota-rfv')).toBeVisible();
+      await fotografar(page, 'clientes-ajuda', tamanho.nome, tema);
+
       await page.goto('/desempenho');
       await expect(page.getByRole('heading', { name: 'Desempenho' })).toBeVisible();
       await fotografar(page, 'desempenho', tamanho.nome, tema);

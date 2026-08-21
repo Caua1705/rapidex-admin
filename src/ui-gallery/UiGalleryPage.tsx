@@ -8,6 +8,7 @@ import {
   Checkbox,
   Field,
   FieldRow,
+  HelpPopover,
   Input,
   OrderRow,
   PageBar,
@@ -572,6 +573,37 @@ export function UiGalleryPage() {
                 </button>
               ))}
             </Sheet>
+          </Amostra>
+        </Secao>
+
+        <Secao
+          titulo="Ajuda de tela"
+          nota="A explicação que se lê uma vez na vida, e que por isso não pode ocupar a tela todo dia. Esc fecha e devolve o foco ao ícone; sair com Tab também fecha."
+        >
+          <Amostra rotulo="Fechada — o que a tela mostra por padrão">
+            <span className="t-title">Clientes</span>
+            <HelpPopover label="Como ler esta tela" title="Como ler esta tela">
+              <p className="t-aux">
+                Quem já pediu nesta loja, agrupado por telefone. E-mail e CPF são da conta do
+                cliente na plataforma e não aparecem aqui.
+              </p>
+            </HelpPopover>
+          </Amostra>
+
+          <Amostra rotulo="Ao lado de uma ressalva de escopo" larga>
+            <span className="t-title">Clientes</span>
+            <span className="t-aux">classificação do restaurante inteiro</span>
+            <HelpPopover label="Como ler a classificação" title="Como ler a classificação">
+              <p className="t-aux">
+                A classificação e o ticket médio são <strong>do restaurante inteiro</strong> — o
+                mesmo cliente pode ser Fiel no restaurante e Perdido numa loja, e as duas leituras
+                estão certas.
+              </p>
+              <p className="t-aux">
+                O ritmo é de cada cliente: quem pede toda semana entra em risco em duas semanas;
+                quem pede uma vez por mês, em dois meses.
+              </p>
+            </HelpPopover>
           </Amostra>
         </Secao>
 

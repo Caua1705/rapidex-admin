@@ -146,6 +146,29 @@ export function AlertIcon(props: IconProps) {
 }
 
 /**
+ * A INTERROGAÇÃO DENTRO DO CÍRCULO — o gatilho da ajuda de uma tela.
+ *
+ * Ela é a única forma que o sistema aceita para "há uma explicação aqui", e é
+ * de propósito que ela NÃO é o "i" de informação: o "i" é usado pelo painel
+ * para dizer "isto é uma nota, não um problema" (`.alert--info`), e um mesmo
+ * desenho valendo uma frase que se lê e um botão que se aperta é como o
+ * lojista aprende a ignorar os dois.
+ *
+ * O ponto é um traço de comprimento zero: com a ponta arredondada do sistema
+ * ele sai redondo, e sem `fill` nenhum — a regra de `currentColor` continua
+ * valendo. É a mesma solução do pingo do `AlertIcon`.
+ */
+export function HelpIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="8.75" />
+      <path d="M9.4 9.4a2.6 2.6 0 1 1 3.4 2.5c-.6.2-.9.7-.9 1.3v.5" />
+      <path d="M12 16.7v.01" />
+    </Icon>
+  );
+}
+
+/**
  * O sino do alerta sonoro, com a barra do desligado.
  *
  * Ele mora aqui, e não solto na barra de pedidos, porque ícone desenhado

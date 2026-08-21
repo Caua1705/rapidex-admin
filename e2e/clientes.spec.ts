@@ -245,20 +245,54 @@ test('a faixa diz de qual recorte é a classificação, e ele acompanha o seleto
 });
 
 /*
- * A ressalva acima da lista é a que EXPLICA o recorte — a faixa só o nomeia.
- * Ela é o que evita a segunda pergunta ("por que o vizinho tem rótulo diferente
- * com o mesmo tempo sem pedir?"), e some junto com o resto se alguém a apagar
- * por achá-la prolixa.
+ * A EXPLICAÇÃO EXISTE, E NÃO OCUPA A TELA.
+ *
+ * Ela era dois parágrafos acima da lista — sete linhas de prosa antes da
+ * primeira linha da tabela, todo dia, para quem já as leu. Hoje mora atrás do
+ * ícone de ajuda, ao lado do título.
+ *
+ * A ASSERÇÃO MUDOU DE FORMA E CONTINUA COBRINDO O MESMO REQUISITO: o conteúdo
+ * é o mesmo, palavra por palavra; o que se acrescenta é que ele começa
+ * FECHADO. Sem esta primeira metade, alguém "conserta" a tela devolvendo os
+ * parágrafos para cima da tabela e o teste continua verde.
  */
-test('a ressalva explica que a mesma pessoa pode ler diferente em cada recorte', async ({
-  page,
-}) => {
+test('a explicação começa fechada e abre no ícone de ajuda', async ({ page }) => {
   await abrirClientes(page);
 
-  const nota = page.getByTestId('customers-nota-rfv');
-  await expect(nota).toContainText('Fiel no restaurante e Perdido numa loja');
-  await expect(nota).toContainText('O ritmo é de cada cliente');
-  await expect(nota).toContainText('não conta cancelado nem recusado');
+  const rfv = page.getByTestId('customers-nota-rfv');
+  const base = page.getByTestId('customers-nota-base');
+  await expect(rfv).toHaveCount(0);
+  await expect(base).toHaveCount(0);
+
+  const ajuda = page.getByTestId('customers-ajuda');
+  await expect(ajuda).toHaveAttribute('aria-expanded', 'false');
+  await ajuda.click();
+  await expect(ajuda).toHaveAttribute('aria-expanded', 'true');
+
+  // O que a tabela não consegue dizer sozinha: por que não há coluna de e-mail.
+  await expect(base).toContainText('E-mail e CPF são da conta do cliente');
+
+  // E as duas perguntas que o contrato do backend avisou que virariam chamado.
+  await expect(rfv).toContainText('Fiel no restaurante e Perdido numa loja');
+  await expect(rfv).toContainText('O ritmo é de cada cliente');
+  await expect(rfv).toContainText('não conta cancelado nem recusado');
+});
+
+/*
+ * Esc FECHA E DEVOLVE O FOCO ao ícone. Sem a devolução, quem fechou a ajuda
+ * pelo teclado é largado no fim do documento e o próximo Tab começa de novo —
+ * é a mesma regra do `ds/Select`, e ela some sem ninguém ver.
+ */
+test('a ajuda fecha no Esc e devolve o foco ao ícone', async ({ page }) => {
+  await abrirClientes(page);
+
+  const ajuda = page.getByTestId('customers-ajuda');
+  await ajuda.click();
+  await expect(page.getByTestId('customers-nota-rfv')).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('customers-nota-rfv')).toHaveCount(0);
+  await expect(ajuda).toBeFocused();
 });
 
 /*

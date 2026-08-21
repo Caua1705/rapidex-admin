@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 import { useSession } from '../auth/session-context';
 import { DataTable, type Column } from '../ds/DataTable';
+import { HelpPopover } from '../ds/HelpPopover';
 import { PageBar } from '../ds/PageBar';
 import { SearchField } from '../ds/SearchField';
 import { branchName } from '../layout/branch-heading';
@@ -71,14 +72,30 @@ import './CustomersPage.css';
  *   - na FAIXA, ao lado do título: três palavras dizendo o recorte. A faixa
  *     GRUDA no topo enquanto a lista rola, então na quadragésima linha ele
  *     continua na tela. É a única parte que precisa estar sempre visível.
- *   - na RESSALVA, acima da lista: a explicação, lida uma vez. Ela rola para
- *     fora e tudo bem — ninguém precisa reler que o ritmo é de cada cliente.
+ *   - no ÍCONE DE AJUDA, logo ao lado: a explicação, lida uma vez na vida.
  *
  * ANTES ESTA TELA NÃO ESCREVIA ESCOPO NENHUM, com o argumento de que o
  * cabeçalho do shell já dizia a filial. O argumento valia enquanto ela só
  * mostrava FATOS (gastou R$ 748,50, pediu há 3 dias), que são os mesmos em
  * qualquer recorte. Deixou de valer no instante em que ela passou a mostrar um
  * JUÍZO derivado do recorte.
+ *
+ * ----------------------------------------------------------------------------
+ * A EXPLICAÇÃO SAIU DA FRENTE DA TABELA
+ * ----------------------------------------------------------------------------
+ *
+ * Ela era DOIS PARÁGRAFOS acima da lista: o que a tela não tem (e-mail e CPF) e
+ * como se lê a classificação. Somados, sete linhas de prosa antes da primeira
+ * linha da tabela — o cabeçalho explicativo que a direção tirou de todas as
+ * telas, voltando pela porta dos fundos e escrito por nós.
+ *
+ * Ela não podia sair: as duas perguntas que ela responde ("cadê o e-mail?" e
+ * "por que a Maria virou Perdida?") são as duas que viram chamado. Mas ela se
+ * lê UMA vez, e cobrava uma dobra de tela por turno de quem já a tinha lido.
+ *
+ * Hoje ela mora atrás de `ds/HelpPopover`, ao lado do título. O que continua
+ * visível é a metade que muda de valor a cada troca de filial — o recorte.
+ * A que não muda nunca está a um clique.
  */
 export function CustomersPage() {
   const { branches, activeBranchId } = useSession();
@@ -220,16 +237,87 @@ export function CustomersPage() {
         title="Clientes"
         aside={
           /*
-            O RECORTE, GRUDADO NO TÍTULO. `aside` é o slot onde o sistema põe
-            ressalva de escopo — é o mesmo que Minha loja usa —, e a faixa é
-            grudenta: na quadragésima linha da lista ele continua na tela, que é
-            exatamente onde a dúvida aparece.
+            O RECORTE E A AJUDA SÃO UM GRUPO, e por isso vivem num invólucro
+            próprio em vez de serem dois filhos soltos da faixa: o vão de 16px
+            que a `PageBar` põe entre os elementos do título separaria o ícone
+            da frase que ele explica, e um "?" solto a 16px de distância parece
+            a ajuda da TELA, não a daquela ressalva.
           */
-          recorte ? (
-            <span className="t-aux customers__escopo" data-testid="customers-scope">
-              classificação {recorte}
-            </span>
-          ) : null
+          <span className="customers__escopo-grupo">
+            {/*
+              O RECORTE, GRUDADO NO TÍTULO. `aside` é o slot onde o sistema põe
+              ressalva de escopo — é o mesmo que Minha loja usa —, e a faixa é
+              grudenta: na quadragésima linha da lista ele continua na tela, que
+              é exatamente onde a dúvida aparece.
+
+              ELE FICA VISÍVEL, e não entra na ajuda junto com o resto. É a
+              única metade da explicação que precisa estar na tela o tempo todo:
+              três palavras dizendo sobre QUAL base o rótulo foi calculado. O
+              porquê disso importar é que cabe atrás do ícone.
+            */}
+            {recorte ? (
+              <span className="t-aux customers__escopo" data-testid="customers-scope">
+                classificação {recorte}
+              </span>
+            ) : null}
+
+            {/*
+              A EXPLICAÇÃO, ATRÁS DE UM ÍCONE.
+
+              Eram DOIS PARÁGRAFOS acima da tabela — sete linhas de prosa antes
+              da primeira linha da lista, todo dia, para quem já leu na primeira
+              vez. A informação não podia sair (as duas perguntas que ela
+              responde viram chamado), mas ela não é o que se lê ao abrir a
+              tela: ela se lê UMA vez.
+
+              Isto não reabre a porta do subtítulo explicando a tela. O que o
+              sistema proíbe é a frase que ocupa a tela sem ser pedida; aqui a
+              explicação só aparece para quem a pede, e some ao lado.
+            */}
+            <HelpPopover
+              label="Como ler esta tela"
+              title="Como ler esta tela"
+              data-testid="customers-ajuda"
+            >
+              {/*
+                A PRIMEIRA RESPONDE "CADÊ O E-MAIL DO CLIENTE?", que é a
+                primeira pergunta de quem abre a tela. A resposta ("é da conta
+                dele na plataforma, não do relacionamento com esta loja") não
+                cabe em lugar nenhum da tabela, e como coluna vazia seria pior.
+              */}
+              <p className="t-aux" data-testid="customers-nota-base">
+                Quem já pediu nesta loja, agrupado por telefone. E-mail e CPF são da conta do
+                cliente na plataforma e não aparecem aqui.
+              </p>
+
+              {/*
+                A SEGUNDA É SOBRE A CLASSIFICAÇÃO, e responde às duas perguntas
+                que o contrato do backend avisou que virariam chamado.
+
+                A PRIMEIRA é o recorte: a mesma pessoa muda de rótulo quando o
+                lojista troca de filial no topo, e sem esta frase isso lê como
+                defeito. A SEGUNDA é o ritmo, que é de CADA CLIENTE e não do
+                restaurante — é por isso que dois nomes com o mesmo tempo sem
+                pedir saem com rótulos diferentes.
+
+                Sem escolha de filial (`recorte` nulo), a primeira metade não se
+                aplica — restaurante e loja são o mesmo lugar —, mas a segunda
+                continua valendo. A frase encolhe em vez de sumir.
+              */}
+              <p className="t-aux" data-testid="customers-nota-rfv">
+                {recorte ? (
+                  <>
+                    A classificação e o ticket médio são <strong>{recorte}</strong> — o mesmo
+                    cliente pode ser Fiel no restaurante e Perdido numa loja, e as duas leituras
+                    estão certas.{' '}
+                  </>
+                ) : null}
+                O ritmo é de cada cliente: quem pede toda semana entra em risco em duas semanas;
+                quem pede uma vez por mês, em dois meses. O ticket médio não conta cancelado nem
+                recusado.
+              </p>
+            </HelpPopover>
+          </span>
         }
       >
         <div className="customers__busca">
@@ -254,57 +342,6 @@ export function CustomersPage() {
       </PageBar>
 
       <div className="customers__corpo">
-        {/*
-          A RESSALVA EXISTE PARA DIZER O QUE A TELA NÃO TEM.
-
-          "Cadê o e-mail do cliente?" é a primeira pergunta de quem abre esta
-          tela, e a resposta ("é da conta dele na plataforma, não do
-          relacionamento com esta loja") não cabe em lugar nenhum da tabela.
-          Dita uma vez aqui, ela não vira coluna vazia nem tarja repetida em
-          cinquenta linhas. Não é um subtítulo explicando a tela — é a única
-          coisa que a tabela não consegue dizer sozinha.
-        */}
-        <p className="t-aux customers__nota">
-          Quem já pediu nesta loja, agrupado por telefone. E-mail e CPF são da conta do cliente na
-          plataforma e não aparecem aqui.
-        </p>
-
-        {/*
-          A SEGUNDA RESSALVA É SOBRE A CLASSIFICAÇÃO, e responde às duas
-          perguntas que o contrato do backend avisou que virariam chamado.
-
-          A PRIMEIRA é o recorte: a mesma pessoa muda de rótulo quando o lojista
-          troca de filial no topo, e sem esta frase isso lê como defeito.
-
-          A SEGUNDA é o ritmo, que é de CADA CLIENTE e não do restaurante. É por
-          isso que dois nomes com o mesmo tempo sem pedir saem com rótulos
-          diferentes — e é a pergunta que vem logo depois da primeira.
-
-          Ela é um parágrafo separado, e não uma frase a mais no de cima: aquele
-          fala do que a tela NÃO tem, este fala de como se lê o que ela tem.
-
-          Sem escolha de filial (`recorte` nulo), a primeira metade não se aplica
-          — restaurante e loja são o mesmo lugar —, mas a segunda continua
-          valendo. A frase encolhe em vez de sumir.
-
-          ELA ENCOLHEU DEPOIS DA PRIMEIRA CAPTURA. Eram quatro sentenças, e sete
-          linhas de prosa antes da primeira linha da lista é o cabeçalho
-          explicativo que a direção tirou de todas as telas voltando pela porta
-          dos fundos. O que sobrou é o que muda uma decisão: o recorte, o fato de
-          as duas leituras estarem certas, o ritmo ser de cada um, e o que o
-          ticket não conta.
-        */}
-        <p className="t-aux customers__nota" data-testid="customers-nota-rfv">
-          {recorte ? (
-            <>
-              A classificação e o ticket médio são <strong>{recorte}</strong> — o mesmo cliente pode
-              ser Fiel no restaurante e Perdido numa loja, e as duas leituras estão certas.{' '}
-            </>
-          ) : null}
-          O ritmo é de cada cliente: quem pede toda semana entra em risco em duas semanas; quem pede
-          uma vez por mês, em dois meses. O ticket médio não conta cancelado nem recusado.
-        </p>
-
         {customers.errorMessage ? (
           <p className="alert alert--error customers__alerta" role="alert">
             {customers.errorMessage}

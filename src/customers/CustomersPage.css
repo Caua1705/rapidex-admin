@@ -47,6 +47,26 @@
  * cortado — o resto da sentença ("classificação da filial …") já diz que o
  * recorte é de UMA loja, que é a metade que muda a decisão.
  */
+/*
+ * O RECORTE E O ÍCONE DE AJUDA, JUNTOS. O vão é de 8px — o degrau de "controles
+ * irmãos" —, e não os 16 que a faixa põe entre título, ressalva e ferramentas:
+ * o ícone é a continuação da frase, e o vão de bloco o faria ler como um
+ * terceiro elemento do cabeçalho.
+ */
+.customers__escopo-grupo {
+  display: flex;
+  align-items: center;
+  /*
+   * ELE ENVOLVE, e é requisito do `ds/HelpPopover`: no celular o painel aberto
+   * deixa de flutuar e vira uma fileira de largura inteira — um balão de 44ch
+   * ancorado num ícone que pode nascer a 300px da margem romperia a tela. Sem
+   * o envolvimento aqui, a fileira não tem para onde ir.
+   */
+  flex-wrap: wrap;
+  gap: var(--sp-8);
+  min-width: 0;
+}
+
 .customers__escopo {
   min-width: 0;
   overflow: hidden;
@@ -68,17 +88,6 @@
   padding-bottom: var(--sp-32);
   /* A tabela corre até a margem da tela, como a lista de Pedidos. */
   --tabela-pad: var(--page-pad);
-}
-
-/*
- * A RESSALVA. Ela diz o que a tela NÃO tem, e por isso fica acima da lista e
- * não no rodapé: quem procura o e-mail do cliente precisa da resposta antes de
- * varrer cinquenta linhas atrás de uma coluna que não existe.
- */
-.customers__nota {
-  max-width: 72ch;
-  margin: 0;
-  padding: var(--sp-12) var(--page-pad);
 }
 
 .customers__alerta {
@@ -294,7 +303,6 @@
     padding-bottom: calc(var(--bottombar-h) + var(--sp-24));
   }
 
-  .customers__nota,
   .customers__estado,
   .customers__rodape {
     padding-inline: 0;
