@@ -6,6 +6,7 @@ import { ThemeToggle } from '../theme/ThemeToggle';
 import { RapidexLogo } from '../ui/RapidexLogo';
 import { BottomBar } from './BottomBar';
 import { BranchSelector } from './BranchSelector';
+import { EstablishmentBadge } from './EstablishmentBadge';
 import { type NavEntry } from './nav';
 import { useNavGroups } from './use-nav';
 import './AppShell.css';
@@ -53,6 +54,17 @@ export function AppShell({ children }: { children: ReactNode }) {
           <RapidexLogo size={22} />
         </div>
 
+        {/*
+          A FERRAMENTA EM CIMA, O CLIENTE EMBAIXO, com um fio entre os dois.
+
+          É a ordem que o mercado usa e ela não é convenção à toa: acima do fio
+          está de quem é o painel (e de quem é o suporte); abaixo, de quem é a
+          operação — a identificação e, em seguida, as seções que mexem nela.
+          Trocar a ordem faria o painel parecer do restaurante, que é
+          justamente o que ele não é.
+        */}
+        <EstablishmentBadge />
+
         {navGroups.map((group) => (
           <div className="shell__group" key={group.title}>
             {/*
@@ -81,6 +93,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="shell__spacer" />
 
           <div className="shell__account">
+            {/*
+              NO CELULAR NÃO HÁ LATERAL, e a identificação vem para cá — para o
+              grupo da CONTA, no lado direito da barra, e não para junto do
+              seletor de filial na esquerda. Ver `EstablishmentBadge` para o
+              porquê do lado. Em 768px para cima ela some daqui, porque a
+              lateral voltou a mostrá-la.
+            */}
+            <EstablishmentBadge variant="barra" />
+
             <span className="shell__avatar" aria-hidden="true">
               {initials}
             </span>

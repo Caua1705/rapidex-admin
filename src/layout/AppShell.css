@@ -223,6 +223,132 @@
   color: var(--ink-3);
 }
 
+/* --- a identificação do estabelecimento ---------------------------------- */
+
+/*
+ * QUEM ESTÁ SENDO OPERADO. O porquê de cada decisão está em
+ * `EstablishmentBadge.tsx`; aqui fica só a forma.
+ *
+ * Ela tem duas casas — a lateral (≥768) e o grupo da conta na barra do topo
+ * (<768) —, e as duas usam estas mesmas classes. A regra do shell vale igual:
+ * a informação não desaparece, ela troca de lugar.
+ */
+
+.estab {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  min-width: 0;
+}
+
+/*
+ * O LADRILHO DAS INICIAIS — o lugar da logo enquanto ela não vem do backend.
+ *
+ * Ele usa o mesmo par de tokens do avatar da conta (`--surface-muted` com
+ * `--ink-2`), que já é medido pelo `check-contrast.mjs`. O que muda é o RAIO:
+ * o avatar é redondo porque é pessoa; este é `--r-field` porque é lugar. Dois
+ * círculos com duas iniciais na mesma barra seriam duas contas.
+ */
+.estab__marca {
+  flex: 0 0 auto;
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-field);
+  background: var(--surface-muted);
+  color: var(--ink-2);
+  font-size: var(--tl-size);
+  font-weight: var(--w-bold);
+}
+
+.estab__texto {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: var(--ta-line);
+}
+
+/*
+ * O nome é 13/550 — o mesmo peso que identifica a linha em Pedidos, Clientes e
+ * Cardápio. Ele NÃO é nível 2: um título de seção embaixo da marca disputaria
+ * com o nome do produto, e a hierarquia aqui é a oposta.
+ */
+.estab__nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+  font-size: var(--ta-size);
+  font-weight: var(--w-strong);
+}
+
+.estab__detalhe {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-3);
+  font-size: var(--tl-size);
+}
+
+/*
+ * NA BARRA DO TOPO (celular), a cidade não entra: são quatro objetos numa
+ * linha de 52px, e a pergunta que a barra responde é "qual cliente", não "em
+ * que cidade". A cidade continua na lateral, que é onde há linha para ela.
+ */
+.estab--barra .estab__detalhe {
+  display: none;
+}
+
+.estab--barra .estab__nome {
+  max-width: 148px;
+}
+
+/*
+ * O FIO QUE SEPARA QUEM É DE O QUE SE APERTA.
+ *
+ * Na barra do celular a identificação fica encostada no tema e no "Sair", e sem
+ * o fio o ladrilho lê como o primeiro de três botões. Ele é o mesmo
+ * `.shell__account-divider` que separa a conta dos controles no desktop — aqui
+ * ele é pseudo-elemento porque precisa existir só quando a identificação
+ * existe: como fio de verdade, ele ficaria sozinho na tela no meio segundo em
+ * que a sessão ainda não trouxe as filiais.
+ *
+ * Ele é um item do flex, então o `gap` do bloco já lhe dá o respiro dos dois
+ * lados — e some junto com `.estab--barra` em 768px.
+ */
+.estab--barra::after {
+  content: '';
+  width: 1px;
+  height: var(--sp-20);
+  background: var(--line);
+}
+
+/*
+ * ABAIXO DE 520px SOBRA O LADRILHO, e o nome vai para o leitor de tela e para
+ * o `title`.
+ *
+ * A conta é de largura: em 390px a barra já carrega o seletor de filial, o
+ * tema e o "Sair". Um segundo nome ali empurraria o seletor — que é a peça que
+ * não pode encolher, porque é ela que diz de qual loja é o pedido na tela. O
+ * ladrilho continua fazendo o trabalho de distinguir um cliente do outro para
+ * quem administra vários; ele é a mesma marca em todas as telas daquele
+ * restaurante.
+ */
+@media (max-width: 519px) {
+  .estab--barra .estab__texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
 /* --- 768px: a trilha de ícones ------------------------------------------- */
 
 @media (min-width: 768px) {
@@ -254,12 +380,46 @@
     border-right: 1px solid var(--nav-line);
   }
 
+  /*
+   * O FIO DEBAIXO DA MARCA. Acima dele está de quem é o painel; abaixo, de
+   * quem é a operação — a identificação do cliente e, em seguida, as seções
+   * que mexem nela. É o único fio da lateral, e ele existe para essa
+   * separação.
+   */
   .shell__brand {
     height: var(--topbar-h);
     flex: 0 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
+    border-bottom: 1px solid var(--nav-line);
+  }
+
+  /* A lateral voltou: a barra do topo devolve a identificação para ela. */
+  .estab--barra {
+    display: none;
+  }
+
+  /*
+   * NA TRILHA DE ÍCONES SOBRA O LADRILHO, como sobra o ícone de cada seção — e
+   * pelo mesmo motivo: 68px não cabem um nome. O texto continua no leitor de
+   * tela (a mesma técnica de `.shell__link-label`), então o ladrilho não é uma
+   * peça muda para quem não o vê.
+   */
+  .estab--lateral {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .estab--lateral .estab__texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
 
   .shell__brand .logo__wordmark,
@@ -368,6 +528,35 @@
     clip: auto;
     color: var(--nav-ink);
     font-size: var(--ts-size);
+  }
+
+  /*
+   * A IDENTIFICAÇÃO ESCRITA, alinhada com o selo da marca logo acima: o mesmo
+   * `--sp-8` de respiro lateral, para que o ladrilho e o selo nasçam na mesma
+   * vertical. Sem isso, dois quadrados de tamanhos próximos desencontrados por
+   * 4px é a coisa que mais faz um cabeçalho parecer montado às pressas.
+   */
+  .estab--lateral {
+    justify-content: flex-start;
+    padding-inline: var(--sp-8);
+  }
+
+  .estab--lateral .estab__texto {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: hidden;
+    clip: auto;
+  }
+
+  /* Na lateral a tinta é a da NAVEGAÇÃO, que é um plano próprio do tema. */
+  .estab--lateral .estab__nome {
+    color: var(--nav-ink);
+  }
+
+  .estab--lateral .estab__detalhe {
+    color: var(--nav-ink-3);
   }
 
   .shell__group-title {
