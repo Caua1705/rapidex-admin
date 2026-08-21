@@ -55,6 +55,31 @@ export const SEGMENT_HINT: Record<CustomerSegment, string> = {
 };
 
 /**
+ * O DENOMINADOR DO TICKET, QUANDO ELE VEIO.
+ *
+ * `billable_orders_count` é obrigatório no contrato, e o tipo gerado o promete
+ * como `number` — mas o contrato é o que a API PROMETE, não o que a API no ar
+ * está devolvendo hoje. Enquanto o deploy estiver atrás da entrega do RFV
+ * (20/08/2026), os quatro campos novos chegam ausentes, e `undefined` passa
+ * pelos dois `<=` daqui sem que nada acenda: `35 <= undefined` e
+ * `undefined <= 0` são ambos falsos, e o que sobrava era a palavra "undefined"
+ * escrita na tela do lojista, embaixo de um travessão.
+ *
+ * Esta função é o único lugar que faz a pergunta. Ela NÃO opcionaliza o tipo
+ * gerado nem descreve o contrato à mão (§2 da skill de API): o contrato
+ * continua dizendo que o campo vem, e o dia em que ele vier isto vira um
+ * `if` que nunca dispara. O que ela garante é a única coisa que não se
+ * negocia — a tela não escreve `undefined` para ninguém.
+ *
+ * `Number.isFinite` é a mesma peneira de `formatCurrency`, e pelo mesmo
+ * motivo: campo ausente e `NaN` são a mesma pergunta sem resposta.
+ */
+function faturaveis(customer: CustomerListItem): number | null {
+  const count = customer.billable_orders_count;
+  return Number.isFinite(count) ? count : null;
+}
+
+/**
  * O TICKET MÉDIO, e o buraco que ele tem.
  *
  * `average_ticket` é `total_spent / billable_orders_count` e vale **0.0**
@@ -63,10 +88,13 @@ export const SEGMENT_HINT: Record<CustomerSegment, string> = {
  * gastou zero por pedido, quando o certo é que não houve pedido a dividir.
  *
  * O travessão é a mesma convenção de `formatDate`/`formatSince` para "não dá
- * para saber", e a linha auxiliar embaixo diz por quê.
+ * para saber", e a linha auxiliar embaixo diz por quê. Ele cobre os dois casos
+ * em que não há divisão a mostrar: nenhum pedido faturável, e o denominador
+ * que não chegou.
  */
 export function formatAverageTicket(customer: CustomerListItem): string {
-  if (customer.billable_orders_count <= 0) return '—';
+  const count = faturaveis(customer);
+  if (count === null || count <= 0) return '—';
   return formatCurrency(customer.average_ticket);
 }
 
@@ -87,7 +115,12 @@ export function formatAverageTicket(customer: CustomerListItem): string {
  * a mesma pessoa é pior do que uma nota de rodapé.
  */
 export function billableNote(customer: CustomerListItem): string | null {
-  if (customer.orders_count <= customer.billable_orders_count) return null;
-  if (customer.billable_orders_count <= 0) return 'nenhum faturável';
-  return `${customer.billable_orders_count} de ${customer.orders_count} pedidos`;
+  const count = faturaveis(customer);
+  // Sem denominador não há conta a fechar, e a nota some inteira: uma linha
+  // auxiliar que existe para explicar uma divisão não pode ser o lugar onde a
+  // ausência do divisor aparece.
+  if (count === null) return null;
+  if (customer.orders_count <= count) return null;
+  if (count <= 0) return 'nenhum faturável';
+  return `${count} de ${customer.orders_count} pedidos`;
 }

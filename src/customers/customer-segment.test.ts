@@ -98,6 +98,24 @@ describe('formatAverageTicket', () => {
       '—',
     );
   });
+
+  /*
+   * O CAMPO QUE O CONTRATO PROMETE E A API NO AR NÃO MANDOU.
+   *
+   * `billable_orders_count` é obrigatório no `openapi.json`, então o tipo
+   * gerado o dá como `number` e o compilador nunca vai cobrar este caso — foi
+   * exatamente assim que a tela chegou a escrever "undefined de 35 pedidos"
+   * enquanto o deploy estava atrás da entrega do RFV.
+   *
+   * O `as` existe só para escrever aqui o que o backend escreveu na rede.
+   */
+  it('travessão, e não lixo, quando o campo não chegou na resposta', () => {
+    const semCampo = customer({
+      billable_orders_count: undefined,
+      average_ticket: undefined,
+    } as Partial<CustomerListItem>);
+    expect(formatAverageTicket(semCampo)).toBe('—');
+  });
 });
 
 describe('billableNote', () => {
@@ -128,5 +146,20 @@ describe('billableNote', () => {
    */
   it('não escreve nota quando não há pedido a subtrair', () => {
     expect(billableNote(customer({ orders_count: 1, billable_orders_count: 1 }))).toBeNull();
+  });
+
+  /*
+   * A NOTA É UMA EXPLICAÇÃO DE DIVISÃO — sem divisor ela não tem o que dizer.
+   *
+   * Era aqui que a palavra `undefined` saía na tela: `35 <= undefined` é falso
+   * e `undefined <= 0` também, então os dois portões deixavam passar e a
+   * interpolação escrevia o buraco por extenso, embaixo do ticket.
+   */
+  it('cala quando o denominador não veio na resposta', () => {
+    const semCampo = customer({
+      orders_count: 35,
+      billable_orders_count: undefined,
+    } as Partial<CustomerListItem>);
+    expect(billableNote(semCampo)).toBeNull();
   });
 });
