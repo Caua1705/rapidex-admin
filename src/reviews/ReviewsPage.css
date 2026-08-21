@@ -1,0 +1,481 @@
+/*
+ * ============================================================================
+ * AVALIAÇÕES — a mesma gramática de Desempenho, com uma lista de leitura no pé
+ * ============================================================================
+ *
+ * A FORMA é a de Desempenho, e é de propósito: as duas são telas que se LEEM
+ * para responder uma pergunta, e uma segunda linguagem visual para o mesmo uso
+ * seria o começo de dois produtos.
+ *
+ *   1. uma BANDA de topo com a resposta, os três números e as ressalvas,
+ *      fechada por um fio `--line-strong`;
+ *   2. duas seções em grade, separadas por fio — o que deu errado e como as
+ *      notas se dividiram;
+ *   3. a LISTA, correndo até a margem.
+ *
+ * NENHUM CARTÃO. Quem dá começo e fim a cada bloco é o fio e o respiro, como na
+ * lista de pedidos e no detalhe do pedido.
+ *
+ * As duas peças de métrica desta tela — `.numeros` e `.fatias` — não estão aqui:
+ * elas subiram para `styles/primitives.css` quando esta virou a segunda tela a
+ * usá-las. Ver o bloco de comentário de lá.
+ */
+
+.reviews {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--surface);
+}
+
+/* --- as ferramentas da faixa ---------------------------------------------- */
+
+.reviews__datas {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.reviews__datas .input {
+  width: 148px;
+}
+
+/*
+ * O gatilho do filtro de nota. Ele é `bare` (sem a caixa do campo) porque vive
+ * numa BARRA, onde um controle contornado disputa atenção com o título — mas
+ * ele precisa dizer o que recorta, senão "Até 3 estrelas" solto na faixa lê
+ * como um estado da loja e não como um filtro. O prefixo faz esse trabalho em
+ * duas sílabas.
+ */
+.reviews__filtro-nota {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--sp-4);
+  white-space: nowrap;
+}
+
+/*
+ * O RECORTE DE FILIAL E A AJUDA, ao lado do título — o mesmo grupo de Clientes,
+ * e ele ENVOLVE pelo mesmo motivo: no celular o painel do `ds/HelpPopover`
+ * deixa de flutuar e vira uma fileira de largura inteira.
+ */
+.reviews__escopo-grupo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-8);
+  min-width: 0;
+}
+
+.reviews__escopo {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- estados da página ---------------------------------------------------- */
+
+.reviews__alerta {
+  margin: var(--sp-12) var(--page-pad) 0;
+}
+
+.reviews__estado {
+  margin: 0;
+  padding: var(--sp-32) var(--page-pad);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+}
+
+/* ==========================================================================
+ * A BANDA DE TOPO — a resposta e os três números
+ * ======================================================================= */
+
+.reviews__topo,
+.reviews__vazio {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+  padding: var(--sp-24) var(--page-pad);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+/*
+ * O TETO DE LEITURA. Numa tela de 2560px a frase do topo chegaria a 200
+ * caracteres por linha e as duas seções ficariam a um palmo uma da outra.
+ */
+.reviews__topo,
+.reviews__secoes {
+  max-width: var(--page-max);
+}
+
+/* O vazio respira mais: é a tela inteira, e não a abertura de outra coisa. */
+.reviews__vazio {
+  gap: var(--sp-16);
+  padding-block: var(--sp-32);
+}
+
+.reviews__frase {
+  margin: 0;
+  max-width: 64ch;
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink-2);
+}
+
+/*
+ * A PRIMEIRA COISA DA TELA É UMA FRASE, NÃO UM NÚMERO — e ela reusa os tokens
+ * do nível 1 com peso `--w-medium`, exatamente como o veredito de Desempenho.
+ * Ver o comentário de `.perf__frase--topo` para o porquê do peso.
+ */
+.reviews__frase--topo {
+  font-size: var(--tt-size);
+  line-height: var(--tt-line);
+  font-weight: var(--w-medium);
+  letter-spacing: var(--tt-track);
+  color: var(--ink);
+}
+
+/* A ressalva de apoio: o período por extenso, o recorte da lista. */
+.reviews__ressalva {
+  margin: 0;
+  max-width: 72ch;
+}
+
+/*
+ * O AVISO DE ESCOPO, no pé da banda e separado por fio.
+ *
+ * Não é `.alert--warn`: nada está errado, e uma tarja âmbar leria como problema
+ * a resolver. É a legenda do recorte, e o que a destaca é o negrito na palavra
+ * que muda a leitura de todos os números acima.
+ */
+.reviews__escopo-linha {
+  margin: 0;
+  padding-top: var(--sp-12);
+  border-top: 1px solid var(--line);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+.reviews__escopo-linha strong {
+  font-weight: var(--w-semibold);
+  color: var(--ink-2);
+}
+
+/* ==========================================================================
+ * AS SEÇÕES
+ * ======================================================================= */
+
+.reviews__secoes {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--sp-32);
+}
+
+.reviews__secao,
+.reviews__lista-secao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+  min-width: 0;
+  padding: var(--sp-20) var(--page-pad);
+}
+
+.reviews__secao-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+}
+
+/*
+ * DUAS COLUNAS SEM VÃO, separadas pelo fio — a mesma grade de Desempenho. Um
+ * vão somado ao fio faria a régua parecer a borda de um cartão.
+ */
+.reviews__grade {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-bottom: 1px solid var(--line);
+}
+
+.reviews__grade .reviews__secao:nth-child(2) {
+  border-left: 1px solid var(--line);
+}
+
+/*
+ * SEMANA SEM NOTA BAIXA: a seção "o que deu errado" não é desenhada (um bloco
+ * anunciando zero custa uma dobra por turno), e o histograma passa a ocupar a
+ * largura inteira em vez de ficar espremido em metade com o outro lado vazio.
+ */
+.reviews__grade--unica {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* ==========================================================================
+ * O HISTOGRAMA — cinco linhas, sempre
+ * ======================================================================= */
+
+.histograma {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * TRÊS COLUNAS: o rótulo, a barra e a contagem. As duas de fora têm largura
+ * fixa para que as cinco barras comecem e terminem na mesma vertical — é o
+ * alinhamento que faz o conjunto ler como uma medida em vez de cinco linhas
+ * soltas.
+ */
+.histograma__linha {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: var(--sp-12);
+}
+
+/* O rótulo da nota: o algarismo e uma estrela cheia. */
+.nota-rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink-2);
+}
+
+/*
+ * O TRILHO É `--field` e a barra é `--ink-2`: os mesmos dois tons da barra de
+ * proporção de Desempenho. Marca neutra, porque quem carrega a informação é o
+ * COMPRIMENTO — cor aqui não diria nada que a largura já não diga, e a brasa
+ * tem um emprego só no sistema.
+ */
+/*
+ * A ALTURA É A MESMA DA BARRA DE PROPORÇÃO DE DESEMPENHO (`--sp-4`), e ela já
+ * foi o dobro disso. Com 8px, cinco barras escuras de largura quase inteira
+ * (é o que uma distribuição plana produz, e é o caso comum numa loja com
+ * poucas avaliações) pesavam mais que a seção ao lado — que é a acionável. A
+ * informação é o COMPRIMENTO, não a mancha.
+ */
+.histograma__barra {
+  display: block;
+  height: var(--sp-4);
+  background: var(--field);
+  border-radius: var(--r-round);
+  overflow: hidden;
+}
+
+.histograma__preenchimento {
+  display: block;
+  width: var(--fatia, 0%);
+  height: 100%;
+  background: var(--ink-2);
+  border-radius: var(--r-round);
+}
+
+.histograma__contagem {
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink);
+}
+
+/* ==========================================================================
+ * A LISTA
+ * ======================================================================= */
+
+.reviews__lista {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * UMA AVALIAÇÃO É UM BLOCO DE LEITURA, separado por fio — não um cartão e não
+ * uma linha de tabela. O comentário tem até 500 caracteres: numa célula ele
+ * quebraria a grade de todas as outras linhas, e com moldura cada avaliação
+ * viraria um retângulo disputando atenção com as vizinhas.
+ */
+.avaliacao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  padding: var(--sp-12) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.avaliacao:first-child {
+  border-top: 1px solid var(--line-strong);
+}
+
+.avaliacao:last-child {
+  border-bottom: none;
+}
+
+/*
+ * A CABEÇA DA AVALIAÇÃO envolve em vez de espremer: com etiqueta longa
+ * ("Faltou item") mais o número do pedido, a data e o nome da filial, a linha
+ * passa dos 400px — e em metade da tela isso acontece antes do celular.
+ */
+.avaliacao__cabeca {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-8);
+}
+
+/* A meta cede a linha inteira quando não cabe ao lado da etiqueta. */
+.avaliacao__meta {
+  min-width: 0;
+}
+
+/*
+ * O COMENTÁRIO É O CONTEÚDO, e por isso ele é o nível 4 em tinta cheia — o
+ * resto da linha é metadado em tinta de apoio. O teto de 72ch é o mesmo das
+ * ressalvas: linha longa demais faz o olho perder a volta.
+ *
+ * `overflow-wrap` porque isto é texto de cliente: uma palavra de 300
+ * caracteres sem espaço é o que ele escreve quando está com raiva, e ela
+ * esticaria a tela inteira.
+ */
+.avaliacao__comentario {
+  margin: 0;
+  max-width: 72ch;
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/*
+ * AS ESTRELAS: cheias em tinta cheia, vazias na tinta de apoio.
+ *
+ * O contraste entre as duas é o que diz a nota — não a cor, que é a mesma
+ * família de neutros do resto do painel. `--ink-3` sobre `--surface` já é um
+ * par medido pelo `check-contrast.mjs` nos dois temas.
+ */
+.estrelas {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  flex: 0 0 auto;
+}
+
+.estrelas__item {
+  display: inline-flex;
+  color: var(--ink-3);
+}
+
+.estrelas__item--cheia {
+  color: var(--ink);
+}
+
+/*
+ * O VAZIO DA LISTA COM SAÍDA: a frase explica e o botão fica EMBAIXO dela, não
+ * ao lado — a frase é a explicação e o botão é a consequência.
+ */
+.reviews__estado-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-16);
+  padding-block: var(--sp-16);
+}
+
+.reviews__rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-12);
+  padding-top: var(--sp-16);
+  border-top: 1px solid var(--line);
+}
+
+/* ==========================================================================
+ * QUANDO A TELA APERTA
+ * ======================================================================= */
+
+/*
+ * A GRADE DESMONTA ANTES DO CELULAR, no mesmo ponto de Desempenho. Abaixo de
+ * 1100px cada coluna fica com ~430px, e a barra do histograma passa a ter menos
+ * de 200px — abaixo disso a diferença entre 12 e 9 deixa de ser visível, que é
+ * a única coisa que a barra existe para mostrar.
+ */
+@media (max-width: 1099px) {
+  .reviews__grade {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .reviews__grade .reviews__secao:nth-child(2) {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 720px) {
+  .reviews__topo,
+  .reviews__vazio,
+  .reviews__secao,
+  .reviews__lista-secao,
+  .reviews__estado {
+    padding-inline: var(--page-pad-mobile);
+  }
+
+  .reviews__alerta {
+    margin-inline: var(--page-pad-mobile);
+  }
+
+  /* A barra de baixo do shell não pode comer a última avaliação. */
+  .reviews__secoes {
+    padding-bottom: calc(var(--bottombar-h) + var(--sp-24));
+  }
+
+  /*
+   * As datas de "Escolher" ganham a fileira inteira da faixa: dois campos de
+   * 148px mais a palavra "até" não cabem ao lado do segmentado em 390px.
+   */
+  .reviews__datas {
+    flex: 1 1 100%;
+  }
+
+  .reviews__datas .input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+
+  /*
+   * NO CELULAR A AVALIAÇÃO GANHA ALVO DE TOQUE E RESPIRO — ela não é clicável,
+   * mas é o bloco que se lê com o polegar rolando, e 12px de respiro entre
+   * quarenta blocos vira uma parede de texto.
+   */
+  .avaliacao {
+    padding: var(--sp-16) 0;
+    gap: var(--sp-12);
+  }
+
+  /*
+   * A META DESCE PARA A LINHA PRÓPRIA. Estrelas, etiqueta, "Pedido #1234" e a
+   * data somam mais de 390px, e o que a envolvente faria sozinha é quebrar a
+   * meta no meio de "20/08 14:32".
+   */
+  .avaliacao__meta {
+    flex: 1 1 100%;
+  }
+
+  /*
+   * O histograma encolhe o rótulo e a contagem para devolver largura à barra —
+   * ela é o dado, e com 34px + 40px fixos numa tela de 390 ela ficava com menos
+   * de metade da linha.
+   */
+  .histograma__linha {
+    grid-template-columns: 28px minmax(0, 1fr) 32px;
+    gap: var(--sp-8);
+  }
+}

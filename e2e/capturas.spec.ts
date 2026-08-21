@@ -116,6 +116,16 @@ for (const tamanho of TAMANHOS) {
       await expect(page.getByRole('heading', { name: 'Desempenho' })).toBeVisible();
       await fotografar(page, 'desempenho', tamanho.nome, tema);
 
+      /*
+       * AVALIAÇÕES abre RECORTADA em "até 3 estrelas", que é o estado que a
+       * tela tem 99% do tempo — e é justamente o que a foto precisa mostrar: a
+       * banda com a média do período INTEIRO em cima de uma lista curta. Se
+       * algum dia os dois números passarem a se mover juntos, é aqui que se vê.
+       */
+      await page.goto('/avaliacoes');
+      await expect(page.getByRole('heading', { name: 'Avaliações', level: 1 })).toBeVisible();
+      await fotografar(page, 'avaliacoes', tamanho.nome, tema);
+
       await page.goto('/minha-loja/operacao');
       await expect(page.getByRole('heading', { name: 'Minha loja' })).toBeVisible();
       await fotografar(page, 'minha-loja', tamanho.nome, tema);

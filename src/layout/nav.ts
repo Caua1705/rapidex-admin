@@ -12,6 +12,7 @@ import {
   MenuIcon,
   OrdersIcon,
   PerformanceIcon,
+  StarIcon,
   StoreIcon,
   TeamIcon,
 } from '../ds/icons';
@@ -114,6 +115,14 @@ export const NAV_GROUPS: readonly NavGroup[] = [
        * por escrito em vez de prometido.
        */
       { to: '/desempenho', label: 'Desempenho', Icon: PerformanceIcon, acao: 'desempenho.ver' },
+      /*
+       * AVALIAÇÕES FICA EM CRESCIMENTO, ao lado de Desempenho, e não em
+       * Operação com Pedidos e Cozinha. As duas de Operação são telas de
+       * TURNO — ficam abertas, mudam sozinhas e dizem o que fazer agora. Esta
+       * se consulta: abre-se para responder "o que deu errado esta semana" e
+       * fecha-se, que é o mesmo uso de Desempenho logo acima.
+       */
+      { to: '/avaliacoes', label: 'Avaliações', Icon: StarIcon, acao: 'avaliacoes.ver' },
     ],
   },
   {

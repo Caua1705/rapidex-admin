@@ -33,6 +33,7 @@ type BusinessHour = Schemas['BusinessHourResponse'];
 type BusinessHourInput = Schemas['BusinessHourInput'];
 type PaymentMethod = Schemas['AdminPaymentMethodResponse'];
 type CustomerListItem = Schemas['AdminCustomerListItem'];
+type ReviewItem = Schemas['AdminOrderReviewItem'];
 type SalesSummary = Schemas['SalesSummaryResponse'];
 type SalesByDay = Schemas['SalesByDayResponse'];
 type ReportPaymentMethods = Schemas['src__schemas__admin_report_schema__PaymentMethodsResponse'];
@@ -773,6 +774,93 @@ function initialCustomers(): CustomerListItem[] {
 }
 
 /* ==========================================================================
+ * AVALIAÇÕES
+ *
+ * O conjunto é escolhido para cobrir o que a tela precisa saber desenhar, e
+ * não para parecer uma loja real:
+ *
+ * - TRÊS notas baixas com a MESMA etiqueta (`atrasou`): é o caso que produz a
+ *   manchete da tela ("3 das 5 notas baixas apontaram Atrasou"). Com uma
+ *   ocorrência de cada, a frase seria outra e o teste não provaria nada.
+ * - uma nota baixa SEM etiqueta: ela é opcional para quem avalia, e é o que
+ *   faz a soma das etiquetas não fechar com o total de baixas na tela.
+ * - notas 4 e 5 SEM etiqueta nenhuma: o backend responde 422 a quem mandar
+ *   etiqueta com nota alta, então um fixture com `problem_tag` num 5 estaria
+ *   descrevendo uma resposta que a API não emite.
+ * - uma avaliação SEM comentário: o campo é opcional e a linha não pode
+ *   desabar sem ele.
+ * - uma avaliação da SEGUNDA FILIAL: é o que prova o recorte por loja.
+ * ======================================================================= */
+
+function review(
+  overrides: Partial<ReviewItem> & { order_number: number; rating: number },
+): ReviewItem {
+  return {
+    branch_id: BRANCH_ID,
+    comment: null,
+    created_at: minutesAgo(90),
+    problem_tag: null,
+    ...overrides,
+  };
+}
+
+function initialReviews(): ReviewItem[] {
+  return [
+    review({
+      order_number: 5471,
+      rating: 1,
+      problem_tag: 'atrasou',
+      comment: 'Esperei 1h40 e a pizza chegou fria. Nunca mais.',
+      created_at: minutesAgo(30),
+    }),
+    review({
+      order_number: 5468,
+      rating: 2,
+      problem_tag: 'atrasou',
+      comment: 'Demorou demais.',
+      created_at: minutesAgo(120),
+    }),
+    review({
+      order_number: 5462,
+      rating: 3,
+      problem_tag: 'atrasou',
+      created_at: minutesAgo(400),
+    }),
+    review({
+      order_number: 5455,
+      rating: 2,
+      problem_tag: 'faltou_item',
+      comment: 'Faltou a borda recheada que eu paguei.',
+      created_at: minutesAgo(600),
+    }),
+    /* A nota baixa sem etiqueta: escolhê-la é opcional. */
+    review({
+      order_number: 5450,
+      rating: 3,
+      comment: 'Podia ser melhor.',
+      created_at: minutesAgo(700),
+    }),
+    review({
+      order_number: 5449,
+      rating: 5,
+      comment: 'Melhor pizza da cidade, chegou quentinha.',
+      created_at: minutesAgo(800),
+    }),
+    review({ order_number: 5444, rating: 5, created_at: minutesAgo(900) }),
+    review({ order_number: 5440, rating: 4, created_at: minutesAgo(1000) }),
+    /* A outra loja: some quando o cabeçalho recorta a Aldeota. */
+    review({
+      order_number: 5439,
+      rating: 1,
+      branch_id: BRANCH_ID_2,
+      problem_tag: 'veio_errado',
+      comment: 'Veio pedido de outra pessoa.',
+      created_at: minutesAgo(1100),
+    }),
+  ];
+}
+
+/* ==========================================================================
  * RELATÓRIOS (Desempenho)
  *
  * Os números são fixos e escolhidos para cobrir os casos que a tela precisa
@@ -1160,6 +1248,24 @@ export type FakeApi = {
    */
   customerQueries: () => URLSearchParams[];
   /**
+   * A QUERY de cada GET /admin/reviews que chegou, na ordem.
+   *
+   * É por onde se prova que o filtro de nota viaja no ENDEREÇO — uma tela que
+   * peneirasse o array recebido mostraria a mesma lista curta e não deixaria
+   * rastro nenhum aqui.
+   */
+  reviewQueries: () => URLSearchParams[];
+  /** Apaga todas as avaliações: o período passa a não ter nenhuma. */
+  clearReviews: () => void;
+  /**
+   * Deixa só as notas 4 e 5.
+   *
+   * É o período em que TUDO DEU CERTO — o estado que a tela abre com a lista
+   * vazia, porque o recorte padrão dela é "até 3 estrelas". Ele não tem
+   * fixture próprio porque é o mesmo conjunto sem as baixas.
+   */
+  onlyHighReviews: () => void;
+  /**
    * A chave de catálogo de cada produto, como o "banco" a tem.
    *
    * É por ela que se confere o pareamento: os DOIS lados precisam terminar com
@@ -1363,6 +1469,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     /** Cada PATCH de setor em UM produto, vindo da edição do item. */
     productSectorCalls: [] as { productId: string; printSectorId: string | null }[],
     customers: initialCustomers(),
+    reviews: initialReviews(),
+    /** A QUERY de cada GET /admin/reviews, na ordem em que chegou. */
+    reviewQueries: [] as URLSearchParams[],
   };
 
   /**
@@ -1752,6 +1861,82 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         total: matching.length,
         limit,
         offset,
+      });
+    }
+
+    /*
+     * ------------------------------------------------------------------------
+     * GET /admin/reviews — e as DUAS propriedades do agregado que ele imita
+     * ------------------------------------------------------------------------
+     *
+     * 1. **Total e média saem do HISTOGRAMA**, não de um `COUNT`/`AVG`
+     *    paralelo. Um falso que os calculasse por outro caminho poderia
+     *    concordar com a tela por acaso e esconder justamente o defeito que
+     *    esta garantia existe para impedir.
+     *
+     * 2. **`max_rating` NÃO entra no agregado.** Ele recorta `items` e mais
+     *    nada. Um falso que o aplicasse aos dois faria o teste da média que não
+     *    desaba passar sem que a tela estivesse certa — seria o falso, e não o
+     *    painel, sustentando a propriedade.
+     *
+     * O período recorta a data da AVALIAÇÃO (`created_at`), não a do pedido, e
+     * a comparação é pelo dia da OPERAÇÃO — o mesmo cuidado de fuso da lista de
+     * clientes.
+     */
+    if (method === 'GET' && path === '/admin/reviews') {
+      const query = new URL(request.url()).searchParams;
+      state.reviewQueries.push(query);
+
+      const startDate = query.get('start_date');
+      const endDate = query.get('end_date');
+      const branchId = query.get('branch_id');
+      const maxRating = query.get('max_rating');
+      const limit = Number(query.get('limit') ?? 50);
+      const offset = Number(query.get('offset') ?? 0);
+
+      if (!startDate || !endDate) {
+        return json(route, 422, { detail: 'start_date e end_date sao obrigatorios.' });
+      }
+      if (startDate > endDate) {
+        return json(route, 400, { detail: 'end_date nao pode ser anterior a start_date' });
+      }
+
+      /** O período e a filial — o recorte que o agregado TAMBÉM enxerga. */
+      const doPeriodo = state.reviews.filter((item) => {
+        if (branchId && item.branch_id !== branchId) return false;
+        const dia = operationDay(item.created_at);
+        return dia !== null && dia >= startDate && dia <= endDate;
+      });
+
+      const byRating: Record<string, number> = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 };
+      const byProblemTag: Record<string, number> = {};
+      doPeriodo.forEach((item) => {
+        byRating[String(item.rating)] = (byRating[String(item.rating)] ?? 0) + 1;
+        if (item.problem_tag) {
+          byProblemTag[item.problem_tag] = (byProblemTag[item.problem_tag] ?? 0) + 1;
+        }
+      });
+
+      const total = Object.values(byRating).reduce((soma, quantidade) => soma + quantidade, 0);
+      const soma = Object.entries(byRating).reduce(
+        (acumulado, [nota, quantidade]) => acumulado + Number(nota) * quantidade,
+        0,
+      );
+
+      /* O filtro de nota entra AQUI, e só aqui. */
+      const daLista = doPeriodo
+        .filter((item) => maxRating === null || item.rating <= Number(maxRating))
+        .sort((a, b) => b.created_at.localeCompare(a.created_at));
+
+      return json(route, 200, {
+        items: daLista.slice(offset, offset + limit),
+        summary: {
+          total,
+          // Período sem avaliação devolve `null`, e não 0.0.
+          average: total === 0 ? null : Math.round((soma / total) * 100) / 100,
+          by_rating: byRating,
+          by_problem_tag: byProblemTag,
+        },
       });
     }
 
@@ -2408,6 +2593,13 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     reorderCalls: () => state.reorderCalls,
     availabilityCalls: () => state.availabilityCalls,
     customerQueries: () => state.customerQueries,
+    reviewQueries: () => state.reviewQueries,
+    clearReviews() {
+      state.reviews = [];
+    },
+    onlyHighReviews() {
+      state.reviews = state.reviews.filter((item) => item.rating > 3);
+    },
     imageUploads: () => state.imageUploads,
     cancelReasons: () => state.cancelReasons,
     settings: () => state.settings,

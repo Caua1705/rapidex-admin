@@ -284,6 +284,27 @@ export function PerformanceIcon(props: IconProps) {
 }
 
 /**
+ * Avaliações: a estrela.
+ *
+ * A ÚNICA DO ARQUIVO QUE TEM ESTADO PREENCHIDO, e é o que a nota exige: cinco
+ * contornos idênticos não dizem "3 de 5". `filled` pinta o miolo com
+ * `currentColor` no PATH — o `fill="none"` do `<Icon>` é do `<svg>`, e o filho
+ * o sobrescreve —, então quem decide a cor continua sendo o texto ao redor.
+ *
+ * Ela serve à navegação (contorno, como todos os outros) e à nota na lista.
+ */
+export function StarIcon({ filled = false, ...props }: IconProps & { filled?: boolean }) {
+  return (
+    <Icon {...props}>
+      <path
+        d="M12 3.6l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"
+        fill={filled ? 'currentColor' : 'none'}
+      />
+    </Icon>
+  );
+}
+
+/**
  * Usuários do painel: o crachá.
  *
  * Não são duas pessoas como em Clientes — quem entra aqui administra QUEM tem

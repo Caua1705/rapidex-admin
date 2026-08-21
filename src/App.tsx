@@ -9,6 +9,7 @@ import { PENDING_ENTRIES } from './layout/nav';
 import { MenuPage } from './menu/MenuPage';
 import { OrdersPage } from './orders/OrdersPage';
 import { PerformancePage } from './performance/PerformancePage';
+import { ReviewsPage } from './reviews/ReviewsPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { LoginPage } from './pages/LoginPage';
 import { StoreLayout } from './store/StoreLayout';
@@ -72,6 +73,22 @@ export function App() {
               <RequireAuth acao="desempenho.ver">
                 <AppShell>
                   <PerformancePage />
+                </AppShell>
+              </RequireAuth>
+            }
+          />
+          {/*
+            AVALIAÇÕES exige o mesmo papel da rota que ela consome
+            (`GET /admin/reviews`, GERENCIA). O atendente não chega aqui nem
+            digitando o endereço — sem a guarda, ele cairia numa tela que
+            responde 403 e leria isso como defeito.
+          */}
+          <Route
+            path="/avaliacoes"
+            element={
+              <RequireAuth acao="avaliacoes.ver">
+                <AppShell>
+                  <ReviewsPage />
                 </AppShell>
               </RequireAuth>
             }

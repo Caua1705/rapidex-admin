@@ -92,10 +92,11 @@ export type Acao =
   | 'cardapio.reordenarCategorias'
   | 'cardapio.apontarSetorDoProduto'
   | 'cardapio.apontarSetorDaCategoria'
-  // --- clientes e desempenho
+  // --- clientes, desempenho e avaliações
   | 'clientes.ver'
   | 'desempenho.ver'
   | 'desempenho.verComissao'
+  | 'avaliacoes.ver'
   // --- minha loja
   | 'loja.abrirFechar'
   | 'loja.editarTiposDePedido'
@@ -170,6 +171,17 @@ const ROTA_DA_ACAO = {
    * quem toca o balcão.
    */
   'desempenho.verComissao': 'GET /admin/reports/commission',
+  /*
+   * AVALIAÇÃO É DA GERÊNCIA, e a diferença para os relatórios ao lado é o
+   * motivo de esta linha existir: a divisão de `admin_scope` é "dinheiro do
+   * restaurante inteiro é do dono", e nota de cliente não diz quanto entrou.
+   * Quem conserta atraso e pedido errado é quem toca a loja — nota que só o
+   * dono vê não vira conserto no balcão.
+   *
+   * E, ao contrário de Desempenho, não há segunda regra pelo CORPO ou pela
+   * QUERY: o gerente lê sem escolher filial antes.
+   */
+  'avaliacoes.ver': 'GET /admin/reviews',
 
   // --- minha loja -----------------------------------------------------------
   /* Fechar a loja no sábado à noite é de quem está lá. */

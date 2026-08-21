@@ -173,6 +173,50 @@ export type ProductSales = Schemas['ProductSalesResponse'];
 export type Cancellations = Schemas['CancellationsResponse'];
 export type CommissionReport = Schemas['CommissionReportResponse'];
 
+// --- avaliações -----------------------------------------------------------
+
+/*
+ * A avaliação como o LOJISTA a vê, e o que ela não tem é decisão de contrato:
+ * `AdminOrderReviewItem` NÃO leva nome nem telefone do cliente. Os dois já
+ * estão em `GET /admin/orders/{id}`, e repetir dado pessoal numa segunda tela
+ * é superfície a mais sem leitor novo. O `order_number` é o que liga a nota ao
+ * pedido — ver `docs/avaliacao-de-pedido.md` do backend, §4.
+ */
+export type ReviewItem = Schemas['AdminOrderReviewItem'];
+export type ReviewsResponse = Schemas['AdminReviewsResponse'];
+
+/**
+ * O agregado do período, e as duas propriedades dele que a tela não pode
+ * contrariar (as duas estão na descrição da rota, e as duas já custaram tela
+ * errada em outros painéis):
+ *
+ *   - **`total` e `average` saem do HISTOGRAMA**, não de um `COUNT`/`AVG`
+ *     paralelo. É o que garante que a média exibida e as barras da mesma tela
+ *     nunca se contradigam. A tela lê os dois do mesmo objeto e não recalcula
+ *     nenhum dos dois a partir de `items`.
+ *   - **`max_rating` NÃO entra aqui.** Filtrar a lista para "só as notas
+ *     baixas" não pode fazer a média do período desabar — o lojista concluiria
+ *     que a semana piorou quando ele só apertou um filtro de lista.
+ *
+ * `average` NULO É "ninguém avaliou", nunca zero: média zero se lê como "todo
+ * mundo odiou", que é o oposto.
+ */
+export type ReviewSummary = Schemas['AdminReviewSummary'];
+
+/*
+ * A ETIQUETA DE PROBLEMA, derivada do item gerado — não uma união escrita à
+ * mão com as seis strings. É o que faz `Record<ReviewProblemTag, string>`
+ * acender no `npm run typecheck` no dia em que o backend acrescentar uma
+ * sétima (`REVIEW_PROBLEM_TAGS` pode crescer, e a descrição do agregado diz
+ * isso com todas as letras). Uma união copiada continuaria compilando e a
+ * etiqueta nova apareceria sem rótulo.
+ *
+ * Ela só existe com nota ATÉ 3 — mandar etiqueta com 4 ou 5 responde 422 do
+ * lado de quem avalia. No painel isso é leitura: nota alta simplesmente não
+ * tem etiqueta, e a tela não desenha um espaço vazio para ela.
+ */
+export type ReviewProblemTag = NonNullable<ReviewItem['problem_tag']>;
+
 // --- setores de impressão -----------------------------------------------
 
 /*
