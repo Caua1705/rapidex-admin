@@ -101,6 +101,16 @@
   line-height: var(--ta-line);
 }
 
+/*
+ * O VAZIO COM SAÍDA. Quando há filtro ligado, o estado vazio ganha o botão que
+ * desliga o recorte — e ele fica EMBAIXO da frase, não ao lado: a frase é a
+ * explicação e o botão é a consequência dela, e lado a lado os dois disputariam
+ * a mesma linha de leitura.
+ */
+.customers__estado > p {
+  margin: 0 0 var(--sp-16);
+}
+
 .customers__rodape {
   display: flex;
   align-items: center;
@@ -124,7 +134,8 @@
  * de cada lado, então 132px de coluna são 84px de texto quando o respiro é o da
  * página.
  *
- *   136  "Classificação" no cabeçalho, que é mais largo que "Ocasional"
+ *   172  a linha do RITMO ("ritmo de 30 dias" com o recuo do ponto), que é mais
+ *        larga que "Classificação" no cabeçalho e que "Ocasional"
  *   104  "Pedidos"
  *   132  "R$ 1.234,56"
  *   160  "10 de 12 pedidos", a linha auxiliar do ticket — a mais larga da grade
@@ -133,7 +144,7 @@
  *
  * SÓ A PARTIR DE 1180px, que é onde o respiro da célula volta a ser o da página
  * (ver o bloco seguinte) e onde a lateral do shell ganha os nomes. As sete
- * larguras somam 816px; abaixo disso elas não cabem junto de um nome legível, e
+ * larguras somam 852px; abaixo disso elas não cabem junto de um nome legível, e
  * uma coluna declarada mais larga do que o espaço existente não encolhe — ela
  * empurra a tabela para fora da margem. Entre 640 e 1179px a distribuição fica
  * com o navegador, que reparte o que há e nunca comprime uma coluna abaixo do
@@ -141,7 +152,7 @@
  */
 @media (min-width: 1180px) {
   .customers__corpo th:nth-child(2) {
-    width: 136px;
+    width: 172px;
   }
 
   .customers__corpo th:nth-child(3) {
@@ -210,7 +221,21 @@
  * nome repetido dava à etiqueta o plano e o raio DELE — cinco pílulas cinzentas
  * descendo a coluna, que é o objeto que esta etiqueta existe para não ser.
  */
+/*
+ * A CÉLULA DA CLASSE É UMA COLUNA DE DUAS LINHAS: a etiqueta e, embaixo dela, o
+ * ritmo daquele cliente. É a mesma forma da célula do ticket (`.ticket`), e pelo
+ * mesmo motivo — a segunda linha é o número que faz a primeira parar de parecer
+ * arbitrária.
+ */
 .classe {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.classe__rotulo {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-8);
@@ -218,6 +243,18 @@
   color: var(--ink);
   font-size: var(--ta-size);
   line-height: var(--ta-line);
+  white-space: nowrap;
+}
+
+/*
+ * O RITMO. `t-aux` já dá corpo e tinta; aqui só o que a célula precisa.
+ *
+ * ELE RECUA ATÉ A PALAVRA, e não até o ponto: o ponto é a marca da etiqueta, e
+ * alinhar a segunda linha com ele faria as duas lerem como uma lista de dois
+ * itens. O recuo é a largura do ponto mais o vão dele.
+ */
+.classe__ritmo {
+  padding-inline-start: calc(7px + var(--sp-8));
   white-space: nowrap;
 }
 

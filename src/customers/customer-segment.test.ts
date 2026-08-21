@@ -20,6 +20,7 @@ function customer(overrides: Partial<CustomerListItem> = {}): CustomerListItem {
     first_order_at: '2026-03-12T20:00:00Z',
     last_order_at: '2026-08-15T20:00:00Z',
     days_since_last_order: 5,
+    cadence_days: 7,
     segment: 'fiel',
     ...overrides,
   };

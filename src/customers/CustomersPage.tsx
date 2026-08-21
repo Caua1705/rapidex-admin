@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { useSession } from '../auth/session-context';
 import { DataTable, type Column } from '../ds/DataTable';
@@ -7,6 +7,8 @@ import { PageBar } from '../ds/PageBar';
 import { SearchField } from '../ds/SearchField';
 import { branchName } from '../layout/branch-heading';
 import { formatCurrency, formatDate } from '../orders/format';
+import { CustomerFilterPanel } from './CustomerFilterPanel';
+import { NO_FILTERS, hasActiveFilters, type CustomerFilterState } from './customer-filters';
 import { customerKey, customerName, formatPhone, formatSince } from './customer-model';
 import { billableNote, formatAverageTicket } from './customer-segment';
 import { SegmentTag } from './SegmentTag';
@@ -99,7 +101,18 @@ import './CustomersPage.css';
  */
 export function CustomersPage() {
   const { branches, activeBranchId } = useSession();
-  const customers = useCustomers(activeBranchId);
+
+  /*
+   * O RECORTE APLICADO — não o rascunho do painel.
+   *
+   * Ele mora aqui e não dentro de `CustomerFilterPanel` porque é o hook que o
+   * consome: o painel edita um rascunho e devolve o recorte inteiro em
+   * "Aplicar". E ele é `useState` de propósito — `useCustomers` depende da
+   * IDENTIDADE deste objeto, então montá-lo a cada render seria uma chamada por
+   * render.
+   */
+  const [filtros, setFiltros] = useState<CustomerFilterState>(NO_FILTERS);
+  const customers = useCustomers(activeBranchId, filtros);
 
   /*
    * O RECORTE ATIVO, LIDO DA SESSÃO E NÃO RESOLVIDO.
@@ -171,7 +184,7 @@ export function CustomersPage() {
           <span className="t-aux cliente__fone">{formatPhone(customer.customer_phone)}</span>
         </span>
       ),
-      classe: <SegmentTag segment={customer.segment} />,
+      classe: <SegmentTag customer={customer} />,
       /*
        * Contagem não leva `.tnum` (§1): "3 pedidos" é frase com número dentro.
        *
@@ -223,6 +236,43 @@ export function CustomersPage() {
   });
 
   const buscando = customers.search.trim() !== '';
+  const filtrando = hasActiveFilters(filtros);
+
+  /*
+   * O VAZIO DIZ O QUE ACONTECEU, E COMO SAIR — mas só quando há por onde sair.
+   *
+   * Três causas, três frases, e a ordem importa: com filtro ligado, a causa
+   * mais provável de a lista estar vazia é o RECORTE, não o termo digitado — e a
+   * frase que aparece tem de ser a da coisa que a pessoa pode desligar. Um
+   * "nenhum cliente encontrado para 'ana'" com três critérios ligados por cima
+   * manda procurar no lugar errado.
+   *
+   * A base vazia é a única das três sem ação: não há botão que faça aparecer um
+   * cliente que nunca pediu, e um "Limpar filtros" ali seria um botão morto.
+   */
+  const vazio = filtrando ? (
+    <div className="customers__estado">
+      <p className="muted">
+        {buscando
+          ? `Nenhum cliente com esses critérios para “${customers.search.trim()}”.`
+          : 'Nenhum cliente com esses critérios.'}
+      </p>
+      <button
+        type="button"
+        className="btn btn--sm"
+        onClick={() => setFiltros(NO_FILTERS)}
+        data-testid="customers-vazio-limpar"
+      >
+        Limpar filtros
+      </button>
+    </div>
+  ) : (
+    <p className="muted customers__estado">
+      {buscando
+        ? `Nenhum cliente encontrado para “${customers.search.trim()}”.`
+        : 'Nenhum cliente ainda. Eles aparecem aqui depois do primeiro pedido.'}
+    </p>
+  );
 
   return (
     <div className="customers">
@@ -330,6 +380,16 @@ export function CustomersPage() {
         </div>
 
         {/*
+          O FILTRO FICA AO LADO DA BUSCA, e não numa segunda faixa: os dois
+          recortam a MESMA lista, e é a regra que separou as duas barras de
+          Pedidos — o que recorta anda junto, o que descreve a loja anda à parte.
+
+          Ele é um botão que abre, ao contrário dos filtros de Pedidos. O porquê
+          está em `CustomerFilterPanel`, junto do que paga o esconderijo.
+        */}
+        <CustomerFilterPanel applied={filtros} onApply={setFiltros} />
+
+        {/*
           O total é o da LISTA INTEIRA, não o das linhas carregadas — é ele que
           diz que "Carregar mais" ainda tem o que trazer. Some enquanto carrega
           para não afirmar um número que a resposta seguinte desmente.
@@ -356,15 +416,7 @@ export function CustomersPage() {
             captionHidden
             columns={columns}
             rows={rows}
-            empty={
-              customers.errorMessage ? null : (
-                <p className="muted customers__estado">
-                  {buscando
-                    ? `Nenhum cliente encontrado para “${customers.search.trim()}”.`
-                    : 'Nenhum cliente ainda. Eles aparecem aqui depois do primeiro pedido.'}
-                </p>
-              )
-            }
+            empty={customers.errorMessage ? null : vazio}
           />
         )}
 

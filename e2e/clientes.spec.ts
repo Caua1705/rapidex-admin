@@ -296,18 +296,249 @@ test('a ajuda fecha no Esc e devolve o foco ao ícone', async ({ page }) => {
 });
 
 /*
- * NÃO EXISTE FILTRO POR CLASSE, e a ausência é de propósito: a rota não tem
- * `?segment=`, e a classificação é derivada na LEITURA sobre a página já
- * paginada. Filtrar o array recebido devolveria "os em risco das 50 linhas
- * baixadas" com cara de resposta sobre a base inteira — que é pior do que não
- * filtrar. Este teste trava a ausência para que ela não volte como um seletor
- * plausível na barra.
+ * ============================================================================
+ * OS TRÊS FILTROS
+ * ============================================================================
+ *
+ * A tela NÃO tinha filtro, e a ausência era de propósito enquanto a rota não
+ * tinha os parâmetros: a classificação era derivada na leitura sobre a página já
+ * paginada, e filtrar o array recebido devolveria "os em risco das 50 linhas
+ * baixadas" com cara de resposta sobre a base inteira.
+ *
+ * O contrato de 21/08/2026 abriu os cinco, aplicados ANTES do `LIMIT`. A
+ * asserção que substituiu a da ausência trava a mesma preocupação de outra
+ * forma: **o critério viaja no ENDEREÇO**. Uma tela que voltasse a peneirar o
+ * array mostraria a mesma lista curta e não deixaria rastro nenhum na query.
  */
-test('a tela não oferece filtro por classificação', async ({ page }) => {
+
+async function abrirFiltros(page: Page) {
+  await page.getByTestId('customers-filtros').click();
+  await expect(page.getByTestId('customers-filtro-aplicar')).toBeVisible();
+}
+
+/** A query do último GET /admin/customers que chegou ao falso. */
+function ultimaQuery(): URLSearchParams | undefined {
+  const queries = api.customerQueries();
+  return queries[queries.length - 1];
+}
+
+test('o critério de classe vai na query, e não numa peneira do navegador', async ({ page }) => {
   await abrirClientes(page);
 
-  await expect(page.getByRole('combobox', { name: /classifica/i })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: /^Em risco$/ })).toHaveCount(0);
+  await abrirFiltros(page);
+  await page.getByTestId('customers-filtro-classe').click();
+  await page.getByRole('option', { name: 'Em risco' }).click();
+  await page.getByTestId('customers-filtro-aplicar').click();
+
+  // A lista responde ao recorte...
+  await expect(page.getByRole('row').filter({ hasText: 'Juliana Alves' })).toBeVisible();
+  await expect(page.getByRole('row').filter({ hasText: 'Ana Paula' })).toHaveCount(0);
+
+  // ...e o recorte foi PEDIDO, não calculado aqui.
+  expect(ultimaQuery()?.get('segment')).toBe('em_risco');
+});
+
+test('a faixa de ticket vai como decimal de duas casas', async ({ page }) => {
+  await abrirClientes(page);
+
+  await abrirFiltros(page);
+  await page.getByTestId('customers-filtro-min').fill('50');
+  await page.getByTestId('customers-filtro-max').fill('70');
+  await page.getByTestId('customers-filtro-aplicar').click();
+
+  await expect(page.getByRole('row').filter({ hasText: 'Marcos Lima' })).toBeVisible();
+  await expect(page.getByRole('row').filter({ hasText: 'Rafael Nunes' })).toHaveCount(0);
+
+  expect(ultimaQuery()?.get('min_ticket')).toBe('50.00');
+  expect(ultimaQuery()?.get('max_ticket')).toBe('70.00');
+});
+
+/*
+ * AS DUAS DATAS SÃO O DIA DA OPERAÇÃO, e atravessam sem conversão. Um `Date` no
+ * meio do caminho reintroduziria o fuso do navegador e mandaria o dia vizinho —
+ * e o cliente que pediu às 23h cairia fora de um recorte que termina hoje.
+ */
+test('o período do último pedido vai como AAAA-MM-DD, sem passar por Date', async ({ page }) => {
+  await abrirClientes(page);
+
+  await abrirFiltros(page);
+  await page.getByTestId('customers-filtro-de').fill('2026-08-01');
+  await page.getByTestId('customers-filtro-ate').fill('2026-08-21');
+  await page.getByTestId('customers-filtro-aplicar').click();
+
+  expect(ultimaQuery()?.get('last_order_from')).toBe('2026-08-01');
+  expect(ultimaQuery()?.get('last_order_to')).toBe('2026-08-21');
+});
+
+/*
+ * O TOTAL É O DO RECORTE, e não o da base nem o da página.
+ *
+ * É a consequência de os filtros valerem antes do `LIMIT`, e a coisa que a tela
+ * não conseguiria reproduzir sozinha: com um `Array.filter` na página, o
+ * contador diria o total da base e a lista mostraria uma linha.
+ */
+test('o contador passa a ser o total do recorte', async ({ page }) => {
+  await abrirClientes(page);
+  await expect(page.getByText('5 clientes')).toBeVisible();
+
+  await abrirFiltros(page);
+  await page.getByTestId('customers-filtro-classe').click();
+  await page.getByRole('option', { name: 'Em risco' }).click();
+  await page.getByTestId('customers-filtro-aplicar').click();
+
+  await expect(page.getByText('1 cliente', { exact: true })).toBeVisible();
+});
+
+/*
+ * O NÚMERO NO BOTÃO É O QUE PAGA O ESCONDERIJO.
+ *
+ * Um filtro atrás de um botão é um filtro que ninguém lembra que ligou — é a
+ * razão pela qual Pedidos não esconde os seus. Aqui a faixa gruda no topo e o
+ * número continua na tela na quadragésima linha. Sem ele, a tela mentiria por
+ * omissão sobre estar recortada.
+ *
+ * A FAIXA CONTA COMO UM: dois campos de ticket preenchidos são UM critério.
+ */
+test('o botão diz quantos critérios estão ligados, e a faixa conta como um', async ({ page }) => {
+  await abrirClientes(page);
+
+  const botao = page.getByTestId('customers-filtros');
+  await expect(botao).toHaveText('Filtros');
+
+  await abrirFiltros(page);
+  await page.getByTestId('customers-filtro-min').fill('20');
+  await page.getByTestId('customers-filtro-max').fill('80');
+  await page.getByTestId('customers-filtro-classe').click();
+  await page.getByRole('option', { name: 'Fiel' }).click();
+  await page.getByTestId('customers-filtro-aplicar').click();
+
+  await expect(botao).toContainText('2');
+});
+
+test('Limpar desliga tudo de uma vez e some junto', async ({ page }) => {
+  await abrirClientes(page);
+
+  await abrirFiltros(page);
+  await page.getByTestId('customers-filtro-classe').click();
+  await page.getByRole('option', { name: 'Perdido' }).click();
+  await page.getByTestId('customers-filtro-aplicar').click();
+  await expect(page.getByRole('row').filter({ hasText: 'Ana Paula' })).toHaveCount(0);
+
+  await page.getByTestId('customers-filtros-limpar').click();
+
+  await expect(page.getByRole('row').filter({ hasText: 'Ana Paula' })).toBeVisible();
+  await expect(page.getByTestId('customers-filtros-limpar')).toHaveCount(0);
+});
+
+/*
+ * FECHAR SEM APLICAR NÃO DEIXA RASTRO. O rascunho é semeado na abertura a partir
+ * do que está aplicado — abrir de novo mostra o recorte que está no ar, e não o
+ * que alguém começou a digitar e desistiu.
+ */
+test('fechar sem aplicar descarta o rascunho', async ({ page }) => {
+  await abrirClientes(page);
+
+  await abrirFiltros(page);
+  await page.getByTestId('customers-filtro-min').fill('99');
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('customers-filtro-aplicar')).toHaveCount(0);
+  // Nada foi aplicado: a lista continua inteira e o botão não conta critério.
+  await expect(page.getByTestId('customers-filtros')).toHaveText('Filtros');
+
+  await abrirFiltros(page);
+  await expect(page.getByTestId('customers-filtro-min')).toHaveValue('');
+});
+
+/*
+ * ============================================================================
+ * INTERVALO INVERTIDO É BARRADO ANTES DE VIRAR 400
+ * ============================================================================
+ *
+ * O backend responde 400, e não lista vazia — está certo, porque lista vazia
+ * deixaria o lojista procurando o cliente que sumiu da tela. Mas um 400 apaga a
+ * lista e a troca por uma tarja vermelha genérica, quando o conserto é uma data
+ * que a pessoa acabou de digitar.
+ *
+ * Então "Aplicar" trava, a mensagem aparece no campo errado, e NENHUMA chamada
+ * sai. A última asserção é a que importa: se a requisição saísse, o teste
+ * passaria pela mensagem e a lista teria sumido de qualquer forma.
+ */
+test('data invertida trava o Aplicar e não chega a chamar a rota', async ({ page }) => {
+  await abrirClientes(page);
+
+  const antes = api.customerQueries().length;
+
+  await abrirFiltros(page);
+  await page.getByTestId('customers-filtro-de').fill('2026-08-21');
+  await page.getByTestId('customers-filtro-ate').fill('2026-08-01');
+
+  await expect(page.getByText('A data inicial é depois da final.')).toBeVisible();
+  await expect(page.getByTestId('customers-filtro-aplicar')).toBeDisabled();
+  expect(api.customerQueries().length).toBe(antes);
+});
+
+test('ticket invertido trava o Aplicar, com a mensagem no campo do ticket', async ({ page }) => {
+  await abrirClientes(page);
+
+  await abrirFiltros(page);
+  await page.getByTestId('customers-filtro-min').fill('80');
+  await page.getByTestId('customers-filtro-max').fill('20');
+
+  await expect(page.getByText('O ticket mínimo é maior que o máximo.')).toBeVisible();
+  await expect(page.getByTestId('customers-filtro-aplicar')).toBeDisabled();
+});
+
+/*
+ * O VAZIO COM FILTRO LIGADO DIZ A CAUSA CERTA E OFERECE A SAÍDA. Um "nenhum
+ * cliente encontrado" sem o botão mandaria a pessoa procurar no lugar errado.
+ */
+test('recorte sem resultado oferece limpar os filtros', async ({ page }) => {
+  await abrirClientes(page);
+
+  await abrirFiltros(page);
+  await page.getByTestId('customers-filtro-min').fill('9999');
+  await page.getByTestId('customers-filtro-aplicar').click();
+
+  await expect(page.getByText('Nenhum cliente com esses critérios.')).toBeVisible();
+  await page.getByTestId('customers-vazio-limpar').click();
+
+  await expect(page.getByRole('row').filter({ hasText: 'Ana Paula' })).toBeVisible();
+});
+
+/*
+ * ============================================================================
+ * O RITMO — a linha que fecha o caso de dois clientes com a mesma distância
+ * ============================================================================
+ *
+ * `cadence_days` com `days_since_last_order` é o par que explica o rótulo. Sem
+ * ele a tela dizia a REGRA ("o ritmo é de cada cliente") e a regra não fecha o
+ * caso: quem olha duas linhas e dois rótulos diferentes precisa dos números
+ * daquelas duas pessoas.
+ */
+test('cada linha diz o ritmo daquele cliente, ao lado da classe', async ({ page }) => {
+  await abrirClientes(page);
+
+  const juliana = page.getByRole('row').filter({ hasText: 'Juliana Alves' });
+  await expect(juliana).toContainText('Em risco');
+  await expect(juliana).toContainText('ritmo de 8 dias');
+
+  const marcos = page.getByRole('row').filter({ hasText: 'Marcos Lima' });
+  await expect(marcos).toContainText('Perdido');
+  await expect(marcos).toContainText('ritmo de 20 dias');
+});
+
+/*
+ * QUEM TEM UM PEDIDO SÓ NÃO TEM RITMO MEDIDO. O backend usa 30 como valor de
+ * partida (não há intervalo a medir); escrever "ritmo de 30 dias" ao lado de "1
+ * pedido" seria a tela afirmando um hábito que ninguém observou.
+ */
+test('não inventa ritmo para quem tem um pedido só', async ({ page }) => {
+  await abrirClientes(page);
+  await escolherFilial(page, FAKE_BRANCH_2);
+
+  const rafael = page.getByRole('row').filter({ hasText: 'Rafael Nunes' });
+  await expect(rafael).toContainText('Novo');
+  await expect(rafael).not.toContainText('ritmo');
 });
 
 /*

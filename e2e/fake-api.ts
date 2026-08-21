@@ -638,6 +638,24 @@ function daysAgo(days: number): string {
 }
 
 /**
+ * O DIA DA OPERAÇÃO de um carimbo ISO, em AAAA-MM-DD.
+ *
+ * Os filtros `last_order_from`/`last_order_to` são lidos pelo backend em
+ * `America/Fortaleza`, e é o dia DELE que a comparação usa. Com o fuso do
+ * processo que roda o teste, um pedido das 23h de ontem cairia no dia de hoje em
+ * metade das máquinas e no de ontem na outra — e o teste passaria ou falharia
+ * conforme quem o rodou.
+ */
+const OPERATION_DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Fortaleza' });
+
+function operationDay(isoDate: string | null | undefined): string | null {
+  if (!isoDate) return null;
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return null;
+  return OPERATION_DAY.format(date);
+}
+
+/**
  * De qual filial é cada cliente.
  *
  * Fica FORA do item porque o contrato não tem esse campo: o backend filtra por
@@ -657,11 +675,17 @@ const CUSTOMER_BRANCH: Record<string, string> = {
  * OS CINCO CLIENTES DO FALSO, e cada um cobre um caso que a tela precisa saber
  * desenhar — não uma base que pareça real.
  *
- * `segment`, `average_ticket`, `billable_orders_count` e `days_since_last_order`
- * são CALCULADOS PELO BACKEND, sobre o recorte da consulta, e o falso os entrega
- * prontos como a rota entrega. Recalculá-los aqui seria reimplementar a fórmula
- * RFV dentro do arnês de teste — e um teste que refaz a conta do backend passa
- * mesmo quando a tela lê o campo errado.
+ * `segment`, `average_ticket`, `billable_orders_count`, `days_since_last_order` e
+ * `cadence_days` são CALCULADOS PELO BACKEND, sobre o recorte da consulta, e o
+ * falso os entrega prontos como a rota entrega. Recalculá-los aqui seria
+ * reimplementar a fórmula RFV dentro do arnês de teste — e um teste que refaz a
+ * conta do backend passa mesmo quando a tela lê o campo errado.
+ *
+ * OS RITMOS SÃO ESCOLHIDOS PARA COBRIR O CASO QUE MOTIVOU `cadence_days`:
+ * Juliana está `em_risco` com 20 dias e ritmo 8; Marcos está `perdido` com 95 e
+ * ritmo 20. Duas distâncias diferentes com rótulos diferentes não provam nada —
+ * o que a tela precisa mostrar é o RITMO de cada um, porque é ele que separa
+ * dois clientes com a MESMA distância.
  *
  * O que cada linha cobre:
  *
@@ -690,6 +714,7 @@ function initialCustomers(): CustomerListItem[] {
       first_order_at: daysAgo(400),
       last_order_at: daysAgo(0),
       days_since_last_order: 0,
+      cadence_days: 7,
       segment: 'fiel',
     },
     {
@@ -702,6 +727,7 @@ function initialCustomers(): CustomerListItem[] {
       first_order_at: daysAgo(300),
       last_order_at: daysAgo(95),
       days_since_last_order: 95,
+      cadence_days: 20,
       segment: 'perdido',
     },
     {
@@ -714,6 +740,7 @@ function initialCustomers(): CustomerListItem[] {
       first_order_at: daysAgo(60),
       last_order_at: daysAgo(1),
       days_since_last_order: 1,
+      cadence_days: 30,
       segment: 'ocasional',
     },
     {
@@ -726,6 +753,7 @@ function initialCustomers(): CustomerListItem[] {
       first_order_at: daysAgo(45),
       last_order_at: daysAgo(20),
       days_since_last_order: 20,
+      cadence_days: 8,
       segment: 'em_risco',
     },
     {
@@ -738,6 +766,7 @@ function initialCustomers(): CustomerListItem[] {
       first_order_at: daysAgo(12),
       last_order_at: daysAgo(12),
       days_since_last_order: 12,
+      cadence_days: 30,
       segment: 'novo',
     },
   ];
@@ -1122,6 +1151,15 @@ export type FakeApi = {
   /** Cada PATCH /admin/products/{id}/availability que chegou. */
   availabilityCalls: () => { productId: string; isAvailable: boolean }[];
   /**
+   * A QUERY de cada GET /admin/customers que chegou, na ordem.
+   *
+   * Existe para uma asserção que nenhuma outra alcança: que os cinco critérios
+   * viajam no ENDEREÇO, e não numa peneira feita no navegador. Uma tela que
+   * filtrasse o array recebido mostraria a mesma lista curta na tela e não
+   * deixaria rastro nenhum aqui.
+   */
+  customerQueries: () => URLSearchParams[];
+  /**
    * A chave de catálogo de cada produto, como o "banco" a tem.
    *
    * É por ela que se confere o pareamento: os DOIS lados precisam terminar com
@@ -1261,6 +1299,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     products: [...initialProducts(), ...copiaDoCardapio().products],
     reorderCalls: [] as { branchId: string | undefined; categoryIds: string[] }[],
     availabilityCalls: [] as { productId: string; isAvailable: boolean }[],
+    customerQueries: [] as URLSearchParams[],
     imageUploads: [] as { productId: string; bytes: number }[],
     cancelReasons: [] as { orderId: string; reason: string }[],
     // A matriz já tem faixa gravada; a segunda filial não, para o teste do 409.
@@ -1640,22 +1679,69 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     // --- clientes ----------------------------------------------------------
 
     /*
-     * Respeita filial, busca e paginação — os três que a tela usa de verdade.
+     * Respeita filial, busca, os CINCO filtros e a paginação.
      *
      * A busca é "telefone (só dígitos) OU parte do nome", como o contrato
      * descreve: um termo só, dois critérios. Testar só o nome deixaria a busca
      * por telefone passar sem nunca ter rodado.
+     *
+     * ------------------------------------------------------------------------
+     * A ORDEM AQUI É O CONTRATO, E É ELA QUE OS TESTES COBRAM
+     * ------------------------------------------------------------------------
+     *
+     * Peneira primeiro, conta o que sobrou, e só então corta a página. É por
+     * isso que `total` pode ser 3 com dois itens na resposta — e é exatamente o
+     * que a tela não pode reproduzir por conta própria.
+     *
+     * Um falso que cortasse a página antes de filtrar passaria a mentir do mesmo
+     * jeito que a tela mentiria se filtrasse o array recebido, e o teste que
+     * existe para pegar esse erro passaria.
+     *
+     * OS DOIS 400 SÃO PARTE DO CONTRATO, não detalhe de implementação: intervalo
+     * invertido (data ou ticket) é erro de quem chamou, e devolver lista vazia
+     * deixaria o lojista procurando o cliente que sumiu da tela.
      */
     if (method === 'GET' && path === '/admin/customers') {
       const query = new URL(request.url()).searchParams;
+      state.customerQueries.push(query);
       const branchId = query.get('branch_id');
       const search = (query.get('search') ?? '').trim().toLowerCase();
       const digits = search.replace(/\D/g, '');
       const limit = Number(query.get('limit') ?? 50);
       const offset = Number(query.get('offset') ?? 0);
 
+      const segment = query.get('segment');
+      const lastFrom = query.get('last_order_from');
+      const lastTo = query.get('last_order_to');
+      const minTicket = query.get('min_ticket');
+      const maxTicket = query.get('max_ticket');
+
+      if (lastFrom && lastTo && lastFrom > lastTo) {
+        return json(route, 400, {
+          detail: 'last_order_from nao pode ser depois de last_order_to.',
+        });
+      }
+      if (minTicket !== null && maxTicket !== null && Number(minTicket) > Number(maxTicket)) {
+        return json(route, 400, { detail: 'min_ticket nao pode ser maior que max_ticket.' });
+      }
+
       const matching = state.customers.filter((item) => {
         if (branchId && CUSTOMER_BRANCH[item.customer_phone] !== branchId) return false;
+
+        if (segment && item.segment !== segment) return false;
+
+        if (lastFrom || lastTo) {
+          // O dia da OPERAÇÃO, como o backend lê — não o dia do navegador.
+          const dia = operationDay(item.last_order_at);
+          if (dia === null) return false;
+          if (lastFrom && dia < lastFrom) return false;
+          // `last_order_to` é INCLUSIVO: o dia inteiro entra.
+          if (lastTo && dia > lastTo) return false;
+        }
+
+        if (minTicket !== null && item.average_ticket < Number(minTicket)) return false;
+        if (maxTicket !== null && item.average_ticket > Number(maxTicket)) return false;
+
         if (!search) return true;
         if (item.customer_name.toLowerCase().includes(search)) return true;
         return digits !== '' && item.customer_phone.includes(digits);
@@ -2321,6 +2407,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     product: (productId) => state.products.find((item) => item.id === productId),
     reorderCalls: () => state.reorderCalls,
     availabilityCalls: () => state.availabilityCalls,
+    customerQueries: () => state.customerQueries,
     imageUploads: () => state.imageUploads,
     cancelReasons: () => state.cancelReasons,
     settings: () => state.settings,

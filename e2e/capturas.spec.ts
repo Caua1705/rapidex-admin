@@ -95,6 +95,22 @@ for (const tamanho of TAMANHOS) {
       await page.getByTestId('customers-ajuda').click();
       await expect(page.getByTestId('customers-nota-rfv')).toBeVisible();
       await fotografar(page, 'clientes-ajuda', tamanho.nome, tema);
+      await page.keyboard.press('Escape');
+
+      /*
+       * O PAINEL DE FILTROS ABERTO, com um critério já aplicado — é o estado em
+       * que se vê as três peças juntas: o número no botão, o "Limpar" ao lado e
+       * o formulário. No desktop ele alinha pela margem DIREITA (o gatilho vive
+       * nas ferramentas da faixa); no celular deixa de flutuar e vira fileira.
+       */
+      await page.getByTestId('customers-filtros').click();
+      await page.getByTestId('customers-filtro-min').fill('20');
+      await expect(page.getByTestId('customers-filtro-aplicar')).toBeVisible();
+      await fotografar(page, 'clientes-filtros', tamanho.nome, tema);
+      await page.getByTestId('customers-filtro-aplicar').click();
+      await page.getByTestId('customers-filtros').click();
+      await fotografar(page, 'clientes-filtros-ligado', tamanho.nome, tema);
+      await page.keyboard.press('Escape');
 
       await page.goto('/desempenho');
       await expect(page.getByRole('heading', { name: 'Desempenho' })).toBeVisible();

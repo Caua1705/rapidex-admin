@@ -55,6 +55,73 @@ export const SEGMENT_HINT: Record<CustomerSegment, string> = {
 };
 
 /**
+ * ============================================================================
+ * O RITMO — o número que faz a etiqueta parar de parecer arbitrária
+ * ============================================================================
+ *
+ * `cadence_days` é o intervalo médio DESTE cliente, em dias, já grampeado entre
+ * 7 e 60 pelo backend. Com `days_since_last_order` ele forma o par que explica
+ * o rótulo: **"23 dias sem pedir, ritmo de 7"** diz sozinho por que esta pessoa
+ * está em risco e a vizinha da lista, com os mesmos 23 dias, não está.
+ *
+ * Era a pergunta que a tela não conseguia responder. A ressalva dizia a REGRA
+ * ("o ritmo é de cada cliente"), e a regra não fecha o caso: quem olha duas
+ * linhas com o mesmo "há 23 dias" e dois rótulos diferentes precisa dos dois
+ * números daquelas duas pessoas, não da frase.
+ *
+ * OS TRÊS SAEM DA MESMA EXPRESSÃO NO BANCO. Isso é o que dá valor a mostrá-los:
+ * o número na tela não consegue discordar da etiqueta ao lado dele. Se a conta
+ * fosse refeita aqui, poderia.
+ */
+
+/**
+ * "ritmo de 7 dias" — a linha auxiliar embaixo da classe.
+ *
+ * ELA CALA PARA QUEM TEM UM PEDIDO SÓ, e é a única regra desta função. Sem dois
+ * pedidos não há intervalo a medir, e o backend usa 30 como valor de partida
+ * (§3 do contrato). Escrever "ritmo de 30 dias" ao lado de "1 pedido" seria a
+ * tela afirmando um hábito que ninguém observou — e "Novo", que é o rótulo de
+ * quem estreia, já se explica pela coluna "Cliente desde".
+ *
+ * O número sai arredondado: a diferença entre 7,4 e 7 dias não muda decisão
+ * nenhuma, e "ritmo de 7,43 dias" lê como saída de depurador.
+ */
+export function cadenceNote(customer: CustomerListItem): string | null {
+  if (customer.orders_count <= 1) return null;
+
+  const dias = Math.round(customer.cadence_days);
+  if (!Number.isFinite(dias) || dias <= 0) return null;
+  return dias === 1 ? 'ritmo de 1 dia' : `ritmo de ${dias} dias`;
+}
+
+/**
+ * A FRASE COMPLETA, no `title` da etiqueta: "23 dias sem pedir, e o ritmo dele
+ * é de 7 dias."
+ *
+ * É o par inteiro num lugar só, para quem quer a conta escrita em vez de
+ * montada de duas colunas. Continua sendo APOIO — um `title` não sobrevive ao
+ * toque —, e é por isso que o ritmo TAMBÉM aparece visível na linha. O que está
+ * aqui e não lá é a distância, que já é a coluna "Último pedido".
+ *
+ * Sem os números, cai no `SEGMENT_HINT`, que explica a REGRA da classe. A frase
+ * genérica é o piso; a específica é o ganho.
+ */
+export function segmentAudit(customer: CustomerListItem): string {
+  const generica = SEGMENT_HINT[customer.segment] ?? '';
+
+  const dias = customer.days_since_last_order;
+  const ritmo = Math.round(customer.cadence_days);
+  if (typeof dias !== 'number' || !Number.isFinite(ritmo) || customer.orders_count <= 1) {
+    return generica;
+  }
+
+  const semPedir =
+    dias === 0 ? 'Pediu hoje' : dias === 1 ? '1 dia sem pedir' : `${dias} dias sem pedir`;
+  const cadencia = ritmo === 1 ? 'de 1 dia' : `de ${ritmo} dias`;
+  return `${semPedir}, e o ritmo dele é ${cadencia}. ${generica}`.trim();
+}
+
+/**
  * A CLASSE, QUANDO ELA VEIO — a mesma peneira do denominador, uma linha acima.
  *
  * `segment` é obrigatório no contrato e o tipo gerado o dá como enum, então

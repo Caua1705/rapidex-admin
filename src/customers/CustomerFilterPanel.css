@@ -1,0 +1,102 @@
+/*
+ * ============================================================================
+ * O BOTÃO DE FILTROS E O PAINEL ATRÁS DELE
+ * ============================================================================
+ *
+ * Ver `CustomerFilterPanel.tsx` para o porquê de os critérios se esconderem
+ * nesta tela e não em Pedidos. Aqui mora só a forma — e ela é a do balão
+ * ancorado que o sistema já tem: `--surface-raised`, `--r-card`,
+ * `--shadow-raised` e `--z-popover`.
+ *
+ * ALINHA PELA DIREITA, ao contrário da ajuda de tela. O gatilho vive nas
+ * FERRAMENTAS da faixa, que são alinhadas à margem direita: um painel de 320px
+ * que abrisse para a direita a partir dali sairia da tela em qualquer janela.
+ */
+
+.filtro-cli {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+/*
+ * O gatilho é botão comum, não fantasma: ele é uma ferramenta da faixa, como o
+ * "Carregar mais" é do rodapé. Fantasma é o "Limpar" ao lado, que é a
+ * alternativa dele.
+ */
+.filtro-cli__gatilho {
+  gap: var(--sp-8);
+}
+
+.filtro-cli__painel {
+  position: absolute;
+  z-index: var(--z-popover);
+  top: calc(100% + var(--sp-8));
+  inset-inline-end: 0;
+  /*
+   * Medida de CONTEÚDO: 320px é a largura de `--w-texto-curto`, e é o que faz a
+   * faixa de datas caber numa linha — dois campos de data com o separador no
+   * meio pedem 268px, e abaixo disso o segundo campo desce e a faixa deixa de
+   * ler como faixa.
+   */
+  width: min(320px, calc(100vw - var(--sp-32)));
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-16);
+  padding: var(--sp-16);
+  border-radius: var(--r-card);
+  border: 1px solid var(--card-edge);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-raised);
+  text-align: start;
+}
+
+/*
+ * O RODAPÉ DE AÇÕES, separado por um fio: ele fecha o formulário, e sem o fio
+ * "Aplicar" lê como um quarto campo. É a mesma gramática da barra de salvar de
+ * Minha loja, sem a sombra — aqui nada passa por cima de nada, o painel inteiro
+ * já é o que flutua.
+ */
+.filtro-cli__acoes {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-8);
+  padding-top: var(--sp-12);
+  border-top: 1px solid var(--line);
+}
+
+/* ==========================================================================
+ * CELULAR — o painel deixa de flutuar
+ *
+ * As ferramentas da faixa já ocupam uma fileira inteira no telefone, então o
+ * painel vira a fileira seguinte: largura da página, plano de agrupamento e sem
+ * sombra, porque nada está por cima de nada. É a mesma decisão de
+ * `ds/HelpPopover`, e pelo mesmo motivo — um painel ancorado num botão que pode
+ * nascer em qualquer abscissa romperia a margem.
+ * ======================================================================= */
+
+@media (max-width: 767px) {
+  /*
+   * A FERRAMENTA TOMA A FILEIRA. Ela já dividiria a linha com a busca, que no
+   * telefone também ocupa 100% — e é o que dá ao painel a largura da página em
+   * vez da largura do botão. Sem isto, `flex: 0 0 auto` no gatilho impediria o
+   * painel de encolher e ele romperia a margem pela direita.
+   */
+  .filtro-cli {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+  }
+
+  .filtro-cli__painel {
+    position: static;
+    width: 100%;
+    flex-basis: 100%;
+    margin-top: var(--sp-8);
+    background: var(--surface-muted);
+    border-color: var(--line);
+    box-shadow: none;
+  }
+}

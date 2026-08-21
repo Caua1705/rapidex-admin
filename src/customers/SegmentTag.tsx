@@ -1,5 +1,5 @@
-import { SEGMENT_HINT, segmentLabel } from './customer-segment';
-import type { CustomerSegment } from '../api/types';
+import { cadenceNote, segmentAudit, segmentLabel } from './customer-segment';
+import type { CustomerListItem } from '../api/types';
 
 /**
  * A CLASSIFICAÇÃO DE UM CLIENTE, NA LINHA DELE.
@@ -46,8 +46,18 @@ import type { CustomerSegment } from '../api/types';
  * raio do segmentado — cinco pílulas cinzentas descendo a coluna, que é
  * exatamente o objeto que este componente existe para NÃO ser.
  */
-export function SegmentTag({ segment }: { segment: CustomerSegment }) {
+export function SegmentTag({ customer }: { customer: CustomerListItem }) {
+  const segment = customer.segment;
   const rotulo = segmentLabel(segment);
+  /*
+   * O RITMO, EMBAIXO DA PALAVRA — e é ele que fecha o caso de duas linhas com
+   * "há 23 dias" e rótulos diferentes. A distância já está na coluna "Último
+   * pedido"; o que faltava na linha era o ritmo DESTE cliente.
+   *
+   * É a mesma forma da nota do ticket (`.ticket__nota`): auxiliar embaixo do
+   * valor, e ausente quando não há o que dizer — ver `cadenceNote`.
+   */
+  const ritmo = cadenceNote(customer);
 
   /*
    * SEM CLASSE, TRAVESSÃO — e não a etiqueta vazia.
@@ -69,9 +79,12 @@ export function SegmentTag({ segment }: { segment: CustomerSegment }) {
   if (rotulo === null) return <span className="muted">—</span>;
 
   return (
-    <span className={`classe is-seg-${segment}`} title={SEGMENT_HINT[segment]}>
-      <span className="classe__ponto" aria-hidden="true" />
-      {rotulo}
+    <span className="classe">
+      <span className={`classe__rotulo is-seg-${segment}`} title={segmentAudit(customer)}>
+        <span className="classe__ponto" aria-hidden="true" />
+        {rotulo}
+      </span>
+      {ritmo ? <span className="t-aux classe__ritmo">{ritmo}</span> : null}
     </span>
   );
 }
