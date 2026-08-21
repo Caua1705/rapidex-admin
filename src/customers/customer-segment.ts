@@ -55,6 +55,32 @@ export const SEGMENT_HINT: Record<CustomerSegment, string> = {
 };
 
 /**
+ * A CLASSE, QUANDO ELA VEIO — a mesma peneira do denominador, uma linha acima.
+ *
+ * `segment` é obrigatório no contrato e o tipo gerado o dá como enum, então
+ * `SEGMENT_LABEL[segment]` é `string` para o compilador e nada aqui pode
+ * acender. Na rede é outra história: enquanto o deploy esteve atrás da entrega
+ * do RFV, `segment` chegou ausente e o índice devolveu `undefined` — a etiqueta
+ * saía com o ponto sem matiz e a palavra em branco, e **célula vazia lê como
+ * falha de carregamento**. Foi assim que a ausência de dado foi confundida com
+ * bug de tela.
+ *
+ * Ela devolve `null` em dois casos, e os dois são a mesma pergunta sem
+ * resposta: o campo que não chegou, e o valor que chegou fora das cinco classes
+ * (uma sexta classe no backend antes de a tela conhecê-la). Quem chama escreve
+ * o travessão, que é a convenção do painel para "não dá para saber".
+ *
+ * O `Record` continua sendo a trava de compilação que ele sempre foi: uma
+ * classe nova no contrato ainda quebra o `npm run typecheck` aqui, e é assim
+ * que se descobre a sexta classe no lugar certo. Esta função é a rede embaixo,
+ * não a substituta da trava.
+ */
+export function segmentLabel(segment: CustomerSegment): string | null {
+  const rotulo: string | undefined = SEGMENT_LABEL[segment];
+  return typeof rotulo === 'string' && rotulo !== '' ? rotulo : null;
+}
+
+/**
  * O DENOMINADOR DO TICKET, QUANDO ELE VEIO.
  *
  * `billable_orders_count` é obrigatório no contrato, e o tipo gerado o promete

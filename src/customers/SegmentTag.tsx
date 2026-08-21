@@ -1,4 +1,4 @@
-import { SEGMENT_HINT, SEGMENT_LABEL } from './customer-segment';
+import { SEGMENT_HINT, segmentLabel } from './customer-segment';
 import type { CustomerSegment } from '../api/types';
 
 /**
@@ -47,10 +47,31 @@ import type { CustomerSegment } from '../api/types';
  * exatamente o objeto que este componente existe para NÃO ser.
  */
 export function SegmentTag({ segment }: { segment: CustomerSegment }) {
+  const rotulo = segmentLabel(segment);
+
+  /*
+   * SEM CLASSE, TRAVESSÃO — e não a etiqueta vazia.
+   *
+   * É a mesma convenção do ticket médio (`formatAverageTicket`) e das datas
+   * (`formatDate`, `formatSince`): quando não dá para saber, o painel escreve
+   * um travessão. A célula em branco dizia a mesma coisa de um jeito que
+   * ninguém lê como informação — ela lê como falha de carregamento, e foi
+   * exatamente assim que a ausência do campo na resposta passou por bug de
+   * tela.
+   *
+   * O PONTO NÃO VEM. Ele é a matiz da classe, e sem classe não há matiz para
+   * mostrar: um ponto cinza ao lado de um travessão seria uma etiqueta
+   * afirmando uma quinta coisa que não existe.
+   *
+   * `.muted` é a tinta de "isto não é um valor", a mesma da coluna "Cliente
+   * desde" quando a data não veio.
+   */
+  if (rotulo === null) return <span className="muted">—</span>;
+
   return (
     <span className={`classe is-seg-${segment}`} title={SEGMENT_HINT[segment]}>
       <span className="classe__ponto" aria-hidden="true" />
-      {SEGMENT_LABEL[segment]}
+      {rotulo}
     </span>
   );
 }

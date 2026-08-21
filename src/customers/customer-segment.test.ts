@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { SEGMENT_HINT, SEGMENT_LABEL, billableNote, formatAverageTicket } from './customer-segment';
+import {
+  SEGMENT_HINT,
+  SEGMENT_LABEL,
+  billableNote,
+  formatAverageTicket,
+  segmentLabel,
+} from './customer-segment';
 import type { CustomerListItem, CustomerSegment } from '../api/types';
 
 function customer(overrides: Partial<CustomerListItem> = {}): CustomerListItem {
@@ -115,6 +121,37 @@ describe('formatAverageTicket', () => {
       average_ticket: undefined,
     } as Partial<CustomerListItem>);
     expect(formatAverageTicket(semCampo)).toBe('—');
+  });
+});
+
+describe('segmentLabel', () => {
+  it('devolve o rótulo das cinco classes do contrato', () => {
+    expect(CLASSES.map((classe) => segmentLabel(classe))).toEqual([
+      'Novo',
+      'Ocasional',
+      'Fiel',
+      'Em risco',
+      'Perdido',
+    ]);
+  });
+
+  /*
+   * O CAMPO QUE NÃO CHEGOU. `segment` é obrigatório no contrato, então o
+   * compilador nunca cobra este caso — e foi ele que deixou a coluna
+   * "Classificação" em branco enquanto o deploy do backend estava atrás da
+   * entrega do RFV. Célula vazia lê como falha de carregamento.
+   */
+  it('devolve null quando o campo não veio na resposta', () => {
+    expect(segmentLabel(undefined as unknown as CustomerSegment)).toBeNull();
+  });
+
+  /*
+   * E a sexta classe que o backend mande antes de a tela conhecê-la. A trava de
+   * compilação continua sendo o `Record`; isto é a rede para o intervalo entre
+   * os dois deploys.
+   */
+  it('devolve null para uma classe que a tela não conhece', () => {
+    expect(segmentLabel('campeao' as CustomerSegment)).toBeNull();
   });
 });
 
