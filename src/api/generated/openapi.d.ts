@@ -2353,16 +2353,23 @@ export interface components {
     };
     /** AdminCustomerListItem */
     AdminCustomerListItem: {
+      /** Average Ticket */
+      average_ticket: number;
+      /** Billable Orders Count */
+      billable_orders_count: number;
       /** Customer Name */
       customer_name: string;
       /** Customer Phone */
       customer_phone: string;
+      /** Days Since Last Order */
+      days_since_last_order?: number | null;
       /** First Order At */
       first_order_at?: string | null;
       /** Last Order At */
       last_order_at?: string | null;
       /** Orders Count */
       orders_count: number;
+      segment: components['schemas']['CustomerSegment'];
       /** Total Spent */
       total_spent: number;
     };
@@ -4224,6 +4231,26 @@ export interface components {
       /** Total */
       total: number;
     };
+    /**
+     * CustomerSegment
+     * @description A classificacao RFV que o painel pinta na linha do cliente.
+     *
+     *     `str, Enum` e nao string livre pelo mesmo motivo de `PaymentErrorCode`: so
+     *     assim a LISTA de valores sai no `/openapi.json`, e o painel gera o tipo
+     *     dele a partir do documento em vez de decorar as cinco strings.
+     *
+     *     Os valores sao codigos estaveis, em minusculas e sem acento. **Nao existe
+     *     `segment_label`**, e e decisao: rotulo em portugues vindo daqui
+     *     transformaria mudanca de texto de tela em deploy de backend. Quem escreve
+     *     "Em risco" e o painel.
+     *
+     *     A regra que produz cada um esta em `src/services/customer_segment.py`, e
+     *     a leitura de cada rotulo esta no contrato do painel
+     *     (`docs/contrato-clientes-frontend.md`) — em especial a de `NOVO`, que
+     *     significa "relacionamento novo" e nao "poucos pedidos".
+     * @enum {string}
+     */
+    CustomerSegment: 'novo' | 'ocasional' | 'fiel' | 'em_risco' | 'perdido';
     /**
      * DeleteCustomerAccountRequest
      * @description A senha atual, e nada mais.
