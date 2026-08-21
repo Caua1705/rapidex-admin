@@ -418,3 +418,231 @@
     height: var(--field-h-touch);
   }
 }
+
+/* ==========================================================================
+ * A MÉTRICA E A FATIA — as duas peças das telas que se LEEM
+ *
+ * As duas nasceram em `performance/PerformancePage.css` e moravam lá com um
+ * motivo escrito: "nenhuma outra tela do painel tem relatório, e um componente
+ * no design system que só um lugar usa é um componente que ninguém sabe
+ * manter". Avaliações é a segunda tela, e a regra do sistema decide o resto —
+ * quando a diferença entre duas telas nasceria do primitivo, quem se conserta é
+ * o primitivo. Duas cópias divergiriam no dia em que alguém ajustasse o respiro
+ * de uma delas.
+ *
+ * Elas ficam AQUI e não em `src/ds/` porque são CSS puro, sem estado e sem
+ * comportamento: um `<dl>` com duas classes, como `.alert` e `.tag` ao lado.
+ * ======================================================================= */
+
+/* --- os três números crus -------------------------------------------------
+ *
+ * ELES NÃO SÃO MAIS CARTÃO, e a mudança é a própria premissa da tela: três
+ * caixas com borda e sombra logo abaixo da frase competiriam com ela e
+ * devolveriam a página ao formato de painel de indicadores. Aqui eles são a
+ * CONFERÊNCIA da frase — quem quiser o número que a gerou o encontra em
+ * seguida, sem que ele dispute a primeira leitura.
+ */
+
+/*
+ * TRÊS COLUNAS SEPARADAS POR FIO, e um teto de largura.
+ *
+ * Sem teto, em 1440px cada número ficava com 400px de faixa para um valor de
+ * 120 — os três se afastavam tanto que deixavam de ler como um conjunto e
+ * viravam três informações soltas na mesma linha. Encostados, eles são o que
+ * são: a conferência da frase que está logo acima.
+ *
+ * 260 e não 220: a linha de variação ("+12,5% vs. os 7 dias anteriores") mede
+ * uns 200px, e em 220 menos o respiro ela quebrava em duas — três colunas com
+ * alturas diferentes por causa de uma palavra.
+ */
+.numeros {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 260px));
+  gap: 0;
+  margin: 0;
+  padding-block: var(--sp-8);
+}
+
+.numeros__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: 0;
+  padding: var(--sp-4) var(--sp-20);
+  border-left: 1px solid var(--line);
+}
+
+.numeros__item:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.numeros__rotulo {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+/*
+ * O valor é o nível 2 — não o nível 1. Ele deixou de ser o texto mais forte da
+ * tela no dia em que a frase passou a ser: dois corpos de 20 na mesma dobra
+ * fariam a frase e o número disputarem a mesma leitura, e a premissa desta tela
+ * já decidiu quem ganha.
+ */
+.numeros__valor {
+  margin: 0;
+  font-size: var(--metric-size);
+  line-height: var(--metric-line);
+  font-weight: var(--w-bold);
+  letter-spacing: var(--tt-track);
+  color: var(--ink);
+}
+
+/*
+ * O DELTA CARREGA A DIREÇÃO EM COR, e ela é a cor semântica que o sistema já
+ * tem — `--ok` e `--danger`, nenhuma matiz nova.
+ *
+ * Este bloco já foi neutro de propósito, com o argumento de que queda de
+ * faturamento não é perigo e alta não é "no ar". O argumento tinha um furo na
+ * prática: com +62,2% e -30,5% no mesmo cinza, a informação que decide o humor
+ * da semana só existia depois de o olho achar o sinal de menos. Aqui a cor tem
+ * função — é a leitura de relance —, que é exatamente o teste que a §4 pede
+ * antes de pintar qualquer coisa.
+ *
+ * Os dois pares (`--ok` e `--danger` sobre `--surface`) já são medidos a 4,5:1
+ * nos dois temas por `check-contrast.mjs`. E a cor NÃO é o único canal: a seta
+ * e o sinal no texto dizem o mesmo (WCAG 1.4.1).
+ */
+.numeros__delta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  margin: 0;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-2);
+}
+
+.numeros__delta--up {
+  color: var(--ok);
+}
+
+.numeros__delta--down {
+  color: var(--danger);
+}
+
+/*
+ * Variação exatamente zero e ausência de comparação ficam na tinta de apoio:
+ * não há direção a anunciar, e pintar de verde ou vermelho o que a rota diz
+ * não saber seria afirmar mais do que os dados sustentam.
+ */
+.numeros__delta--none,
+.numeros__delta--vazio {
+  color: var(--ink-3);
+}
+
+/* --- as fatias (entrega × retirada) ---------------------------------------
+ *
+ * DUAS LINHAS NÃO SÃO UMA TABELA. Quatro colunas com cabeçalho para dois
+ * valores gastam mais tinta em moldura do que em dado — e a pergunta da seção
+ * ("qual dos dois?") se responde melhor com a barra de proporção do que com
+ * dois números de quatro dígitos a comparar.
+ */
+
+.fatias {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+  margin: 0;
+}
+
+.fatias__linha {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: var(--sp-4) var(--sp-12);
+}
+
+.fatias__rotulo {
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink);
+}
+
+.fatias__valor {
+  margin: 0;
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-semibold);
+  color: var(--ink);
+  text-align: right;
+}
+
+.fatias__meta {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+/*
+ * A BARRA É NEUTRA, como a coluna do gráfico e pelo mesmo motivo: quem carrega
+ * a informação é o COMPRIMENTO. Cor aqui não diria nada que a largura já não
+ * diga, e a brasa tem três lugares no sistema — nenhum deles é este (§4).
+ */
+.fatias__barra {
+  grid-column: 1 / -1;
+  height: var(--sp-4);
+  background: var(--field);
+  border-radius: var(--r-round);
+  overflow: hidden;
+}
+
+.fatias__barra::after {
+  content: '';
+  display: block;
+  width: var(--fatia, 0%);
+  height: 100%;
+  background: var(--ink-2);
+  border-radius: var(--r-round);
+}
+
+@media (max-width: 720px) {
+  /*
+   * OS TRÊS NÚMEROS EM DUAS LINHAS, NÃO EM TRÊS.
+   *
+   * Empilhados (rótulo, valor, variação), os três ocupavam nove linhas e
+   * empurravam o gráfico inteiro para fora da primeira tela do celular — que é
+   * o aparelho em que esta tela mais é aberta. Rótulo e valor dividem a linha;
+   * a variação, que é a mais longa das três, fica com a linha inteira.
+   */
+  .numeros {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .numeros__item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    gap: 0 var(--sp-12);
+    padding: var(--sp-8) 0;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .numeros__item:first-child {
+    border-top: 0;
+  }
+
+  .numeros__valor {
+    font-size: var(--ts-size);
+    line-height: var(--ts-line);
+    text-align: right;
+  }
+
+  .numeros__delta {
+    grid-column: 1 / -1;
+  }
+}
