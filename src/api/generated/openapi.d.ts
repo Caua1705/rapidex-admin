@@ -573,6 +573,13 @@ export interface paths {
      *     Agrupado por telefone, do pedido mais recente para o mais antigo. Nao
      *     devolve e-mail, CPF nem o id de cadastro: sao dados da conta global da
      *     plataforma, nao do relacionamento com esta loja.
+     *
+     *     **Os cinco filtros valem antes do `LIMIT`**, e o `total` do envelope conta
+     *     o que sobrou depois deles. Filtrar a pagina ja paginada devolveria tres
+     *     linhas de cinquenta e um total que nao bate com o que a tela mostra.
+     *
+     *     As duas datas sao lidas no fuso da operacao (America/Fortaleza), como nos
+     *     relatorios, e `last_order_to` e INCLUSIVO — o dia inteiro entra.
      */
     get: operations['list_customers_admin_customers_get'];
     put?: never;
@@ -2447,6 +2454,8 @@ export interface components {
       average_ticket: number;
       /** Billable Orders Count */
       billable_orders_count: number;
+      /** Cadence Days */
+      cadence_days: number;
       /** Customer Name */
       customer_name: string;
       /** Customer Phone */
@@ -6957,6 +6966,16 @@ export interface operations {
         branch_id?: string | null;
         /** @description Telefone (so digitos) ou parte do nome */
         search?: string | null;
+        /** @description Classificacao RFV: novo, ocasional, fiel, em_risco, perdido */
+        segment?: components['schemas']['CustomerSegment'] | null;
+        /** @description Ultimo pedido a partir deste dia (inclusive) */
+        last_order_from?: string | null;
+        /** @description Ultimo pedido ate este dia (inclusive) */
+        last_order_to?: string | null;
+        /** @description Ticket medio minimo, em reais */
+        min_ticket?: number | string | null;
+        /** @description Ticket medio maximo, em reais */
+        max_ticket?: number | string | null;
         limit?: number;
         offset?: number;
       };
