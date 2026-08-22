@@ -513,7 +513,14 @@
   --page-max: 1600px;
   --form-max: 1040px;
   --detail-panel-w: 400px;
-  --menu-rail-w: 232px;
+  /*
+   * A COLUNA DE CATEGORIAS CRESCEU 24px COM O PUNHO DE ARRASTAR, e não foi
+   * gosto: o punho é uma coluna PERMANENTE (ao contrário das setas, que só
+   * aparecem no ponteiro), e ele saiu de dentro da largura do nome. Em 232 a
+   * primeira vítima foi "Sobremesas", que virou "Sobrem…" — e o nome da
+   * categoria é justamente o que se veio ler nesta coluna.
+   */
+  --menu-rail-w: 256px;
 
   /* Alvo mínimo de toque: 24px por WCAG 2.5.8, 44px no celular. */
   --tap: 24px;

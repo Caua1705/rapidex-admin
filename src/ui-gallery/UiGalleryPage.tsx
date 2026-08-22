@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { useTheme } from '../theme/theme-context';
 import {
+  AlertIcon,
   Badge,
   Breadcrumb,
   Card,
@@ -54,6 +55,7 @@ export function UiGalleryPage() {
   const [semEscolha, setSemEscolha] = useState('');
   const [taxa, setTaxa] = useState(true);
   const [parcial, setParcial] = useState(false);
+  const [nua, setNua] = useState(true);
   const [tipo, setTipo] = useState('delivery');
   const [aberta, setAberta] = useState(true);
   const [disponivel, setDisponivel] = useState(true);
@@ -233,6 +235,33 @@ export function UiGalleryPage() {
           </Amostra>
         </Secao>
 
+        <Secao
+          titulo="Etiqueta"
+          nota="Uma palavra sobre um plano de agrupamento. A variante de atenção existe para UM caso: o estado que o lojista não escolheu."
+        >
+          <Amostra rotulo="Etiqueta">
+            <span className="tag">Inativo</span>
+            <span className="tag">Esgotado</span>
+            <span className="tag">Inativa</span>
+          </Amostra>
+
+          <Amostra rotulo="Etiqueta de atenção">
+            {/*
+              O ÚNICO CASO DA VARIANTE, e ele está aqui para que o próximo a
+              precisar de "uma etiqueta colorida" veja qual é a régua: as três
+              acima são decisões do lojista; esta ACONTECEU com ele — o item
+              saiu de venda porque a última opção de um grupo obrigatório foi
+              desativada, e ele não tem como saber sem alguém marcar.
+
+              Três canais e nenhum sozinho: a palavra, o ícone e a tinta.
+            */}
+            <span className="tag tag--alerta">
+              <AlertIcon size={12} />
+              Sem opção
+            </span>
+          </Amostra>
+        </Secao>
+
         <Secao titulo="Escolha">
           <Amostra rotulo="Caixa de marcar">
             <Checkbox
@@ -250,6 +279,36 @@ export function UiGalleryPage() {
             />
             <Checkbox checked disabled onChange={() => {}} label="Marcado e travado" />
             <Checkbox checked={false} disabled onChange={() => {}} label="Desmarcado e travado" />
+          </Amostra>
+
+          <Amostra rotulo="Caixa sem rótulo — a que vive numa linha de lista">
+            {/*
+              `hideLabel` É PARA A LINHA DE LISTA, e o rótulo continua
+              obrigatório: ele vira o `aria-label`, senão o leitor de tela
+              anuncia quarenta caixas idênticas e nenhuma diz de qual item é.
+
+              Ele NÃO vira um texto `sr-only`: um segundo nome do produto no
+              documento torna ambígua toda busca por nome — foi assim que quatro
+              testes de ponta a ponta quebraram de uma vez.
+
+              Sem texto ao lado, o alvo volta a ser o quadrado de 18px — metade
+              do mínimo da WCAG 2.5.8. O recuo devolve o alvo sem engordar o
+              desenho.
+            */}
+            <Checkbox
+              hideLabel
+              checked={nua}
+              onChange={setNua}
+              label="Selecionar X-Burger Clássico"
+            />
+            <Checkbox
+              hideLabel
+              checked={false}
+              indeterminate
+              onChange={() => {}}
+              label="Selecionar todos os 12 itens desta lista"
+            />
+            <Checkbox hideLabel checked disabled onChange={() => {}} label="Marcado e travado" />
           </Amostra>
 
           <Amostra rotulo="Rádio">

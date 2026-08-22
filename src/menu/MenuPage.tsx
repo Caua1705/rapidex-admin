@@ -13,11 +13,13 @@ import { CategoryRail } from './CategoryRail';
 import { PlusIcon } from '../ds/icons';
 import { PageBar } from '../ds/PageBar';
 import { SearchField } from '../ds/SearchField';
-import { isCategoryActive, productDraftFrom } from './menu-model';
+import { countBlockedByRequiredGroup, isCategoryActive, productDraftFrom } from './menu-model';
 import { ProductDialog } from './ProductDialog';
 import { qualifiersByProduct } from './product-name';
 import { ProductRow } from './ProductRow';
 import { useMenu, type CategoryDraft, type ProductDraft } from './useMenu';
+import { useReorderDrag } from './useReorderDrag';
+import { Checkbox } from '../ds/Checkbox';
 import './MenuPage.css';
 
 /**
@@ -59,6 +61,23 @@ import './MenuPage.css';
  * a principal e DIZ qual é — a parede com um botão por loja é o padrão que
  * `auth/branch-scope.ts` existe para não repetir.
  */
+/**
+ * De que lado do item a linha de destino do arrastar e desenhada.
+ *
+ * DUAS RESPOSTAS E NAO UMA, porque a ultima posicao nao tem item depois dela:
+ * soltar no fim da lista precisa de uma linha DEPOIS do ultimo, e marcar so
+ * "antes" deixaria o gesto sem destino visivel justamente na posicao mais
+ * usada - mandar um item para o fim.
+ */
+function dropDoItem(
+  drag: { from: number; to: number } | null,
+  index: number,
+): 'antes' | 'depois' | undefined {
+  if (!drag || drag.from === drag.to) return undefined;
+  if (drag.to !== index) return undefined;
+  return drag.to > drag.from ? 'depois' : 'antes';
+}
+
 export function MenuPage() {
   const { branchId, branch, hasChoice } = useAdoptedBranch();
   const { pode, podeDefinirPreco } = usePermissoes();
@@ -73,6 +92,9 @@ export function MenuPage() {
   const branchChosen = branchId !== '';
   /* Nomeia a filial só quando há mais de uma: com uma só não desambigua nada. */
   const branchLabel = hasChoice && branch ? branchName(branch) : '';
+
+  /** O que sobrou da última ação em massa: some no próximo clique. */
+  const [resultadoEmMassa, setResultadoEmMassa] = useState<string | null>(null);
 
   const [categoryDraft, setCategoryDraft] = useState<CategoryDraft | null>(null);
   const [productDraft, setProductDraft] = useState<ProductDraft | null>(null);
@@ -95,6 +117,77 @@ export function MenuPage() {
    * `product-name.ts`.
    */
   const qualifiers = qualifiersByProduct(menu.products);
+
+  /*
+   * QUANTOS ITENS SAÍRAM DE VENDA SOZINHOS.
+   *
+   * O número sai de `unavailable_by_required_group`, que o backend calcula — a
+   * tela não deduz mais esse estado (ver `menu-model.ts`). Ele existe porque a
+   * etiqueta na linha, sozinha, não é ACHÁVEL: numa categoria de oitenta itens,
+   * quem não estava rolando justamente por ali nunca vai ver a linha 47.
+   *
+   * Conta o que ESTÁ CARREGADO, e a frase diz isso quando a paginação cortou —
+   * não existe rota que conte os bloqueados da categoria inteira, e um número
+   * apresentado como total quando é parcial seria pior que número nenhum.
+   */
+  const bloqueados = countBlockedByRequiredGroup(menu.products);
+  const listaParcial = menu.products.length < menu.totalInCategory;
+
+  /* ========================================================================
+   * REORDENAR ITEM — o punho, e as duas condições que o desligam
+   *
+   * A permissão é `cardapio.reordenarProdutos` (GERENCIA, como a de
+   * categoria). As outras duas vêm da ROTA, não do papel:
+   * `PATCH /admin/products/reorder` exige a lista COMPLETA da categoria, e
+   * esta tela nem sempre a tem — a busca recorta, e a paginação corta em 50.
+   *
+   * Nos dois casos a tela DIZ o motivo em vez de sumir com o controle: um
+   * punho que desaparece quando se digita na busca é lido como defeito.
+   * ===================================================================== */
+  const podeReordenarItem = pode('cardapio.reordenarProdutos');
+  const reordenavel = podeReordenarItem && menu.canReorderProducts;
+
+  const arrastarItem = useReorderDrag({
+    count: menu.products.length,
+    onReorder: (from, to) => void menu.reorderProductTo(from, to),
+    disabled: !reordenavel,
+  });
+
+  /*
+   * A SELEÇÃO MÚLTIPLA DEPENDE DO MESMO PAPEL DO INTERRUPTOR DA LINHA.
+   *
+   * Não existe rota em lote no contrato: a ação em massa chama
+   * `PATCH /admin/products/{id}/availability` N vezes — a MESMA do interruptor,
+   * que é `PESSOAS`. Logo, quem pode marcar um item pode marcar cinco, e não há
+   * botão a esconder do balcão. Se algum dia nascer uma rota em lote com papel
+   * próprio, é esta linha que muda.
+   */
+  const podeSelecionar = pode('cardapio.trocarDisponibilidade');
+  const selecionados = menu.selectedIds.length;
+
+  async function marcarEmMassa(isAvailable: boolean) {
+    setResultadoEmMassa(null);
+    const resultado = await menu.setAvailabilityForMany(isAvailable);
+    if (!resultado) return;
+
+    /*
+     * O DESFECHO É DITO SEMPRE, inclusive no sucesso: são N requisições sem
+     * atomicidade nenhuma (ver `setAvailabilityForMany`), e "cinco itens
+     * marcados" é a única confirmação de que os cinco foram mesmo. No meio do
+     * serviço ninguém confere linha por linha.
+     */
+    if (resultado.falharam.length === 0) {
+      setResultadoEmMassa(
+        `${resultado.gravados === 1 ? '1 item' : `${resultado.gravados} itens`} ${
+          isAvailable ? 'de volta ao cardápio' : 'marcados como esgotados'
+        }.`,
+      );
+      return;
+    }
+    setResultadoEmMassa(
+      `${resultado.gravados === 0 ? 'Nenhum item foi alterado' : `${resultado.gravados} de ${resultado.gravados + resultado.falharam.length} foram alterados`}. Não deu para mudar: ${resultado.falharam.join(', ')}. A seleção continua marcada para tentar de novo.`,
+    );
+  }
 
   /*
    * AS AÇÕES SOBRE A CATEGORIA ABERTA, filtradas pelo papel.
@@ -273,6 +366,11 @@ export function MenuPage() {
               ? (index, direction) => void menu.reorderCategory(index, direction)
               : undefined
           }
+          onMoveTo={
+            pode('cardapio.reordenarCategorias')
+              ? (from, to) => void menu.reorderCategoryTo(from, to)
+              : undefined
+          }
           onMoveSettled={menu.clearMovedCategory}
           onNew={
             pode('cardapio.criarCategoria')
@@ -281,7 +379,11 @@ export function MenuPage() {
           }
         />
 
-        <section className="menu__panel">
+        <section
+          className={`menu__panel${
+            podeSelecionar && selecionados > 0 ? ' menu__panel--selecionando' : ''
+          }`}
+        >
           {/*
             A RÉGUA DA LISTA: o nome da categoria aberta e o que se faz COM ela.
 
@@ -338,55 +440,218 @@ export function MenuPage() {
                   : 'Esta categoria ainda não tem itens. Crie o primeiro em “Novo item”.'}
             </p>
           ) : (
-            /*
-              As duas colunas opcionais entram por modificador no ENVOLTÓRIO,
-              não na linha: elas valem para a lista inteira (a de setor depende
-              da filial, a de foto da categoria), e o cabeçalho tem que usar
-              exatamente a mesma grade das linhas — senão o rótulo não fica em
-              cima do que nomeia.
-            */
-            <div
-              className={`menu__table${showPhoto ? ' menu__table--with-photo' : ''}${
-                branchChosen ? ' menu__table--with-sector' : ''
-              }`}
-            >
-              <div className="menu__columns t-label">
-                {showPhoto ? <span /> : null}
-                <span>Item</span>
-                <span className="menu__col-price">Preço</span>
-                {branchChosen ? <span>Impressão</span> : null}
-                <span className="menu__col-state">Situação</span>
-                {/* A ação: coluna de controle, larga demais para um rótulo de
-                    32px e óbvia demais para precisar de um. */}
-                <span />
-              </div>
+            <>
+              {/* ============================================================
+                  O AVISO DO ITEM QUE SAIU DE VENDA SOZINHO
 
-              <ul className="menu__items">
-                {menu.products.map((product) => (
-                  <ProductRow
-                    key={product.id}
-                    product={product}
-                    sectors={printing.sectors}
-                    showPhoto={showPhoto}
-                    showSector={branchChosen}
-                    qualifier={qualifiers[product.id] ?? null}
-                    isSaving={menu.pendingAvailability.includes(product.id)}
-                    onToggleAvailability={() => void menu.toggleAvailability(product)}
+                  ELE NÃO É ERRO E NÃO É ESCOLHA — é a terceira coisa, e é a
+                  única da tela que o lojista não fez. `.alert--warn` responde
+                  exatamente essa pergunta ("isto precisa de olho"), e é a
+                  mesma tinta da etiqueta na linha: quem lê o aviso reconhece a
+                  marca lá embaixo sem que ninguém precise ligar as duas.
+
+                  ELE APARECE UMA VEZ POR TELA, no alto da lista, e não uma vez
+                  por linha: a etiqueta já marca cada item, e repetir a
+                  explicação em cada uma viraria listra (§8). Aqui ele diz o que
+                  aconteceu e O QUE FAZER, que é o que a etiqueta de 116px não
+                  tem como caber.
+              ============================================================ */}
+              {bloqueados > 0 ? (
+                <p
+                  className="alert alert--warn menu__bloqueados"
+                  role="status"
+                  data-testid="menu-bloqueados"
+                >
+                  {bloqueados === 1
+                    ? 'Um item desta lista está fora de venda'
+                    : `${bloqueados} itens desta lista estão fora de venda`}{' '}
+                  porque um grupo obrigatório ficou sem nenhuma opção ativa — o cliente abre o item
+                  e não consegue fechar o pedido. Abra o item e reative uma opção do grupo, ou
+                  desligue o grupo se ele não for mais obrigatório.
+                  {listaParcial
+                    ? ` A contagem é dos ${menu.products.length} itens carregados; pode haver mais adiante na categoria.`
+                    : ''}
+                </p>
+              ) : null}
+
+              {/*
+                As duas colunas opcionais entram por modificador no ENVOLTÓRIO,
+                não na linha: elas valem para a lista inteira (a de setor depende
+                da filial, a de foto da categoria), e o cabeçalho tem que usar
+                exatamente a mesma grade das linhas — senão o rótulo não fica em
+                cima do que nomeia.
+              */}
+              {/*
+                POR QUE O PUNHO NAO ESTA AI - dito, e nao escondido.
+
+                `PATCH /admin/products/reorder` exige a lista COMPLETA da
+                categoria; com a busca ligada ou com a paginacao cortando, a
+                tela tem um recorte. Sumir com o controle sem explicar faz o
+                lojista procurar o que ele fez de errado; a frase diz o que
+                desfazer para reordenar.
+              */}
+              {podeReordenarItem && !menu.canReorderProducts ? (
+                <p className="t-aux menu__sem-arrastar" data-testid="menu-sem-arrastar">
+                  {menu.searchDraft.trim() !== ''
+                    ? 'Para reordenar os itens, limpe a busca: a nova ordem vale para a categoria inteira, e a busca mostra so parte dela.'
+                    : `Para reordenar os itens, carregue a categoria inteira - a ordem vale para os ${menu.totalInCategory} itens, e ${menu.products.length} estao na tela.`}
+                </p>
+              ) : null}
+
+              {/* ============================================================
+                  A BARRA DA SELECAO
+
+                  Ela SO EXISTE COM ALGO SELECIONADO, e gruda no alto da lista.
+                  Uma barra permanente com "0 selecionados" e dois botoes
+                  desligados seria mais uma fileira antes do primeiro item numa
+                  tela cuja rolagem ja e o problema.
+
+                  Ela NAO e um cartao nem um dialogo: e uma faixa tonal com um
+                  fio. As duas acoes sao igualmente provaveis - no comeco do
+                  servico se repoe, no meio se esgota -, entao NENHUMA delas e
+                  primaria: dois `.btn` comuns. Um laranja aqui seria o segundo
+                  laranja da tela, e o desta tela e o "Novo item".
+              ============================================================ */}
+              {podeSelecionar && selecionados > 0 ? (
+                <div className="menu__selecao" data-testid="menu-selecao">
+                  <span className="menu__selecao-contagem">
+                    {selecionados === 1
+                      ? '1 item selecionado'
+                      : `${selecionados} itens selecionados`}
+                  </span>
+
+                  <button
+                    type="button"
+                    className="btn btn--sm"
+                    disabled={menu.isBulkSaving}
+                    onClick={() => void marcarEmMassa(false)}
+                    data-testid="menu-esgotar-selecionados"
+                  >
+                    {menu.isBulkSaving ? 'Marcando...' : 'Marcar como esgotados'}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn--sm"
+                    disabled={menu.isBulkSaving}
+                    onClick={() => void marcarEmMassa(true)}
+                    data-testid="menu-repor-selecionados"
+                  >
+                    Marcar como disponiveis
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn--sm btn--ghost"
+                    disabled={menu.isBulkSaving}
+                    onClick={() => {
+                      menu.clearSelection();
+                      setResultadoEmMassa(null);
+                    }}
+                  >
+                    Limpar
+                  </button>
+                </div>
+              ) : null}
+
+              {/*
+                O DESFECHO DA ACAO EM MASSA, e ele e `role="status"` para o
+                leitor de tela anunciar sozinho: quem acabou de marcar cinco
+                itens nao esta olhando para o rodape da lista.
+              */}
+              {resultadoEmMassa ? (
+                <p
+                  className="alert alert--info menu__resultado"
+                  role="status"
+                  data-testid="menu-resultado-massa"
+                >
+                  {resultadoEmMassa}
+                </p>
+              ) : null}
+
+              <div
+                className={`menu__table${showPhoto ? ' menu__table--with-photo' : ''}${
+                  branchChosen ? ' menu__table--with-sector' : ''
+                }${reordenavel ? ' menu__table--reordenavel' : ''}${
+                  podeSelecionar ? ' menu__table--selecionavel' : ''
+                }`}
+              >
+                <div className="menu__columns t-label">
+                  {reordenavel ? <span /> : null}
+                  {podeSelecionar ? (
                     /*
+                      A CAIXA DE "TODOS" MORA NO CABECALHO DA COLUNA que ela
+                      comanda - e onde toda tabela a poe, e e o que a torna
+                      encontravel sem instrucao.
+
+                      "Todos" E O QUE ESTA NA TELA, e o rotulo acessivel diz o
+                      numero: a lista e paginada e pode estar filtrada pela
+                      busca, e uma caixa que marcasse a categoria inteira faria
+                      cinco itens virarem quarenta sem ninguem ter pedido.
+                    */
+                    <Checkbox
+                      hideLabel
+                      checked={selecionados > 0 && selecionados === menu.products.length}
+                      indeterminate={selecionados > 0}
+                      onChange={menu.toggleSelectAll}
+                      label={
+                        selecionados > 0
+                          ? 'Limpar a selecao'
+                          : `Selecionar os ${menu.products.length} itens desta lista`
+                      }
+                      data-testid="menu-selecionar-todos"
+                    />
+                  ) : null}
+                  {showPhoto ? <span /> : null}
+                  <span>Item</span>
+                  <span className="menu__col-price">Preço</span>
+                  {branchChosen ? <span>Impressão</span> : null}
+                  <span className="menu__col-state">Situação</span>
+                  {/* A ação: coluna de controle, larga demais para um rótulo de
+                    32px e óbvia demais para precisar de um. */}
+                  <span />
+                </div>
+
+                <ul className="menu__items">
+                  {menu.products.map((product, index) => (
+                    <ProductRow
+                      key={product.id}
+                      itemRef={arrastarItem.registrar(index)}
+                      product={product}
+                      punho={reordenavel ? arrastarItem.punho(index) : undefined}
+                      onMove={
+                        reordenavel
+                          ? (direction) => void menu.reorderProductTo(index, index + direction)
+                          : undefined
+                      }
+                      isFirst={index === 0}
+                      isLast={index === menu.products.length - 1}
+                      drop={dropDoItem(arrastarItem.drag, index)}
+                      isDragging={arrastarItem.drag?.from === index}
+                      selected={menu.selectedIds.includes(product.id)}
+                      onSelect={podeSelecionar ? () => menu.toggleSelected(product.id) : undefined}
+                      sectors={printing.sectors}
+                      showPhoto={showPhoto}
+                      showSector={branchChosen}
+                      qualifier={qualifiers[product.id] ?? null}
+                      isSaving={menu.pendingAvailability.includes(product.id)}
+                      onToggleAvailability={() => void menu.toggleAvailability(product)}
+                      /*
                       O RASCUNHO SAI DE UMA FUNÇÃO TESTADA, e não de um objeto
                       montado aqui: o corpo do PATCH manda `catalog_key`
                       sempre, então um campo esquecido nesta lista desfaria o
                       pareamento de um item porque alguém corrigiu o preço.
                     */
-                    onEdit={
-                      pode('cardapio.editarProduto')
-                        ? () => setProductDraft(productDraftFrom(product))
-                        : undefined
-                    }
-                  />
-                ))}
-              </ul>
-            </div>
+                      onEdit={
+                        pode('cardapio.editarProduto')
+                          ? () => setProductDraft(productDraftFrom(product))
+                          : undefined
+                      }
+                    />
+                  ))}
+                </ul>
+              </div>
+            </>
           )}
 
           {/*

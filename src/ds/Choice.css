@@ -30,6 +30,33 @@
   cursor: not-allowed;
 }
 
+/*
+ * A CAIXA SEM RÓTULO — a que vive numa linha de lista.
+ *
+ * Sem texto ao lado, o `<label>` encolhe para os 18px do quadrado, e 18px é
+ * metade do alvo mínimo da WCAG 2.5.8 e menos da metade dos 44 do toque. O
+ * recuo devolve o alvo sem engordar o desenho: o quadrado continua com 18px, e
+ * quem cresce é a área que responde ao dedo.
+ *
+ * `justify-content: center` porque aqui ela é uma célula de grade, e não o
+ * começo de uma linha de formulário.
+ */
+.ds-choice--nua {
+  min-height: var(--tap);
+  min-width: var(--tap);
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding-block: 0;
+}
+
+@media (max-width: 720px) {
+  .ds-choice--nua {
+    min-height: var(--tap-mobile);
+    min-width: var(--tap-mobile);
+  }
+}
+
 .ds-choice__box {
   flex: 0 0 auto;
   position: relative;

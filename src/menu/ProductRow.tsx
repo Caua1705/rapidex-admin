@@ -1,9 +1,17 @@
+import type { HTMLAttributes } from 'react';
+
 import type { PrintSector, Product } from '../api/types';
 import { formatCurrency } from '../orders/format';
 import { sectorLabelFor } from '../print-sectors/print-sectors';
+import { Checkbox } from '../ds/Checkbox';
 import { Switch } from '../ds/Switch';
-import { EditIcon } from '../ds/icons';
-import { isProductActive, isProductAvailable, showsAvailabilityToggle } from './menu-model';
+import { AlertIcon, ChevronDownIcon, ChevronUpIcon, EditIcon, GripIcon } from '../ds/icons';
+import {
+  isProductActive,
+  isProductAvailable,
+  productSaleState,
+  showsAvailabilityToggle,
+} from './menu-model';
 import { splitProductName } from './product-name';
 
 /**
@@ -16,12 +24,20 @@ import { splitProductName } from './product-name';
  * na mesma abscissa e a coluna inteira se lê de cima a baixo — o cabeçalho da
  * lista usa a mesma grade, então os rótulos ficam por cima do que nomeiam.
  *
- * UM EIXO, UMA LINGUAGEM. "Inativo" e "Esgotado" respondem à MESMA pergunta —
- * está à venda? — e por isso saem no mesmo lugar, com a mesma forma: uma
- * etiqueta na coluna "Situação". Antes eram duas linguagens diferentes ("Inativo"
- * como etiqueta colada ao nome, "Esgotado" como texto solto ao lado do
- * interruptor), e ler a lista exigia olhar em dois pontos para responder uma
+ * UM EIXO, UMA LINGUAGEM. "Inativo", "Esgotado" e "Sem opção" respondem à MESMA
+ * pergunta — está à venda? — e por isso saem no mesmo lugar, com a mesma forma:
+ * uma etiqueta na coluna "Situação". Antes eram duas linguagens diferentes
+ * ("Inativo" como etiqueta colada ao nome, "Esgotado" como texto solto ao lado
+ * do interruptor), e ler a lista exigia olhar em dois pontos para responder uma
  * pergunta só.
+ *
+ * A TERCEIRA ETIQUETA QUEBRA A REGRA DA COR DE PROPÓSITO, e é a única que a
+ * quebra. "Inativo" e "Esgotado" são escolhas do lojista; "Sem opção"
+ * ACONTECEU com ele — a última opção de um grupo obrigatório foi desativada e o
+ * item saiu do cardápio público sem nada mudar por aqui. Uma etiqueta cinza
+ * igual às outras duas leria como mais um estado normal da operação, e é
+ * justamente o passar-batido que ela existe para impedir. Ela leva tinta de
+ * ATENÇÃO, ícone e palavra própria — três canais, nenhum sozinho.
  *
  * O ESTADO POSITIVO CONTINUA SEM PALAVRA. "Disponível" ao lado de um
  * interruptor ligado, repetido em toda linha, é a mesma informação duas vezes:
@@ -43,6 +59,15 @@ export function ProductRow({
   isSaving,
   onToggleAvailability,
   onEdit,
+  punho,
+  itemRef,
+  onMove,
+  isFirst,
+  isLast,
+  drop,
+  isDragging,
+  selected,
+  onSelect,
 }: {
   product: Product;
   /** Setores da filial aberta no cabeçalho — é o que dá nome ao id do produto. */
@@ -61,9 +86,50 @@ export function ProductRow({
   onToggleAvailability: () => void;
   /** Ausente = este papel não edita item. Ver `auth/permissions.ts`. */
   onEdit?: () => void;
+  /*
+   * ===================================================================
+   * REORDENAR — as duas entradas, e nenhuma delas substitui a outra
+   * ===================================================================
+   *
+   * `punho` é o gesto de arrastar (`useReorderDrag`); `onMove` é a seta de
+   * sobe-um/desce-um. A seta não é herança: é o que cumpre a **WCAG 2.5.7
+   * (Dragging Movements)** e o que serve o balcão com uma mão só. Ausentes as
+   * duas = este papel não reordena, ou a lista está filtrada/paginada e a
+   * rota exigiria a categoria completa (ver `podeReordenarProdutos`).
+   */
+  punho?: HTMLAttributes<HTMLElement>;
+  /**
+   * A `ref` do <li>, para o gesto MEDIR a linha no começo do arrastar.
+   *
+   * Chama-se `itemRef` e não `ref` de propósito: `ref` numa função de
+   * componente é a propriedade reservada do React, e usá-la aqui obrigaria
+   * `forwardRef` só para repassar um elemento que ninguém mais precisa.
+   */
+  itemRef?: (el: HTMLElement | null) => void;
+  onMove?: (direction: -1 | 1) => void;
+  /** Primeiro/último da lista: a seta correspondente não tem para onde ir. */
+  isFirst?: boolean;
+  isLast?: boolean;
+  /** Onde a linha de destino do arrastar cai, se cair nesta linha. */
+  drop?: 'antes' | 'depois';
+  /** Esta linha está sendo arrastada agora. */
+  isDragging?: boolean;
+  /*
+   * ===================================================================
+   * SELEÇÃO MÚLTIPLA
+   * ===================================================================
+   *
+   * `onSelect` ausente = a coluna de seleção não existe nesta lista. Ela
+   * depende do MESMO papel do interruptor da linha
+   * (`cardapio.trocarDisponibilidade`, `PESSOAS`): a ação em massa chama a
+   * mesma rota N vezes, então quem pode uma pode a outra.
+   */
+  selected?: boolean;
+  onSelect?: () => void;
 }) {
   const active = isProductActive(product);
   const available = isProductAvailable(product);
+  const state = productSaleState(product);
   const sector = sectorLabelFor(product.printing_sector_id, sectors);
   // Só parte o nome quando há qualificador a mostrar: fora disso, o que vai à
   // tela é exatamente a string cadastrada.
@@ -71,11 +137,44 @@ export function ProductRow({
 
   return (
     <li
-      className={`item${active ? '' : ' item--inactive'}`}
+      ref={itemRef}
+      className={`item${active ? '' : ' item--inactive'}${selected ? ' item--selecionado' : ''}${
+        isDragging ? ' item--arrastando' : ''
+      }`}
       data-testid={`product-row-${product.id}`}
       data-active={active}
       data-available={available}
+      data-drop={drop}
     >
+      {/*
+        O PUNHO E A CAIXA ABREM A LINHA, nesta ordem, e as duas células existem
+        ou não existem para a LISTA INTEIRA — nunca por linha. Uma coluna que
+        aparece em algumas linhas e some em outras desalinha tudo o que vem
+        depois dela, que é a única coisa que esta grade existe para garantir.
+      */}
+      {punho ? (
+        <span
+          className="item__punho"
+          role="button"
+          tabIndex={-1}
+          aria-hidden="true"
+          title={`Arraste para reordenar ${product.name}`}
+          {...punho}
+        >
+          <GripIcon size={14} />
+        </span>
+      ) : null}
+
+      {onSelect ? (
+        <Checkbox
+          hideLabel
+          checked={!!selected}
+          onChange={onSelect}
+          label={`Selecionar ${product.name}`}
+          data-testid={`product-select-${product.id}`}
+        />
+      ) : null}
+
       {/*
         O SLOT DA FOTO só existe quando a categoria tem foto em algum item (ver
         `MenuPage`). Onde existe, ele mede 44px — grande o bastante para
@@ -162,10 +261,39 @@ export function ProductRow({
         explicação do recuo, e recuar as duas apagaria o motivo.
       */}
       <span className="item__state">
-        {!active ? (
+        {state === 'inativo' ? (
           <span className="tag">Inativo</span>
-        ) : !available ? (
+        ) : state === 'esgotado' ? (
           <span className="tag">Esgotado</span>
+        ) : state === 'sem-opcao' ? (
+          /*
+            A TERCEIRA ETIQUETA, E A ÚNICA QUE O LOJISTA NÃO ESCOLHEU.
+
+            "Inativo" e "Esgotado" são decisões dele: ele tirou o item do
+            cardápio, ou disse que acabou. Esta ACONTECEU — ele desativou a
+            última opção de um grupo obrigatório, coisa que faz todo dia uma
+            opção por vez, e o item saiu de venda sem que nada mudasse aqui.
+            Vestida igual às outras duas, ela leria como mais um estado normal
+            da operação, e o lojista passaria por ela sem parar.
+
+            TRÊS CANAIS, NENHUM SOZINHO (WCAG 1.4.1): a palavra, o ícone e a
+            tinta de ATENÇÃO. `--alert` e não `--danger`, e a distinção é a que
+            o sistema já faz: não é perigo nem erro, é uma coisa que precisa de
+            olho — a mesma pergunta que a coluna Impressão responde quando
+            aponta para um setor de outra filial.
+
+            O `title` carrega a frase inteira porque a etiqueta cabe em 116px e
+            a explicação não: quem quer o motivo tem o aviso do topo da lista,
+            que o diz uma vez para a categoria toda.
+          */
+          <span
+            className="tag tag--alerta item__bloqueado"
+            title="Um grupo obrigatório deste item está sem nenhuma opção ativa. O cliente abre o item e não consegue fechar o pedido."
+            data-testid={`product-blocked-${product.id}`}
+          >
+            <AlertIcon size={12} />
+            Sem opção
+          </span>
         ) : null}
 
         {showsAvailabilityToggle(product) ? (
@@ -185,17 +313,51 @@ export function ProductRow({
         botões contornados, um por linha, é uma grade de caixinhas competindo
         com o nome do item, que é o que se veio ler.
       */}
-      {onEdit ? (
-        <button
-          type="button"
-          className="btn btn--sm btn--ghost icon-btn item__edit"
-          onClick={onEdit}
-          aria-label={`Editar ${product.name}`}
-          title="Editar item"
-        >
-          <EditIcon />
-        </button>
-      ) : null}
+      <span className="item__acoes">
+        {/*
+          AS SETAS SÃO A ALTERNATIVA AO ARRASTAR, e não um resto: a WCAG 2.2
+          exige uma operação por ponteiro único para tudo que se arrasta
+          (2.5.7), e no balcão elas são o caminho de quem está com uma mão na
+          comanda. Elas aparecem junto do lápis, com o mesmo peso, e só com o
+          ponteiro ou o foco na linha.
+        */}
+        {onMove ? (
+          <span className="item__reorder">
+            <button
+              type="button"
+              className="rail__chevron"
+              disabled={isFirst}
+              onClick={() => onMove(-1)}
+              aria-label={`Mover ${product.name} para cima`}
+              title="Mover para cima"
+            >
+              <ChevronUpIcon size={14} />
+            </button>
+            <button
+              type="button"
+              className="rail__chevron"
+              disabled={isLast}
+              onClick={() => onMove(1)}
+              aria-label={`Mover ${product.name} para baixo`}
+              title="Mover para baixo"
+            >
+              <ChevronDownIcon size={14} />
+            </button>
+          </span>
+        ) : null}
+
+        {onEdit ? (
+          <button
+            type="button"
+            className="btn btn--sm btn--ghost icon-btn item__edit"
+            onClick={onEdit}
+            aria-label={`Editar ${product.name}`}
+            title="Editar item"
+          >
+            <EditIcon />
+          </button>
+        ) : null}
+      </span>
     </li>
   );
 }

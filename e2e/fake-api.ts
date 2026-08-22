@@ -446,6 +446,30 @@ function initialProducts(): Product[] {
       sort_order: 0,
     },
     /*
+     * O ITEM QUE SAIU DE VENDA SOZINHO — e ele existe no falso porque é o caso
+     * que a tela não podia mostrar.
+     *
+     * Os dois interruptores que o lojista controla estão LIGADOS: ativo e
+     * disponível. E mesmo assim o cliente abre e não consegue fechar, porque a
+     * última opção de um grupo obrigatório foi desativada — coisa que se faz
+     * uma opção por vez, sem nunca ver o item sair do cardápio. O backend
+     * calcula isso e devolve em `unavailable_by_required_group`; antes, a tela
+     * deduzia a regra de novo e a listagem, que não carrega os grupos, mostrava
+     * a linha como qualquer outra.
+     */
+    {
+      id: 'prod-7',
+      branch_id: BRANCH_ID,
+      category_id: 'cat-2',
+      name: 'Onion rings',
+      description: 'Oito unidades, com molho barbecue',
+      price: 19.9,
+      is_active: true,
+      is_available: true,
+      sort_order: 3,
+      unavailable_by_required_group: true,
+    },
+    /*
      * DOIS NOMES QUE SÓ SE DISTINGUEM PELA GRAMATURA — o caso que faz a lista
      * do cardápio virar uma coluna de repetições. Os dois dividem a base
      * "Batata rústica", então a tela tira o parêntese do nome e desenha a
@@ -1580,6 +1604,23 @@ export type FakeApi = {
   product: (productId: string) => Product | undefined;
   /** Corpo de cada PATCH /admin/categories/reorder, COM a filial que foi junto. */
   reorderCalls: () => { branchId: string | undefined; categoryIds: string[] }[];
+  /**
+   * Corpo de cada PATCH /admin/products/reorder.
+   *
+   * É por aqui que o teste confere a coisa que nenhuma asserção de tela
+   * alcança: que a lista mandada é a COMPLETA da categoria, na ordem nova. Uma
+   * tela que arrastasse certo e mandasse a lista curta mostraria a ordem certa
+   * e gravaria a errada.
+   */
+  productReorderCalls: () => { categoryId: string; productIds: string[] }[];
+  /**
+   * Faz a gravação de disponibilidade DESTE item responder 500.
+   *
+   * Existe para o caso que a ação em massa não pode errar: sem rota em lote,
+   * são N chamadas e três de cinco podem gravar. A tela tem de NOMEAR o que
+   * ficou para trás.
+   */
+  failAvailability: (productId: string) => void;
   /** Motivo gravado no cancelamento, para conferir o que a tela mandou. */
   cancelReasons: () => { orderId: string; reason: string }[];
   /** Apaga a faixa base da filial: o próximo ajuste responde 409. */
@@ -1778,6 +1819,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     categories: [...initialCategories(), ...copiaDoCardapio().categories],
     products: [...initialProducts(), ...copiaDoCardapio().products],
     reorderCalls: [] as { branchId: string | undefined; categoryIds: string[] }[],
+    productReorderCalls: [] as { categoryId: string; productIds: string[] }[],
+    /** Ids cuja gravação de disponibilidade responde 500. Ver `failAvailability`. */
+    failAvailabilityFor: new Set<string>(),
     availabilityCalls: [] as { productId: string; isAvailable: boolean }[],
     customerQueries: [] as URLSearchParams[],
     imageUploads: [] as { productId: string; bytes: number }[],
@@ -3065,11 +3109,58 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       });
     }
 
+    /*
+     * A NOVA ORDEM DOS PRODUTOS DE UMA CATEGORIA — e o falso RECUSA a lista
+     * curta, como o backend.
+     *
+     * Ele podia aceitar e renumerar o que veio, e o e2e passaria igual. Mas a
+     * regra que a tela precisa respeitar e justamente esta: com a busca ligada
+     * ou com a paginacao cortando, a lista da tela e um recorte, e mandar o
+     * recorte apaga a posicao de quem ficou de fora. Um falso permissivo aqui
+     * esconderia exatamente o bug que `podeReordenarProdutos` existe para
+     * impedir.
+     */
+    if (method === 'PATCH' && path === '/admin/products/reorder') {
+      const body = request.postDataJSON() as { category_id: string; product_ids: string[] };
+      state.productReorderCalls.push({
+        categoryId: body.category_id,
+        productIds: body.product_ids,
+      });
+
+      const daCategoria = state.products.filter((item) => item.category_id === body.category_id);
+      if (daCategoria.length !== body.product_ids.length) {
+        return json(route, 400, {
+          detail: 'A lista precisa ter todos os produtos da categoria.',
+        });
+      }
+
+      const reordenados = body.product_ids.flatMap((id, index) => {
+        const found = daCategoria.find((item) => item.id === id);
+        return found ? [Object.assign(found, { sort_order: index })] : [];
+      });
+      if (reordenados.length !== body.product_ids.length) {
+        return json(route, 400, { detail: 'Produto de outra categoria na lista.' });
+      }
+      return json(route, 200, reordenados);
+    }
+
     // Antes de /admin/products/{id}, pelo mesmo motivo do reorder.
     const availabilityMatch = /^\/admin\/products\/([^/]+)\/availability$/.exec(path);
     if (method === 'PATCH' && availabilityMatch?.[1]) {
       const found = state.products.find((item) => item.id === availabilityMatch[1]);
       if (!found) return json(route, 404, { detail: 'Produto não encontrado.' });
+
+      /*
+       * A FALHA DE UM ITEM SÓ — e ela existe porque a ação em massa da tela
+       * NÃO É ATÔMICA: são N chamadas a esta rota, e três de cinco podem
+       * gravar. É o caso que o e2e precisa exercitar, porque é o único em que
+       * a tela tem de nomear quais itens ficaram para trás em vez de dizer
+       * "deu erro".
+       */
+      if (state.failAvailabilityFor.has(found.id)) {
+        return json(route, 500, { detail: 'Falha ao gravar a disponibilidade.' });
+      }
+
       const body = request.postDataJSON() as { is_available: boolean };
       state.availabilityCalls.push({
         productId: found.id,
@@ -3263,6 +3354,10 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     },
     emptyReports() {
       state.reportsEmpty = true;
+    },
+    productReorderCalls: () => state.productReorderCalls,
+    failAvailability(productId) {
+      state.failAvailabilityFor.add(productId);
     },
     measureFunnel() {
       state.funnelMeasuring = true;

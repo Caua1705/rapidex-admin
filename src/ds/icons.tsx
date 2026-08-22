@@ -273,6 +273,31 @@ export function CashbackIcon(props: IconProps) {
   );
 }
 
+/**
+ * O punho de arrastar: seis pontos, a convenção universal.
+ *
+ * SEIS PONTOS E NÃO DUAS LINHAS. O traço duplo é o mesmo desenho do ícone de
+ * menu (`OrdersIcon` e a barra de "Mais" do celular usam listras), e num punho
+ * ele lê como "abrir uma lista". Os pontos não significam nada além de "isto se
+ * pega", que é exatamente o que se quer dizer.
+ *
+ * `fill="currentColor"` nos círculos: é o único ícone do arquivo desenhado com
+ * preenchimento, porque um ponto de 1px de contorno em raio 1 vira um borrão na
+ * grade de 24. A cor continua saindo do texto ao redor, que é a regra.
+ */
+export function GripIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="9" cy="6" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="6" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="18" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="18" r="1.2" fill="currentColor" stroke="none" />
+    </Icon>
+  );
+}
+
 /** Desempenho: as barras subindo. */
 export function PerformanceIcon(props: IconProps) {
   return (

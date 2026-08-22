@@ -1,5 +1,31 @@
 /**
- * "Este item ainda tem como ser vendido?"
+ * "SE EU DESATIVAR ESTA OPÇÃO, O ITEM SAI DE VENDA?"
+ *
+ * ESTE ARQUIVO RESPONDE UMA PERGUNTA SÓ, e ela é sobre uma mudança que ainda
+ * NÃO ACONTECEU. É por isso que ele existe apesar de a regra já morar no
+ * backend: não há rota para perguntar "e se", e descobrir depois de aplicar não
+ * serve — o ponto do aviso é aparecer ENQUANTO dá para desistir.
+ *
+ * ---
+ *
+ * A PENDÊNCIA DE 19/08/2026 ESTAVA AQUI, E FOI FECHADA.
+ *
+ * O que ela dizia: `AdminProductResponse.unavailable_by_required_group` já
+ * estava no contrato e a tela ainda deduzia o ESTADO ATUAL daqui, com a regra
+ * escrita duas vezes — no backend e neste arquivo. Duas expressões da mesma
+ * regra divergem no dia em que uma delas mudar, e quem erra é a tela do
+ * lojista, em silêncio, que é exatamente o defeito que o aviso existe para
+ * acusar.
+ *
+ * A LINHA QUE SEPARA AS DUAS COISAS, hoje:
+ *
+ *   - **o estado AGORA** sai do backend, por `productSaleState`
+ *     (`menu-model.ts`). A listagem não tem os grupos de opção carregados, e
+ *     nem poderia: seriam N requisições para desenhar uma etiqueta;
+ *   - **o estado DEPOIS de uma mudança que o lojista está prestes a fazer**
+ *     sai daqui, e só o diálogo do produto o usa — porque só ele tem os grupos
+ *     na mão e só ele precisa NOMEAR o grupo que vai ficar vazio. Um aviso que
+ *     diz "um grupo obrigatório ficou vazio" manda procurar em todos.
  *
  * GRUPO OBRIGATÓRIO EXISTE PORQUE A COZINHA NÃO PRODUZ SEM AQUELA INFORMAÇÃO.
  * Quando o lojista desativa a última opção ativa de um grupo obrigatório — e
@@ -8,36 +34,9 @@
  * não vender. O backend então o tira do cardápio público e recusa o pedido de
  * quem já o tinha no carrinho.
  *
- * O PROBLEMA QUE ISTO RESOLVE É O SILÊNCIO. `is_active` continua ligado,
- * `is_available` continua ligado, e o item simplesmente para de aparecer para
- * o cliente. Sem aviso, o lojista perde a venda sem saber que perdeu.
- *
- * ---
- *
- * POR QUE A REGRA ESTÁ ESCRITA AQUI TAMBÉM
- *
- * Ela já existe no backend, em `src/services/menu_rules.py`
- * (`blocking_required_group`), e o próprio arquivo de lá avisa que há mais de
- * uma expressão dela e que **todas precisam mudar juntas**. Duplicar regra é
- * ruim; o que justifica esta cópia é que ela responde uma pergunta que o
- * backend não tem como responder:
- *
- *     "se eu desativar ESTA opção, o item sai de venda?"
- *
- * É uma pergunta sobre uma mudança que ainda NÃO aconteceu. Não há rota para
- * perguntá-la, e descobrir depois de aplicar não serve: o ponto do aviso é
- * aparecer ANTES, enquanto dá para desistir.
- *
- * O ESTADO DEPOIS DA MUDANÇA É OUTRA COISA e não sai daqui. Quem responde é
- * `AdminProductResponse.unavailable_by_required_group`, que o backend já
- * calcula — inclusive em SQL, para a listagem não virar uma consulta por
- * produto.
- *
- * PENDÊNCIA ABERTA (19/08/2026): esse campo JÁ ESTÁ no contrato gerado, e a
- * tela ainda não o lê — ela continua deduzindo o estado atual daqui. Enquanto
- * as duas fontes convivem, elas divergem no dia em que a regra mudar de um lado
- * só, e quem erra é a tela do lojista. O conserto é a tela adotar o campo para
- * o ESTADO; esta função fica sendo só a simulação do "e se".
+ * A regra espelhada abaixo é a `blocking_required_group` de
+ * `src/services/menu_rules.py`, e o arquivo de lá avisa que há mais de uma
+ * expressão dela e que **todas precisam mudar juntas**.
  */
 import type { ProductOptionGroup } from '../api/types';
 

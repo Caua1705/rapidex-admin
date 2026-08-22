@@ -83,6 +83,23 @@ for (const tamanho of TAMANHOS) {
       await expect(page.getByRole('heading', { name: 'Cardápio' })).toBeVisible();
       await fotografar(page, 'cardapio', tamanho.nome, tema);
 
+      /*
+       * ACOMPANHAMENTOS É A CATEGORIA QUE MOSTRA O LOTE 4 INTEIRO: o item que
+       * saiu de venda sozinho (etiqueta de atenção na linha e o aviso no alto),
+       * o punho de arrastar em toda linha e a coluna de seleção. É a foto que
+       * precisa ser olhada com mais cuidado — são três colunas novas na mesma
+       * grade, e é onde o aperto do celular aparece primeiro.
+       */
+      await page.getByTestId('category-select-cat-2').click();
+      await expect(page.getByTestId('menu-bloqueados')).toBeVisible();
+      await fotografar(page, 'cardapio-bloqueado', tamanho.nome, tema);
+
+      // E a barra da seleção, que só existe com algo marcado.
+      await page.getByTestId('product-select-prod-4').check();
+      await page.getByTestId('product-select-prod-5').check();
+      await expect(page.getByTestId('menu-selecao')).toBeVisible();
+      await fotografar(page, 'cardapio-selecao', tamanho.nome, tema);
+
       await page.goto('/clientes');
       await expect(page.getByRole('heading', { name: 'Clientes' })).toBeVisible();
       await fotografar(page, 'clientes', tamanho.nome, tema);

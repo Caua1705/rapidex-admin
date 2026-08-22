@@ -73,6 +73,36 @@ export async function reorderCategories(
   );
 }
 
+/**
+ * Nova ordem dos produtos DE UMA CATEGORIA, do primeiro para o último.
+ *
+ * A LISTA COMPLETA EXIGIDA É A DA CATEGORIA, e não a da filial: `sort_order` de
+ * produto só significa alguma coisa dentro dela — o cardápio público ordena por
+ * `Category.sort_order, Product.sort_order, Product.name`. Faltando algum id, o
+ * backend responde 400, e esse é o desfecho BOM: o ruim seria ele aceitar a
+ * lista curta e renumerar só o que veio, deixando o resto da categoria com a
+ * ordem embaralhada e nada acendendo.
+ *
+ * `category_id` VAI NO CORPO e a reordenação de categoria não tem equivalente
+ * porque lá o conjunto que compartilha a numeração é a filial inteira; aqui é a
+ * categoria. Ver `ProductReorderRequest` no contrato.
+ *
+ * Quem monta a lista usa `productIdsForReorder`, e quem decide SE dá para
+ * arrastar usa `podeReordenarProdutos` — os dois em `menu/menu-model.ts`. A
+ * segunda existe porque a lista desta tela é filtrada pela busca e paginada de
+ * 50 em 50: nas duas situações ela é parcial, e parcial aqui é 400.
+ */
+export async function reorderProducts(
+  categoryId: string,
+  productIds: string[],
+): Promise<Product[]> {
+  return unwrap(
+    await apiClient.PATCH('/admin/products/reorder', {
+      body: { category_id: categoryId, product_ids: productIds },
+    }),
+  );
+}
+
 export async function listProducts(params: {
   branchId: string;
   categoryId?: string;

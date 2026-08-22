@@ -3,12 +3,17 @@ import { describe, expect, it } from 'vitest';
 import type { Category, Product } from '../api/types';
 import {
   categoryIdsForReorder,
+  countBlockedByRequiredGroup,
   formatPriceInput,
   isProductActive,
   isProductAvailable,
   moveCategory,
+  moveInList,
   parsePriceInput,
+  podeReordenarProdutos,
   productDraftFrom,
+  productIdsForReorder,
+  productSaleState,
   showsAvailabilityToggle,
   sortCategories,
 } from './menu-model';
@@ -196,5 +201,122 @@ describe('productDraftFrom', () => {
   it('trata null de ativo e disponível como ligado', () => {
     const draft = productDraftFrom(product({ is_active: null, is_available: null }));
     expect([draft.isActive, draft.isAvailable]).toEqual([true, true]);
+  });
+});
+
+/* ==========================================================================
+ * A SITUAÇÃO DE VENDA — e a que o lojista NÃO escolheu
+ * ======================================================================= */
+
+describe('productSaleState', () => {
+  it('lê o campo do backend em vez de deduzir a regra de novo', () => {
+    /*
+     * A ARMADILHA QUE ESTE TESTE FECHA: o item está ativo e disponível — os
+     * dois interruptores que o lojista controla estão ligados — e mesmo assim
+     * ele não vende. Antes, a tela deduzia isso dos grupos de opção e a
+     * listagem não os tem carregados, então a linha aparecia como qualquer
+     * outra.
+     */
+    expect(
+      productSaleState(
+        product({ is_active: true, is_available: true, unavailable_by_required_group: true }),
+      ),
+    ).toBe('sem-opcao');
+  });
+
+  it('esgotado vence "sem opção" — o alarme é para quem ACHA que está vendendo', () => {
+    /*
+     * Num item já marcado como esgotado o lojista sabe que não vende, e trocar
+     * a palavra ali não muda ação nenhuma. Gastar o alarme aí é como ele
+     * aprende a ignorá-lo.
+     */
+    expect(
+      productSaleState(product({ is_available: false, unavailable_by_required_group: true })),
+    ).toBe('esgotado');
+  });
+
+  it('inativo vence tudo: o item nem está no cardápio', () => {
+    expect(
+      productSaleState(
+        product({ is_active: false, is_available: false, unavailable_by_required_group: true }),
+      ),
+    ).toBe('inativo');
+  });
+
+  it('sem nada de errado, não há palavra nenhuma a escrever', () => {
+    expect(productSaleState(product())).toBe('a-venda');
+  });
+});
+
+describe('countBlockedByRequiredGroup', () => {
+  it('conta só os que estão fora de venda por grupo, e não os esgotados', () => {
+    const lista = [
+      product({ id: 'a', unavailable_by_required_group: true }),
+      product({ id: 'b', is_available: false, unavailable_by_required_group: true }),
+      product({ id: 'c' }),
+      product({ id: 'd', unavailable_by_required_group: true }),
+    ];
+
+    // 'b' não conta: ele já aparece como "Esgotado" e não é o alarme.
+    expect(countBlockedByRequiredGroup(lista)).toBe(2);
+  });
+});
+
+/* ==========================================================================
+ * REORDENAR
+ * ======================================================================= */
+
+describe('moveInList', () => {
+  it('TIRA e ENFIA, não troca dois de lugar', () => {
+    /*
+     * A diferença só aparece longe: puxar o quinto para o topo tem de empurrar
+     * os quatro primeiros um degrau para baixo. Com troca, ['a','b','c','d','e']
+     * viraria ['e','b','c','d','a'] — uma ordem que ninguém arrastou.
+     */
+    expect(moveInList(['a', 'b', 'c', 'd', 'e'], 4, 0)).toEqual(['e', 'a', 'b', 'c', 'd']);
+  });
+
+  it('mover para trás empurra o vizinho para a frente', () => {
+    expect(moveInList(['a', 'b', 'c'], 0, 2)).toEqual(['b', 'c', 'a']);
+  });
+
+  it('devolve null quando o movimento não muda nada', () => {
+    expect(moveInList(['a', 'b'], 1, 1)).toBeNull();
+    expect(moveInList(['a', 'b'], 0, 5)).toBeNull();
+    expect(moveInList(['a', 'b'], -1, 0)).toBeNull();
+  });
+
+  it('com vizinhos, mover e trocar dão o mesmo resultado — é o que liga a seta ao arrastar', () => {
+    const lista = [category({ id: 'a' }), category({ id: 'b' }), category({ id: 'c' })];
+
+    expect(moveCategory(lista, 1, -1)?.map((item) => item.id)).toEqual(
+      moveInList(lista, 1, 0)?.map((item) => item.id),
+    );
+  });
+});
+
+describe('productIdsForReorder', () => {
+  it('devolve a lista completa na ordem, que é o que a rota exige', () => {
+    expect(
+      productIdsForReorder([product({ id: 'p2' }), product({ id: 'p1' }), product({ id: 'p3' })]),
+    ).toEqual(['p2', 'p1', 'p3']);
+  });
+});
+
+describe('podeReordenarProdutos', () => {
+  it('não dá com a busca ligada: a lista é um recorte, e a ordem é da categoria', () => {
+    expect(podeReordenarProdutos({ search: 'pic', loaded: 3, total: 3 })).toBe(false);
+  });
+
+  it('não dá com a paginação cortando: a rota exige a categoria inteira', () => {
+    /*
+     * A lista curta aqui não reordena de menos — o backend responde 400. É o
+     * desfecho bom; o ruim seria ele aceitar e renumerar só o que veio.
+     */
+    expect(podeReordenarProdutos({ search: '', loaded: 50, total: 80 })).toBe(false);
+  });
+
+  it('dá com a categoria inteira na mão e nenhum filtro', () => {
+    expect(podeReordenarProdutos({ search: '   ', loaded: 12, total: 12 })).toBe(true);
   });
 });

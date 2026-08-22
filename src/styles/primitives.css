@@ -390,6 +390,31 @@
   white-space: nowrap;
 }
 
+/*
+ * A ETIQUETA DE ATENÇÃO — a única variante de `.tag`, e ela existe para um
+ * caso só: o estado que NINGUÉM ESCOLHEU.
+ *
+ * A regra do sistema é que etiqueta é uma palavra sobre um plano de
+ * agrupamento, sem cor: "Inativo", "Esgotado", "Inativa" são todos escolhas do
+ * lojista, e pintá-las seria dar cor a informação que não pede ação. O caso que
+ * pede é o outro — o item que saiu de venda sozinho porque a última opção de um
+ * grupo obrigatório foi desativada (ver `ProductRow`). Vestido igual aos
+ * demais, ele lê como estado normal da operação e passa batido, que é
+ * exatamente o defeito.
+ *
+ * `--alert` e não `--danger`: não é perigo nem erro, é uma coisa que precisa de
+ * olho. O par tinta/plano é o mesmo do aviso de atenção, e já está medido em
+ * `check-contrast.mjs` nos dois temas.
+ *
+ * A COR NUNCA É O ÚNICO CANAL: quem usa esta classe põe também a palavra e um
+ * ícone.
+ */
+.tag--alerta {
+  gap: var(--sp-4);
+  background: var(--alert-wash);
+  color: var(--alert);
+}
+
 .muted {
   color: var(--ink-2);
 }

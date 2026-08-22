@@ -281,7 +281,7 @@ test('Impressão mostra quantos itens tem cada setor e quantos ficaram sem', asy
   await fazerLogin(page);
   await abrirAbaImpressao(page);
 
-  // No falso, só prod-1 aponta para a Chapa; os outros cinco estão sem setor.
+  // No falso, só prod-1 aponta para a Chapa; os outros SEIS estão sem setor.
   await expect(page.getByTestId('print-sector-count-sec-chapa')).toHaveText('1 item');
   // Setor vazio E desativado: os dois qualificadores dividem a mesma célula.
   await expect(page.getByTestId('print-sector-count-sec-bar')).toHaveText(
@@ -291,14 +291,17 @@ test('Impressão mostra quantos itens tem cada setor e quantos ficaram sem', asy
   /*
    * O TOTAL ENTRA NA ASSERÇÃO, e não só o "5 itens".
    *
-   * A filial principal tem 6 produtos e a outra tem 7; a varredura já cruzou o
+   * A filial principal tem 7 produtos e a outra tem 7; a varredura já cruzou o
    * cardápio da REDE com os setores de UMA filial, e o número saía "12 de 13" —
    * impossível de zerar, porque todo item da outra loja caía em "sem setor".
-   * Com "de 6" escrito na asserção, o que está sendo medido é o RECORTE, e não
-   * um número que pode bater por acaso quando o cardápio do falso crescer.
+   * Com "de 7" escrito na asserção, o que está sendo medido é o RECORTE, e não
+   * um número que pode bater por acaso quando o cardápio do falso crescer — foi
+   * o que aconteceu ao entrar "Onion rings", o item fora de venda por grupo
+   * obrigatório: os dois números subiram um, e é assim que se vê que subiram
+   * pelo motivo certo.
    */
-  await expect(page.getByTestId('sector-coverage')).toContainText('5 itens');
-  await expect(page.getByTestId('sector-coverage')).toContainText('de 6');
+  await expect(page.getByTestId('sector-coverage')).toContainText('6 itens');
+  await expect(page.getByTestId('sector-coverage')).toContainText('de 7');
   await expect(page.getByTestId('sector-coverage')).toContainText('não imprime em setor nenhum');
 });
 

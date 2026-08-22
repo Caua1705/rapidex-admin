@@ -253,23 +253,88 @@
   white-space: nowrap;
 }
 
+/*
+ * O AVISO DOS ITENS QUE SAÍRAM DE VENDA SOZINHOS.
+ *
+ * Ele mora DENTRO da coluna da lista, e não no alto da página junto da frase de
+ * escopo: é sobre a categoria aberta, e o escopo é sobre a tela inteira. No
+ * alto ele mudaria de assunto a cada troca de categoria num lugar que não
+ * pisca, e o lojista não ligaria uma coisa à outra.
+ *
+ * Ele ROLA com a lista, ao contrário da régua da categoria e do cabeçalho de
+ * coluna: é uma explicação que se lê uma vez, não um controle que se procura.
+ * Quem chega no item lá embaixo é atendido pela etiqueta da linha.
+ */
+.menu__bloqueados {
+  margin: var(--sp-12) var(--page-pad) 0;
+  /*
+   * O TETO DE LEITURA. Sem ele o aviso vira uma faixa âmbar de mil pixels
+   * atravessando a tela inteira antes do primeiro item — mais parede que
+   * aviso, e o §8 já decidiu que o que se repete deixa de ser lido.
+   */
+  max-width: 78ch;
+}
+
+/* A etiqueta de atenção alinha o ícone com a palavra sem o vão comum. */
+.item__bloqueado {
+  flex: none;
+}
+
 .menu__empty {
   margin: 0;
   padding: var(--sp-32) var(--page-pad);
   font-size: var(--ta-size);
   line-height: var(--ta-line);
 }
+/*
+ * A GRADE DA LISTA — UMA DECLARACAO, QUATRO COLUNAS OPCIONAIS
+ *
+ * Ela era uma linha de `--cols` por combinacao: foto x setor davam quatro, e as
+ * quatro eram escritas por extenso. Com o punho de arrastar e a caixa de
+ * selecao, as combinacoes viram DEZESSEIS - e dezesseis declaracoes da mesma
+ * grade e como uma delas fica para tras e o cabecalho deixa de ficar em cima do
+ * que nomeia.
+ *
+ * Aqui a grade e escrita UMA vez e cada coluna opcional entra por um token
+ * proprio. O truque e o `var(--x, )` com fallback VAZIO: pelo padrao do CSS,
+ * um segundo argumento em branco e valido e substitui por nada, entao a coluna
+ * que ninguem declarou simplesmente nao existe na grade - e nao vira um `0px`
+ * que continuaria comendo um `gap` de 12px.
+ *
+ * A ORDEM DAS DUAS PRIMEIRAS e a ordem do gesto: pega-se a linha pelo punho, e
+ * marca-se com a caixa. Invertidas, o punho ficaria entre a caixa e a foto, que
+ * e o unico lugar em que ele nao pode estar - o dedo que erra a caixa por 4px
+ * comecaria a arrastar o item.
+ */
+/*
+ * AS DUAS ULTIMAS MEDIDAS MUDARAM COM O LOTE 4, e as duas sao medida de
+ * CONTEUDO — o que cabe dentro, medido:
+ *
+ *   SITUACAO 148px, contra os 116 de antes. A celula ganhou uma terceira
+ *   etiqueta, e ela e a unica com icone: "Sem opcao" com o triangulo de atencao
+ *   mede ~92px, mais o vao e os 40 do interruptor. Em 116 o `overflow: hidden`
+ *   da celula comia justamente o icone, que e um dos tres canais que separam
+ *   esse estado dos outros dois (WCAG 1.4.1).
+ *
+ *   ACOES 64px, contra os 34 de um controle so. Ela passou a abrigar o lapis E
+ *   as setas de reordenar; em 34px as setas saiam por cima do interruptor da
+ *   coluna anterior — foi o que o print mostrou.
+ */
 .menu__table {
-  --cols: minmax(220px, 1fr) 96px 116px var(--control-h);
+  --cols: var(--col-punho, ) var(--col-selecao, ) var(--col-foto, )
+    minmax(180px, 1fr) 96px var(--col-setor, ) 148px 64px;
+}
+.menu__table--reordenavel {
+  --col-punho: 28px;
+}
+.menu__table--selecionavel {
+  --col-selecao: var(--tap);
 }
 .menu__table--with-photo {
-  --cols: 48px minmax(200px, 1fr) 96px 116px var(--control-h);
+  --col-foto: 48px;
 }
 .menu__table--with-sector {
-  --cols: minmax(200px, 1fr) 96px 132px 116px var(--control-h);
-}
-.menu__table--with-photo.menu__table--with-sector {
-  --cols: 48px minmax(180px, 1fr) 96px 132px 116px var(--control-h);
+  --col-setor: 132px;
 }
 .menu__columns,
 .item {
@@ -278,6 +343,15 @@
   align-items: center;
   gap: var(--sp-12);
   padding-inline: var(--page-pad);
+}
+
+/*
+ * COM A SELEÇÃO ABERTA, O CABEÇALHO DE COLUNA SOLTA O TOPO. Ver o bloco de
+ * `.menu__selecao`: duas faixas grudentas no mesmo topo se sobrepõem, e a que
+ * tem de ficar é a que carrega a ação.
+ */
+.menu__panel--selecionando .menu__columns {
+  position: static;
 }
 
 /*
@@ -407,6 +481,230 @@
 .item:focus-within .item__edit {
   opacity: 1;
 }
+/* ==========================================================================
+ * ARRASTAR PARA REORDENAR
+ *
+ * O PUNHO E A LINHA DE DESTINO sao as duas unicas pecas visuais do gesto. Nao
+ * ha fantasma seguindo o dedo: o item que se move e o que ja esta na lista, e
+ * uma copia flutuante exigiria clonar a linha inteira (foto, etiquetas,
+ * interruptor) num elemento fora do fluxo - tinta a mais para dizer o que a
+ * linha de destino ja diz.
+ * ======================================================================= */
+
+.item__punho,
+.rail__punho {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-3);
+  cursor: grab;
+  /*
+   * SEM ISTO O GESTO NAO EXISTE NO TOQUE. O navegador interpreta o arrastar
+   * vertical como rolagem, assume o gesto e cancela o ponteiro no meio - o item
+   * volta para o lugar sem nada explicar. Fica so no punho: a lista continua
+   * rolando com o dedo em qualquer outro ponto da linha.
+   */
+  touch-action: none;
+  /* O punho nao e texto: selecionar caracteres invisiveis atrapalha o gesto. */
+  user-select: none;
+}
+
+.item__punho:active,
+.rail__punho:active {
+  cursor: grabbing;
+  color: var(--ink);
+}
+
+.item__punho {
+  width: 28px;
+  align-self: stretch;
+  margin-left: calc(var(--sp-12) * -1);
+}
+
+.rail__punho {
+  width: var(--tap);
+  min-height: var(--row-dense-h);
+  flex: none;
+}
+
+/*
+ * A LINHA QUE SE ARRASTA RECUA, e nao some: ela continua sendo a referencia de
+ * "o que estou movendo". Some, o olho perde o item no meio do caminho.
+ */
+.item--arrastando,
+.rail__item--arrastando {
+  opacity: var(--disabled-opacity);
+}
+
+/*
+ * A LINHA DE DESTINO — 2px em tinta cheia, a mesma marcacao do fio de margem
+ * que diz "e aqui" no resto do painel. Ela e `::after` do item que vai ceder o
+ * lugar, e nao um <li> a mais: um elemento novo no meio da lista deslocaria os
+ * indices que o gesto acabou de medir.
+ */
+.item[data-drop]::after,
+.rail__item[data-drop]::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  background: var(--ink);
+  pointer-events: none;
+}
+
+.item {
+  position: relative;
+}
+
+.item[data-drop='antes']::after,
+.item[data-drop='depois']::after {
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+.item[data-drop='antes']::after {
+  top: -1px;
+}
+.item[data-drop='depois']::after {
+  bottom: -1px;
+}
+
+/*
+ * NA FITA DEITADA a linha de destino tambem deita: abaixo de 1024px a barra de
+ * categorias e uma fita horizontal, e uma linha em cima da categoria nao diria
+ * entre quais duas ela vai cair. O eixo do gesto ja e medido em
+ * `useReorderDrag`; aqui e a mesma decisao, do lado do desenho.
+ */
+.rail__item[data-drop='antes']::after,
+.rail__item[data-drop='depois']::after {
+  top: 0;
+  bottom: 0;
+  width: 2px;
+}
+.rail__item[data-drop='antes']::after {
+  left: -1px;
+}
+.rail__item[data-drop='depois']::after {
+  right: -1px;
+}
+
+@media (max-width: 1023px) {
+  .rail__item[data-drop='antes']::after,
+  .rail__item[data-drop='depois']::after {
+    top: 0;
+    bottom: 0;
+    left: auto;
+    right: auto;
+    width: 2px;
+    height: auto;
+  }
+  .rail__item[data-drop='antes']::after {
+    left: -1px;
+  }
+  .rail__item[data-drop='depois']::after {
+    right: -1px;
+  }
+}
+
+/*
+ * A FRASE QUE EXPLICA A AUSENCIA DO PUNHO. Nao e `.alert`: nada esta errado, e
+ * a acao que ela pede (limpar a busca, carregar o resto) e do lojista.
+ */
+.menu__sem-arrastar {
+  margin: var(--sp-12) var(--page-pad) 0;
+  max-width: 72ch;
+}
+
+/* ==========================================================================
+ * A SELECAO MULTIPLA
+ * ======================================================================= */
+
+/*
+ * A BARRA DA SELECAO gruda logo abaixo do cabecalho de coluna, que gruda logo
+ * abaixo da regua da categoria: 44px + a altura da regua de rotulos. Ela
+ * precisa continuar na tela enquanto o lojista rola marcando itens - uma barra
+ * de acao que sobe junto com a lista e uma barra que se procura de volta.
+ *
+ * Plano `--surface-muted` e um fio: e um AGRUPAMENTO (os itens marcados), nao
+ * algo que flutua por cima de outra coisa. Por isso nao tem sombra.
+ */
+.menu__selecao {
+  position: sticky;
+  z-index: var(--z-sticky);
+  /*
+   * ELA GRUDA LOGO ABAIXO DA REGUA DA CATEGORIA (44px), e nao abaixo do
+   * cabecalho de coluna — porque enquanto ela existe o cabecalho DEIXA de
+   * grudar (ver `.menu__panel--selecionando`).
+   *
+   * As duas grudadas no mesmo topo se sobrepunham, e empilha-las exigiria
+   * somar a altura desta barra na do cabecalho — altura que muda: em 390px ela
+   * quebra em duas fileiras. Entre as duas, quem tem de continuar na tela e a
+   * BARRA: ela e a acao. O cabecalho e uma fileira de rotulos, e a caixa de
+   * "todos" que mora nele se usa uma vez, no comeco.
+   */
+  top: 44px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-8);
+  min-height: var(--row-dense-h);
+  padding: var(--sp-8) var(--page-pad);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-muted);
+}
+
+.menu__selecao-contagem {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--ink);
+  font-size: var(--tb-size);
+  font-weight: var(--w-strong);
+}
+
+.menu__resultado {
+  margin: var(--sp-12) var(--page-pad) 0;
+}
+
+/*
+ * A LINHA MARCADA usa `--surface-selected` — a mesma marcacao de selecao do
+ * resto do painel, e nunca a marca: um item marcado nao e a acao primaria da
+ * tela. O `:hover` nao a sobrescreve, senao a linha sob o ponteiro pareceria
+ * desmarcada.
+ */
+.item--selecionado,
+.item--selecionado:hover {
+  background: var(--surface-selected);
+}
+
+/* ==========================================================================
+ * AS ACOES DA LINHA
+ * ======================================================================= */
+
+/*
+ * O LAPIS E AS SETAS DIVIDEM A MESMA CELULA. Eram uma coluna so com o lapis; as
+ * setas de reordenar entraram ao lado dele em vez de virar uma sexta coluna,
+ * porque as duas sao ACAO SOBRE A LINHA e uma coluna a mais estreitaria o nome
+ * do item, que e o que se veio ler.
+ */
+.item__acoes {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-4);
+}
+
+.item__reorder {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease);
+}
+
+.item:hover .item__reorder,
+.item:focus-within .item__reorder {
+  opacity: 1;
+}
+
 .menu__footer {
   display: flex;
   align-items: center;
@@ -594,8 +892,17 @@
     flex-direction: row;
   }
 
-  .menu__table--with-photo.menu__table--with-sector {
-    --cols: 48px minmax(180px, 1fr) 88px 112px 104px var(--control-h);
+  /*
+   * No tablet as colunas fixas encolhem, e so elas: a grade continua sendo a
+   * mesma declaracao unica de `--cols`, com os tokens de cada coluna opcional.
+   * Reescrever `--cols` inteiro aqui era o que obrigava uma linha por
+   * combinacao - e com quatro colunas opcionais seriam dezesseis.
+   */
+  .menu__table--with-sector {
+    --col-setor: 112px;
+  }
+  .menu__table--reordenavel {
+    --col-punho: 24px;
   }
 }
 
@@ -620,7 +927,9 @@
     padding-inline: var(--page-pad-mobile);
   }
 
-  .menu > .alert {
+  .menu > .alert,
+  /* Ele é margem, não padding: `.alert` já traz o próprio respiro interno. */
+  .menu__bloqueados {
     margin-inline: var(--page-pad-mobile);
   }
 
@@ -644,28 +953,86 @@
     display: none;
   }
 
+  /*
+   * NO CELULAR A LINHA DEIXA DE SER GRADE E VIRA FLEX-WRAP, e a troca tem um
+   * motivo mecanico: a linha ganhou duas celulas opcionais (o punho de
+   * arrastar e a caixa de selecao) que se somam as duas que ja existiam (foto
+   * e setor). Com grade, cada combinacao dessas quatro exige uma colocacao
+   * explicita propria - dezesseis regras de `grid-column`, e a primeira que
+   * ficasse para tras jogaria o preco por cima do interruptor.
+   *
+   * Com `flex-wrap` a ORDEM DO DOM resolve sozinha: o que cabe fica na fileira,
+   * o que nao cabe desce. Nenhuma celula opcional precisa ser contada, e
+   * acrescentar a proxima nao mexe em regra nenhuma.
+   *
+   * A DISTRIBUICAO E: caixa, foto, nome+descricao e as acoes na primeira
+   * fileira; preco e situacao na segunda; o setor na terceira, sozinho.
+   */
   .item,
   .menu__table--with-photo .item,
   .menu__table--with-sector .item,
   .menu__table--with-photo.menu__table--with-sector .item {
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    grid-auto-rows: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: var(--sp-8) var(--sp-12);
     min-height: var(--row-touch-h);
     padding: var(--sp-12) var(--page-pad-mobile);
   }
 
+  /*
+   * O PUNHO SAI NO CELULAR, e as setas ficam. Nao e capitulacao: aqui a linha
+   * nao e mais uma linha - e um bloco de tres fileiras e altura variavel, numa
+   * pagina que rola por baixo do dedo. Arrastar nesse enquadramento erra o
+   * alvo com frequencia, e errar aqui republica o cardapio na ordem errada.
+   *
+   * A WCAG 2.5.7 pede exatamente a alternativa por ponteiro unico que fica: as
+   * setas, que no toque estao SEMPRE visiveis (ver o bloco `hover: none`). E
+   * reordenar cardapio e decisao comercial que se toma sentado, nao no meio do
+   * servico - o que o balcao precisa no celular e a caixa de selecao, e ela
+   * fica.
+   */
+  .item__punho {
+    display: none;
+  }
+
+  /*
+   * DUAS FILEIRAS, E ELAS SAO DECLARADAS PELA BASE DE CADA CELULA — nao pelo
+   * acaso da largura. O print mostrou o que acontece sem isso: o interruptor
+   * caiu sozinho numa fileira e o lapis noutra, com meio centimetro de nada
+   * entre eles, e cada item passou de 170px de altura. Numa categoria de trinta
+   * itens isso e um cardapio que ninguem rola ate o fim.
+   *
+   *   fileira 1  caixa · foto · nome+descricao · preco
+   *   fileira 2  situacao (etiqueta + interruptor) · acoes
+   *   fileira 3  setor, quando ha
+   *
+   * O nome pede 50% e o preco pede o que ele mede: os dois cabem com a caixa na
+   * primeira fileira em 390px. A situacao pede 55%, que e mais do que sobra na
+   * primeira — e e assim que ela ABRE a segunda, levando as acoes junto.
+   */
   .item__main {
-    grid-column: 1/-1;
+    flex: 1 1 50%;
+    min-width: 0;
   }
 
-  .menu__table--with-photo .item__thumb {
-    grid-row: 1/3;
-    grid-column: 1;
+  .item__price {
+    margin-left: auto;
   }
 
-  .menu__table--with-photo .item__main {
-    grid-column: 2/-1;
+  .item__acoes {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
+  /*
+   * AS SETAS DEITAM, como as da barra de categorias no tablet e pelo mesmo
+   * motivo: empilhadas, cada uma pede o alvo de toque inteiro e a linha do item
+   * passa a ter a altura de duas. Lado a lado, elas cabem na fileira que ja
+   * existe.
+   */
+  .item__reorder {
+    flex-direction: row;
   }
 
   .item__main,
@@ -698,37 +1065,51 @@
     overflow: hidden;
   }
 
+  /*
+   * A QUEBRA DE FILEIRA E DECLARADA, e nao deixada ao acaso da largura: o preco
+   * abre a segunda fileira com `flex-basis: 100%` num pseudo-quebra-linha
+   * barato - ele simplesmente nao cabe ao lado do nome, e o `margin-left: auto`
+   * das acoes ja tinha empurrado a primeira fileira ate a margem.
+   */
   .item__price {
-    grid-row: 2;
-    grid-column: 1;
-    text-align: left;
-  }
-
-  .menu__table--with-photo .item__price {
-    grid-column: 2;
-  }
-
-  .item__sector {
-    grid-column: 1/-1;
-    grid-row: 3;
+    flex: 0 0 auto;
+    text-align: right;
   }
 
   .item__state {
-    grid-row: 2;
-    grid-column: 2;
+    flex: 1 1 55%;
+    justify-content: flex-start;
   }
 
-  .menu__table--with-photo .item__state {
-    grid-column: 3;
-  }
-
-  .item__edit {
-    grid-row: 2;
-    grid-column: 3;
+  /* O setor e a terceira fileira, sozinho: o nome do setor e longo. */
+  .item__sector {
+    flex: 1 1 100%;
   }
 
   .form__grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ==========================================================================
+ * ONDE NAO HA PONTEIRO, NADA SE ESCONDE ATRAS DELE
+ *
+ * O lapis da linha, as setas de reordenar do item e as da barra de categorias
+ * aparecem no `:hover`. Num aparelho de toque `:hover` nunca e verdade - e o
+ * controle simplesmente NAO EXISTE para quem usa o painel no balcao com o
+ * dedo. Este bloco e o conserto, e ele vale pela CAPACIDADE do aparelho e nao
+ * pela largura da janela: um tablet de 1024px com tela sensivel ao toque tem o
+ * mesmo problema de um telefone de 390.
+ *
+ * As setas sao a alternativa que a WCAG 2.5.7 exige para o arrastar. Uma
+ * alternativa invisivel nao e alternativa.
+ * ======================================================================= */
+
+@media (hover: none) {
+  .item__edit,
+  .item__reorder,
+  .rail__reorder {
+    opacity: 1;
   }
 }
 

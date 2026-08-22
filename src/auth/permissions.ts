@@ -90,6 +90,7 @@ export type Acao =
   | 'cardapio.criarCategoria'
   | 'cardapio.editarCategoria'
   | 'cardapio.reordenarCategorias'
+  | 'cardapio.reordenarProdutos'
   | 'cardapio.apontarSetorDoProduto'
   | 'cardapio.apontarSetorDaCategoria'
   // --- clientes, desempenho e avaliações
@@ -170,6 +171,16 @@ const ROTA_DA_ACAO = {
   'cardapio.criarCategoria': 'POST /admin/categories',
   'cardapio.editarCategoria': 'PATCH /admin/categories/{category_id}',
   'cardapio.reordenarCategorias': 'PATCH /admin/categories/reorder',
+  /*
+   * REORDENAR ITEM É DA GERÊNCIA, como reordenar categoria — e ao contrário de
+   * "acabou a costela", que é do balcão.
+   *
+   * A distinção é a mesma que separa as duas ações na mesma linha da lista:
+   * marcar esgotado responde ao que aconteceu HOJE na cozinha e se desfaz no
+   * clique seguinte; a ordem do cardápio é decisão comercial — o que aparece
+   * primeiro vende mais — e ela fica publicada até alguém mexer de novo.
+   */
+  'cardapio.reordenarProdutos': 'PATCH /admin/products/reorder',
   'cardapio.apontarSetorDoProduto': 'PATCH /admin/products/{product_id}/printing-sector',
   'cardapio.apontarSetorDaCategoria': 'PATCH /admin/categories/{category_id}/printing-sector',
 

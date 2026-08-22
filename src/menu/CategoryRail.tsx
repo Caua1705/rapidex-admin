@@ -1,6 +1,7 @@
 import type { Category } from '../api/types';
-import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from '../ds/icons';
+import { ChevronDownIcon, ChevronUpIcon, GripIcon, PlusIcon } from '../ds/icons';
 import { isCategoryActive } from './menu-model';
+import { useReorderDrag } from './useReorderDrag';
 
 /**
  * A barra de categorias.
@@ -10,8 +11,19 @@ import { isCategoryActive } from './menu-model';
  * e o backend renumera a partir do que recebe: esconder uma categoria da lista
  * seria apagar a posição dela na próxima subida de outra.
  *
- * Subir/descer em vez de arrastar: o painel é usado no balcão, às vezes com
- * touch e a mão ocupada, e arrastar exige precisão que ali não existe.
+ * ARRASTAR **E** SUBIR/DESCER — e as duas coisas juntas são a decisão.
+ *
+ * Aqui já esteve escrito "subir/descer EM VEZ DE arrastar", e o motivo era bom:
+ * o painel é usado no balcão, às vezes com touch e a mão ocupada, e arrastar
+ * exige precisão que ali não existe. O que estava errado era o "em vez de" —
+ * com só as setas, levar a categoria do fim para o topo são dez cliques, e a
+ * ordem do cardápio é decisão comercial que ninguém toma se custar dez cliques.
+ *
+ * Hoje o punho é o atalho e as setas são o caminho. Não é conveniência: a WCAG
+ * 2.2 exige a alternativa por ponteiro único para tudo que se opera arrastando
+ * (**2.5.7 Dragging Movements**, AA), e é a seta que a cumpre — ela é um
+ * `<button>` com nome acessível, alcançável pelo teclado e pelo leitor de tela.
+ * Os dois chamam a MESMA gravação em `useMenu`.
  *
  * AS SETAS FICAM À DIREITA E SÓ APARECEM NO HOVER. Antes elas moravam à
  * esquerda, espremidas uma em cima da outra e desalinhadas do nome — e ainda
@@ -27,6 +39,7 @@ export function CategoryRail({
   productCountByCategory,
   onSelect,
   onMove,
+  onMoveTo,
   onMoveSettled,
   onNew,
 }: {
@@ -49,9 +62,22 @@ export function CategoryRail({
    * chegam nele como a mesma coisa — que, para o desenho, são.
    */
   onMove?: (index: number, direction: -1 | 1) => void;
+  /** O arrastar. Ausente junto com `onMove` — as duas são a mesma permissão. */
+  onMoveTo?: (from: number, to: number) => void;
   onMoveSettled: () => void;
   onNew?: () => void;
 }) {
+  /*
+   * O GESTO PRECISA EXISTIR MESMO SEM PERMISSÃO — hooks não se chamam dentro de
+   * um `if`. Quem desliga é `disabled`, e sem `onMoveTo` o punho nem é
+   * desenhado, então o gesto nunca chega a ser iniciado.
+   */
+  const arrastar = useReorderDrag({
+    count: categories.length,
+    onReorder: (from, to) => onMoveTo?.(from, to),
+    disabled: !onMoveTo,
+  });
+
   return (
     <div className="rail">
       <div className="rail__header">
@@ -78,12 +104,40 @@ export function CategoryRail({
           return (
             <li
               key={category.id}
-              className={`rail__item${selected ? ' rail__item--selected' : ''}`}
+              ref={arrastar.registrar(index)}
+              className={`rail__item${selected ? ' rail__item--selected' : ''}${
+                arrastar.drag?.from === index ? ' rail__item--arrastando' : ''
+              }`}
               /* O realce dura o tempo da animação e some sozinho; é ele que
                  diz "esta é a que se moveu" quando duas linhas trocam. */
               data-moved={category.id === movedCategoryId ? 'true' : undefined}
+              /*
+                A LINHA DE DESTINO, e ela é um atributo e não um elemento: um
+                `<li>` a mais no meio da lista deslocaria os índices que o gesto
+                acabou de medir. Como `::before` do item que vai ceder o lugar,
+                ela não ocupa espaço nenhum.
+              */
+              data-drop={dropDe(arrastar.drag, index)}
               onAnimationEnd={onMoveSettled}
             >
+              {/*
+                O PUNHO VEM ANTES DO NOME, e é a única coisa desta lista que
+                fica sempre visível junto com o nome: ele É a affordance. As
+                setas continuam aparecendo só no ponteiro/foco porque elas são o
+                caminho alternativo, não a descoberta.
+              */}
+              {onMoveTo ? (
+                <span
+                  className="rail__punho"
+                  role="button"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  title={`Arraste para reordenar ${category.name}`}
+                  {...arrastar.punho(index)}
+                >
+                  <GripIcon size={14} />
+                </span>
+              ) : null}
               <button
                 type="button"
                 className="rail__select"
@@ -147,4 +201,21 @@ export function CategoryRail({
       </ul>
     </div>
   );
+}
+
+/**
+ * De que lado do item a linha de destino é desenhada.
+ *
+ * DUAS RESPOSTAS E NÃO UMA, porque a última posição não tem item depois dela:
+ * soltar no fim da lista precisa de uma linha DEPOIS do último, e marcar só
+ * "antes" deixaria o gesto sem destino visível justamente na posição mais
+ * usada — mandar um item para o fim.
+ */
+function dropDe(
+  drag: { from: number; to: number } | null,
+  index: number,
+): 'antes' | 'depois' | undefined {
+  if (!drag || drag.from === drag.to) return undefined;
+  if (drag.to === index) return drag.to > drag.from ? 'depois' : 'antes';
+  return undefined;
 }

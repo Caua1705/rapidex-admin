@@ -387,7 +387,9 @@ fazer.
 
 ### Etiqueta, chip de status e badge
 
-`.tag` é uma palavra sobre um plano de agrupamento, sem contorno. `StatusChip` é
+`.tag` é uma palavra sobre um plano de agrupamento, sem contorno. Ela tem UMA
+variante, `.tag--alerta`, e ela existe para um caso só: o estado que ninguém
+escolheu (ver "Cardápio"). Etiqueta colorida por gosto continua fora. `StatusChip` é
 o chip de estágio: fundo `--st-wash`, ponto na matiz e **texto em tinta comum**
 — isso é medido, porque as três matizes mais claras da escala reprovariam sobre
 o próprio wash. `label` sobrescreve a palavra (para separar "Recusado" de
@@ -615,6 +617,50 @@ A régua da categoria aberta é subordinada à faixa da tela: 44px contra 52, n�
 2 contra nível 1. Abaixo de 1024px a coluna de categorias deita e vira fita
 rolável; abaixo de 720px o item deixa de ser linha e vira bloco.
 
+**A LINHA TEM TRÊS ETIQUETAS DE SITUAÇÃO, E A TERCEIRA QUEBRA A REGRA DA COR.**
+"Inativo" e "Esgotado" são escolhas do lojista e saem em `.tag` neutra. "Sem
+opção" — o item cujo grupo obrigatório ficou sem nenhuma opção ativa — ACONTECEU
+com ele: o backend o tira do cardápio público e a venda para com os dois
+interruptores ligados. Vestida igual às outras duas, ela lê como estado normal
+da operação e passa batido, que é o defeito inteiro. Ela leva `.tag--alerta`
+(a única variante de `.tag` do sistema: `--alert` sobre `--alert-wash`), ícone e
+palavra própria — três canais, nenhum sozinho. O estado sai de
+`unavailable_by_required_group`, que o backend calcula; a tela não o deduz.
+Acima da lista, um `.alert--warn` conta quantos são e diz o que fazer — a
+etiqueta na linha 47 não é achável sozinha.
+
+**REORDENAR TEM DUAS ENTRADAS, E A SEGUNDA É REQUISITO.** O punho de arrastar
+(`useReorderDrag`, Pointer Events — o `draggable` nativo não existe no toque) é
+o atalho; as setas de sobe-um/desce-um são o caminho, e é elas que cumprem a
+**WCAG 2.5.7 (Dragging Movements)**. Os dois chamam a mesma gravação. O punho
+leva `touch-action: none` — sem isso o navegador entende o gesto como rolagem e
+o cancela no meio. No celular o punho SAI e as setas ficam: ali a linha é um
+bloco de altura variável numa página que rola, e errar o alvo republica o
+cardápio na ordem errada. `PATCH /admin/products/reorder` exige a lista COMPLETA
+da categoria, então com a busca ligada ou com a paginação cortando a tela DIZ o
+motivo em vez de sumir com o controle.
+
+**A SELEÇÃO MÚLTIPLA É A AÇÃO DO BALCÃO NA CORRERIA.** Caixa por linha
+(`Checkbox hideLabel` — `aria-label`, nunca texto `sr-only`: um segundo nome do
+produto no documento torna ambígua toda busca por nome) e uma faixa tonal
+grudenta com as duas ações. **Não existe rota em lote**: são N chamadas à mesma
+`PATCH /admin/products/{id}/availability` do interruptor da linha, que é
+`PESSOAS` — logo o papel da ação em massa é o MESMO do individual, e não há
+botão a esconder do balcão. Como não é atômica, a tela NOMEIA os itens que
+falharam e mantém a seleção para a segunda tentativa.
+
+**No celular a linha do item vira FLEX-WRAP, e não uma grade colocada à mão.**
+Com quatro colunas opcionais (punho, seleção, foto, setor), a colocação
+explícita seriam dezesseis regras de `grid-column` — e a primeira que ficasse
+para trás jogaria o preço por cima do interruptor. Com `flex-wrap` a ordem do
+DOM resolve: o que cabe fica na fileira, o que não cabe desce.
+
+**Onde não há ponteiro, nada se esconde atrás dele.** O lápis, as setas do item
+e as da barra de categorias aparecem no `:hover` — e num aparelho de toque
+`:hover` nunca é verdade. O bloco `@media (hover: none)` os traz de volta, e ele
+vale pela CAPACIDADE do aparelho, não pela largura: uma alternativa invisível
+não é alternativa.
+
 **O diálogo do item pergunta "é o mesmo item de outra loja?"** logo depois do que
 o item É (nome, preço, categoria, descrição) e antes de como ele se liga à
 operação — a pergunta é de identidade e só se responde com o nome já digitado,
@@ -839,9 +885,10 @@ Ao concluir uma mudança visual relevante:
 2. `npm test`;
 3. `npx playwright test`;
 4. `CAPTURAS=1 npx playwright test e2e/capturas.spec.ts --workers=1` — o arnês
-   fotografa Pedidos (com e sem detalhe), Cardápio, Clientes, Desempenho, Funil
-   (nos dois estados de medição), Minha loja, Cozinha e "Em breve" em 1440 e
-   390, claro e escuro, com o mesmo backend
+   fotografa Pedidos (com e sem detalhe), Cardápio (a lista, o item fora de
+   venda por grupo obrigatório e a barra de seleção), Clientes, Desempenho,
+   Funil (nos dois estados de medição), Minha loja, Cozinha e "Em breve" em
+   1440 e 390, claro e escuro, com o mesmo backend
    falso do e2e. As imagens saem em `capturas/`, que é ignorada pelo git: elas
    são para OLHAR numa revisão, não para versionar;
 5. **abra as capturas e faça uma segunda passagem** procurando aparência de

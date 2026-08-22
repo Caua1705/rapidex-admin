@@ -9,6 +9,7 @@ import {
   listCategories,
   listProducts,
   reorderCategories,
+  reorderProducts,
   setProductAvailability,
   updateCategory,
   updateProduct,
@@ -16,10 +17,45 @@ import {
 import { applyPrintSectorToCategory, setProductPrintSector } from '../api/print-sectors';
 import type { Category, Product } from '../api/types';
 import { catalogKeyBody, twinKeyToWrite } from './catalog-key';
-import { categoryIdsForReorder, moveCategory, sortCategories, sortProducts } from './menu-model';
+import {
+  categoryIdsForReorder,
+  moveCategory,
+  moveInList,
+  podeReordenarProdutos,
+  productIdsForReorder,
+  sortCategories,
+  sortProducts,
+} from './menu-model';
 
 /** Uma página de produtos. O cardápio de um restaurante grande passa disso. */
 const PAGE_SIZE = 50;
+
+/**
+ * QUANTAS CHAMADAS DE DISPONIBILIDADE VÃO JUNTAS.
+ *
+ * **Não existe rota em lote** para esgotar item: o contrato tem
+ * `PATCH /admin/products/{id}/availability` e mais nada. Marcar cinco itens são
+ * cinco requisições, e a ação em massa desta tela é isso — o que ela poupa é o
+ * TOQUE, não a rede.
+ *
+ * Quatro de cada vez, e não todas de uma vez: o navegador segura ~6 conexões
+ * por host, e quarenta disparadas juntas enfileiram sozinhas, competem com a
+ * releitura da lista e, na internet do balcão, estouram o tempo em bloco. Em
+ * lotes, o que falha falha sozinho — e é isso que permite dizer QUAIS itens não
+ * foram, em vez de "deu erro".
+ *
+ * A consequência assumida, e ela é dita na tela: **isto não é atômico**. Três
+ * de cinco podem gravar. Uma rota em lote resolveria — é a única coisa desta
+ * frente que pediria backend novo.
+ */
+const LOTE_SIMULTANEO = 4;
+
+/** O que sobrou de uma ação em massa: o que gravou e o que não. */
+export type ResultadoEmMassa = {
+  gravados: number;
+  /** Nome dos itens que não gravaram. A tela os NOMEIA, não os conta. */
+  falharam: string[];
+};
 
 /*
  * Os rascunhos moram em `menu-model.ts` — forma de dados, sem React. Ficam
@@ -67,8 +103,23 @@ export function useMenu(branchId: string) {
 
   /** Id da categoria que acabou de trocar de posição, para o realce. */
   const [movedCategoryId, setMovedCategoryId] = useState<string | null>(null);
+  /** O mesmo, para o produto: quem se moveu numa lista de 40 some no meio. */
+  const [movedProductId, setMovedProductId] = useState<string | null>(null);
   /** Produtos com a disponibilidade em voo, para travar o interruptor. */
   const [pendingAvailability, setPendingAvailability] = useState<readonly string[]>([]);
+
+  /*
+   * A SELEÇÃO MORA AQUI, e não na tela, por causa de um bug específico: ela é
+   * uma lista de ids, e trocar de categoria (ou digitar na busca) troca os
+   * produtos debaixo dela. Guardada na página, uma seleção de três itens
+   * sobreviveria à troca e a ação em massa cairia sobre ids que não estão mais
+   * na tela — o lojista marcaria "esgotado" em itens que ele não está vendo.
+   *
+   * Aqui ela é limpa no mesmo lugar em que a lista muda, que é o único jeito de
+   * as duas coisas não divergirem.
+   */
+  const [selectedIds, setSelectedIds] = useState<readonly string[]>([]);
+  const [isBulkSaving, setIsBulkSaving] = useState(false);
 
   // Descarta a resposta de uma busca que já não é a atual.
   const productRequestRef = useRef(0);
@@ -95,6 +146,7 @@ export function useMenu(branchId: string) {
     setSelectedCategoryId(null);
     setProducts([]);
     setProductCounts({});
+    setSelectedIds([]);
     setTotalInCategory(0);
     setErrorMessage(null);
     setIsLoadingCategories(branchId !== '');
@@ -209,6 +261,9 @@ export function useMenu(branchId: string) {
         if (requestId !== productRequestRef.current) return;
         setProducts(sortProducts(page.items));
         setTotalInCategory(page.total);
+        // A lista trocou: a seleção era da lista anterior. Ver o comentário do
+        // estado `selectedIds`.
+        setSelectedIds([]);
         setErrorMessage(null);
       } catch (error) {
         if (requestId !== productRequestRef.current) return;
@@ -296,14 +351,11 @@ export function useMenu(branchId: string) {
    * parcial para a outra, e por isso `branch_id` acompanha o corpo — é ele que
    * diz ao backend qual das duas leituras a lista pretende ser.
    */
-  const reorderCategory = useCallback(
-    async (index: number, direction: -1 | 1) => {
-      const reordered = moveCategory(categories, index, direction);
-      if (!reordered) return;
-
+  const gravarOrdemDasCategorias = useCallback(
+    async (reordered: Category[], movedId: string | null) => {
       const previous = categories;
       setCategories(reordered);
-      setMovedCategoryId(reordered[index + direction]?.id ?? null);
+      setMovedCategoryId(movedId);
 
       try {
         const saved = await reorderCategories(branchId, categoryIdsForReorder(reordered));
@@ -317,7 +369,168 @@ export function useMenu(branchId: string) {
     [branchId, categories],
   );
 
+  /** As setas: sobe um, desce um. */
+  const reorderCategory = useCallback(
+    async (index: number, direction: -1 | 1) => {
+      const reordered = moveCategory(categories, index, direction);
+      if (!reordered) return;
+      await gravarOrdemDasCategorias(reordered, categories[index]?.id ?? null);
+    },
+    [categories, gravarOrdemDasCategorias],
+  );
+
+  /**
+   * O arrastar: sai de uma posição, entra em outra.
+   *
+   * MESMA GRAVAÇÃO DAS SETAS, e é o que garante que os dois caminhos nunca
+   * produzam ordens diferentes — o que muda entre eles é só como o índice de
+   * destino é escolhido.
+   */
+  const reorderCategoryTo = useCallback(
+    async (from: number, to: number) => {
+      const reordered = moveInList(categories, from, to);
+      if (!reordered) return;
+      await gravarOrdemDasCategorias(reordered, categories[from]?.id ?? null);
+    },
+    [categories, gravarOrdemDasCategorias],
+  );
+
   const clearMovedCategory = useCallback(() => setMovedCategoryId(null), []);
+  const clearMovedProduct = useCallback(() => setMovedProductId(null), []);
+
+  /* ========================================================================
+   * A SELEÇÃO E A AÇÃO EM MASSA
+   * ===================================================================== */
+
+  const toggleSelected = useCallback((productId: string) => {
+    setSelectedIds((current) =>
+      current.includes(productId)
+        ? current.filter((id) => id !== productId)
+        : [...current, productId],
+    );
+  }, []);
+
+  /**
+   * Marca ou desmarca TODOS os itens que a lista está mostrando.
+   *
+   * "Todos" é o que está NA TELA, e não a categoria inteira: a lista é paginada
+   * e pode estar filtrada pela busca, e marcar o que não se vê é como cinco
+   * itens viram quarenta sem ninguém ter pedido. Quem chama diz o número na
+   * própria caixa.
+   */
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((current) => (current.length > 0 ? [] : products.map((item) => item.id)));
+  }, [products]);
+
+  const clearSelection = useCallback(() => setSelectedIds([]), []);
+
+  /**
+   * ESGOTAR (OU REPOR) VÁRIOS DE UMA VEZ.
+   *
+   * NÃO EXISTE ROTA EM LOTE — ver `LOTE_SIMULTANEO`. São N chamadas à MESMA
+   * rota do interruptor da linha, e é isso que faz o papel desta ação ser
+   * exatamente o mesmo do individual: `PATCH /admin/products/{id}/availability`
+   * é `PESSOAS`, então o balcão continua podendo. Não há botão a esconder.
+   *
+   * **NÃO É ATÔMICO, E A TELA DIZ QUANDO NÃO FOI.** Três de cinco podem gravar.
+   * Um "não deu certo" genérico depois de meia gravação é a pior resposta
+   * possível aqui: o lojista não sabe quais itens releu o estado errado, e no
+   * meio do serviço ele não vai conferir cinco linhas uma a uma. Por isso o que
+   * volta são os NOMES do que falhou.
+   *
+   * O estado é aplicado item a item, conforme cada resposta chega, e não num
+   * `setProducts` no fim: com quarenta itens, a lista ficaria parada por vários
+   * segundos e depois piscaria inteira.
+   */
+  const setAvailabilityForMany = useCallback(
+    async (isAvailable: boolean): Promise<ResultadoEmMassa | null> => {
+      const alvos = products.filter((item) => selectedIds.includes(item.id));
+      if (alvos.length === 0) return null;
+
+      setIsBulkSaving(true);
+      setPendingAvailability((current) => [...current, ...alvos.map((item) => item.id)]);
+
+      const falharam: string[] = [];
+      let gravados = 0;
+
+      for (let i = 0; i < alvos.length; i += LOTE_SIMULTANEO) {
+        const lote = alvos.slice(i, i + LOTE_SIMULTANEO);
+        await Promise.all(
+          lote.map(async (item) => {
+            try {
+              const saved = await setProductAvailability(item.id, isAvailable);
+              gravados += 1;
+              setProducts((current) =>
+                current.map((linha) => (linha.id === saved.id ? saved : linha)),
+              );
+            } catch {
+              /*
+               * A MENSAGEM DE CADA FALHA NÃO SOBE, e é uma escolha: com cinco
+               * itens seriam cinco frases idênticas do backend. O que muda de
+               * item para item — e o que o lojista precisa — é QUAL item ficou
+               * para trás. A linha dele continua no estado antigo, porque nada
+               * foi aplicado de forma otimista aqui.
+               */
+              falharam.push(item.name);
+            }
+          }),
+        );
+      }
+
+      setPendingAvailability((current) =>
+        current.filter((id) => !alvos.some((item) => item.id === id)),
+      );
+      setIsBulkSaving(false);
+      /*
+       * A SELEÇÃO SÓ SAI QUANDO TUDO GRAVOU. Com falha, ela FICA — é o que
+       * permite tentar de novo sem remarcar item por item, que é o mínimo a
+       * oferecer a quem está no meio do serviço.
+       */
+      if (falharam.length === 0) setSelectedIds([]);
+      return { gravados, falharam };
+    },
+    [products, selectedIds],
+  );
+
+  /**
+   * A NOVA ORDEM DOS ITENS DA CATEGORIA ABERTA.
+   *
+   * O corpo é a lista COMPLETA da categoria, e é por isso que a tela só oferece
+   * o arrastar quando ela está inteira na mão (`podeReordenarProdutos`): com a
+   * busca ligada a lista é um recorte, e acima de 50 itens ela chega pela
+   * metade. A conferência é repetida AQUI, e não só na tela, porque quem chama
+   * não é o único caminho — um atalho de teclado ou um teste chamando direto
+   * mandaria a lista curta, e o 400 do backend só apareceria como tarja
+   * vermelha sem explicar o motivo.
+   *
+   * Otimista como o resto das ações de um clique: a lista muda na hora e volta
+   * ao lugar se o backend recusar.
+   */
+  const reorderProductTo = useCallback(
+    async (from: number, to: number) => {
+      if (!selectedCategoryId) return;
+      if (!podeReordenarProdutos({ search, loaded: products.length, total: totalInCategory })) {
+        return;
+      }
+
+      const reordered = moveInList(products, from, to);
+      if (!reordered) return;
+
+      const previous = products;
+      setProducts(reordered);
+      setMovedProductId(products[from]?.id ?? null);
+
+      try {
+        const saved = await reorderProducts(selectedCategoryId, productIdsForReorder(reordered));
+        setProducts(sortProducts(saved));
+        setErrorMessage(null);
+      } catch (error) {
+        setProducts(previous);
+        setErrorMessage(messageFromUnknownError(error));
+      }
+    },
+    [products, search, selectedCategoryId, totalInCategory],
+  );
 
   /** Criar ou renomear/ativar categoria. Não existe excluir: existe desativar. */
   const saveCategory = useCallback(
@@ -535,12 +748,31 @@ export function useMenu(branchId: string) {
     isLoadingProducts,
     errorMessage,
     movedCategoryId,
+    movedProductId,
     pendingAvailability,
+    selectedIds,
+    isBulkSaving,
+    /*
+     * PODE ARRASTAR ITEM AGORA? A tela precisa da resposta para desenhar o
+     * punho — e para dizer o MOTIVO quando não dá, em vez de sumir com ele.
+     */
+    canReorderProducts: podeReordenarProdutos({
+      search,
+      loaded: products.length,
+      total: totalInCategory,
+    }),
     clearError: () => setErrorMessage(null),
     clearMovedCategory,
+    clearMovedProduct,
+    clearSelection,
+    setAvailabilityForMany,
+    toggleSelectAll,
+    toggleSelected,
     loadMoreProducts,
     refreshProducts,
     reorderCategory,
+    reorderCategoryTo,
+    reorderProductTo,
     saveCategory,
     saveProduct,
     selectCategory,
