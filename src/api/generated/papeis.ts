@@ -44,6 +44,8 @@ export const PAPEL_POR_ROTA = {
   '/admin/branches': { GET: 'PESSOAS' },
   '/admin/branches/{branch_id}': { GET: 'PESSOAS', PATCH: 'GERENCIA' },
   '/admin/branches/{branch_id}/business-hours': { GET: 'PESSOAS', PUT: 'GERENCIA' },
+  '/admin/branches/{branch_id}/delivery-pause': { PATCH: 'PESSOAS' },
+  '/admin/branches/{branch_id}/delivery-time-bands': { GET: 'PESSOAS', PUT: 'GERENCIA' },
   '/admin/branches/{branch_id}/order-types': { PATCH: 'GERENCIA' },
   '/admin/branches/{branch_id}/payment-methods': { GET: 'PESSOAS', POST: 'GERENCIA' },
   '/admin/branches/{branch_id}/prep-time': { PATCH: 'PESSOAS' },

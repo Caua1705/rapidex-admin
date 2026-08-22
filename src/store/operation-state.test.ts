@@ -10,9 +10,27 @@ function filial(overrides: Partial<BranchOperation> = {}): BranchOperation {
     is_open: true,
     is_open_now: true,
     accepts_delivery: true,
+    /*
+     * A PAUSA DE ENTREGA entrou numa rodada do backend que este painel ainda
+     * não lê. `accepts_delivery_now` é o `accepts_delivery` já descontada a
+     * pausa temporária; sem pausa, os dois são iguais — que é o estado em que
+     * a migração cria as filiais e o único que estes testes ensaiam.
+     */
+    accepts_delivery_now: true,
     accepts_pickup: true,
     overrides: {},
-    effective: { min_order_value: 20, service_fee_enabled: true, service_fee_amount: 2 },
+    /*
+     * `free_delivery_enabled` entrou no `effective` numa rodada de ENTREGA do
+     * backend, e o painel ainda não a lê. Ela está aqui porque o contrato a
+     * exige, e com o valor que a migração dá — desligada: um fixture que a
+     * afirmasse ligada faria este teste ensaiar uma operação que não existe.
+     */
+    effective: {
+      min_order_value: 20,
+      service_fee_enabled: true,
+      service_fee_amount: 2,
+      free_delivery_enabled: false,
+    },
     ...overrides,
   };
 }

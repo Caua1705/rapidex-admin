@@ -1527,6 +1527,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       is_open: dia.is_open,
       is_open_now: dia.is_open && dia.withinHours,
       accepts_delivery: dia.accepts_delivery,
+      // Ver a nota da entrega grátis abaixo: rodada de entrega que o painel
+      // ainda não lê. Sem pausa, "aceita agora" é o mesmo que "aceita".
+      accepts_delivery_now: dia.accepts_delivery,
       accepts_pickup: dia.accepts_pickup,
       overrides,
       /*
@@ -1545,6 +1548,13 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         default_delivery_fee: overrides.default_delivery_fee ?? padrao.default_delivery_fee,
         service_fee_enabled: overrides.service_fee_enabled ?? padrao.service_fee_enabled !== false,
         service_fee_amount: overrides.service_fee_amount ?? padrao.service_fee_amount,
+        /*
+         * A ENTREGA GRÁTIS entrou no `effective` numa rodada de entrega do
+         * backend que este painel ainda não lê. Ela está aqui porque o contrato
+         * a exige, e DESLIGADA, que é como a migração a cria: um falso que a
+         * afirmasse ligada faria a tela ensaiar uma operação inexistente.
+         */
+        free_delivery_enabled: false,
       },
     };
   }

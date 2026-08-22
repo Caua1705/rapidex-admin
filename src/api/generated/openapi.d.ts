@@ -169,6 +169,78 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/admin/branches/{branch_id}/delivery-pause': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Pause Branch Delivery
+     * @description Pausa a entrega desta filial por ate 24 horas — e so por um tempo.
+     *
+     *     `{"minutes": 40, "reason": "chuva forte"}` pausa; `{"minutes": 0}`
+     *     retoma na hora. Nao ha DELETE porque "pare por 40 minutos" e "volte
+     *     agora" sao o mesmo botao na mesma tela.
+     *
+     *     **Isto nao substitui `order-types`.** Aquele desliga a entrega por tempo
+     *     indeterminado e espera alguem religar; este vence sozinho. A distincao
+     *     importa porque o dia em que a pausa e usada — chuva as 19h, entregador
+     *     que sumiu — e exatamente o dia em que ninguem lembra de desfaze-la, e a
+     *     loja amanheceria aberta sem aceitar entrega, com a ausencia de pedido
+     *     como unico sintoma.
+     *
+     *     O motivo sai para o CLIENTE junto do horario de volta ("A entrega esta
+     *     pausada. Motivo: chuva forte. Voltamos a entregar as 20:30."): pausa sem
+     *     prazo faz o cliente fechar o app, com prazo ele volta.
+     */
+    patch: operations['pause_branch_delivery_admin_branches__branch_id__delivery_pause_patch'];
+    trace?: never;
+  };
+  '/admin/branches/{branch_id}/delivery-time-bands': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Delivery Time Bands
+     * @description As faixas de prazo desta filial, do teto menor para o maior.
+     *
+     *     Lista vazia significa "esta filial nao configurou faixas", e o prazo
+     *     continua saindo do tempo de rota do Google — nao e erro nem falta.
+     */
+    get: operations['list_delivery_time_bands_admin_branches__branch_id__delivery_time_bands_get'];
+    /**
+     * Replace Delivery Time Bands
+     * @description Substitui TODAS as faixas da filial pelas do corpo.
+     *
+     *     PUT e nao PATCH pela mesma razao do horario de funcionamento: a tela e
+     *     uma tabelinha que o lojista salva junta. E com a mesma armadilha —
+     *     **`{"bands": []}` apaga tudo**, e o resultado nao e "sem entrega": e o
+     *     prazo voltando a sair do tempo do Google.
+     *
+     *     `max_distance_km` e um TETO. Vale a primeira faixa, em ordem crescente,
+     *     cujo teto alcanca a distancia do endereco; nao ha piso, e por isso nao ha
+     *     buraco entre faixas. Os minutos sao o DESLOCAMENTO — o tempo de preparo
+     *     da filial soma por cima.
+     */
+    put: operations['replace_delivery_time_bands_admin_branches__branch_id__delivery_time_bands_put'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/admin/branches/{branch_id}/order-types': {
     parameters: {
       query?: never;
@@ -2201,6 +2273,35 @@ export interface components {
       zipcode?: string | null;
     };
     /**
+     * AdminBranchDeliveryPauseRequest
+     * @description Pausa a entrega desta filial por um tempo, e so por um tempo.
+     *
+     *     `minutes` conta a partir de AGORA. `0` retoma a entrega na hora — e o
+     *     botao "voltamos" de quem parou por 60 minutos e resolveu em 20.
+     *
+     *     **Por que a pausa tem prazo, se `accepts_delivery` ja existe.** Aquele
+     *     resolve "desligar sem apagar configuracao"; o que ele nao resolve e o
+     *     *temporariamente*. Uma chave manual precisa de alguem que lembre de
+     *     desliga-la, e o dia em que ela e usada — chuva as 19h, entregador que
+     *     sumiu — e exatamente o dia em que ninguem lembra. A loja amanhece aberta
+     *     sem aceitar entrega, e o unico sintoma e a ausencia de pedido, que nao
+     *     acende alarme nenhum.
+     *
+     *     O teto de 24h e o que impede esta rota de virar um segundo
+     *     `accepts_delivery`: pausa de tres dias e a chave estrutural com passos a
+     *     mais, e ai a distincao acima deixa de existir.
+     *
+     *     `reason` e mostrado AO CLIENTE junto do horario de volta ("Voltamos a
+     *     entregar as 20:30"). Sem prazo, o cliente fecha o app; com prazo, ele
+     *     volta.
+     */
+    AdminBranchDeliveryPauseRequest: {
+      /** Minutes */
+      minutes: number;
+      /** Reason */
+      reason?: string | null;
+    };
+    /**
      * AdminBranchOperationEffective
      * @description O que o PROXIMO PEDIDO desta filial vai usar. Filial mesclada com padrao.
      */
@@ -2211,6 +2312,10 @@ export interface components {
       estimated_delivery_time_max?: number | null;
       /** Estimated Delivery Time Min */
       estimated_delivery_time_min?: number | null;
+      /** Free Delivery Enabled */
+      free_delivery_enabled: boolean;
+      /** Free Delivery Min Order Value */
+      free_delivery_min_order_value?: number | null;
       /** Min Order Value */
       min_order_value: number;
       /** Service Fee Amount */
@@ -2234,6 +2339,10 @@ export interface components {
       estimated_delivery_time_max?: number | null;
       /** Estimated Delivery Time Min */
       estimated_delivery_time_min?: number | null;
+      /** Free Delivery Enabled */
+      free_delivery_enabled?: boolean | null;
+      /** Free Delivery Min Order Value */
+      free_delivery_min_order_value?: number | null;
       /** Min Order Value */
       min_order_value?: number | null;
       /** Service Fee Amount */
@@ -2254,6 +2363,11 @@ export interface components {
     AdminBranchOperationResponse: {
       /** Accepts Delivery */
       accepts_delivery: boolean;
+      /**
+       * Accepts Delivery Now
+       * @default true
+       */
+      accepts_delivery_now: boolean;
       /** Accepts Pickup */
       accepts_pickup: boolean;
       /**
@@ -2263,6 +2377,10 @@ export interface components {
       branch_id: string;
       /** Branch Name */
       branch_name: string;
+      /** Delivery Pause Reason */
+      delivery_pause_reason?: string | null;
+      /** Delivery Paused Until */
+      delivery_paused_until?: string | null;
       effective: components['schemas']['AdminBranchOperationEffective'];
       /** Is Open */
       is_open: boolean;
@@ -2367,6 +2485,10 @@ export interface components {
       estimated_delivery_time_max?: number | null;
       /** Estimated Delivery Time Min */
       estimated_delivery_time_min?: number | null;
+      /** Free Delivery Enabled */
+      free_delivery_enabled?: boolean | null;
+      /** Free Delivery Min Order Value */
+      free_delivery_min_order_value?: number | string | null;
       /** Min Order Value */
       min_order_value?: number | string | null;
       /** Service Fee Amount */
@@ -3154,6 +3276,10 @@ export interface components {
       estimated_delivery_time_max?: number | null;
       /** Estimated Delivery Time Min */
       estimated_delivery_time_min?: number | null;
+      /** Free Delivery Enabled */
+      free_delivery_enabled?: boolean | null;
+      /** Free Delivery Min Order Value */
+      free_delivery_min_order_value?: number | null;
       /** Min Order Value */
       min_order_value: number;
       /** Receipt Footer Message */
@@ -3189,6 +3315,10 @@ export interface components {
       estimated_delivery_time_max?: number | null;
       /** Estimated Delivery Time Min */
       estimated_delivery_time_min?: number | null;
+      /** Free Delivery Enabled */
+      free_delivery_enabled?: boolean | null;
+      /** Free Delivery Min Order Value */
+      free_delivery_min_order_value?: number | string | null;
       /** Min Order Value */
       min_order_value?: number | string | null;
       /** Receipt Footer Message */
@@ -4656,6 +4786,44 @@ export interface components {
       /** Travel Time Min */
       travel_time_min?: number | null;
     };
+    /**
+     * DeliveryTimeBandInput
+     * @description Uma faixa de prazo por distancia.
+     *
+     *     `max_distance_km` e um TETO, e nao um intervalo: vale a primeira faixa,
+     *     em ordem crescente, cujo teto alcanca a distancia. Nao ha campo de piso
+     *     de proposito — com piso daria para cadastrar `0-5` e `6-10` e deixar o
+     *     endereco de 5.4 km sem faixa nenhuma, um buraco que aparece no endereco
+     *     de um cliente especifico e some quando alguem vai conferir.
+     *
+     *     Os minutos sao o DESLOCAMENTO, e nao o prazo total: o preparo da filial
+     *     (o da faixa de horario, que o botao de "+10 min" do almoco ajusta)
+     *     continua somando por cima.
+     */
+    DeliveryTimeBandInput: {
+      /** Delivery Time Max */
+      delivery_time_max: number;
+      /** Delivery Time Min */
+      delivery_time_min: number;
+      /** Max Distance Km */
+      max_distance_km: number | string;
+    };
+    /**
+     * DeliveryTimeBandsReplaceRequest
+     * @description Todas as faixas da filial, de uma vez.
+     *
+     *     Substitui em vez de editar faixa a faixa pelo mesmo motivo do horario de
+     *     funcionamento: a tela e uma tabelinha que o lojista salva junto, e editar
+     *     linha a linha exigiria id de faixa no painel e deixaria a tabela pela
+     *     metade se uma das chamadas falhasse.
+     *
+     *     **Lista vazia e valido, e significa "volte a usar o tempo do Google"** —
+     *     nao "sem entrega". E como se desfaz a configuracao inteira.
+     */
+    DeliveryTimeBandsReplaceRequest: {
+      /** Bands */
+      bands?: components['schemas']['DeliveryTimeBandInput'][];
+    };
     /** ForgotPasswordRequest */
     ForgotPasswordRequest: {
       /** Email */
@@ -5909,16 +6077,34 @@ export interface components {
        */
       accepts_delivery: boolean | null;
       /**
+       * Accepts Delivery Now
+       * @default true
+       */
+      accepts_delivery_now: boolean;
+      /**
        * Accepts Pickup
        * @default true
        */
       accepts_pickup: boolean | null;
       /** Default Delivery Fee */
       default_delivery_fee: number;
+      /** Delivery Pause Reason */
+      delivery_pause_reason?: string | null;
+      /** Delivery Paused Until */
+      delivery_paused_until?: string | null;
+      /** Delivery Time Bands */
+      delivery_time_bands?: components['schemas']['src__schemas__restaurant_schema__DeliveryTimeBandResponse'][];
       /** Estimated Delivery Time Max */
       estimated_delivery_time_max?: number | null;
       /** Estimated Delivery Time Min */
       estimated_delivery_time_min?: number | null;
+      /**
+       * Free Delivery Enabled
+       * @default false
+       */
+      free_delivery_enabled: boolean;
+      /** Free Delivery Min Order Value */
+      free_delivery_min_order_value?: number | null;
       /**
        * Is Open
        * @default true
@@ -6178,6 +6364,46 @@ export interface components {
       restaurant_id: string;
       /** Revenue Total */
       revenue_total: string;
+    };
+    /** DeliveryTimeBandResponse */
+    src__schemas__admin_settings_schema__DeliveryTimeBandResponse: {
+      /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
+      /** Delivery Time Max */
+      delivery_time_max: number;
+      /** Delivery Time Min */
+      delivery_time_min: number;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Max Distance Km */
+      max_distance_km: number;
+    };
+    /**
+     * DeliveryTimeBandResponse
+     * @description Uma faixa de prazo por distancia.
+     *
+     *     `max_distance_km` e um TETO: vale a primeira faixa, em ordem crescente,
+     *     cujo teto alcanca a distancia do endereco. Nao ha piso porque nao ha
+     *     buraco — a faixa anterior cobre tudo abaixo dela.
+     *
+     *     Os minutos sao o DESLOCAMENTO, e nao o prazo total: o preparo da filial
+     *     soma por cima, e e o servidor que faz essa conta em
+     *     `POST /delivery/estimate`. Somar aqui, no app, daria dois numeros
+     *     diferentes para o mesmo pedido.
+     */
+    src__schemas__restaurant_schema__DeliveryTimeBandResponse: {
+      /** Delivery Time Max */
+      delivery_time_max: number;
+      /** Delivery Time Min */
+      delivery_time_min: number;
+      /** Max Distance Km */
+      max_distance_km: number;
     };
     /** PaymentMethodsResponse */
     src__schemas__restaurant_schema__PaymentMethodsResponse: {
@@ -6451,6 +6677,107 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['BusinessHourResponse'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  pause_branch_delivery_admin_branches__branch_id__delivery_pause_patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        branch_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AdminBranchDeliveryPauseRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminBranchOperationResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  list_delivery_time_bands_admin_branches__branch_id__delivery_time_bands_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        branch_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['src__schemas__admin_settings_schema__DeliveryTimeBandResponse'][];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  replace_delivery_time_bands_admin_branches__branch_id__delivery_time_bands_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        branch_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DeliveryTimeBandsReplaceRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['src__schemas__admin_settings_schema__DeliveryTimeBandResponse'][];
         };
       };
       /** @description Validation Error */
