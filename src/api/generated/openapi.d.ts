@@ -1287,6 +1287,49 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/admin/reports/funnel': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Funnel Report
+     * @description Visita, produto aberto, item no carrinho, checkout e pedido.
+     *
+     *     O unico relatorio que enxerga quem NAO comprou. Sem ele, poucos pedidos
+     *     tem dois diagnosticos opostos — ninguem entrou no cardapio, ou entrou e
+     *     desistiu — e nenhuma forma de distinguir os dois.
+     *
+     *     Os quatro primeiros degraus contam SESSOES; o quinto conta PEDIDOS, e
+     *     conta todos, cancelados e recusados inclusive: o funil mede se a pessoa
+     *     terminou de pedir, e a loja recusar depois e outro problema, com outra
+     *     solucao. **Por isso este numero nao fecha com o `orders_count` de
+     *     `/reports/summary`**, e a resposta carrega a ressalva em `orders_note`.
+     *
+     *     `sources` lista TODAS as origens do periodo mesmo quando `source` esta
+     *     preenchido: filtrada, ela teria uma linha so e nao responderia nada. O
+     *     filtro recorta os degraus.
+     *
+     *     GERENCIA e nao SOMENTE_DONO: nao ha um numero de dinheiro nesta resposta,
+     *     e quem toca o balcao de uma loja e quem consegue agir sobre o que ela
+     *     mostra.
+     *
+     *     **O periodo util e menor que o dos outros relatorios.** O evento de funil
+     *     vence em 90 dias — o teto de 92 dias vale igual, mas um recorte que
+     *     comece antes disso devolve degraus vazios com o quinto cheio, porque o
+     *     pedido fica para sempre e o funil nao.
+     */
+    get: operations['funnel_report_admin_reports_funnel_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/admin/reports/payment-methods': {
     parameters: {
       query?: never;
@@ -1864,6 +1907,43 @@ export interface paths {
     get: operations['health_check_health_get'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/menu-events': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Record Menu Events
+     * @description Registra um lote de eventos do funil.
+     *
+     *     O corpo leva `restaurant_id`, `branch_id`, `session_id` e `source` UMA
+     *     vez, e a lista de eventos dentro. Ate 50 por lote; acima disso o corpo
+     *     inteiro e recusado com 422, nunca truncado — um lote cortado pela metade
+     *     entregaria um funil silenciosamente errado.
+     *
+     *     **Nao ha campo de instante.** O horario e o do servidor, para o funil nao
+     *     depender do relogio do celular de quem navega.
+     *
+     *     **Nao ha campo de cliente.** Nem quando a pessoa esta logada: ligar sessao
+     *     a pessoa transformaria a contagem em historico comportamental
+     *     identificado, e nenhum relatorio precisa disso. Ver a secao 5 do
+     *     documento.
+     *
+     *     `source` desconhecido nao e erro: vira `direct`. Recusar aqui nao
+     *     consertaria o QR impresso com defeito — so apagaria o dado que se quer
+     *     coletar.
+     */
+    post: operations['record_menu_events_menu_events_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -4442,6 +4522,8 @@ export interface components {
       order_type: string;
       /** Payment Method */
       payment_method?: string | null;
+      /** Source */
+      source?: string | null;
     };
     /** CreateOrderResponse */
     CreateOrderResponse: {
@@ -4829,6 +4911,79 @@ export interface components {
       /** Email */
       email: string;
     };
+    /**
+     * FunnelResponse
+     * @description O funil do cardapio no periodo, e a divisao por origem.
+     *
+     *     Responde a pergunta que o resto do painel nao alcanca: poucos pedidos
+     *     porque ninguem entrou, ou porque quem entrou nao comprou? Sao
+     *     diagnosticos opostos, com solucoes opostas.
+     *
+     *     `source` nulo significa "todas as origens" — o mesmo formato de
+     *     `branch_id`, e nunca "sem origem". Pedido e evento sem identificador tem
+     *     `direct` gravado, e quem quiser so esses passa `source=direct`.
+     */
+    FunnelResponse: {
+      /** Branch Id */
+      branch_id?: string | null;
+      /** Orders Count */
+      orders_count: number;
+      /** Orders Note */
+      orders_note: string;
+      period: components['schemas']['ReportPeriod'];
+      /**
+       * Restaurant Id
+       * Format: uuid
+       */
+      restaurant_id: string;
+      /** Source */
+      source?: string | null;
+      /** Sources */
+      sources: components['schemas']['FunnelSourceItem'][];
+      /** Steps */
+      steps: components['schemas']['FunnelStepItem'][];
+    };
+    /**
+     * FunnelSourceItem
+     * @description Uma origem, com o que ela trouxe e o que ela converteu.
+     *
+     *     `sessions_count` conta so quem VISITOU o cardapio (o primeiro degrau).
+     *     Somar os quatro degraus aqui contaria a mesma sessao uma vez por degrau
+     *     alcancado, e a origem que converte melhor apareceria com mais "sessoes" —
+     *     inflando justamente o numero que serve de denominador.
+     */
+    FunnelSourceItem: {
+      /** Conversion Percent */
+      conversion_percent?: string | null;
+      /** Orders Count */
+      orders_count: number;
+      /** Sessions Count */
+      sessions_count: number;
+      /** Source */
+      source: string;
+    };
+    /**
+     * FunnelStepItem
+     * @description Um degrau do funil.
+     *
+     *     `count` conta SESSOES nos quatro degraus do cardapio e PEDIDOS no ultimo.
+     *     A troca de unidade e dita aqui em vez de escondida atras de uma palavra
+     *     unica porque ela e real: uma sessao que fecha dois pedidos vira dois no
+     *     ultimo degrau e um em todos os anteriores. E raro e nao atrapalha a
+     *     leitura de tendencia, mas quem for somar as colunas precisa saber.
+     *
+     *     `conversion_from_previous_percent` e nulo no primeiro degrau — nao ha
+     *     anterior — e tambem quando o anterior foi zero, pela mesma regra de todo
+     *     o resto do painel: nao existe variacao percentual a partir de zero.
+     */
+    FunnelStepItem: {
+      /** Conversion From Previous Percent */
+      conversion_from_previous_percent?: string | null;
+      /** Count */
+      count: number;
+      /** Step */
+      step: string;
+    };
     /** HTTPValidationError */
     HTTPValidationError: {
       /** Detail */
@@ -4933,6 +5088,67 @@ export interface components {
       requires_email_verification: boolean;
       /** Token Type */
       token_type?: string | null;
+    };
+    /**
+     * MenuEventBatchRequest
+     * @description O lote que o cardapio manda.
+     *
+     *     `extra="ignore"` e nao `"forbid"`, ao contrario da avaliacao: esta rota e
+     *     disparada por `navigator.sendBeacon` no fechamento da aba, onde nao ha
+     *     ninguem para ler um 422. Campo desconhecido vindo de uma versao mais nova
+     *     do front nao pode custar o lote inteiro.
+     */
+    MenuEventBatchRequest: {
+      /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
+      /** Events */
+      events: components['schemas']['MenuEventInput'][];
+      /**
+       * Restaurant Id
+       * Format: uuid
+       */
+      restaurant_id: string;
+      /** Session Id */
+      session_id: string;
+      /** Source */
+      source?: string | null;
+    };
+    /**
+     * MenuEventBatchResponse
+     * @description Quantos eventos entraram.
+     *
+     *     Existe para o front conseguir distinguir "gravei" de "engoli" durante o
+     *     desenvolvimento. Em producao ninguem le: o `sendBeacon` nem entrega a
+     *     resposta a pagina.
+     */
+    MenuEventBatchResponse: {
+      /** Recorded */
+      recorded: number;
+    };
+    /**
+     * MenuEventInput
+     * @description Um degrau, sem quem nem quando.
+     *
+     *     **Nao tem instante.** O `occurred_at` e do SERVIDOR: relogio de celular
+     *     erra, as vezes por meses, e um evento datado em 2027 nao apareceria em
+     *     erro nenhum — ele sumiria da janela do relatorio e o numero ficaria
+     *     errado para sempre, sem nada no log.
+     *
+     *     A consequencia assumida e que o lote inteiro chega com o instante da
+     *     requisicao, e nao o de cada toque. Para contar quantas sessoes chegaram a
+     *     cada degrau, a diferenca de segundos nao muda nada.
+     */
+    MenuEventInput: {
+      /**
+       * Event Type
+       * @enum {string}
+       */
+      event_type: 'menu_view' | 'product_view' | 'cart_add' | 'checkout_start';
+      /** Product Id */
+      product_id?: string | null;
     };
     /** MessageResponse */
     MessageResponse: {
@@ -8417,6 +8633,8 @@ export interface operations {
         end_date: string;
         /** @description Recorte por filial. Omitido, soma o restaurante inteiro. So restringe. */
         branch_id?: string | null;
+        /** @description Recorte por origem (o identificador da URL do cardapio, ex.: 'qr-mesa-04'). Omitido, soma todas. 'direct' e quem chegou sem identificador. */
+        source?: string | null;
       };
       header?: never;
       path?: never;
@@ -8453,6 +8671,8 @@ export interface operations {
         end_date: string;
         /** @description Recorte por filial. Omitido, soma o restaurante inteiro. So restringe. */
         branch_id?: string | null;
+        /** @description Recorte por origem (o identificador da URL do cardapio, ex.: 'qr-mesa-04'). Omitido, soma todas. 'direct' e quem chegou sem identificador. */
+        source?: string | null;
       };
       header?: never;
       path?: never;
@@ -8480,6 +8700,44 @@ export interface operations {
       };
     };
   };
+  funnel_report_admin_reports_funnel_get: {
+    parameters: {
+      query: {
+        /** @description Primeiro dia do periodo (inclusive) */
+        start_date: string;
+        /** @description Ultimo dia do periodo (inclusive) */
+        end_date: string;
+        /** @description Recorte por filial. Omitido, soma o restaurante inteiro. So restringe. */
+        branch_id?: string | null;
+        /** @description Recorte por origem (o identificador da URL do cardapio, ex.: 'qr-mesa-04'). Omitido, soma todas. 'direct' e quem chegou sem identificador. */
+        source?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['FunnelResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   payment_methods_report_admin_reports_payment_methods_get: {
     parameters: {
       query: {
@@ -8489,6 +8747,8 @@ export interface operations {
         end_date: string;
         /** @description Recorte por filial. Omitido, soma o restaurante inteiro. So restringe. */
         branch_id?: string | null;
+        /** @description Recorte por origem (o identificador da URL do cardapio, ex.: 'qr-mesa-04'). Omitido, soma todas. 'direct' e quem chegou sem identificador. */
+        source?: string | null;
       };
       header?: never;
       path?: never;
@@ -8525,6 +8785,8 @@ export interface operations {
         end_date: string;
         /** @description Recorte por filial. Omitido, soma o restaurante inteiro. So restringe. */
         branch_id?: string | null;
+        /** @description Recorte por origem (o identificador da URL do cardapio, ex.: 'qr-mesa-04'). Omitido, soma todas. 'direct' e quem chegou sem identificador. */
+        source?: string | null;
         /** @description Quantos produtos o ranking devolve */
         limit?: number;
       };
@@ -8563,6 +8825,8 @@ export interface operations {
         end_date: string;
         /** @description Recorte por filial. Omitido, soma o restaurante inteiro. So restringe. */
         branch_id?: string | null;
+        /** @description Recorte por origem (o identificador da URL do cardapio, ex.: 'qr-mesa-04'). Omitido, soma todas. 'direct' e quem chegou sem identificador. */
+        source?: string | null;
       };
       header?: never;
       path?: never;
@@ -8599,6 +8863,8 @@ export interface operations {
         end_date: string;
         /** @description Recorte por filial. Omitido, soma o restaurante inteiro. So restringe. */
         branch_id?: string | null;
+        /** @description Recorte por origem (o identificador da URL do cardapio, ex.: 'qr-mesa-04'). Omitido, soma todas. 'direct' e quem chegou sem identificador. */
+        source?: string | null;
       };
       header?: never;
       path?: never;
@@ -9504,6 +9770,39 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['HealthResponse'];
+        };
+      };
+    };
+  };
+  record_menu_events_menu_events_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MenuEventBatchRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MenuEventBatchResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };
