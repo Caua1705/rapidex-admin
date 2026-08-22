@@ -7,6 +7,7 @@ import {
   ChatIcon,
   CouponIcon,
   CustomersIcon,
+  FunnelIcon,
   IntegrationsIcon,
   KitchenIcon,
   MenuIcon,
@@ -115,6 +116,20 @@ export const NAV_GROUPS: readonly NavGroup[] = [
        * por escrito em vez de prometido.
        */
       { to: '/desempenho', label: 'Desempenho', Icon: PerformanceIcon, acao: 'desempenho.ver' },
+      /*
+       * O FUNIL FICA COLADO EM DESEMPENHO, e a vizinhança é o que ele precisa:
+       * as duas telas respondem metades da mesma pergunta. Desempenho conta o
+       * que ACONTECEU (faturou, vendeu, cancelou); o funil é a única tela do
+       * painel que enxerga quem NÃO comprou — e sem ela, "poucos pedidos" tem
+       * dois diagnósticos opostos e nenhuma forma de separá-los.
+       *
+       * ELE NÃO É UMA SEÇÃO DE DESEMPENHO, e a razão principal é permissão: a
+       * tela de lado inteira está atrás de `podeLerDinheiro`, que recusa o
+       * gerente sem filial escolhida. Esta rota não passa por essa regra, e
+       * como seção lá dentro o funil ficaria invisível justamente para quem o
+       * backend diz que consegue agir sobre ele. Ver `FunnelPage`.
+       */
+      { to: '/funil', label: 'Funil', Icon: FunnelIcon, acao: 'funil.ver' },
       /*
        * AVALIAÇÕES FICA EM CRESCIMENTO, ao lado de Desempenho, e não em
        * Operação com Pedidos e Cozinha. As duas de Operação são telas de

@@ -173,6 +173,46 @@ export type ProductSales = Schemas['ProductSalesResponse'];
 export type Cancellations = Schemas['CancellationsResponse'];
 export type CommissionReport = Schemas['CommissionReportResponse'];
 
+// --- o funil do cardápio (Funil) ------------------------------------------
+
+/**
+ * OS CINCO DEGRAUS, E A DIVISÃO POR ORIGEM.
+ *
+ * `orders_count` AQUI NÃO É O `orders_count` DO RESUMO, e a diferença é
+ * deliberada: este conta todo pedido feito no período, cancelado e recusado
+ * inclusive, porque o funil mede se a PESSOA terminou de pedir. A ressalva vem
+ * pronta na resposta, em `orders_note` — mesma forma do `revenue_note` de
+ * `/reports/products`, e a tela a escreve com as palavras do backend.
+ *
+ * `source` nulo é "todas as origens", nunca "as sem origem": quem chegou sem
+ * identificador tem `direct` gravado.
+ */
+export type FunnelReport = Schemas['FunnelResponse'];
+
+/**
+ * Um degrau.
+ *
+ * `count` TROCA DE UNIDADE NO ÚLTIMO: são SESSÕES nos quatro degraus do
+ * cardápio e PEDIDOS no quinto — uma sessão que fecha dois pedidos vira dois
+ * ali e um em todos os anteriores. É raro e não atrapalha a leitura de
+ * tendência, mas quem for somar as colunas precisa saber, e é por isso que a
+ * tela escreve a unidade ao lado de cada número em vez de dizer "pessoas".
+ *
+ * `conversion_from_previous_percent` é nulo no primeiro degrau (não há
+ * anterior) e também quando o anterior foi zero — a mesma regra de
+ * `change_percent`: não existe fatia a partir de zero.
+ */
+export type FunnelStep = Schemas['FunnelStepItem'];
+
+/**
+ * Uma origem, com o que ela trouxe e o que ela converteu.
+ *
+ * `sessions_count` conta só quem VISITOU o cardápio (o primeiro degrau), e não
+ * a soma dos quatro: somados, a origem que converte melhor apareceria com mais
+ * "sessões" — inflando justamente o número que serve de denominador.
+ */
+export type FunnelSource = Schemas['FunnelSourceItem'];
+
 // --- avaliações -----------------------------------------------------------
 
 /*

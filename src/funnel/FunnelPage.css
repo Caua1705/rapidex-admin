@@ -1,0 +1,352 @@
+/*
+ * ============================================================================
+ * FUNIL — uma resposta, uma escada e uma tabela de origens
+ * ============================================================================
+ *
+ * A GRAMÁTICA É A DE DESEMPENHO, e o reuso é deliberado: as duas telas são
+ * consultadas pela mesma pessoa, na mesma sessão, para responder metades da
+ * mesma pergunta. Uma banda de topo com a resposta em corpo 22, um fio forte
+ * fechando a banda, seções separadas por régua e nenhum cartão — quem dá começo
+ * e fim a um bloco é o FIO e o respiro, como na lista de pedidos e no detalhe
+ * do pedido.
+ *
+ * DUAS SEÇÕES, E POR ISSO NÃO HÁ GRADE DE DUAS COLUNAS. Em Desempenho a grade
+ * existe porque são quatro perguntas de tamanhos parecidos; aqui são duas, uma
+ * delas com uma frase inteira por linha (a escada). Espremida em metade, a
+ * linha de diagnóstico quebraria em quatro fileiras e a escada deixaria de ser
+ * uma escada.
+ *
+ * O QUE ESTA TELA ACRESCENTA AO SISTEMA é uma peça só: a linha de QUEDA entre
+ * dois degraus. Todo o resto — a linha do degrau, a barra de proporção, a
+ * tabela, os avisos — já existia.
+ */
+
+.funil {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--surface);
+}
+
+/* As datas de "Escolher", e o rótulo do filtro de origem, na faixa do topo. */
+.funil__datas {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.funil__datas .input {
+  width: 148px;
+}
+
+.funil__filtro-origem {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--sp-4);
+  white-space: nowrap;
+}
+
+.funil__alerta {
+  margin: var(--sp-12) var(--page-pad) 0;
+}
+
+.funil__estado {
+  margin: 0;
+  padding: var(--sp-32) var(--page-pad);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+}
+
+/* ==========================================================================
+ * A BANDA DE TOPO — a resposta
+ * ======================================================================= */
+
+.funil__topo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+  padding: var(--sp-24) var(--page-pad);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+/*
+ * O TETO DE LEITURA, o mesmo de Desempenho: numa tela de 2560px a frase do topo
+ * chegaria a 200 caracteres por linha.
+ */
+.funil__topo,
+.funil__secoes {
+  max-width: var(--page-max);
+}
+
+.funil__frase {
+  margin: 0;
+  max-width: 64ch;
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink-2);
+}
+
+/*
+ * A PRIMEIRA COISA DA TELA É UMA FRASE. Mesma decisão de `perf__frase--topo`, e
+ * mesmo desvio de peso: `--w-medium` e não o 600 do nível 1, porque uma
+ * sentença de vinte palavras em semibold no corpo 22 lê como grito.
+ */
+.funil__frase--topo {
+  font-size: var(--tt-size);
+  line-height: var(--tt-line);
+  font-weight: var(--w-medium);
+  letter-spacing: var(--tt-track);
+  color: var(--ink);
+}
+
+/*
+ * O AVISO DE MEDIÇÃO DESLIGADA — dois parágrafos dentro de um `.alert--info`.
+ *
+ * O primitivo já dá o wash, o raio e a tinta; o que falta é o respiro entre os
+ * dois parágrafos, porque `.alert` foi desenhado para uma frase só.
+ */
+.funil__medicao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  max-width: 72ch;
+}
+
+.funil__medicao p {
+  margin: 0;
+}
+
+/*
+ * AS RESSALVAS DO RECORTE, no pé da banda e separadas por um fio.
+ *
+ * Não são `.alert--warn`: nada está errado, e uma tarja âmbar leria como
+ * problema a resolver. É a legenda do que produziu os números acima — tinta de
+ * apoio, com negrito na palavra que muda a leitura de tudo (a filial, a origem,
+ * o prazo).
+ */
+.funil__escopo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding-top: var(--sp-12);
+  border-top: 1px solid var(--line);
+}
+
+.funil__escopo p {
+  margin: 0;
+  max-width: 72ch;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+.funil__escopo strong {
+  font-weight: var(--w-semibold);
+  color: var(--ink-2);
+}
+
+/* ==========================================================================
+ * AS SEÇÕES
+ * ======================================================================= */
+
+.funil__secoes {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--sp-32);
+}
+
+.funil__secao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+  min-width: 0;
+  padding: var(--sp-20) var(--page-pad);
+}
+
+.funil__secao + .funil__secao {
+  border-top: 1px solid var(--line);
+}
+
+.funil__secao-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-8);
+}
+
+.funil__ressalva {
+  margin: 0;
+  max-width: 72ch;
+}
+
+/*
+ * A TABELA DE ORIGENS TEM O MESMO TETO DA ESCADA, e isto veio do print.
+ *
+ * Sem ele, `DataTable` ocupa a largura da seção — que aqui é a `--page-max`
+ * inteira, porque esta tela não tem grade de duas colunas. Em 1440 a coluna
+ * "Origem" ficava na margem esquerda e "Sessões" a 640px dela, com o vazio no
+ * meio: quatro colunas de dado espalhadas por 1200px lêem como planilha
+ * arrastada, não como tabela.
+ *
+ * O teto é o MESMO da escada de propósito: as duas seções passam a ter a mesma
+ * caixa, e o olho desce de uma para a outra sem reancorar. Em Desempenho o
+ * problema não existia porque as tabelas de lá vivem numa coluna de metade da
+ * grade — o teto delas era a grade.
+ */
+.funil__origens {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+  max-width: 72ch;
+}
+
+/* ==========================================================================
+ * A ESCADA
+ *
+ * A LINHA DO DEGRAU REUSA `.fatias__*` INTEIRO — rótulo, valor, meta e a barra
+ * de proporção. É a mesma peça de "entrega × retirada" e de "As filiais" em
+ * Desempenho, e é a mesma pergunta visual: poucos valores comparáveis, cada um
+ * com sua fatia, onde o comprimento responde "qual é o maior" antes de o olho
+ * ler o número.
+ *
+ * O QUE NASCE AQUI é só a linha de QUEDA entre duas linhas de degrau. Ela não
+ * tem equivalente em `.fatias` porque não é um valor: é a transição entre dois,
+ * e é ela que carrega a informação da tela.
+ * ======================================================================= */
+
+.degraus {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  max-width: 72ch;
+}
+
+.degraus__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+/*
+ * SEM MEDIÇÃO, A ESCADA ENCOLHE — e não é enfeite: é a mesma regra de largura
+ * de CONTEÚDO que o sistema aplica a campo de dinheiro.
+ *
+ * Com barra, os 72ch são a régua: a linha do primeiro degrau vai de ponta a
+ * ponta e as de baixo encurtam, que é o desenho do funil. Sem barra, sobram um
+ * rótulo à esquerda e um "—" à direita com 500px de nada no meio — a caixa
+ * promete um dado que não existe, e o vazio lê como tela quebrada em vez de
+ * medição desligada.
+ */
+.degraus--sem-medicao {
+  max-width: 34ch;
+}
+
+/*
+ * O VÃO DE 8px ENTRE A QUEDA E O DEGRAU DE BAIXO, e de 4 entre o degrau e a
+ * queda seguinte: a queda pertence visualmente ao degrau que ela explica, que é
+ * o de baixo. Com o mesmo vão dos dois lados, ela flutuaria entre os dois e a
+ * leitura teria de decidir a qual dos degraus a porcentagem se refere.
+ */
+.degraus__item + .degraus__item {
+  padding-top: var(--sp-8);
+}
+
+.degraus__queda {
+  margin: 0;
+  padding-left: var(--sp-12);
+  /*
+   * O FIO DE 2px NA MARGEM É A MESMA GRAMÁTICA do estágio na lista de pedidos,
+   * do grupo aberto na navegação e da seção aberta em Minha loja: um traço à
+   * esquerda diz "este é o que importa aqui". Transparente por padrão, para que
+   * ligar a marca não desloque o texto em dois pixels.
+   */
+  border-left: 2px solid transparent;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+.degraus__queda-taxa {
+  font-weight: var(--w-semibold);
+  color: var(--ink-2);
+}
+
+/*
+ * O DEGRAU QUE VAZA, EM TRÊS CANAIS E NENHUM DELES SOZINHO (WCAG 1.4.1): o fio
+ * na margem, a palavra "Maior perda" escrita, e a tinta cheia.
+ *
+ * NÃO É `--danger`, e a escolha é de semântica: aquele token responde "perigo",
+ * e um degrau que converte pouco não é um erro do sistema — é o lugar onde há
+ * trabalho a fazer. `--ink` é a mesma tinta que marca a aba ativa e o item
+ * ativo da navegação: "é aqui".
+ */
+.degraus__queda--vazamento {
+  border-left-color: var(--ink);
+  color: var(--ink-2);
+}
+
+.degraus__queda--vazamento .degraus__queda-taxa,
+.degraus__queda--vazamento strong {
+  color: var(--ink);
+  font-weight: var(--w-semibold);
+}
+
+/*
+ * A SETA SOZINHA, com a medição desligada: não há taxa a escrever, porque a
+ * conversão sairia de um denominador que ninguém contou. Ela fica só para a
+ * escada continuar sendo uma escada — cinco linhas soltas não têm ordem.
+ *
+ * Não há um quarto degrau de tinta no sistema (`--ink-3` é o último), e não é
+ * caso de inventar um: o que faz esta seta recuar é ela ser um caractere só
+ * numa linha inteira, não o tom.
+ */
+.degraus__queda--vazia {
+  color: var(--ink-3);
+}
+
+/* ==========================================================================
+ * QUANDO A TELA APERTA
+ * ======================================================================= */
+
+@media (max-width: 720px) {
+  .funil__topo,
+  .funil__secao,
+  .funil__estado {
+    padding-inline: var(--page-pad-mobile);
+  }
+
+  .funil__alerta {
+    margin-inline: var(--page-pad-mobile);
+  }
+
+  /* A barra inferior de navegação não pode cobrir a última linha da tabela. */
+  .funil__secoes {
+    padding-bottom: calc(var(--bottombar-h) + var(--sp-24));
+  }
+
+  .funil__datas {
+    flex: 1 1 100%;
+  }
+
+  .funil__datas .input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+
+  /*
+   * A ESCADA NÃO MUDA DE DESENHO NO CELULAR, e é o ganho de ela ter nascido
+   * como lista vertical: a linha do degrau já quebra rótulo/valor numa fileira
+   * e meta na outra (é o que `.fatias__linha` faz), e a queda é um parágrafo
+   * que envolve. O que muda é só o teto de leitura, que no telefone é a largura
+   * da tela.
+   */
+  .degraus,
+  .degraus--sem-medicao,
+  .funil__origens {
+    max-width: none;
+  }
+}

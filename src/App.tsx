@@ -8,6 +8,7 @@ import { AppShell } from './layout/AppShell';
 import { PENDING_ENTRIES } from './layout/nav';
 import { MenuPage } from './menu/MenuPage';
 import { OrdersPage } from './orders/OrdersPage';
+import { FunnelPage } from './funnel/FunnelPage';
 import { PerformancePage } from './performance/PerformancePage';
 import { ReviewsPage } from './reviews/ReviewsPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
@@ -73,6 +74,24 @@ export function App() {
               <RequireAuth acao="desempenho.ver">
                 <AppShell>
                   <PerformancePage />
+                </AppShell>
+              </RequireAuth>
+            }
+          />
+          {/*
+            O FUNIL EXIGE `funil.ver` — GERENCIA, como Desempenho, mas SEM a
+            segunda regra: `GET /admin/reports/funnel` não passa por
+            `ensure_pode_ler_dinheiro`, porque não há um número de dinheiro na
+            resposta. É por isso que ele é uma rota própria e não uma seção de
+            /desempenho: lá dentro, o gerente em "todas as filiais" cairia no
+            pedido de escolha da tela de dinheiro e nunca chegaria ao funil.
+          */}
+          <Route
+            path="/funil"
+            element={
+              <RequireAuth acao="funil.ver">
+                <AppShell>
+                  <FunnelPage />
                 </AppShell>
               </RequireAuth>
             }
