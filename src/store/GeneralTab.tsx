@@ -28,6 +28,8 @@ type Draft = {
   estimatedMax: string;
   serviceFeeEnabled: boolean;
   serviceFeeAmount: string;
+  freeDeliveryEnabled: boolean;
+  freeDeliveryMin: string;
   /** A mensagem da MARCA no rodapé da comanda. Vazio = não há mensagem. */
   receiptFooter: string;
 };
@@ -38,6 +40,15 @@ const EMPTY: Draft = {
   estimatedMax: '',
   serviceFeeEnabled: true,
   serviceFeeAmount: '',
+  /*
+   * DESLIGADO POR PADRÃO, e a assimetria com a taxa de serviço acima é
+   * proposital: taxa ligada sem valor cobra zero e não machuca ninguém; frete
+   * grátis ligado por omissão dá a entrega de graça em nome de um lojista que
+   * não pediu. É o que o backend resolve, e a tela não pode abrir dizendo outra
+   * coisa.
+   */
+  freeDeliveryEnabled: false,
+  freeDeliveryMin: '',
   receiptFooter: '',
 };
 
@@ -96,6 +107,10 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
       // explícito desliga.
       serviceFeeEnabled: loaded.service_fee_enabled !== false,
       serviceFeeAmount: formatDecimalInput(loaded.service_fee_amount),
+      // Nulo aqui é "não configurado", e o backend o resolve como desligado —
+      // não é "herda": acima do restaurante não há de quem herdar.
+      freeDeliveryEnabled: loaded.free_delivery_enabled === true,
+      freeDeliveryMin: formatDecimalInput(loaded.free_delivery_min_order_value),
       /*
        * AQUI NÃO HÁ TRÊS ESTADOS, e é a diferença para a mesma mensagem na
        * filial: acima do restaurante não há de quem herdar, então vazio e nulo
@@ -150,12 +165,21 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
     });
     if (!rodape.valid) return setProblem(`Mensagem no rodapé: ${rodape.message}`);
 
+    const freteGratisMin = parseDecimal(draft.freeDeliveryMin, {
+      // Com a campanha ligada o valor é obrigatório: ligada e sem teto, a
+      // entrega sai de graça em todo pedido da rede inteira.
+      allowEmpty: !draft.freeDeliveryEnabled,
+    });
+    if (!freteGratisMin.ok) return setProblem(`Frete grátis: ${freteGratisMin.message}`);
+
     const body: RestaurantSettingsUpdate = {
       min_order_value: minOrder.value,
       estimated_delivery_time_min: estimatedMin.value,
       estimated_delivery_time_max: estimatedMax.value,
       service_fee_enabled: draft.serviceFeeEnabled,
       service_fee_amount: serviceFee.value ?? 0,
+      free_delivery_enabled: draft.freeDeliveryEnabled,
+      free_delivery_min_order_value: freteGratisMin.value,
       // Vazio vira `null`: "não há mensagem da marca". Isso NÃO cala a filial
       // que gravou a própria — só a que estava herdando esta.
       receipt_footer_message: draft.receiptFooter.trim() === '' ? null : draft.receiptFooter,
@@ -257,6 +281,44 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
           — e deixa de ser de graça quando vira meio metro de propaganda em todo
           pedido, que é o que os dois tetos seguram.
         */}
+        {/*
+          FRETE GRÁTIS ACIMA DE X — o padrão da rede, que cada filial herda,
+          sobrescreve ou RECUSA em Valores.
+
+          Ele fica aqui e não em Entrega porque é termo comercial e herda, como
+          o valor mínimo e a taxa de serviço logo acima. As regras de Entrega
+          (base, por km, raio) são da filial e não herdam nada — misturar os
+          dois regimes na mesma tela é o jeito mais barato de fazer alguém
+          preencher o campo errado.
+        */}
+        <section className="store-form__group">
+          <h3 className="store-form__heading">Frete grátis</h3>
+
+          <div className="store-form__fields">
+            <Checkbox
+              checked={draft.freeDeliveryEnabled}
+              onChange={(freeDeliveryEnabled) => patch({ freeDeliveryEnabled })}
+              label="Dar frete grátis acima de um valor"
+              data-testid="settings-free-delivery-enabled"
+            />
+
+            <Field
+              label="Acima de"
+              disabled={!draft.freeDeliveryEnabled}
+              hint="Vale sobre o SUBTOTAL, e o pedido que bate o valor exato já entra. Quem não quiser dar desliga em Valores, na filial."
+            >
+              <Input
+                className="ds-control--dinheiro tnum"
+                prefix="R$"
+                inputMode="decimal"
+                value={draft.freeDeliveryMin}
+                onValueChange={(freeDeliveryMin) => patch({ freeDeliveryMin })}
+                data-testid="settings-free-delivery-min"
+              />
+            </Field>
+          </div>
+        </section>
+
         <section className="store-form__group">
           <h3 className="store-form__heading">Rodapé da comanda</h3>
 

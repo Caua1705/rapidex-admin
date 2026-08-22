@@ -232,7 +232,14 @@
    * Só o nome é fluido. A observação tem largura fixa para alinhar entre as
    * linhas, e as três chaves têm a largura do rótulo que as nomeia lá em cima.
    */
-  grid-template-columns: 7px minmax(0, 1fr) 190px 72px 72px 72px;
+  /*
+   * A SÉTIMA COLUNA TEM LARGURA FIXA, e não `auto`. O cabeçalho e as linhas são
+   * grades SEPARADAS (não há subgrid aqui): com `auto`, a coluna da ação media
+   * o botão nas linhas e zero no cabeçalho, e as três colunas de chave saíam
+   * desalinhadas dos três rótulos que as nomeiam. 132px é o que cabe em
+   * "Retomar entrega", que é o mais largo dos dois botões.
+   */
+  grid-template-columns: 7px minmax(0, 1fr) 190px 72px 72px 72px 132px;
   align-items: center;
   gap: var(--sp-8);
   padding: var(--sp-8) 0;
@@ -301,6 +308,31 @@
 }
 
 /*
+ * A PAUSA FALA COM A VOZ DE ATENÇÃO, e não com a de erro: nada deu errado — a
+ * loja está parada de propósito e volta sozinha. O que ela precisa é ser LIDA
+ * de passagem por quem escaneia a lista, porque é o estado que ninguém lembra
+ * de ter ligado.
+ *
+ * Ela não depende só da cor: a frase escreve o horário de volta, que é a
+ * informação que nenhuma cor carrega.
+ */
+.op-row__note--pausa {
+  color: var(--alert);
+  font-weight: var(--w-medium);
+}
+
+/*
+ * A AÇÃO DA LINHA, encostada na margem direita — o canto em que toda tela do
+ * painel põe a ação. Ela é a sétima coluna e tem largura de CONTEÚDO: as linhas
+ * de filial que não fazem entrega não têm botão, e uma coluna de largura fixa
+ * deixaria um vão do tamanho de "Pausar entrega" em cada uma delas.
+ */
+.op-row__pausa {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/*
  * As três chaves são um grupo no HTML e nenhum na grade: `contents` deixa cada
  * uma cair na coluna dela, que é o que alinha as chaves entre as linhas.
  */
@@ -336,6 +368,17 @@
     row-gap: var(--sp-8);
     padding-top: var(--sp-12);
     padding-bottom: var(--sp-12);
+  }
+
+  /*
+   * NO TELEFONE A AÇÃO DESCE PARA A FILEIRA DELA e encosta à esquerda, alinhada
+   * com o nome e as chaves. Encostada à direita, ela ficaria sozinha do outro
+   * lado de uma coluna vazia — e o polegar teria de atravessar a tela para
+   * alcançar o único botão da linha.
+   */
+  .op-row__pausa {
+    grid-column: 2;
+    justify-content: flex-start;
   }
 
   .op-row__note {
@@ -492,8 +535,19 @@
   gap: var(--sp-12);
 }
 
+/*
+ * O CONTROLE E O VALOR QUE ELE COMANDA, lado a lado — "como esta filial cobra"
+ * e quanto, "como esta filial faz" e acima de quanto.
+ *
+ * ELE QUEBRA NO TELEFONE, e não quebrava: em 390px o trilho de três opções e o
+ * campo de dinheiro somam mais que a largura da tela, e quem saía pela margem
+ * era a terceira opção do segmentado — "Não cobrar" aparecia como "Não c". A
+ * opção cortada é justamente a que diz que a filial DIVERGE da rede, que é a
+ * razão de o controle ter três estados.
+ */
 .store-form__row {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: var(--sp-12);
 }
@@ -874,6 +928,135 @@
 .sectors__new-field {
   flex: 1;
   max-width: 260px;
+}
+
+/* ==========================================================================
+ * AS FAIXAS DE PRAZO — uma tabelinha de tetos
+ *
+ * Três colunas e uma grade, e não uma lista de campos empilhados: o que se lê
+ * aqui é a COLUNA — o olho desce os tetos para conferir se a cobertura está
+ * inteira, e desce os tempos para ver se eles crescem junto com a distância.
+ * Empilhada, cada linha repetiria os dois rótulos.
+ *
+ * A linha usa `display: contents` pelo mesmo motivo das três chaves de
+ * Operação: ela é um grupo no HTML e nenhum na grade, e é assim que as células
+ * de linhas diferentes caem na mesma abscissa.
+ *
+ * A LARGURA É DE CONTEÚDO. "12" num campo de 400px é o sintoma nº 1 de
+ * formulário cru — a caixa promete um endereço e recebe dois dígitos.
+ * ======================================================================= */
+.faixas {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  justify-content: start;
+  align-items: center;
+  column-gap: var(--sp-16);
+  row-gap: var(--sp-8);
+}
+
+.faixas__col {
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--line-strong);
+  color: var(--ink-3);
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
+}
+
+.faixas__linha {
+  display: contents;
+}
+
+.faixas__km,
+.faixas__tempo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.faixas__km .input {
+  width: var(--w-numero);
+}
+
+.faixas__tempo .input {
+  width: var(--w-numero);
+}
+
+/* A unidade é rótulo do valor, não um segundo campo: tinta de apoio. */
+.faixas__unidade,
+.faixas__sep {
+  color: var(--ink-3);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+}
+
+.faixas__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-8);
+}
+
+/*
+ * NO TELEFONE OS CAMPOS ENCOLHEM, e a tabela continua tabela.
+ *
+ * Com `--w-numero` (92px) nos três, a linha somava 402px contra os 358 de um
+ * 390 — e quem saía pela margem era o botão de REMOVER, que é o único jeito de
+ * desfazer uma faixa. Encolher é o certo aqui porque a medida de conteúdo é
+ * outra: "10" e "55" são dois dígitos, e 92px é a largura de um campo de
+ * minutos que também aceita "120".
+ *
+ * A alternativa era empilhar a linha em duas, e ela custaria a leitura por
+ * COLUNA — que é o ganho inteiro desta tabela: o olho desce os tetos para
+ * conferir se a cobertura está inteira.
+ */
+@media (max-width: 720px) {
+  .faixas {
+    column-gap: var(--sp-8);
+  }
+
+  .faixas__km .input,
+  .faixas__tempo .input {
+    width: 64px;
+  }
+}
+
+/*
+ * O SALVAR DESTA TABELA fica com ela, e não na barra grudenta da aba: são duas
+ * gravações independentes, e duas barras se empilhariam no rodapé.
+ */
+.faixas__salvar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  padding-top: var(--sp-12);
+  border-top: 1px solid var(--line);
+}
+
+.faixas__salvar-botoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-8);
+}
+
+/* ==========================================================================
+ * O DIÁLOGO DE PAUSA DA ENTREGA
+ *
+ * A consequência primeiro, e ela é o que separa esta ação da chave de entrega:
+ * a pausa VOLTA SOZINHA. Ela fala em tinta comum e não em vermelho — nada deu
+ * errado, e o vermelho aqui seria alarme onde há informação.
+ * ======================================================================= */
+.pausa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-16);
+}
+
+.pausa__consequencia {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
 }
 
 /* ==========================================================================

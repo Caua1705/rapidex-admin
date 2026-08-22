@@ -104,6 +104,14 @@ export type Acao =
   | 'loja.editarValoresDaFilial'
   | 'loja.editarFilial'
   | 'loja.editarHorarios'
+  /*
+   * PAUSAR A ENTREGA É DE QUEM OPERA, e a chave estrutural é da gerência. Não é
+   * incoerência: quem está no balcão às 19h com chuva é quem pausa, e uma pausa
+   * que dependesse do gerente seria uma pausa que não acontece. A pausa volta
+   * sozinha no prazo; a chave espera alguém religar.
+   */
+  | 'loja.pausarEntrega'
+  | 'loja.editarFaixasDePrazo'
   | 'loja.editarPagamento'
   // --- impressão
   | 'impressao.verPrograma'
@@ -199,6 +207,8 @@ const ROTA_DA_ACAO = {
   'loja.editarValoresDaFilial': 'PATCH /admin/branches/{branch_id}/settings',
   'loja.editarFilial': 'PATCH /admin/branches/{branch_id}',
   'loja.editarHorarios': 'PUT /admin/branches/{branch_id}/business-hours',
+  'loja.pausarEntrega': 'PATCH /admin/branches/{branch_id}/delivery-pause',
+  'loja.editarFaixasDePrazo': 'PUT /admin/branches/{branch_id}/delivery-time-bands',
   'loja.editarPagamento': 'POST /admin/branches/{branch_id}/payment-methods',
 
   // --- impressão ------------------------------------------------------------

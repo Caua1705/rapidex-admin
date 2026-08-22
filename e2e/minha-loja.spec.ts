@@ -516,3 +516,206 @@ test('formas de pagamento: cria, desativa e exclui — sem trocar fluxo nem tipo
   await expect(page.getByTestId('payment-method-pay-dinheiro')).toHaveCount(0);
   expect(api.paymentMethods().some((entry) => entry.id === 'pay-dinheiro')).toBe(false);
 });
+
+/* ==========================================================================
+ * LOTE 2 — ENTREGA: frete grátis, pausa e faixas de prazo
+ * ======================================================================= */
+
+/*
+ * FRETE GRÁTIS: DOIS CAMPOS, E NÃO SÓ O VALOR. Não existe número que signifique
+ * "desligado" — `null` é "herda" e `0` seria "grátis sempre", o oposto. É o
+ * booleano que dá à filial longe de tudo o jeito de recusar a campanha da rede.
+ */
+test('frete grátis: recusar é diferente de herdar, e o corpo prova a diferença', async ({
+  page,
+}) => {
+  await abrirMinhaLoja(page);
+  await escolherFilial(page);
+  await abrirSecao(page, 'valores');
+
+  await expect(page.getByTestId('branch-free-delivery-herda')).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+
+  // Esta loja recusa a campanha da marca.
+  await page.getByTestId('branch-free-delivery-nao-da').click();
+  await page.getByTestId('store-save').click();
+  await expect(page.getByTestId('store-saved')).toBeVisible();
+  expect(api.overridesOf(FAKE_BRANCH.id)).toEqual({ free_delivery_enabled: false });
+
+  // Voltar atrás é `null`, e não um campo apagado.
+  await page.getByTestId('branch-free-delivery-herda').click();
+  await page.getByTestId('store-save').click();
+  await expect
+    .poll(() => api.branchSettingsCalls().at(-1)?.body)
+    .toEqual({ free_delivery_enabled: null });
+});
+
+test('dar frete grátis sem dizer acima de quanto é recusado antes de sair da tela', async ({
+  page,
+}) => {
+  await abrirMinhaLoja(page);
+  await escolherFilial(page);
+  await abrirSecao(page, 'valores');
+
+  await page.getByTestId('branch-free-delivery-da').click();
+  await page.getByTestId('store-save').click();
+
+  await expect(page.getByTestId('store-error')).toContainText('de graça em todo pedido');
+  expect(api.branchSettingsCalls()).toHaveLength(0);
+});
+
+/*
+ * A PAUSA É UM PRAZO, E NÃO UMA CHAVE. `accepts_delivery` é estrutural e espera
+ * alguém religar; esta volta sozinha — e o dia em que ela é usada (chuva às
+ * 19h) é exatamente o dia em que ninguém lembra de desligá-la.
+ */
+test('pausar a entrega manda minutos e motivo, e a linha diz até quando', async ({ page }) => {
+  await abrirMinhaLoja(page);
+
+  const linha = page.getByTestId(`operation-row-${FAKE_BRANCH.id}`);
+  await expect(linha).toHaveAttribute('data-no-ar', 'true');
+
+  await page.getByTestId(`operation-pause-${FAKE_BRANCH.id}`).click();
+
+  const dialogo = page.getByRole('dialog');
+  await expect(dialogo).toContainText('volta sozinha');
+  await dialogo.getByTestId('pause-preset-60').click();
+  await dialogo.getByTestId('pause-reason').fill('chuva forte');
+  await dialogo.getByTestId('confirm-pause').click();
+
+  await expect
+    .poll(() => api.pauseCalls().at(-1)?.body)
+    .toEqual({ minutes: 60, reason: 'chuva forte' });
+
+  // A linha passa a dizer até quando, e por quê.
+  const nota = page.getByTestId(`operation-note-${FAKE_BRANCH.id}`);
+  await expect(nota).toContainText('Pausada até');
+  await expect(nota).toContainText('chuva forte');
+
+  // A CHAVE DE ENTREGA NÃO FOI MEXIDA: a pausa é outra coisa, e ela convive.
+  await expect(page.getByTestId(`operation-accepts_delivery-${FAKE_BRANCH.id}`)).toBeChecked();
+
+  // E retomar é um clique só: quem parou por 60 e resolveu em 20 não preenche
+  // formulário de novo.
+  await page.getByTestId(`operation-resume-${FAKE_BRANCH.id}`).click();
+  await expect.poll(() => api.pauseCalls().at(-1)?.body).toEqual({ minutes: 0 });
+  await expect(nota).not.toContainText('Pausada até');
+});
+
+test('com a entrega pausada e sem retirada, a loja para de dizer que está no ar', async ({
+  page,
+}) => {
+  await abrirMinhaLoja(page);
+
+  // Só entrega: a retirada desligada deixa a pausa sozinha respondendo.
+  await page.getByTestId(`operation-accepts_pickup-${FAKE_BRANCH.id}`).click();
+
+  await page.getByTestId(`operation-pause-${FAKE_BRANCH.id}`).click();
+  await page.getByRole('dialog').getByTestId('confirm-pause').click();
+
+  const linha = page.getByTestId(`operation-row-${FAKE_BRANCH.id}`);
+  // O ponto lê `accepts_delivery_now`, e não `accepts_delivery`: com a chave
+  // ligada e a entrega pausada, ninguém consegue comprar agora.
+  await expect(linha).toHaveAttribute('data-no-ar', 'false');
+});
+
+test('a pausa que passa de 24 horas trava antes de chegar ao backend', async ({ page }) => {
+  await abrirMinhaLoja(page);
+  await page.getByTestId(`operation-pause-${FAKE_BRANCH.id}`).click();
+
+  const dialogo = page.getByRole('dialog');
+  await dialogo.getByTestId('pause-minutes').fill('3000');
+  // O teto é do backend e está escrito aqui: a tela não oferece o que vai falhar.
+  await expect(dialogo.getByTestId('confirm-pause')).toBeDisabled();
+  await expect(dialogo).toContainText('24 horas');
+  expect(api.pauseCalls()).toHaveLength(0);
+});
+
+/*
+ * AS FAIXAS SÃO TETOS. Vale a primeira, em ordem crescente, cujo teto alcança a
+ * distância — e é por isso que não há campo de piso: com piso daria para deixar
+ * o endereço de 5,4 km sem faixa nenhuma.
+ */
+test('cadastrar faixas de prazo, e elas saem ordenadas por teto', async ({ page }) => {
+  await abrirMinhaLoja(page);
+  await escolherFilial(page);
+  await abrirSecao(page, 'entrega');
+
+  const bloco = page.getByTestId('delivery-bands');
+  await expect(bloco.getByTestId('delivery-bands-vazio')).toContainText('tempo de rota do Google');
+  // A ressalva que separa esta tabela do "tempo estimado" de Geral.
+  await expect(bloco).toContainText('rótulo do cardápio');
+
+  await bloco.getByTestId('band-add').click();
+  await bloco.getByTestId('band-add').click();
+
+  const campos = bloco.locator('input');
+  // A faixa maior é digitada PRIMEIRO, para provar que a ordem que sai é a da
+  // regra ("a primeira cujo teto alcança") e não a de digitação.
+  await campos.nth(0).fill('10');
+  await campos.nth(1).fill('40');
+  await campos.nth(2).fill('55');
+  await campos.nth(3).fill('5');
+  await campos.nth(4).fill('20');
+  await campos.nth(5).fill('30');
+
+  await bloco.getByTestId('delivery-bands-save').click();
+
+  await expect
+    .poll(() => api.bandCalls().at(-1)?.body)
+    .toEqual({
+      bands: [
+        { max_distance_km: 5, delivery_time_min: 20, delivery_time_max: 30 },
+        { max_distance_km: 10, delivery_time_min: 40, delivery_time_max: 55 },
+      ],
+    });
+});
+
+test('duas faixas com o mesmo teto são recusadas antes de virar duas respostas', async ({
+  page,
+}) => {
+  await abrirMinhaLoja(page);
+  await escolherFilial(page);
+  await abrirSecao(page, 'entrega');
+
+  const bloco = page.getByTestId('delivery-bands');
+  await bloco.getByTestId('band-add').click();
+  await bloco.getByTestId('band-add').click();
+
+  const campos = bloco.locator('input');
+  await campos.nth(0).fill('5');
+  await campos.nth(1).fill('20');
+  await campos.nth(2).fill('30');
+  await campos.nth(3).fill('5');
+  await campos.nth(4).fill('25');
+  await campos.nth(5).fill('35');
+
+  await bloco.getByTestId('delivery-bands-save').click();
+
+  await expect(bloco.getByTestId('delivery-bands-error')).toContainText('duas faixas até 5 km');
+  expect(api.bandCalls()).toHaveLength(0);
+});
+
+/* Lista vazia NÃO é "sem entrega": é o prazo voltando a sair do Google. */
+test('apagar as faixas é uma ação nomeada, e diz o que passa a valer', async ({ page }) => {
+  await abrirMinhaLoja(page);
+  await escolherFilial(page);
+  await abrirSecao(page, 'entrega');
+
+  const bloco = page.getByTestId('delivery-bands');
+  await bloco.getByTestId('band-add').click();
+  const campos = bloco.locator('input');
+  await campos.nth(0).fill('5');
+  await campos.nth(1).fill('20');
+  await campos.nth(2).fill('30');
+  await bloco.getByTestId('delivery-bands-save').click();
+  await expect(bloco.getByTestId('delivery-bands-vazio')).toHaveCount(0);
+
+  await bloco.getByRole('button', { name: 'Voltar a usar o tempo do Google' }).click();
+  await bloco.getByTestId('delivery-bands-save').click();
+
+  await expect.poll(() => api.bandCalls().at(-1)?.body).toEqual({ bands: [] });
+  await expect(bloco.getByTestId('delivery-bands-vazio')).toBeVisible();
+});

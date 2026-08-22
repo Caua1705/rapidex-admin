@@ -47,6 +47,14 @@ export type OverridesDraft = {
   serviceFee: 'herda' | 'cobra' | 'nao-cobra';
   serviceFeeAmount: string;
   defaultDeliveryFee: string;
+  /*
+   * FRETE GRÁTIS ACIMA DE X — o mesmo par de campos da taxa de serviço, e pela
+   * mesma razão: NÃO EXISTE NÚMERO QUE SIGNIFIQUE "DESLIGADO". `null` é "herda"
+   * e `0` seria "grátis sempre", que é o oposto. Sem o booleano, a filial a 12
+   * km de tudo não teria como recusar a campanha da marca.
+   */
+  freeDelivery: 'herda' | 'da' | 'nao-da';
+  freeDeliveryMin: string;
 };
 
 export const EMPTY_DRAFT: OverridesDraft = {
@@ -56,6 +64,8 @@ export const EMPTY_DRAFT: OverridesDraft = {
   serviceFee: 'herda',
   serviceFeeAmount: '',
   defaultDeliveryFee: '',
+  freeDelivery: 'herda',
+  freeDeliveryMin: '',
 };
 
 /** O que está GRAVADO na filial vira o rascunho. Nulo = campo vazio. */
@@ -72,6 +82,13 @@ export function draftFromOverrides(overrides: BranchOperation['overrides']): Ove
           : 'nao-cobra',
     serviceFeeAmount: formatDecimalInput(overrides.service_fee_amount),
     defaultDeliveryFee: formatDecimalInput(overrides.default_delivery_fee),
+    freeDelivery:
+      overrides.free_delivery_enabled === null || overrides.free_delivery_enabled === undefined
+        ? 'herda'
+        : overrides.free_delivery_enabled
+          ? 'da'
+          : 'nao-da',
+    freeDeliveryMin: formatDecimalInput(overrides.free_delivery_min_order_value),
   };
 }
 
@@ -125,6 +142,25 @@ export function bodyFromDraft(
   if (!contingencia.ok)
     return { ok: false, message: `Taxa de contingência: ${contingencia.message}` };
 
+  const freteGratisMin = parseDecimal(draft.freeDeliveryMin);
+  if (!freteGratisMin.ok)
+    return { ok: false, message: `Frete grátis acima de: ${freteGratisMin.message}` };
+
+  /*
+   * DAR FRETE GRÁTIS SEM DIZER ACIMA DE QUANTO É DAR SEMPRE. O backend resolve
+   * o valor herdado, mas se nem a filial nem o restaurante tiverem um teto, a
+   * campanha vira entrega de graça em todo pedido — e ninguém pediu isso. Só
+   * cobramos o valor quando a filial ESCOLHEU dar: herdando, quem responde pelo
+   * par é o restaurante.
+   */
+  if (draft.freeDelivery === 'da' && freteGratisMin.value === null) {
+    return {
+      ok: false,
+      message:
+        'Frete grátis: diga acima de qual valor, senão a entrega sai de graça em todo pedido.',
+    };
+  }
+
   // A faixa é conferida como o backend a confere: sobre a mescla. Um lado
   // vazio aqui não é "sem faixa" — é o lado que continua vindo do restaurante.
   const faixa = checkEstimatedRange(
@@ -136,6 +172,9 @@ export function bodyFromDraft(
   const feeAtual = draft.serviceFee === 'herda' ? null : draft.serviceFee === 'cobra';
   const feeGravado = gravado.service_fee_enabled ?? null;
 
+  const freteAtual = draft.freeDelivery === 'herda' ? null : draft.freeDelivery === 'da';
+  const freteGravado = gravado.free_delivery_enabled ?? null;
+
   const body: BranchSettingsUpdate = {
     min_order_value: campo(minOrder.value, gravado.min_order_value),
     estimated_delivery_time_min: campo(estimatedMin.value, gravado.estimated_delivery_time_min),
@@ -143,6 +182,11 @@ export function bodyFromDraft(
     service_fee_enabled: feeAtual === feeGravado ? undefined : feeAtual,
     service_fee_amount: campo(serviceFeeAmount.value, gravado.service_fee_amount),
     default_delivery_fee: campo(contingencia.value, gravado.default_delivery_fee),
+    free_delivery_enabled: freteAtual === freteGravado ? undefined : freteAtual,
+    free_delivery_min_order_value: campo(
+      freteGratisMin.value,
+      gravado.free_delivery_min_order_value,
+    ),
   };
 
   // Chave com `undefined` some do JSON, mas não do objeto: quem pergunta se há

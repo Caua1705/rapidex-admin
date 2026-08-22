@@ -10,6 +10,12 @@ const PADRAO: RestaurantSettings = {
   default_delivery_fee: 9,
   service_fee_enabled: true,
   service_fee_amount: 0.99,
+  /*
+   * O LIGADO RESOLVIDO É `false` POR OMISSÃO, ao contrário da taxa de serviço:
+   * taxa ligada sem valor cobra zero e não machuca ninguém; frete grátis ligado
+   * por omissão dá a entrega de graça em nome de um lojista que não pediu.
+   */
+  free_delivery_enabled: false,
 };
 
 /** Toda filial nasce assim: herdando tudo, como a migração as deixou. */
@@ -20,6 +26,8 @@ const HERDANDO: BranchOperation['overrides'] = {
   default_delivery_fee: null,
   service_fee_enabled: null,
   service_fee_amount: null,
+  free_delivery_enabled: null,
+  free_delivery_min_order_value: null,
 };
 
 function corpo(draft = EMPTY_DRAFT, gravado = HERDANDO, padrao = PADRAO) {
@@ -151,5 +159,60 @@ describe('a faixa de prazo é conferida sobre a MESCLA', () => {
 
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) expect(resultado.message).toContain('Valor mínimo');
+  });
+});
+
+/* ==========================================================================
+ * FRETE GRÁTIS ACIMA DE X — o par de campos, e por que não basta o número
+ *
+ * NÃO EXISTE NÚMERO QUE SIGNIFIQUE "DESLIGADO": `null` é "herda" e `0` seria
+ * "grátis sempre", o oposto. É o booleano que dá à filial a 12 km de tudo o
+ * jeito de recusar a campanha da marca.
+ * ======================================================================= */
+
+describe('frete grátis', () => {
+  it('nulo na filial é herdar, e não "não dar"', () => {
+    const draft = draftFromOverrides({ ...HERDANDO, free_delivery_enabled: null });
+    expect(draft.freeDelivery).toBe('herda');
+  });
+
+  it('false gravado é a recusa desta filial, e ela sobrevive à releitura', () => {
+    const draft = draftFromOverrides({ ...HERDANDO, free_delivery_enabled: false });
+    expect(draft.freeDelivery).toBe('nao-da');
+  });
+
+  it('recusar manda false, e voltar a herdar manda null', () => {
+    const recusa = bodyFromDraft(
+      { ...EMPTY_DRAFT, freeDelivery: 'nao-da' },
+      { ...HERDANDO, free_delivery_enabled: null },
+      PADRAO,
+    );
+    expect(recusa.ok && recusa.body.free_delivery_enabled).toBe(false);
+
+    const volta = bodyFromDraft(
+      { ...EMPTY_DRAFT, freeDelivery: 'herda' },
+      { ...HERDANDO, free_delivery_enabled: false },
+      PADRAO,
+    );
+    expect(volta.ok && volta.body.free_delivery_enabled).toBeNull();
+  });
+
+  /*
+   * DAR SEM DIZER ACIMA DE QUANTO É DAR SEMPRE. Com os dois lados sem teto, a
+   * campanha vira entrega de graça em todo pedido — e ninguém pediu isso.
+   */
+  it('escolher dar sem valor é recusado antes de sair da tela', () => {
+    const resultado = bodyFromDraft(
+      { ...EMPTY_DRAFT, freeDelivery: 'da', freeDeliveryMin: '' },
+      HERDANDO,
+      PADRAO,
+    );
+    expect(resultado.ok).toBe(false);
+    if (!resultado.ok) expect(resultado.message).toMatch(/de graça em todo pedido/);
+  });
+
+  it('herdando não cobra o valor: quem responde pelo par é o restaurante', () => {
+    const resultado = bodyFromDraft({ ...EMPTY_DRAFT, freeDelivery: 'herda' }, HERDANDO, PADRAO);
+    expect(resultado.ok).toBe(true);
   });
 });

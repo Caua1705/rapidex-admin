@@ -216,6 +216,66 @@ export function BranchValuesTab({
         </div>
       </section>
 
+      {/*
+        FRETE GRÁTIS ACIMA DE X — o mesmo par de controles da taxa de serviço,
+        e pela mesma razão: não existe número que signifique "desligado". `0`
+        seria "grátis sempre", que é o oposto, e campo vazio é "herda". É o
+        booleano que dá a esta filial o jeito de recusar a campanha da rede.
+      */}
+      <section className="store-form__section">
+        <div className="store-form__section-head">
+          <h2 className="store-form__heading">Frete grátis</h2>
+          <span className="faint">Só vale no pedido, sobre o subtotal — nunca na estimativa.</span>
+        </div>
+
+        <div className="store-form__row">
+          <div className="field">
+            <span className="field__label">Como esta filial faz</span>
+            <div className="seg" role="group" aria-label="Frete grátis desta filial">
+              {(
+                [
+                  { value: 'herda', label: 'Herdar' },
+                  { value: 'da', label: 'Dar' },
+                  { value: 'nao-da', label: 'Não dar' },
+                ] as const
+              ).map((opcao) => (
+                <button
+                  key={opcao.value}
+                  type="button"
+                  className="seg__opt"
+                  aria-pressed={draft.freeDelivery === opcao.value}
+                  onClick={() => patch({ freeDelivery: opcao.value })}
+                  data-testid={`branch-free-delivery-${opcao.value}`}
+                >
+                  {opcao.label}
+                </button>
+              ))}
+            </div>
+            <span className="field__hint">{ajudaDoFrete(draft.freeDelivery, padrao)}</span>
+          </div>
+
+          <Campo
+            rotulo="Acima de"
+            classeExtra="store-form__narrow"
+            proprio={gravado.free_delivery_min_order_value != null}
+            padrao={
+              padrao.free_delivery_min_order_value == null
+                ? 'sem valor'
+                : formatCurrency(padrao.free_delivery_min_order_value)
+            }
+          >
+            <input
+              className="input tnum"
+              inputMode="decimal"
+              value={draft.freeDeliveryMin}
+              disabled={draft.freeDelivery === 'nao-da'}
+              onChange={(event) => patch({ freeDeliveryMin: event.target.value })}
+              data-testid="branch-free-delivery-min"
+            />
+          </Campo>
+        </div>
+      </section>
+
       <section className="store-form__section">
         <div className="store-form__section-head">
           <h2 className="store-form__heading">Taxa de contingência</h2>
@@ -276,6 +336,35 @@ function ajudaDaTaxa(
   return padrao.service_fee_enabled === false
     ? 'Herdando o restaurante, que não cobra taxa de serviço.'
     : `Herdando o restaurante, que cobra ${formatCurrency(padrao.service_fee_amount)}.`;
+}
+
+/**
+ * O que a filial segue no frete grátis — e a assimetria que precisa ser dita.
+ *
+ * O LIGADO RESOLVIDO É `false` POR OMISSÃO, ao contrário da taxa de serviço.
+ * Taxa de serviço ligada sem valor cobra zero e não machuca ninguém; frete
+ * grátis ligado por omissão dá a entrega de graça em nome de um lojista que não
+ * pediu. Herdando de um restaurante que não configurou nada, a resposta é "não
+ * dá" — e a tela escreve isso em vez de deixar o lojista supor.
+ */
+function ajudaDoFrete(
+  escolha: OverridesDraft['freeDelivery'],
+  /*
+   * `free_delivery_enabled` é anulável no padrão do restaurante, e nulo aqui NÃO
+   * é "herda" — acima do restaurante não há de quem herdar. Nulo é "não
+   * configurado", e o backend resolve isso como desligado.
+   */
+  padrao: { free_delivery_enabled?: boolean | null; free_delivery_min_order_value?: number | null },
+): string {
+  if (escolha === 'nao-da')
+    return 'Escolha desta filial: ela não dá frete grátis, mesmo se a rede der.';
+  if (escolha === 'da')
+    return 'Escolha desta filial. O valor é o subtotal a partir do qual a entrega sai de graça.';
+
+  if (!padrao.free_delivery_enabled) return 'Herdando o restaurante, que não dá frete grátis.';
+  return padrao.free_delivery_min_order_value == null
+    ? 'Herdando o restaurante, que dá frete grátis — mas ainda não disse acima de quanto.'
+    : `Herdando o restaurante, que dá frete grátis acima de ${formatCurrency(padrao.free_delivery_min_order_value)}.`;
 }
 
 /**

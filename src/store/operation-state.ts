@@ -39,9 +39,60 @@ export type SituacaoOperacao =
 export function situacaoDaFilial(linha: BranchOperation | null): SituacaoOperacao {
   if (!linha) return 'desconhecida';
   if (!linha.is_open) return 'fechada';
-  if (!linha.accepts_delivery && !linha.accepts_pickup) return 'sem-forma-de-comprar';
+  /*
+   * `accepts_delivery_now`, E NÃO `accepts_delivery`. Os dois campos existem
+   * porque respondem perguntas diferentes: o primeiro é "esta loja faz
+   * entrega?" (estrutural), o segundo é "está entrando pedido de entrega
+   * AGORA?" — a chave já descontada a pausa temporária. Quem decide se alguém
+   * consegue comprar é sempre o segundo; ler o primeiro deixaria o ponto verde
+   * aceso numa loja que pausou a entrega às 19h por causa de chuva.
+   */
+  if (!linha.accepts_delivery_now && !linha.accepts_pickup) return 'sem-forma-de-comprar';
   if (!linha.is_open_now) return 'fora-do-horario';
   return 'no-ar';
+}
+
+/**
+ * A PAUSA DA ENTREGA — ativa quando o prazo dela ainda não venceu.
+ *
+ * Ela é comparada com o RELÓGIO, e não lida de um booleano, porque é assim que
+ * o backend a resolve: a pausa se desfaz sozinha, e uma tela que guardasse
+ * "pausado: sim" continuaria afirmando isso depois de o prazo passar.
+ *
+ * `agora` entra como parâmetro para o teste não depender do relógio da máquina.
+ */
+export function pausaAtiva(linha: BranchOperation | null, agora = new Date()): Date | null {
+  if (!linha?.delivery_paused_until) return null;
+  const ate = new Date(linha.delivery_paused_until);
+  if (Number.isNaN(ate.getTime()) || ate <= agora) return null;
+  return ate;
+}
+
+/**
+ * "Pausada até 20:30 · chuva forte" — a frase da linha.
+ *
+ * SEM A PALAVRA "ENTREGA", e ela estava lá: a nota mora encostada na coluna que
+ * se chama Entrega, e as oito letras a mais faziam a frase quebrar em duas
+ * linhas na coluna de 190px — com o "·" pendurado no fim da primeira, e a linha
+ * inteira com o dobro da altura das vizinhas numa lista que existe para ser
+ * escaneada.
+ *
+ * ELA É ANUNCIADA MESMO QUANDO A LOJA JÁ TEM OUTRO PROBLEMA, e é a única nota
+ * desta tela com essa prioridade: a pausa é o único estado que se desfaz
+ * SOZINHO, e é justamente por isso que ninguém lembra dela. Quem pausou às 19h
+ * por causa de chuva não volta ao painel para conferir — o único sintoma de uma
+ * pausa esquecida é a ausência de pedido, que não acende alarme nenhum.
+ *
+ * O motivo entra só quando existe: "Entrega pausada até 20:30 ·" com o rabo
+ * solto é pior que a frase curta.
+ */
+export function notaDaPausa(linha: BranchOperation | null, agora = new Date()): string | null {
+  const ate = pausaAtiva(linha, agora);
+  if (!ate) return null;
+
+  const hora = ate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const motivo = linha?.delivery_pause_reason?.trim();
+  return motivo ? `Pausada até ${hora} · ${motivo}` : `Pausada até ${hora}`;
 }
 
 /**

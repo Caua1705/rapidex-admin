@@ -231,6 +231,25 @@ export type PrintSectorRequest = Schemas['ProductPrintingSectorRequest'];
 export type ProductPrintSector = Schemas['ProductPrintingSectorResponse'];
 export type CategoryPrintSectorResult = Schemas['CategoryPrintingSectorResponse'];
 
+// --- entrega: a pausa e as faixas de prazo --------------------------------
+
+/**
+ * A FAIXA DE PRAZO POR DISTÂNCIA — e ela é um TETO, não um intervalo.
+ *
+ * Vale a primeira faixa, em ordem crescente, cujo teto alcança a distância. Não
+ * há campo de piso de propósito: com piso daria para cadastrar 0–5 e 6–10 e
+ * deixar o endereço de 5,4 km sem faixa nenhuma — um buraco que aparece no
+ * endereço de um cliente específico e some quando alguém vai conferir.
+ *
+ * Os minutos são o DESLOCAMENTO, não o prazo total: o preparo da filial
+ * continua somando por cima. Ver `store/delivery-bands.ts`.
+ */
+export type DeliveryTimeBand = Schemas['src__schemas__admin_settings_schema__DeliveryTimeBandResponse'];
+export type DeliveryTimeBandInput = Schemas['DeliveryTimeBandInput'];
+
+/** Pausa a entrega por um tempo. `minutes: 0` retoma na hora; teto de 24h. */
+export type DeliveryPauseRequest = Schemas['AdminBranchDeliveryPauseRequest'];
+
 // --- como a comanda desta filial sai --------------------------------------
 
 /**

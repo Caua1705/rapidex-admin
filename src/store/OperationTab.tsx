@@ -1,7 +1,10 @@
+import { useState } from 'react';
+
 import { usePermissoes } from '../auth/use-permissions';
 import { Switch } from '../ds/Switch';
 import type { BranchOperation } from '../api/types';
-import { estaNoAr, situacaoDaFilial } from './operation-state';
+import { DeliveryPauseDialog } from './DeliveryPauseDialog';
+import { estaNoAr, notaDaPausa, pausaAtiva, situacaoDaFilial } from './operation-state';
 import type { useBranchOperation } from './useBranchOperation';
 
 /**
@@ -44,6 +47,8 @@ export function OperationTab({ operation }: { operation: ReturnType<typeof useBr
         <span className="t-label op-head__col">Entrega</span>
         <span className="t-label op-head__col">Retirada</span>
         <span className="t-label op-head__col">Aberta</span>
+        {/* A coluna da ação não tem rótulo: o botão diz o que faz. */}
+        <span />
       </div>
 
       <ul className="op-rows">
@@ -92,9 +97,24 @@ function OperationRow({
    * continuaria aceso numa loja em que ninguém consegue comprar. A frase ao
    * lado explica; quem informa de longe é o ponto.
    */
+  const { pode } = usePermissoes();
+  const [pausando, setPausando] = useState(false);
+
   const noAr = estaNoAr(linha);
-  const nota = NOTA[situacaoDaFilial(linha)];
   const erro = operation.errorFor(linha.branch_id);
+
+  /*
+   * A NOTA DA PAUSA VENCE A DA SITUAÇÃO, e é a única com essa prioridade.
+   *
+   * A pausa é o único estado desta tela que se desfaz SOZINHO, e é justamente
+   * por isso que ninguém lembra dela: quem pausou às 19h por causa de chuva não
+   * volta ao painel para conferir, e o único sintoma de uma pausa esquecida é a
+   * ausência de pedido — que não acende alarme nenhum. Ela precisa estar
+   * escrita mesmo quando a loja já tem outro problema, porque é a que explica
+   * "por que parou de entrar pedido de entrega".
+   */
+  const pausada = pausaAtiva(linha);
+  const nota = notaDaPausa(linha) ?? NOTA[situacaoDaFilial(linha)];
 
   return (
     <li
@@ -113,7 +133,12 @@ function OperationRow({
           {erro}
         </span>
       ) : (
-        <span className="op-row__note">{nota}</span>
+        <span
+          className={`op-row__note${pausada ? ' op-row__note--pausa' : ''}`}
+          data-testid={`operation-note-${linha.branch_id}`}
+        >
+          {nota}
+        </span>
       )}
 
       {/*
@@ -145,6 +170,52 @@ function OperationRow({
           operation={operation}
         />
       </span>
+
+      {/*
+        PAUSAR É DE QUEM OPERA, e o botão só existe para quem faz entrega: numa
+        filial que não entrega, "pausar a entrega" é um controle que não muda
+        nada. Pausada, ele vira o botão de RETOMAR — que é o de quem parou por
+        60 minutos e resolveu em 20, e é um clique só porque nessa hora ninguém
+        preenche formulário.
+      */}
+      {pode('loja.pausarEntrega') && linha.accepts_delivery ? (
+        <span className="op-row__pausa">
+          {pausada ? (
+            <button
+              type="button"
+              className="btn btn--sm"
+              disabled={operation.isSaving(linha.branch_id, 'pause')}
+              onClick={() => void operation.pause(linha.branch_id, 0, '')}
+              data-testid={`operation-resume-${linha.branch_id}`}
+            >
+              {operation.isSaving(linha.branch_id, 'pause') ? 'Retomando…' : 'Retomar entrega'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn--sm btn--ghost"
+              onClick={() => setPausando(true)}
+              data-testid={`operation-pause-${linha.branch_id}`}
+            >
+              Pausar entrega
+            </button>
+          )}
+        </span>
+      ) : null}
+
+      {pausando ? (
+        <DeliveryPauseDialog
+          branchName={linha.branch_name}
+          isSending={operation.isSaving(linha.branch_id, 'pause')}
+          errorMessage={erro}
+          onClose={() => setPausando(false)}
+          onConfirm={(minutos, motivo) => {
+            void operation.pause(linha.branch_id, minutos, motivo).then((ok) => {
+              if (ok) setPausando(false);
+            });
+          }}
+        />
+      ) : null}
     </li>
   );
 }

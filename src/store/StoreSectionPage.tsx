@@ -72,7 +72,8 @@ function Corpo({ id, context }: { id: StoreSectionId; context: StoreOutletContex
     );
   if (id === 'filial') return <BranchTab branchDetail={context.branchDetail} />;
   if (id === 'horarios') return <HoursTab branchId={context.branchId} />;
-  if (id === 'entrega') return <DeliveryTab branchDetail={context.branchDetail} />;
+  if (id === 'entrega')
+    return <DeliveryTab branchId={context.branchId} branchDetail={context.branchDetail} />;
   if (id === 'pagamento') return <PaymentMethodsTab branchId={context.branchId} />;
   return <PrintingTab branchId={context.branchId} />;
 }

@@ -8,9 +8,11 @@ import {
   estimateDeliveryFee,
   type DeliveryConfig,
 } from './delivery-config';
+import { DeliveryBandsSection } from './DeliveryBandsSection';
 import { SaveBar } from './SaveBar';
 import { formatDecimalInput, parseDecimal } from './settings-model';
 import type { useBranchDetail } from './useBranchDetail';
+import { useDeliveryBands } from './useDeliveryBands';
 
 type Draft = {
   baseFee: string;
@@ -38,10 +40,19 @@ const PREVIEW_DISTANCES = [1, 3, 5];
  * num pedido de 5 km.
  */
 export function DeliveryTab({
+  branchId,
   branchDetail,
 }: {
+  branchId: string;
   branchDetail: ReturnType<typeof useBranchDetail>;
 }) {
+  /*
+   * AS FAIXAS TÊM ROTA E BOTÃO PRÓPRIOS. Elas são `PUT` que substitui tudo e
+   * são da GERÊNCIA, enquanto o resto desta aba grava por `PATCH .../{id}` com
+   * outra permissão. Um botão só faria um 403 numa metade parecer falha da
+   * outra — e faria salvar a taxa reenviar a tabela inteira.
+   */
+  const bands = useDeliveryBands(branchId);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [baseline, setBaseline] = useState<Draft>(EMPTY);
   const [problem, setProblem] = useState<string | null>(null);
@@ -244,6 +255,8 @@ export function DeliveryTab({
           })}
         </ul>
       </section>
+
+      <DeliveryBandsSection bands={bands} />
 
       <SaveBar
         isSaving={branchDetail.isSaving}

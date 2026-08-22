@@ -502,10 +502,24 @@ type BranchDayState = {
   accepts_delivery: boolean;
   accepts_pickup: boolean;
   withinHours: boolean;
+  /*
+   * A PAUSA DA ENTREGA — um instante, e não um booleano, porque é assim que ela
+   * se desfaz sozinha. O falso guarda o carimbo e compara com o relógio na hora
+   * de responder, como o backend.
+   */
+  deliveryPausedUntil: string | null;
+  deliveryPauseReason: string | null;
 };
 
 function initialDayState(): BranchDayState {
-  return { is_open: true, accepts_delivery: true, accepts_pickup: true, withinHours: true };
+  return {
+    is_open: true,
+    accepts_delivery: true,
+    accepts_pickup: true,
+    withinHours: true,
+    deliveryPausedUntil: null,
+    deliveryPauseReason: null,
+  };
 }
 
 /** Segunda a sexta abertas, sábado à noite, domingo fechado. */
@@ -1306,6 +1320,10 @@ export type FakeApi = {
    * asserção de tela, porque a tela mostra o efeito e não o que foi enviado.
    */
   printSettingsPatches: () => { branchId: string; body: Record<string, unknown> }[];
+  /** Cada PATCH .../delivery-pause, na ordem. */
+  pauseCalls: () => { branchId: string; body: Record<string, unknown> }[];
+  /** Cada PUT .../delivery-time-bands, na ordem. */
+  bandCalls: () => { branchId: string; body: Record<string, unknown> }[];
   /** Cada PATCH de produto, com o corpo — é onde se prova campo AUSENTE. */
   productPatches: () => { productId: string; body: Record<string, unknown> }[];
   /**
@@ -1490,6 +1508,14 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     >,
     /** Cada corpo de PATCH .../print-settings, para conferir o que foi enviado. */
     printSettingsPatches: [] as { branchId: string; body: Record<string, unknown> }[],
+    /** Cada PATCH .../delivery-pause, para o teste ler minutos e motivo. */
+    pauseCalls: [] as { branchId: string; body: Record<string, unknown> }[],
+    /** Cada PUT .../delivery-time-bands. */
+    bandCalls: [] as { branchId: string; body: Record<string, unknown> }[],
+    deliveryBands: {} as Record<
+      string,
+      { id: string; branch_id: string; max_distance_km: number; delivery_time_min: number; delivery_time_max: number }[]
+    >,
     productPatches: [] as { productId: string; body: Record<string, unknown> }[],
     /** Cada PATCH de setor na categoria inteira, para conferir o lote. */
     categorySectorCalls: [] as { categoryId: string; printSectorId: string | null }[],
@@ -1519,6 +1545,16 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       default_delivery_fee: (gravado.default_delivery_fee as number | null) ?? null,
       service_fee_enabled: (gravado.service_fee_enabled as boolean | null) ?? null,
       service_fee_amount: (gravado.service_fee_amount as number | null) ?? null,
+      /*
+       * O PAR DO FRETE GRÁTIS PRECISA VOLTAR NA RESPOSTA, e ele já foi
+       * esquecido aqui: sem eles a tela relia "herdando" logo depois de gravar
+       * `false`, e a recusa da filial desaparecia sozinha no primeiro
+       * recarregamento. É o campo que o falso não ecoa que mente sobre o
+       * backend.
+       */
+      free_delivery_enabled: (gravado.free_delivery_enabled as boolean | null) ?? null,
+      free_delivery_min_order_value:
+        (gravado.free_delivery_min_order_value as number | null) ?? null,
     };
 
     return {
@@ -1527,9 +1563,19 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       is_open: dia.is_open,
       is_open_now: dia.is_open && dia.withinHours,
       accepts_delivery: dia.accepts_delivery,
-      // Ver a nota da entrega grátis abaixo: rodada de entrega que o painel
-      // ainda não lê. Sem pausa, "aceita agora" é o mesmo que "aceita".
-      accepts_delivery_now: dia.accepts_delivery,
+      /*
+       * `accepts_delivery_now` É A CHAVE JÁ DESCONTADA A PAUSA, e o falso o
+       * calcula como o backend: comparando o carimbo com o relógio. Guardar um
+       * booleano aqui faria a pausa não vencer sozinha — que é a única coisa
+       * que a distingue de `accepts_delivery`.
+       */
+      accepts_delivery_now: dia.accepts_delivery && !pausaValendo(dia),
+      ...(pausaValendo(dia)
+        ? {
+            delivery_paused_until: dia.deliveryPausedUntil,
+            delivery_pause_reason: dia.deliveryPauseReason,
+          }
+        : {}),
       accepts_pickup: dia.accepts_pickup,
       overrides,
       /*
@@ -1554,9 +1600,19 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
          * a exige, e DESLIGADA, que é como a migração a cria: um falso que a
          * afirmasse ligada faria a tela ensaiar uma operação inexistente.
          */
-        free_delivery_enabled: false,
+        // `_ou_herdado`: o `false` da filial é uma ESCOLHA e não cai no padrão.
+        free_delivery_enabled:
+          overrides.free_delivery_enabled ?? padrao.free_delivery_enabled ?? false,
+        free_delivery_min_order_value:
+          overrides.free_delivery_min_order_value ?? padrao.free_delivery_min_order_value ?? null,
       },
     };
+  }
+
+  /** A pausa vale enquanto o prazo dela não venceu — o relógio decide. */
+  function pausaValendo(dia: BranchDayState): boolean {
+    if (!dia.deliveryPausedUntil) return false;
+    return new Date(dia.deliveryPausedUntil).getTime() > Date.now();
   }
 
   function findOrder(orderId: string): OrderListItem | undefined {
@@ -1694,6 +1750,59 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       state.overrides[branchId] = gravado;
 
       return json(route, 200, operationOf(branch));
+    }
+
+    const pauseMatch = /^\/admin\/branches\/([^/]+)\/delivery-pause$/.exec(path);
+    if (method === 'PATCH' && pauseMatch?.[1]) {
+      const branchId = pauseMatch[1];
+      const branch = state.branches.find((item) => item.id === branchId);
+      if (!branch) return json(route, 404, { detail: 'Filial não encontrada.' });
+
+      const body = request.postDataJSON() as { minutes: number; reason?: string | null };
+      state.pauseCalls.push({ branchId, body });
+
+      // Teto de 24h, como o backend: pausa de três dias é a chave estrutural
+      // com passos a mais, e aí a distinção entre as duas deixa de existir.
+      if (body.minutes > 24 * 60) {
+        return json(route, 422, { detail: 'A pausa vai até 24 horas.' });
+      }
+
+      const atual = state.dayState[branchId] ?? initialDayState();
+      state.dayState[branchId] =
+        body.minutes <= 0
+          ? // `0` retoma na hora — o botão de quem parou por 60 e resolveu em 20.
+            { ...atual, deliveryPausedUntil: null, deliveryPauseReason: null }
+          : {
+              ...atual,
+              deliveryPausedUntil: new Date(Date.now() + body.minutes * 60_000).toISOString(),
+              deliveryPauseReason: body.reason?.trim() || null,
+            };
+
+      return json(route, 200, operationOf(branch));
+    }
+
+    const bandsMatch = /^\/admin\/branches\/([^/]+)\/delivery-time-bands$/.exec(path);
+    if (bandsMatch?.[1]) {
+      const branchId = bandsMatch[1];
+      if (method === 'GET') {
+        return json(route, 200, state.deliveryBands[branchId] ?? []);
+      }
+      if (method === 'PUT') {
+        const body = request.postDataJSON() as {
+          bands?: { max_distance_km: number; delivery_time_min: number; delivery_time_max: number }[];
+        };
+        state.bandCalls.push({ branchId, body });
+
+        /*
+         * O BACKEND DEVOLVE ORDENADO POR TETO, e é essa ordem que a tela
+         * repinta — a ordem que vale é a da regra ("a primeira faixa cujo teto
+         * alcança"), não a de digitação.
+         */
+        state.deliveryBands[branchId] = [...(body.bands ?? [])]
+          .sort((a, b) => a.max_distance_km - b.max_distance_km)
+          .map((band, indice) => ({ id: `faixa-${branchId}-${indice}`, branch_id: branchId, ...band }));
+        return json(route, 200, state.deliveryBands[branchId]);
+      }
     }
 
     const orderTypesMatch = /^\/admin\/branches\/([^/]+)\/order-types$/.exec(path);
@@ -2712,6 +2821,8 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     },
     printTests: () => state.printTests,
     printSettingsPatches: () => state.printSettingsPatches,
+    pauseCalls: () => state.pauseCalls,
+    bandCalls: () => state.bandCalls,
     productPatches: () => state.productPatches,
     setPrintAgentSeconds(branchId, seconds) {
       state.printAgents[branchId] = {

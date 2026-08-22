@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ApiError, messageFromUnknownError } from '../api/errors';
 import {
   fetchBranchOperation,
+  pauseDelivery,
   setBranchOpen,
   setBranchOrderTypes,
   updateBranchSettings,
@@ -40,7 +41,13 @@ import type { BranchOperation, BranchSettingsUpdate } from '../api/types';
  * formulário de valores, que é outra rota e outra tela mas responde a MESMA
  * linha — por isso ele atualiza este mesmo estado em vez de ter cópia própria.
  */
-export type OperationField = 'is_open' | 'accepts_delivery' | 'accepts_pickup' | 'settings';
+export type OperationField =
+  | 'is_open'
+  | 'accepts_delivery'
+  | 'accepts_pickup'
+  | 'settings'
+  /** A pausa temporária da entrega — rota própria, e não um dos interruptores. */
+  | 'pause';
 
 const chave = (branchId: string, campo: OperationField) => `${branchId}#${campo}`;
 export function useBranchOperation(branchId: string) {
@@ -105,6 +112,42 @@ export function useBranchOperation(branchId: string) {
   );
 
   /**
+   * PAUSA (ou RETOMA) A ENTREGA DE UMA FILIAL.
+   *
+   * `minutos: 0` retoma na hora — é o botão de quem parou por 60 minutos e
+   * resolveu em 20. A resposta é a linha inteira, com `accepts_delivery_now` já
+   * recalculado: a tela adota o que o backend devolveu em vez de deduzir o novo
+   * estado do que mandou.
+   *
+   * Ela NÃO mexe em `accepts_delivery`. As duas coisas convivem de propósito: a
+   * chave é estrutural e espera alguém religar, a pausa vence no relógio.
+   */
+  const pause = useCallback(
+    async (alvo: string, minutos: number, motivo: string): Promise<boolean> => {
+      if (alvo === '') return false;
+
+      setSaving((atuais) => [...atuais, chave(alvo, 'pause')]);
+      setErrors(({ [alvo]: _descartado, ...resto }) => resto);
+      try {
+        const gravada = await pauseDelivery(alvo, {
+          minutes: minutos,
+          ...(motivo.trim() ? { reason: motivo.trim() } : {}),
+        });
+        setBranches((atuais) =>
+          (atuais ?? []).map((linha) => (linha.branch_id === alvo ? gravada : linha)),
+        );
+        return true;
+      } catch (error) {
+        setErrors((atuais) => ({ ...atuais, [alvo]: messageFromUnknownError(error) }));
+        return false;
+      } finally {
+        setSaving((atuais) => atuais.filter((id) => id !== chave(alvo, 'pause')));
+      }
+    },
+    [],
+  );
+
+  /**
    * As sobrescritas comerciais de uma filial.
    *
    * Mora no mesmo hook que os interruptores porque a resposta é a mesma linha
@@ -152,6 +195,7 @@ export function useBranchOperation(branchId: string) {
     reload,
     toggle,
     saveSettings,
+    pause,
     /** A linha de uma filial, ou nula: antes de carregar, ou fora do escopo. */
     branchOf: useCallback(
       (id: string) => (branches ?? []).find((linha) => linha.branch_id === id) ?? null,

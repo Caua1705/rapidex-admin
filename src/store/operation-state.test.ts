@@ -1,22 +1,26 @@
 import { describe, expect, it } from 'vitest';
 
 import type { BranchOperation } from '../api/types';
-import { estaNoAr, situacaoDaFilial } from './operation-state';
+import { estaNoAr, notaDaPausa, pausaAtiva, situacaoDaFilial } from './operation-state';
 
+/**
+ * Uma linha de operação para o teste.
+ *
+ * `accepts_delivery_now` é DERIVADO de `accepts_delivery` quando ninguém o
+ * escreve, e não fixo em `true`: ele é a chave já descontada a pausa, então
+ * "não faz entrega" e "aceita entrega agora" é um estado que não existe. Com
+ * ele fixo, um teste que desligasse só a chave ensaiaria uma loja impossível — e
+ * foi exatamente o que aconteceu quando a situação passou a ler o campo certo.
+ */
 function filial(overrides: Partial<BranchOperation> = {}): BranchOperation {
+  const aceitaEntrega = overrides.accepts_delivery ?? true;
   return {
     branch_id: 'b-1',
     branch_name: 'Aldeota',
     is_open: true,
     is_open_now: true,
-    accepts_delivery: true,
-    /*
-     * A PAUSA DE ENTREGA entrou numa rodada do backend que este painel ainda
-     * não lê. `accepts_delivery_now` é o `accepts_delivery` já descontada a
-     * pausa temporária; sem pausa, os dois são iguais — que é o estado em que
-     * a migração cria as filiais e o único que estes testes ensaiam.
-     */
-    accepts_delivery_now: true,
+    accepts_delivery: aceitaEntrega,
+    accepts_delivery_now: aceitaEntrega,
     accepts_pickup: true,
     overrides: {},
     /*
@@ -91,5 +95,73 @@ describe('a situação de uma filial', () => {
   it('sem leitura não afirma nada, e o ponto não acende', () => {
     expect(situacaoDaFilial(null)).toBe('desconhecida');
     expect(estaNoAr(null)).toBe(false);
+  });
+});
+
+/* ==========================================================================
+ * A PAUSA DA ENTREGA — o estado que volta sozinho
+ *
+ * `accepts_delivery` é estrutural e espera alguém religar; a pausa é do momento
+ * e vence no relógio. Confundir os dois é o que faz uma loja amanhecer aberta
+ * sem aceitar entrega, com a ausência de pedido como único sintoma.
+ * ======================================================================= */
+
+const AGORA = new Date('2026-08-22T19:10:00-03:00');
+
+describe('a pausa da entrega', () => {
+  it('está ativa enquanto o prazo não venceu', () => {
+    const linha = filial({ delivery_paused_until: '2026-08-22T20:30:00-03:00' });
+    expect(pausaAtiva(linha, AGORA)).not.toBeNull();
+  });
+
+  /* Ela se desfaz SOZINHA: quem lê compara com o relógio, não com um booleano. */
+  it('deixa de existir quando o prazo passa, sem ninguém mexer', () => {
+    const linha = filial({ delivery_paused_until: '2026-08-22T19:00:00-03:00' });
+    expect(pausaAtiva(linha, AGORA)).toBeNull();
+  });
+
+  it('sem prazo gravado não há pausa', () => {
+    expect(pausaAtiva(filial(), AGORA)).toBeNull();
+  });
+
+  it('a frase leva o horário de volta, e o motivo quando existe', () => {
+    expect(
+      notaDaPausa(
+        filial({
+          delivery_paused_until: '2026-08-22T20:30:00-03:00',
+          delivery_pause_reason: 'chuva forte',
+        }),
+        AGORA,
+      ),
+    ).toBe('Pausada até 20:30 · chuva forte');
+
+    expect(
+      notaDaPausa(filial({ delivery_paused_until: '2026-08-22T20:30:00-03:00' }), AGORA),
+    ).toBe('Pausada até 20:30');
+  });
+});
+
+describe('a situação lê "aceita agora", não "aceita"', () => {
+  /*
+   * A loja faz entrega (a chave está ligada) e não faz retirada. Com a entrega
+   * pausada, ninguém consegue comprar AGORA — e um ponto que olhasse
+   * `accepts_delivery` continuaria verde.
+   */
+  it('entrega pausada e sem retirada é "ninguém consegue comprar"', () => {
+    const linha = filial({
+      accepts_delivery: true,
+      accepts_delivery_now: false,
+      accepts_pickup: false,
+    });
+    expect(situacaoDaFilial(linha)).toBe('sem-forma-de-comprar');
+  });
+
+  it('mas a loja continua no ar quando a retirada segue de pé', () => {
+    const linha = filial({
+      accepts_delivery: true,
+      accepts_delivery_now: false,
+      accepts_pickup: true,
+    });
+    expect(situacaoDaFilial(linha)).toBe('no-ar');
   });
 });

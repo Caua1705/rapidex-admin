@@ -18,6 +18,9 @@ import type {
   BranchOperation,
   BranchOrderTypes,
   BranchSettingsUpdate,
+  DeliveryPauseRequest,
+  DeliveryTimeBand,
+  DeliveryTimeBandInput,
   BranchUpdate,
   BusinessHourInput,
   BusinessHour,
@@ -60,6 +63,72 @@ export async function fetchBranchOperation(branchId?: string): Promise<BranchOpe
   return unwrap(
     await apiClient.GET('/admin/branches/operation', {
       params: { query: branchId ? { branch_id: branchId } : {} },
+    }),
+  );
+}
+
+/**
+ * PAUSA A ENTREGA DESTA FILIAL POR UM TEMPO — e só por um tempo.
+ *
+ * `minutes` conta de AGORA, com teto de 24h; `0` retoma na hora. A pausa não
+ * substitui `accepts_delivery`: aquele é estrutural ("este quiosque não
+ * entrega") e espera alguém religar; esta é do momento (chuva, entregador que
+ * sumiu) e VOLTA SOZINHA. Os dois se somam em `accepts_delivery_now`, que é
+ * quem decide se entra pedido.
+ *
+ * É DE QUEM OPERA (`PESSOAS`), enquanto a chave estrutural é da gerência — e a
+ * assimetria é o ponto: quem está no balcão às 19h com chuva é quem pausa, e
+ * uma pausa que dependesse do gerente seria uma pausa que não acontece.
+ *
+ * `reason` é mostrado AO CLIENTE junto do horário de volta. Pausa sem prazo faz
+ * o cliente fechar o app; com prazo, ele volta.
+ */
+export async function pauseDelivery(
+  branchId: string,
+  body: DeliveryPauseRequest,
+): Promise<BranchOperation> {
+  return unwrap(
+    await apiClient.PATCH('/admin/branches/{branch_id}/delivery-pause', {
+      params: { path: { branch_id: branchId } },
+      body,
+    }),
+  );
+}
+
+/**
+ * As faixas de prazo por distância desta filial, em ordem crescente de teto.
+ *
+ * SEM HERANÇA NENHUMA, ao contrário dos termos comerciais: a faixa mede o tempo
+ * entre a porta DAQUELA loja e a porta do cliente, e duas lojas da mesma marca
+ * em pontas opostas da cidade não têm faixa em comum.
+ *
+ * Lista vazia é um estado válido e NÃO significa "sem entrega": significa que o
+ * prazo volta a sair do tempo do Google, como antes desta tabela existir.
+ */
+export async function fetchDeliveryTimeBands(branchId: string): Promise<DeliveryTimeBand[]> {
+  return unwrap(
+    await apiClient.GET('/admin/branches/{branch_id}/delivery-time-bands', {
+      params: { path: { branch_id: branchId } },
+    }),
+  );
+}
+
+/**
+ * Substitui TODAS as faixas de uma vez.
+ *
+ * `PUT` e não um POST por linha, pelo mesmo motivo do horário da semana: a tela
+ * é uma tabelinha que o lojista salva junta, e editar linha a linha exigiria id
+ * de faixa no painel e deixaria a tabela pela metade se uma das chamadas
+ * falhasse.
+ */
+export async function replaceDeliveryTimeBands(
+  branchId: string,
+  bands: DeliveryTimeBandInput[],
+): Promise<DeliveryTimeBand[]> {
+  return unwrap(
+    await apiClient.PUT('/admin/branches/{branch_id}/delivery-time-bands', {
+      params: { path: { branch_id: branchId } },
+      body: { bands },
     }),
   );
 }
