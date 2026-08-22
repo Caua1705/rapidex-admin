@@ -637,27 +637,50 @@ contrato não tem nada disso, e um link impreciso é pior que link nenhum.
 
 Uma tela que RESPONDE, não que exibe. A primeira coisa é uma FRASE, e ela sai de
 regras determinísticas sobre o que as rotas devolvem (`insights.ts`) — sem IA,
-sem estimativa. Toda frase tem limiar nomeado, e frase cuja condição não bate
-não aparece: não existe frase neutra de preenchimento.
+sem estimativa. Toda frase tem limiar nomeado em `LIMIARES`, e frase cuja
+condição não bate não aparece: não existe frase neutra de preenchimento. São
+doze hoje.
 
-A forma, depois desta rodada:
+A forma:
 
 1. **uma banda de topo** com a resposta (22px/500), os três números crus
    (`--metric-*`, com delta em `--ok`/`--danger` mais seta mais sinal) e as
    ressalvas, fechada por um fio `--line-strong`;
-2. **o gráfico na largura inteira**, logo abaixo — é a peça que mais faz uma
-   tela de relatório ler como painel;
-3. **as quatro perguntas em grade de duas colunas**, separadas por fio, que
-   volta a uma coluna abaixo de 1100px.
+2. **as filiais lado a lado**, na largura inteira, e SÓ em "todas as filiais" —
+   a seção nasce onde morava o pedido de desculpas pela soma e o transforma em
+   resposta. Com uma filial escolhida ela não existe: a linha de escopo já
+   afirma "estes números são da filial X", e o faturamento da vizinha embaixo
+   faria a tela se contradizer. Reusa `.fatias` (a mesma peça de entrega ×
+   retirada — poucos valores comparáveis, cada um com sua barra de fatia);
+3. **o gráfico de dias na largura inteira** — é a peça que mais faz uma tela de
+   relatório ler como painel;
+4. **as quatro perguntas em grade de duas colunas**, separadas por fio, que
+   volta a uma coluna abaixo de 1100px. A ordem dentro da grade é de ALTURA: as
+   duas seções longas ("o que vendeu" e "o que não virou venda") ocupam a
+   primeira fileira, senão a coluna da direita fica com meia tela de nada e um
+   fio correndo ao lado do vazio.
 
-Nenhum cartão. Nenhuma métrica inventada. O gráfico é coluna (magnitude por
-categoria discreta), série única, marca neutra, sem legenda; o dia de pico leva
-rótulo direto e tinta cheia — a mesma informação que o rótulo já escreve, um
-degrau acima na escala de tinta. Dia sem venda tem altura zero, não um mínimo
-"para aparecer".
+Nenhum cartão. Nenhuma métrica inventada.
 
-Não filtra por filial, e DIZ isso: nenhuma das rotas aceita `branch_id`, e o
-seletor do topo ficaria parecendo um filtro que pegou.
+**Dois gráficos, uma gramática.** Os dois usam as MESMAS classes
+(`.grafico__*`): coluna, série única, marca neutra, sem legenda, com tabela
+equivalente `sr-only` e altura zero para o balde vazio — um dia fechado ou uma
+hora limpa é informação, e dois pixels diriam "vendeu pouco". O que os separa
+são duas medidas (`--chart-h-curto`, `--chart-band-curto`) e o comportamento no
+celular: o de DIAS rola de lado (trinta dias não cabem, e o que sai da tela é o
+trigésimo de uma série cujo total já está escrito); o de HORAS cabe (a série é
+um turno, e o que sairia da tela seria o pico — a resposta inteira da seção).
+
+**Filtra por filial**, e o seletor do topo pega — as seis rotas de relatório
+aceitam `branch_id` desde a revisão `20260820_0026`. A tela escreve UMA vez, no
+pé da banda, de qual recorte são os números.
+
+**O que ela não tem, e diz que não tem:** faturamento por hora (nenhuma rota de
+relatório desce abaixo do dia) e o quarto grupo de produto, "sazonais" — para
+dizer que um item é de época seria preciso vê-lo repetir em vários períodos, e
+`/reports/products` devolve um período agregado por vez. A ausência é escrita na
+tela, não silenciosa: espaço vazio ninguém interpreta, e chute tira prato do
+cardápio de gente de verdade.
 
 ### Minha loja — `src/store/`
 

@@ -32,6 +32,10 @@ import type {
 } from '../api/types';
 import { formatCurrency, labelFor, PAYMENT_METHOD_LABELS } from '../orders/format';
 import { STATUS_LABELS } from '../orders/order-status';
+import { branchName } from '../layout/branch-heading';
+import { variacaoDaFilial, type FilialComparada } from './branch-comparison';
+import { hourLabel, type LeituraDeHoras } from './cancellation-hours';
+import { QUADRANTE_LIMIARES } from './product-quadrants';
 import { paymentMethodLabel, toNumber, toNumberOrZero } from './report-model';
 
 /* ==========================================================================
@@ -94,7 +98,22 @@ export const LIMIARES = {
 
   /** Dinheiro acima disto é troco no caixa, e isso é operação, não relatório. */
   dinheiroAltoPct: 30,
+
+  /**
+   * Uma filial acima desta fatia do faturamento da rede não é "a maior": é a
+   * rede. A outra loja passa a ser um satélite, e isso muda o que o dono faz
+   * com ela.
+   */
+  filialDominantePct: 65,
 } as const;
+
+/*
+ * O CORTE DE "VOLUME SEM RECEITA" NÃO MORA AQUI, e é de propósito: ele é o
+ * MESMO limiar de "promissor" (`QUADRANTE_LIMIARES.promissorPct`). Uma cópia
+ * com nome próprio neste objeto seria uma segunda opinião sobre o mesmo
+ * número, esperando que alguém ajustasse só uma das duas e a tela passasse a
+ * chamar o mesmo produto de promissor num bloco e de fraco no de baixo.
+ */
 
 /* ==========================================================================
  * O TIPO DE UMA FRASE
@@ -563,6 +582,132 @@ export function readPagamento(payments: ReportPaymentMethods | null): Insight | 
   return {
     id: 'pagamento-dominante',
     text: `${pct(fatiaMaior)} do faturamento entra por ${rotulo} — se ela sair do ar, sai o faturamento junto.`,
+  };
+}
+
+/* ==========================================================================
+ * 10. QUAL DAS LOJAS VAI MELHOR
+ * ======================================================================= */
+
+/**
+ * A leitura da comparação entre filiais — e ela tem duas formas, nesta ordem.
+ *
+ * 1. **DIREÇÕES OPOSTAS.** Uma loja subiu e a outra caiu, as duas fora da faixa
+ *    de estabilidade. É a leitura mais forte que esta seção pode dar, porque
+ *    ela desmonta o número do topo: a rede não "ficou estável", uma loja
+ *    compensou a outra, e o problema tem endereço.
+ *
+ * 2. **UMA LOJA É A REDE.** Uma filial sozinha acima de `filialDominantePct` do
+ *    faturamento. Não é "a maior" — é a operação inteira, e a segunda é um
+ *    satélite. Muda o que o dono faz com a segunda.
+ *
+ * Fora dos dois casos, `null`: duas lojas parecidas subindo juntas não têm o
+ * que dizer além do que a banda do topo já disse, e a barra de fatia ao lado de
+ * cada nome já responde "qual é a maior" sem gastar uma frase.
+ *
+ * COM MENOS DE DUAS FILIAIS CARREGADAS não há comparação nenhuma — uma loja que
+ * respondeu e outra que falhou dariam "a Aldeota é 100% da rede", que é a
+ * falha de carregamento escrita como fato de negócio.
+ */
+export function readFilial(filiais: readonly FilialComparada[] | null): Insight | null {
+  if (!filiais || filiais.length < 2) return null;
+
+  const comVariacao = filiais
+    .map((filial) => ({ filial, variacao: variacaoDaFilial(filial) }))
+    .filter((item): item is { filial: FilialComparada; variacao: number } => item.variacao !== null);
+
+  const subindo = comVariacao.filter((item) => item.variacao >= LIMIARES.variacaoEstavelPct);
+  const caindo = comVariacao.filter((item) => item.variacao <= -LIMIARES.variacaoEstavelPct);
+
+  const maiorAlta = [...subindo].sort((a, b) => b.variacao - a.variacao)[0];
+  const maiorQueda = [...caindo].sort((a, b) => a.variacao - b.variacao)[0];
+
+  if (maiorAlta && maiorQueda) {
+    return {
+      id: 'filial-contraste',
+      text: `${branchName(maiorAlta.filial.branch)} subiu ${pct(maiorAlta.variacao)} e ${branchName(
+        maiorQueda.filial.branch,
+      )} caiu ${pct(maiorQueda.variacao)} — o que mudou no período não foi a rede, foi uma loja.`,
+    };
+  }
+
+  const maior = filiais[0];
+  if (!maior || maior.fatiaPct === null || maior.fatiaPct < LIMIARES.filialDominantePct) return null;
+
+  return {
+    id: 'filial-dominante',
+    text: `${branchName(maior.branch)} responde por ${pct(maior.fatiaPct)} do faturamento das ${
+      filiais.length
+    } lojas — o resultado da rede é o dela.`,
+  };
+}
+
+/* ==========================================================================
+ * 11. A HORA EM QUE O PEDIDO NÃO VIRA VENDA
+ * ======================================================================= */
+
+/**
+ * Onde os cancelamentos se juntam no relógio.
+ *
+ * A frase NÃO diz "cancelado às 20h": diz "ENTROU às 20h". A listagem de
+ * pedidos devolve `created_at`, e o instante do cancelamento não está no
+ * contrato — ver o bloco de `cancellation-hours.ts`. A diferença importa: um
+ * pedido que entra às 20h e é recusado às 20h05 e outro que entra às 20h e é
+ * cancelado às 21h30 aparecem os dois nas 20h, e a ação que cada um pede não é
+ * a mesma.
+ *
+ * `null` quando não há concentração — e aí a resposta ("espalhado pelo dia") é
+ * o próprio desenho plano do gráfico, não uma frase de preenchimento.
+ */
+export function readHoraCancelamento(leitura: LeituraDeHoras | null): Insight | null {
+  if (!leitura || !leitura.concentracao) return null;
+
+  const { tipo, inicio, fim, count, fatiaPct } = leitura.concentracao;
+  const quando =
+    tipo === 'pico' ? `nas ${hourLabel(inicio)}` : `entre ${hourLabel(inicio)} e ${hourLabel(fim)}`;
+
+  return {
+    id: 'hora-cancelamento',
+    text: `${pct(fatiaPct)} dos pedidos que não viraram venda entraram ${quando} — ${count} de ${
+      leitura.total
+    }. É hora de pico, e o que falha nela é operação, não cardápio.`,
+  };
+}
+
+/* ==========================================================================
+ * 12. O ITEM QUE VENDE MUITO E RENDE POUCO
+ * ======================================================================= */
+
+/**
+ * O campeão de UNIDADES que não é campeão de dinheiro.
+ *
+ * O ranking é por unidades e os grupos são por receita, então os dois discordam
+ * de propósito — e o item em que eles discordam mais é o mais acionável do
+ * cardápio: ele já tem demanda provada, e o que falta nele é margem ou preço.
+ * Um ranking sozinho nunca diria isso, porque ele mostra o item em primeiro
+ * lugar e o elogia.
+ *
+ * A LISTA JÁ VEM ORDENADA POR UNIDADES pela rota, então o primeiro item É o
+ * mais pedido — a função não reordena, e é isso que a mantém uma leitura do que
+ * o backend afirmou em vez de uma segunda classificação nossa.
+ */
+export function readVolumeSemReceita(products: ProductSales | null): Insight | null {
+  if (!products || products.products.length === 0) return null;
+
+  const maisPedido = products.products[0];
+  if (!maisPedido) return null;
+
+  const total = toNumber(products.listed_revenue_total);
+  if (total === null || total <= 0) return null;
+
+  const fatia = (toNumberOrZero(maisPedido.revenue_total) / total) * 100;
+  if (fatia >= QUADRANTE_LIMIARES.promissorPct) return null;
+
+  return {
+    id: 'volume-sem-receita',
+    text: `${maisPedido.product_name} é o item mais pedido do período (${
+      maisPedido.quantity_total === 1 ? '1 unidade' : `${maisPedido.quantity_total} unidades`
+    }) e responde por só ${pct(fatia)} da receita destes itens — a demanda dele já está provada, o preço é que não acompanha.`,
   };
 }
 

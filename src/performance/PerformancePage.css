@@ -9,9 +9,10 @@
  * primeira leitura: o olho entrava em cima e não sabia para onde ir.
  *
  * O QUE MUDOU É A FORMA, NÃO O CONTEÚDO. A frase-primeiro continua sendo a
- * primeira coisa da tela e as nove frases determinísticas continuam todas lá
- * (ver `insights.ts`). Nenhuma métrica foi inventada, nenhum número foi
- * estimado, nada virou "um cartão gigante por indicador".
+ * primeira coisa da tela e as frases determinísticas continuam todas lá — nove
+ * naquela rodada, doze depois que as filiais, a hora e os grupos de produto
+ * renderam uma cada (ver `insights.ts`). Nenhuma métrica foi inventada, nenhum
+ * número foi estimado, nada virou "um cartão gigante por indicador".
  *
  * As três coisas que a fizeram virar painel:
  *
@@ -187,6 +188,18 @@
  * A GRADE DAS QUATRO PERGUNTAS. Duas colunas, sem vão: o que separa uma da
  * outra é o fio, e um vão entre colunas somado ao fio faria a régua parecer
  * uma borda de cartão.
+ *
+ * A ORDEM DAS QUATRO É DE ALTURA, e isso passou a importar quando "O que
+ * vendeu" ganhou os grupos de produto e passou de 800px. Numa grade de duas
+ * colunas a fileira tem a altura da seção mais alta, então uma seção longa ao
+ * lado de uma de duas linhas deixa meia tela de nada — com um fio de 700px
+ * correndo ao lado do vazio, que é o sintoma que a revisão de print procura.
+ *
+ * Por isso as duas longas ("o que vendeu" e "o que não virou venda") ficam na
+ * PRIMEIRA fileira e as duas curtas na segunda. Não é só arrumação: o que
+ * vendeu ao lado do que NÃO virou venda é a comparação que essas duas pedem
+ * juntas, e é a que este comentário já dizia querer antes de o arranjo
+ * entregá-la.
  */
 .perf__grade {
   display: grid;
@@ -493,6 +506,144 @@
   white-space: nowrap;
 }
 
+/* --- o gráfico curto: os cancelamentos no relógio -------------------------
+ *
+ * MESMAS CLASSES, OUTRA ALTURA. Ele reusa `.grafico__*` inteiro — raio da
+ * coluna, vão, régua do topo, balão e rótulo — e muda só as duas medidas em que
+ * a leitura é de fato outra: ele mora numa coluna de metade da grade, entre uma
+ * frase e uma tabela, e as barras contam PEDIDOS, não dinheiro.
+ *
+ * Uma segunda família `.horas__*` traria de volta a gramática de gráfico
+ * duplicada que a rodada anterior passou a tela inteira tirando: no dia em que
+ * alguém ajustasse o raio da coluna, os dois desenhos deixariam de combinar.
+ */
+.grafico--horas .grafico__barras {
+  height: var(--chart-h-curto);
+  width: calc(var(--dias, 6) * (var(--chart-band-curto) + var(--chart-gap)));
+}
+
+.grafico--horas .grafico__dia {
+  max-width: var(--chart-band-curto);
+}
+
+/* --- o bloco da hora, dentro de "O que não virou venda" ------------------- */
+
+.perf__horas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  padding-top: var(--sp-8);
+  border-top: 1px solid var(--line);
+}
+
+/*
+ * O RÓTULO DE UM SUB-BLOCO DENTRO DA SEÇÃO — nível 3, não um sexto nível.
+ *
+ * "A que horas eles entraram" e "Os 10 mais vendidos" são nomes de coluna e de
+ * bloco, que é exatamente o trabalho do `.t-label`. Um `<h3>` em nível 2 aqui
+ * competiria com o título da seção logo acima; um parágrafo em corpo comum não
+ * se distinguiria do conteúdo que ele anuncia.
+ */
+.perf__sublabel {
+  margin: 0;
+}
+
+/* ==========================================================================
+ * OS GRUPOS DE PRODUTO
+ *
+ * Três blocos, não uma tabela: cada grupo é um nome, um tamanho e uma AÇÃO em
+ * frase inteira — e uma coluna "ação" com um parágrafo dentro da célula é o
+ * sintoma de que a tabela era a forma errada.
+ * ======================================================================= */
+
+.quadrantes {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+/*
+ * O FIO ENTRE GRUPOS, como em toda lista desta tela. Sem cartão, sem fundo
+ * tonal, sem cor por grupo: pintar "campeões" de verde e "repensáveis" de
+ * vermelho seria semântica de estado (`--ok`/`--danger`) empregada para
+ * classificar produto, e a §4 já decidiu que cor sem função não entra. Quem
+ * separa os três é a régua e o nome.
+ */
+.quadrantes__grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding-block: var(--sp-12);
+  border-bottom: 1px solid var(--line);
+}
+
+.quadrantes__grupo:first-child {
+  padding-top: 0;
+}
+
+.quadrantes__grupo:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+/* O nome à esquerda e o tamanho à direita, na mesma linha de base — a mesma
+   gramática do total sobre as parcelas. */
+.quadrantes__nome {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-12);
+  font-size: var(--ts-size);
+  line-height: var(--ts-line);
+  font-weight: var(--w-semibold);
+  letter-spacing: var(--ts-track);
+  color: var(--ink);
+}
+
+.quadrantes__contagem {
+  flex: 0 0 auto;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-weight: var(--w-regular);
+  letter-spacing: normal;
+  color: var(--ink-3);
+}
+
+.quadrantes__corpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  margin: 0;
+}
+
+/*
+ * OS NOMES DOS ITENS SÃO O CONTEÚDO DO GRUPO, e por isso levam a tinta do
+ * corpo: é a lista que responde "quais são", que é a metade acionável do
+ * grupo. O critério e a ação, abaixo, são apoio.
+ */
+.quadrantes__itens {
+  margin: 0;
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink);
+}
+
+/*
+ * A AÇÃO é a razão de o grupo existir, então ela lê um degrau acima da tinta de
+ * apoio comum — mas abaixo dos nomes dos itens, que são o conteúdo.
+ *
+ * NÃO HÁ MAIS `.quadrantes__criterio`: o corte dos três passou a ser dito uma
+ * vez, na legenda do bloco (ver `legendaDosQuadrantes`). Três frases quase
+ * iguais empilhadas gastavam três linhas para explicar uma régua só.
+ */
+.quadrantes__acao {
+  margin: 0;
+  max-width: 64ch;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-2);
+}
+
 /* ==========================================================================
  * QUANDO A TELA APERTA
  * ======================================================================= */
@@ -575,5 +726,40 @@
 
   .grafico__barras {
     height: var(--chart-h-mobile);
+  }
+
+  /*
+   * O GRÁFICO CURTO NÃO ENCOLHE MAIS NO CELULAR, e é a exceção que a regra de
+   * cima pede: `--chart-h-mobile` (150) é MAIOR que `--chart-h-curto` (116), e
+   * deixar a regra genérica passar por cima faria a segunda série do celular
+   * ficar mais alta que no desktop.
+   */
+  .grafico--horas .grafico__barras {
+    height: var(--chart-h-curto);
+  }
+
+  /*
+   * E ELE NÃO ROLA DE LADO — ele CABE. Esta é a diferença de fundo entre as
+   * duas séries no celular, e o print é que a mostrou.
+   *
+   * Com a faixa mínima do gráfico de dias (46px), nove horas mediam 414px numa
+   * tela de 358: o desenho passava a rolar, e o que ficava fora da tela era
+   * justamente a barra das 20h — o PICO, que é a resposta inteira da seção. Um
+   * gráfico cuja conclusão nasce escondida atrás de um gesto que ninguém sabe
+   * que existe não respondeu nada.
+   *
+   * A rolagem do gráfico de dias continua justificada, e é outro caso: lá o que
+   * sai da tela é o trigésimo dia de uma série cujo total já está escrito
+   * acima. Aqui a série é curta — um turno de operação, não um mês — e a
+   * coluna estreita continua legível, porque quem carrega o dado é a ALTURA.
+   */
+  .grafico--horas .grafico__plot {
+    overflow-x: visible;
+  }
+
+  .grafico--horas .grafico__dia {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: var(--chart-band-curto);
   }
 }

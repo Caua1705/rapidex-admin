@@ -17,14 +17,19 @@ import {
   readConcentracao,
   readDesconto,
   readDiaFraco,
+  readFilial,
+  readHoraCancelamento,
   readPagamento,
   readRetirada,
   readTicketOuVolume,
   readVeredito,
+  readVolumeSemReceita,
   semMovimento,
   vereditoDirecao,
   weekdayName,
 } from './insights';
+import { compararFiliais } from './branch-comparison';
+import { lerHorasDeCancelamento } from './cancellation-hours';
 import type {
   Cancellations,
   MetricComparison,
@@ -595,5 +600,235 @@ describe('semMovimento', () => {
 
   it('não confunde "ainda carregando" com "não vendeu"', () => {
     expect(semMovimento(null)).toBe(false);
+  });
+});
+
+/* ==========================================================================
+ * AS FRASES DESTA RODADA
+ * ======================================================================= */
+
+/** O resumo de uma filial: para esta seção, ele é o dinheiro dela e mais nada. */
+function resumoDeFilial(faturamento: string, percent: string | null): SalesSummary {
+  const comparacao = {
+    current: faturamento,
+    previous: '1000.00',
+    change: '0.00',
+    change_percent: percent,
+  };
+  return summaryOf({
+    revenue_total: faturamento,
+    orders_count: 10,
+    revenue_comparison: comparacao,
+  });
+}
+
+function comparadas(
+  lojas: readonly { nome: string; faturamento: string; variacao: string | null }[],
+) {
+  return compararFiliais(
+    lojas.map((loja, index) => ({
+      branch: {
+        id: `b${index}`,
+        name: loja.nome,
+        slug: `b${index}`,
+        display_name: null,
+        address: 'Rua Um, 100',
+        neighborhood: 'Centro',
+        city: 'Fortaleza',
+        state: 'CE',
+        is_main: index === 0,
+        is_active: true,
+      },
+      summary: resumoDeFilial(loja.faturamento, loja.variacao),
+    })),
+  );
+}
+
+describe('readFilial', () => {
+  /*
+   * A LEITURA MAIS FORTE QUE ESTA SEÇÃO PODE DAR: ela desmonta o número do
+   * topo. A rede não "ficou estável" — uma loja compensou a outra, e o problema
+   * tem endereço.
+   */
+  it('direções opostas ganham de tudo, e nomeiam as duas lojas', () => {
+    const frase = readFilial(
+      comparadas([
+        { nome: 'Aldeota', faturamento: '2000.00', variacao: '12.5' },
+        { nome: 'Zona Norte', faturamento: '1500.00', variacao: '-9.4' },
+      ]),
+    );
+
+    expect(frase?.id).toBe('filial-contraste');
+    expect(frase?.text).toContain('Aldeota');
+    expect(frase?.text).toContain('Zona Norte');
+    expect(frase?.text).toContain('12,5%');
+    expect(frase?.text).toContain('9,4%');
+  });
+
+  /* Dentro da faixa de estabilidade não há direção a contrastar — é a mesma
+     faixa que impede o veredito de comemorar ruído de terça chuvosa. */
+  it('variação dentro da faixa de estabilidade não é queda nem alta', () => {
+    const frase = readFilial(
+      comparadas([
+        { nome: 'Aldeota', faturamento: '2000.00', variacao: '12.5' },
+        { nome: 'Zona Norte', faturamento: '1500.00', variacao: '-1.0' },
+      ]),
+    );
+
+    expect(frase?.id).not.toBe('filial-contraste');
+  });
+
+  it('uma loja que é quase a rede inteira vira frase', () => {
+    const frase = readFilial(
+      comparadas([
+        { nome: 'Aldeota', faturamento: '9000.00', variacao: '1.0' },
+        { nome: 'Zona Norte', faturamento: '1000.00', variacao: '1.0' },
+      ]),
+    );
+
+    expect(frase?.id).toBe('filial-dominante');
+    expect(frase?.text).toContain('Aldeota');
+    expect(frase?.text).toContain('90%');
+  });
+
+  it('duas lojas parecidas não rendem frase nenhuma', () => {
+    expect(
+      readFilial(
+        comparadas([
+          { nome: 'Aldeota', faturamento: '5200.00', variacao: '1.0' },
+          { nome: 'Zona Norte', faturamento: '4800.00', variacao: '1.0' },
+        ]),
+      ),
+    ).toBeNull();
+  });
+
+  /*
+   * COM UMA FILIAL SÓ CARREGADA NÃO HÁ COMPARAÇÃO. É o caso em que a outra
+   * chamada falhou — e "a Aldeota é 100% da rede" seria a falha de
+   * carregamento escrita como fato de negócio.
+   */
+  it('menos de duas filiais não comparam nada', () => {
+    expect(
+      readFilial(comparadas([{ nome: 'Aldeota', faturamento: '2000.00', variacao: '30.0' }])),
+    ).toBeNull();
+    expect(readFilial([])).toBeNull();
+    expect(readFilial(null)).toBeNull();
+  });
+});
+
+describe('readHoraCancelamento', () => {
+  function leituraDe(baldes: readonly { hora: number; quantos: number }[]) {
+    return lerHorasDeCancelamento(
+      baldes.flatMap(({ hora, quantos }) =>
+        Array.from({ length: quantos }, (_, i) => ({
+          id: `o-${hora}-${i}`,
+          order_number: 1000 + i,
+          branch_id: 'b1',
+          customer_name_snapshot: 'Cliente',
+          customer_phone_snapshot: '85999990000',
+          order_type: 'delivery',
+          status: 'cancelled',
+          payment_method: 'pix',
+          payment_status: 'refunded',
+          total: 50,
+          // UTC−3: a hora local da operação sobe três para chegar ao UTC.
+          created_at: `2026-08-12T${String((hora + 3) % 24).padStart(2, '0')}:10:00Z`,
+        })),
+      ),
+    );
+  }
+
+  it('nomeia a hora quando ela concentra sozinha', () => {
+    const frase = readHoraCancelamento(
+      leituraDe([
+        { hora: 20, quantos: 6 },
+        { hora: 12, quantos: 1 },
+        { hora: 15, quantos: 1 },
+      ]),
+    );
+
+    expect(frase?.text).toContain('20h');
+    expect(frase?.text).toContain('6 de 8');
+  });
+
+  it('nomeia a faixa quando a concentração é de horas seguidas', () => {
+    const frase = readHoraCancelamento(
+      leituraDe([
+        { hora: 19, quantos: 3 },
+        { hora: 20, quantos: 3 },
+        { hora: 21, quantos: 3 },
+        { hora: 11, quantos: 1 },
+        { hora: 14, quantos: 1 },
+      ]),
+    );
+
+    expect(frase?.text).toContain('19h');
+    expect(frase?.text).toContain('21h');
+  });
+
+  /*
+   * A FRASE DIZ "ENTRARAM", NÃO "FORAM CANCELADOS", e este teste é a fechadura
+   * disso: a listagem devolve `created_at`, e o instante do cancelamento não
+   * está no contrato. Trocar o verbo é uma edição de uma palavra que transforma
+   * a tela numa afirmação que o dado não sustenta.
+   */
+  it('a frase fala de ENTRADA do pedido, não do instante do cancelamento', () => {
+    const frase = readHoraCancelamento(leituraDe([{ hora: 20, quantos: 8 }]));
+    expect(frase?.text).toContain('entraram');
+    expect(frase?.text).not.toMatch(/foram cancelados/i);
+  });
+
+  it('espalhado não vira frase — o gráfico plano já é a resposta', () => {
+    const frase = readHoraCancelamento(
+      leituraDe([
+        { hora: 11, quantos: 1 },
+        { hora: 13, quantos: 1 },
+        { hora: 15, quantos: 1 },
+        { hora: 18, quantos: 1 },
+        { hora: 20, quantos: 1 },
+        { hora: 22, quantos: 1 },
+      ]),
+    );
+
+    expect(frase).toBeNull();
+  });
+
+  it('sem leitura não há frase', () => {
+    expect(readHoraCancelamento(null)).toBeNull();
+  });
+});
+
+describe('readVolumeSemReceita', () => {
+  /*
+   * O RANKING É POR UNIDADES E OS GRUPOS SÃO POR DINHEIRO: o item em que os
+   * dois discordam mais é o mais acionável do cardápio, e um ranking sozinho
+   * nunca diria isso — ele mostra o item em primeiro lugar e o elogia.
+   */
+  it('aponta o mais pedido que quase não traz receita', () => {
+    const frase = readVolumeSemReceita(
+      productsOf([
+        { nome: 'Água 500ml', receita: '15' },
+        { nome: 'Costela', receita: '985' },
+      ]),
+    );
+
+    expect(frase?.text).toContain('Água 500ml');
+    expect(frase?.text).toContain('mais pedido');
+  });
+
+  it('o mais pedido que também rende não precisa da frase', () => {
+    expect(
+      readVolumeSemReceita(
+        productsOf([
+          { nome: 'Costela', receita: '600' },
+          { nome: 'Água 500ml', receita: '400' },
+        ]),
+      ),
+    ).toBeNull();
+  });
+
+  it('sem denominador não afirma nada', () => {
+    expect(readVolumeSemReceita(null)).toBeNull();
+    expect(readVolumeSemReceita(productsOf([]))).toBeNull();
   });
 });

@@ -16,13 +16,26 @@ import {
   readConcentracao,
   readDesconto,
   readDiaFraco,
+  readFilial,
+  readHoraCancelamento,
   readPagamento,
   readRetirada,
   readTicketOuVolume,
   readVeredito,
+  readVolumeSemReceita,
   semMovimento,
   type Insight,
 } from './insights';
+import { HourChart } from './HourChart';
+import { variacaoDaFilial, type FilialComparada } from './branch-comparison';
+import {
+  legendaDosQuadrantes,
+  QUADRANTE_NOMES_MAX,
+  quadrantesDeProduto,
+  type Quadrante,
+} from './product-quadrants';
+import { useBranchComparison, type BranchComparison } from './useBranchComparison';
+import { useCancellationHours, type CancellationHours } from './useCancellationHours';
 import { dayLabel, previousLabelFor, readChange, toNumber } from './report-model';
 import { RANKING_SIZE, usePerformance } from './usePerformance';
 import { useSession } from '../auth/session-context';
@@ -67,12 +80,32 @@ const PERIODOS: readonly { value: PerformancePreset; label: string }[] = [
  *
  * O QUE ESTA TELA CONTINUA NÃO TENDO, E POR QUÊ:
  *
- * - **Não tem gráfico por hora.** Não existe rota por hora no contrato: o mais
- *   fino que o backend entrega é o dia (`/reports/sales-by-day`).
+ * - **Não tem FATURAMENTO por hora.** Não existe rota de relatório por hora no
+ *   contrato: o mais fino que o backend entrega é o dia
+ *   (`/reports/sales-by-day`). O que existe por hora é uma coisa só, e ela é
+ *   contagem, não dinheiro — ver o item seguinte.
+ * - **Não tem o grupo "sazonais" em O que vendeu.** É o quarto nome do padrão
+ *   de mercado e ele não é detectável com um período agregado por vez. A tela
+ *   escreve isso em vez de adivinhar — ver `product-quadrants.ts`.
  * - **FILTRA POR FILIAL, e passou a filtrar.** Este parágrafo dizia o
  *   contrário — "nenhuma das rotas aceita `branch_id`" — e era verdade até a
- *   revisão `20260820_0026` do backend. Hoje as seis aceitam, e o seletor do
- *   topo funciona aqui como funciona em Pedidos.
+ *   revisão `20260820_0026` do backend. Hoje as seis aceitam, o seletor do topo
+ *   funciona aqui como funciona em Pedidos, e é ele que decide se a tela mostra
+ *   uma loja ou compara todas.
+ *
+ * O QUE ESTA RODADA ACRESCENTOU, E DE ONDE VEIO CADA COISA — nenhuma rota nova:
+ *
+ * - **AS FILIAIS LADO A LADO**, em "todas as filiais". Uma chamada de
+ *   `/reports/summary` por loja, que passou a aceitar `branch_id`. A tela
+ *   somava as duas e avisava que estava somando; o aviso era honesto e inútil.
+ *   Ver `branch-comparison.ts`.
+ * - **A HORA DOS CANCELAMENTOS.** O relatório de cancelamentos cruza situação
+ *   com pagamento e não tem relógio; quem tem é `GET /admin/orders`, pelo
+ *   `created_at`. É a hora de ENTRADA do pedido, e a tela diz isso. Ver
+ *   `cancellation-hours.ts`.
+ * - **OS GRUPOS DE PRODUTO.** O ranking diz o que vende; o grupo diz o que
+ *   fazer. Os dois cortes têm nome em `QUADRANTE_LIMIARES`, e o denominador é o
+ *   mesmo `listed_revenue_total` que a seção já usava.
  *
  * O AVISO DE ESCOPO É DITO UMA VEZ, e não uma vez por seção (§8 da skill de
  * design): a mesma caixa repetida em seis blocos vira listra, não aviso. O que
@@ -119,6 +152,36 @@ export function PerformancePage() {
   const { summary, byDay, byDayPrevious, payments, products, cancellations, commission } = reports;
   const anterior = previousLabelFor(range.preset);
   const vazio = semMovimento(summary);
+
+  /*
+   * A COMPARAÇÃO ENTRE FILIAIS EXISTE EM UM LUGAR SÓ: "todas as filiais", com
+   * mais de uma loja no acesso. As três razões estão em `branch-comparison.ts`,
+   * e a curta é esta — com uma filial escolhida, a tela já é sobre ela, e pôr o
+   * faturamento da vizinha embaixo faria a página contradizer a própria legenda
+   * de escopo três centímetros depois de escrevê-la.
+   *
+   * `podeLer` com `activeBranchId` vazio é, por construção, o DONO: o gerente é
+   * recusado pelo backend sem recorte (`ensure_pode_ler_dinheiro`), então não há
+   * conferência de papel a fazer aqui.
+   */
+  const comparaFiliais = podeLer && activeBranchId === '' && branches.length > 1;
+  const filiais = useBranchComparison(branches, range, {
+    habilitado: comparaFiliais && !problem,
+  });
+
+  /*
+   * AS SITUAÇÕES DA HORA SAEM DO PRÓPRIO RELATÓRIO, não de uma lista escrita
+   * aqui: são as que o backend contou como "não virou venda" neste período. O
+   * porquê está em `useCancellationHours` — em resumo, uma segunda definição de
+   * "não virou venda" morando na tela é como a contagem de cima e o gráfico de
+   * baixo passam a discordar sem nada quebrar.
+   */
+  const situacoes = [...new Set((cancellations?.breakdown ?? []).map((item) => item.status))];
+  const horas = useCancellationHours(
+    { startDate: range.startDate, endDate: range.endDate, branchId: activeBranchId },
+    situacoes,
+    { habilitado: podeLer && !!cancellations, esperados: cancellations?.orders_count ?? 0 },
+  );
 
   return (
     <div className="perf">
@@ -215,7 +278,15 @@ export function PerformancePage() {
         <section className="perf__vazio" data-testid="perf-vazio">
           <p className="perf__frase perf__frase--topo">Nenhum pedido foi faturado neste período.</p>
           <Excluidos summary={summary} />
-          <Escopo nomeDaFilial={nomeDaFilial} temEscolha={branches.length > 1} />
+          {/* Sem venda não há o que comparar entre lojas, então a linha de
+              escopo volta a ser a de sempre — apontar para uma comparação que
+              não vai ser desenhada seria mandar o lojista procurar um bloco
+              inexistente. */}
+          <Escopo
+            nomeDaFilial={nomeDaFilial}
+            temEscolha={branches.length > 1}
+            temComparacao={false}
+          />
         </section>
       ) : null}
 
@@ -292,10 +363,39 @@ export function PerformancePage() {
                   Descer NÃO é encolher: mesma tinta, mesmo corpo, e ele
                   continua aparecendo inclusive no período sem venda nenhuma.
                 */}
-                <Escopo nomeDaFilial={nomeDaFilial} temEscolha={branches.length > 1} />
+                <Escopo
+                  nomeDaFilial={nomeDaFilial}
+                  temEscolha={branches.length > 1}
+                  temComparacao={comparaFiliais}
+                />
               </>
             ) : null}
           </section>
+
+          {/* ================================================================
+              A2. AS FILIAIS — só em "todas as filiais"
+
+              Pergunta: QUAL DAS LOJAS VAI MELHOR?
+
+              ELA VEM LOGO DEPOIS DA BANDA, e antes do gráfico, porque é a
+              ressalva da banda virada do avesso: o bloco de cima acaba dizendo
+              "estes números somam todas as filiais", e esta seção é a resposta
+              a esse aviso. Entre os dois não pode entrar nada.
+
+              É de largura inteira e não da grade de duas colunas: cada loja é
+              uma linha com nome, valor, barra de fatia e uma linha de meta —
+              espremida em metade, o nome da filial fica com 120px.
+             ================================================================ */}
+          {comparaFiliais ? (
+            <Secao
+              largo
+              titulo="As filiais"
+              nota={`no mesmo período · ${branches.length === 2 ? 'as 2 lojas' : `as ${branches.length} lojas`}`}
+              erro={filiais.erro ?? undefined}
+            >
+              <Filiais comparacao={filiais} anterior={anterior} />
+            </Secao>
+          ) : null}
 
           {/* ================================================================
               B. OS DIAS — a largura inteira
@@ -343,14 +443,50 @@ export function PerformancePage() {
                ============================================================== */}
             <Secao
               titulo="O que vendeu"
-              nota={`os ${RANKING_SIZE} primeiros, por unidades`}
+              /*
+                A NOTA DIZ O ESCOPO DA ANÁLISE, e só isso. Ela dizia também "os
+                mais vendidos, por unidades" — que é o critério da TABELA, e a
+                tabela agora tem rótulo próprio. Com os dois, a mesma frase
+                aparecia duas vezes na mesma seção (§8).
+              */
+              nota={
+                products && products.products.length > 0
+                  ? products.products.length === 1
+                    ? '1 produto no período'
+                    : `${products.products.length} produtos no período`
+                  : undefined
+              }
               erro={errors.products}
             >
               {products ? <Produtos products={products} /> : null}
             </Secao>
 
             {/* ==============================================================
-                D. ENTREGA E RETIRADA
+                D. O QUE NÃO VIROU VENDA
+
+                Pergunta: ESTOU PERDENDO PEDIDO EM QUÊ?
+
+                ELA SUBIU PARA CÁ, e a troca com "Entrega e retirada" é de
+                ALTURA, não de importância. As duas perguntas que a grade põe
+                lado a lado precisam ter tamanhos parecidos: com o bloco de duas
+                linhas de entrega/retirada ao lado da seção de produtos — que
+                nesta rodada ganhou os grupos e passou de 800px —, a coluna da
+                direita ficava com meia tela de nada e um fio de 700px correndo
+                ao lado do vazio.
+
+                A ordem nova também lê melhor: o que vendeu ao lado do que NÃO
+                virou venda é a comparação que essas duas pedem juntas, e era o
+                que o comentário da grade já dizia querer sem que o arranjo
+                entregasse.
+               ============================================================== */}
+            <Secao titulo="O que não virou venda" erro={errors.cancellations}>
+              {cancellations ? (
+                <Cancelados cancellations={cancellations} horas={horas} />
+              ) : null}
+            </Secao>
+
+            {/* ==============================================================
+                E. ENTREGA E RETIRADA
 
                 Pergunta: ESTOU GANHANDO MAIS ENTREGANDO OU O CLIENTE VINDO
                 BUSCAR?
@@ -362,15 +498,6 @@ export function PerformancePage() {
                   <Frase insight={readRetirada(summary)} />
                 </>
               ) : null}
-            </Secao>
-
-            {/* ==============================================================
-                E. O QUE NÃO VIROU VENDA
-
-                Pergunta: ESTOU PERDENDO PEDIDO EM QUÊ?
-               ============================================================== */}
-            <Secao titulo="O que não virou venda" erro={errors.cancellations}>
-              {cancellations ? <Cancelados cancellations={cancellations} /> : null}
             </Secao>
 
             {/* ==============================================================
@@ -449,7 +576,16 @@ function Frase({ insight }: { insight: Insight | null }) {
  * Com uma filial só no acesso não há o que distinguir, e a linha não aparece —
  * a mesma regra do `hasChoice` de `use-branch-scope.ts`.
  */
-function Escopo({ nomeDaFilial, temEscolha }: { nomeDaFilial: string; temEscolha: boolean }) {
+function Escopo({
+  nomeDaFilial,
+  temEscolha,
+  temComparacao,
+}: {
+  nomeDaFilial: string;
+  temEscolha: boolean;
+  /** A seção "As filiais" está desenhada logo abaixo. */
+  temComparacao: boolean;
+}) {
   if (!temEscolha) return null;
 
   return (
@@ -459,6 +595,19 @@ function Escopo({ nomeDaFilial, temEscolha }: { nomeDaFilial: string; temEscolha
           Estes números são <strong>da filial {nomeDaFilial}</strong> — troque no seletor do topo
           para ver outra loja, ou a rede inteira.
         </>
+      ) : temComparacao ? (
+        /*
+          A MESMA RESSALVA, COM OUTRO FIM. Ela dizia "escolha uma no seletor do
+          topo" — um pedido de trabalho ao lojista para responder a pergunta que
+          a tela não respondia. Com a comparação desenhada logo abaixo, a
+          instrução vira um apontamento: o número que ele quer já está na tela,
+          três centímetros adiante. O seletor continua lá para quem quiser a
+          tela INTEIRA de uma loja, e é isso que a segunda metade da frase diz.
+        */
+        <>
+          Estes números somam <strong>todas as filiais</strong> — a divisão por loja está logo
+          abaixo, e o seletor do topo abre a tela inteira de uma delas.
+        </>
       ) : (
         <>
           Estes números somam <strong>todas as filiais</strong> — escolha uma no seletor do topo
@@ -466,6 +615,137 @@ function Escopo({ nomeDaFilial, temEscolha }: { nomeDaFilial: string; temEscolha
         </>
       )}
     </p>
+  );
+}
+
+/**
+ * AS FILIAIS LADO A LADO — a resposta para "qual das duas vai melhor".
+ *
+ * A FORMA É A DE `.fatias` (entrega × retirada), e reusar era a decisão certa:
+ * as duas seções fazem a MESMA pergunta visual — dois ou três valores
+ * comparáveis, cada um com sua fatia do todo, onde a barra responde "qual é o
+ * maior" antes de o olho ler os números. Uma classe `.filiais__*` paralela
+ * seria a mesma lista escrita duas vezes, e a primeira mudança de respiro numa
+ * delas separaria as duas para sempre.
+ *
+ * O QUE ESTA SEÇÃO ACRESCENTA À FORMA é a variação de cada loja, que vem de
+ * graça: cada resposta de `/reports/summary` já traz o período anterior de
+ * igual tamanho comparado pelo backend. É ela que separa "a Aldeota é maior" de
+ * "a Aldeota está crescendo e a Zona Norte encolhendo" — duas leituras que
+ * levam a decisões opostas.
+ *
+ * A ORDEM É POR FATURAMENTO, maior primeiro (ver `compararFiliais`): em ordem
+ * alfabética, "qual vai melhor" voltaria a exigir que o olho comparasse dois
+ * números de quatro dígitos, que é o trabalho que esta seção existe para
+ * poupar.
+ */
+function Filiais({ comparacao, anterior }: { comparacao: BranchComparison; anterior: string }) {
+  const { filiais, falharam, naoPedidas, isLoading } = comparacao;
+
+  if (isLoading && filiais.length === 0) {
+    return <p className="muted">Carregando as filiais…</p>;
+  }
+
+  if (filiais.length === 0) {
+    return <p className="muted">Nenhuma filial respondeu neste período.</p>;
+  }
+
+  return (
+    <>
+      <Frase insight={readFilial(filiais)} />
+
+      <dl className="fatias" data-testid="perf-filiais">
+        {filiais.map((filial) => (
+          <LinhaDeFilial key={filial.branch.id} filial={filial} anterior={anterior} />
+        ))}
+      </dl>
+
+      {/*
+        QUEM FALTOU É NOMEADO, e não somado silenciosamente ao resto.
+
+        A fatia de cada loja é calculada sobre o faturamento das que
+        RESPONDERAM — ver `compararFiliais`. Sem esta linha, uma loja que falhou
+        deixaria a outra com "100% da rede" desenhado numa barra cheia, e o dono
+        leria uma falha de carregamento como um fato de negócio.
+      */}
+      {falharam.length > 0 ? (
+        <p className="t-aux perf__ressalva" data-testid="perf-filiais-falharam">
+          {falharam.length === 1
+            ? `Não deu para carregar ${falharam[0]} — as fatias acima dividem só o que respondeu.`
+            : `Não deu para carregar ${falharam.length} filiais (${falharam.join(', ')}) — as fatias acima dividem só o que respondeu.`}
+        </p>
+      ) : null}
+
+      {naoPedidas > 0 ? (
+        <p className="t-aux perf__ressalva">
+          {naoPedidas === 1
+            ? 'Uma filial ficou de fora desta comparação.'
+            : `${naoPedidas} filiais ficaram de fora desta comparação.`}{' '}
+          Escolha-a no seletor do topo para ver a tela dela.
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+function LinhaDeFilial({ filial, anterior }: { filial: FilialComparada; anterior: string }) {
+  const fatia = filial.fatiaPct;
+  const leitura = readChange(filial.summary.revenue_comparison, anterior);
+  const variacao = variacaoDaFilial(filial);
+
+  /*
+   * A DIREÇÃO EM TRÊS CANAIS, igual aos três números do topo: sinal no texto,
+   * seta e cor. A cor sozinha reprovaria em WCAG 1.4.1, e a seta sozinha não é
+   * lida de relance — que é justamente o trabalho desta linha.
+   */
+  const Seta =
+    leitura.direction === 'up' ? TrendUpIcon : leitura.direction === 'down' ? TrendDownIcon : null;
+
+  return (
+    <div className="fatias__linha">
+      <dt className="fatias__rotulo">{branchName(filial.branch)}</dt>
+      <dd className="fatias__valor tnum">{formatCurrency(filial.summary.revenue_total)}</dd>
+      {/*
+        A META É UM TEXTO SÓ MAIS A VARIAÇÃO, e não seis pedaços soltos: a linha
+        é `display: flex` por causa do delta, e cada nó de texto do JSX viraria
+        um item de flex próprio — "31" e "pedidos" separados por um vão de 4px.
+        Por isso a primeira metade é montada como uma string.
+      */}
+      <dd className="fatias__meta">
+        <span>
+          {[
+            filial.summary.orders_count === 1
+              ? '1 pedido'
+              : `${filial.summary.orders_count} pedidos`,
+            `ticket ${formatCurrency(filial.summary.average_ticket)}`,
+            ...(fatia === null ? [] : [`${formatPercent(fatia)} do total`]),
+          ].join(' · ')}
+        </span>
+        <span
+          className={`fatias__delta fatias__delta--${
+            leitura.isMissing || variacao === null ? 'vazio' : leitura.direction
+          }`}
+        >
+          {Seta ? <Seta size={13} /> : null}
+          {leitura.text}
+        </span>
+      </dd>
+
+      {/*
+        A BARRA É A FATIA DO FATURAMENTO DAS LOJAS QUE RESPONDERAM, e é ela que
+        responde "qual é a maior" sem leitura de número. `aria-hidden` porque o
+        percentual ao lado já diz o mesmo para quem escuta a tela, e ela some
+        quando não há denominador — período sem faturamento nenhum não faz de
+        ninguém "0% da rede".
+      */}
+      {fatia === null ? null : (
+        <div
+          className="fatias__barra"
+          aria-hidden="true"
+          style={{ '--fatia': `${Math.min(100, Math.max(0, fatia))}%` } as CSSProperties}
+        />
+      )}
+    </div>
   );
 }
 
@@ -670,6 +950,29 @@ type LinhaProduto = {
   receita: ReactNode;
 };
 
+/**
+ * ============================================================================
+ * O QUE VENDEU — o grupo primeiro, o ranking depois
+ * ============================================================================
+ *
+ * A SEÇÃO PASSOU A RESPONDER DUAS PERGUNTAS, e a ordem entre elas é a decisão:
+ *
+ * 1. **O que FAZER** — os grupos (`Quadrantes`). Campeão, promissor e
+ *    repensável são instruções: não deixe faltar, empurre, reveja.
+ * 2. **O que VENDE** — o ranking por unidades, que é a leitura antiga e
+ *    continua inteira. Ela responde "quem saiu mais", que é outra pergunta e
+ *    também é legítima.
+ *
+ * O grupo vem primeiro porque a premissa da tela é essa: o dono não abre o
+ * painel para estudar, abre para saber o que fazer amanhã. Um ranking em cima
+ * dos grupos devolveria a seção ao formato de relatório com um apêndice.
+ *
+ * UM DENOMINADOR SÓ NA SEÇÃO INTEIRA. Os grupos, a frase de concentração, a
+ * frase de volume sem receita e a linha de total dividem todos pelo MESMO
+ * `listed_revenue_total` — a soma dos produtos que a rota devolveu. Duas fatias
+ * na mesma seção com denominadores diferentes é como a tela passa a discordar
+ * de si mesma sem que nada quebre.
+ */
 function Produtos({ products }: { products: ProductSales }) {
   const columns: readonly Column<LinhaProduto>[] = [
     { key: 'produto', header: 'Produto' },
@@ -678,7 +981,20 @@ function Produtos({ products }: { products: ProductSales }) {
     { key: 'receita', header: 'Receita de item', align: 'end' },
   ];
 
-  const rows: LinhaProduto[] = products.products.map((item, index) => ({
+  const grupos = quadrantesDeProduto(products);
+
+  /*
+   * A TABELA MOSTRA `RANKING_SIZE` LINHAS, E A REQUISIÇÃO PEDE
+   * `PRODUTOS_ANALISADOS`. São números diferentes de propósito, e nenhum dos
+   * dois fica implícito: a nota da seção diz quantos produtos entraram na
+   * conta, e o rótulo da tabela diz quantos ela desenha. Uma tabela de 40
+   * linhas numa coluna de metade de largura seria a seção inteira; um
+   * denominador de 10 produtos faria "12% da receita de itens" significar 12%
+   * de um total que exclui tudo o que ficou em 11º.
+   */
+  const listadosNaTabela = products.products.slice(0, RANKING_SIZE);
+
+  const rows: LinhaProduto[] = listadosNaTabela.map((item, index) => ({
     /*
      * `product_id` É NULÁVEL (produto apagado depois da venda), e o nome pode
      * repetir entre linhas — o índice desempata sem virar a chave sozinho.
@@ -696,6 +1012,29 @@ function Produtos({ products }: { products: ProductSales }) {
 
   return (
     <>
+      {grupos ? <Quadrantes grupos={grupos} /> : null}
+
+      <Frase insight={readConcentracao(products)} />
+      <Frase insight={readVolumeSemReceita(products)} />
+
+      {/*
+        O RANKING CONTINUA, E AGORA DIZ POR QUE ESTÁ AQUI.
+
+        Ele responde outra pergunta que os grupos: os grupos ordenam por
+        DINHEIRO e os itens por UNIDADES, e é justamente na discordância entre
+        as duas ordens que mora a informação ("o refrigerante é o terceiro mais
+        pedido e um mero promissor em receita"). Sem o rótulo, a tabela leria
+        como a mesma lista de cima escrita de novo.
+
+        E quando a análise é maior que a tabela, ela diz quantas linhas mostra:
+        um "top 10" que não se anuncia é uma lista que parece completa.
+      */}
+      <p className="t-label perf__sublabel">
+        {products.products.length > RANKING_SIZE
+          ? `Ranking por unidades — os ${RANKING_SIZE} primeiros`
+          : 'Ranking por unidades'}
+      </p>
+
       <DataTable
         caption="Produtos mais vendidos"
         captionHidden
@@ -715,14 +1054,97 @@ function Produtos({ products }: { products: ProductSales }) {
       {products.products.length > 0 ? (
         <div className="perf__total-ressalvado">
           <p className="perf__total-linha">
-            <span>Receita destes itens</span>
+            <span>
+              Receita{' '}
+              {products.products.length === 1
+                ? 'deste item'
+                : `destes ${products.products.length} itens`}
+            </span>
             <span className="tnum">{formatCurrency(products.listed_revenue_total)}</span>
           </p>
           <p className="t-aux perf__ressalva">{products.revenue_note}</p>
         </div>
       ) : null}
+    </>
+  );
+}
 
-      <Frase insight={readConcentracao(products)} />
+/**
+ * ============================================================================
+ * OS GRUPOS DE PRODUTO — e por que são TRÊS, não quatro
+ * ============================================================================
+ *
+ * Cada grupo diz três coisas, nesta ordem: o NOME (campeões), o TAMANHO
+ * (quantos itens e quanto da receita eles somam) e a AÇÃO.
+ *
+ * O CORTE FICA NA LEGENDA, uma vez para os três — e não dentro de cada bloco.
+ * Dizê-lo é obrigatório, porque "campeão" sem o critério é uma opinião; dizê-lo
+ * três vezes em três frases quase iguais gastava três linhas para explicar uma
+ * régua só. Junto, o corte lê como o que ele é: uma escala.
+ *
+ * NÃO É UMA TABELA: são três blocos com nome, número e uma frase de ação. Uma
+ * tabela de quatro colunas para três linhas gasta mais tinta em moldura que em
+ * dado, e a coluna "ação" seria um parágrafo dentro de uma célula.
+ *
+ * OS NOMES SÃO CORTADOS EM `QUADRANTE_NOMES_MAX`. "Repensáveis" costuma ter
+ * dezenas de itens num cardápio de restaurante, e trinta nomes numa coluna de
+ * metade de largura é uma parede — mas nomear ZERO tiraria a ação do grupo, que
+ * é justamente saber quais são. Quatro nomes e "e mais N" respondem "quais
+ * são" para os piores casos e mandam o resto para o Cardápio.
+ */
+function Quadrantes({ grupos }: { grupos: readonly Quadrante[] }) {
+  return (
+    <>
+      <dl className="quadrantes" data-testid="perf-quadrantes">
+        {grupos.map((grupo) => {
+          const nomeados = grupo.produtos.slice(0, QUADRANTE_NOMES_MAX);
+          const restantes = grupo.produtos.length - nomeados.length;
+
+          return (
+            <div className="quadrantes__grupo" key={grupo.id} data-testid={`perf-grupo-${grupo.id}`}>
+              <dt className="quadrantes__nome">
+                {grupo.nome}
+                <span className="quadrantes__contagem tnum">
+                  {grupo.produtos.length === 1 ? '1 item' : `${grupo.produtos.length} itens`} ·{' '}
+                  {formatPercent(grupo.fatiaPct)}
+                </span>
+              </dt>
+              <dd className="quadrantes__corpo">
+                <p className="quadrantes__itens">
+                  {nomeados.map((produto) => produto.nome).join(', ')}
+                  {restantes > 0 ? ` e mais ${restantes}` : ''}
+                </p>
+                <p className="quadrantes__acao">{grupo.acao}</p>
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
+
+      {/*
+        O QUARTO GRUPO NÃO EXISTE, E A TELA DIZ POR QUÊ.
+
+        "Sazonais" é o quarto nome do padrão de mercado, e ele não tem como ser
+        detectado com o que o contrato devolve: sazonalidade é um item que sobe
+        e desce COM A ÉPOCA e volta a subir, e isso exige o mesmo produto medido
+        em vários períodos comparáveis. `/reports/products` devolve um período
+        por vez, agregado, sem recorte de tempo dentro dele.
+
+        E o atalho — pedir o período anterior e chamar de sazonal quem variou
+        muito — não serve: uma variação entre duas janelas não separa
+        sazonalidade de crescimento, de promoção que rodou, de item que faltou
+        na cozinha nem de produto que estreou. As quatro dão o mesmo par de
+        números.
+
+        Dizer isto em uma linha custa uma linha. Chutar custaria um item fora do
+        cardápio porque a tela o chamou de "de época" — e o lojista não teria
+        como saber que o painel adivinhou. Ver `product-quadrants.ts`.
+      */}
+      <p className="t-aux perf__ressalva" data-testid="perf-sem-sazonais">
+        {legendaDosQuadrantes()} Não há um quarto grupo de sazonais: para dizer que um item é de
+        época seria preciso vê-lo repetir em vários períodos, e o relatório de produtos devolve um
+        período de cada vez. Sem isso, “sazonal” seria chute.
+      </p>
     </>
   );
 }
@@ -735,7 +1157,13 @@ type LinhaCancelamento = {
   valor: ReactNode;
 };
 
-function Cancelados({ cancellations }: { cancellations: Cancellations }) {
+function Cancelados({
+  cancellations,
+  horas,
+}: {
+  cancellations: Cancellations;
+  horas: CancellationHours;
+}) {
   const columns: readonly Column<LinhaCancelamento>[] = [
     { key: 'situacao', header: 'Situação' },
     { key: 'pagamento', header: 'Pagamento' },
@@ -795,6 +1223,8 @@ function Cancelados({ cancellations }: { cancellations: Cancellations }) {
         {cancellations.billable_orders_count} faturados.
       </p>
 
+      <Horas horas={horas} />
+
       <DataTable
         caption="Cancelamentos por situação"
         captionHidden
@@ -803,6 +1233,77 @@ function Cancelados({ cancellations }: { cancellations: Cancellations }) {
         empty={<p className="muted">Nenhum pedido cancelado, recusado ou estornado no período.</p>}
       />
     </>
+  );
+}
+
+/**
+ * ============================================================================
+ * A HORA — onde o padrão aparece
+ * ============================================================================
+ *
+ * A seção já sabia dizer O QUÊ (situação e pagamento) e não sabia dizer QUANDO.
+ * Cancelamento concentrado às 20h é operação no pico — entregador que não
+ * apareceu, cozinha que estourou o tempo, pagamento que caiu no movimento.
+ * Cancelamento espalhado pelo dia é cardápio, preço ou área de entrega. São dois
+ * problemas diferentes, e a tabela de situações não separa um do outro.
+ *
+ * O DADO NÃO VEM DO RELATÓRIO DE CANCELAMENTOS — ele não tem hora nenhuma. Vem
+ * da listagem de pedidos, pelo `created_at`, com o mesmo período e o mesmo
+ * recorte de filial. O porquê inteiro está em `cancellation-hours.ts`.
+ *
+ * TRÊS COISAS QUE ESTE BLOCO NÃO FAZ, e cada uma é uma escolha:
+ *
+ * 1. **Não desenha com amostra pequena** (`HORA_LIMIARES.amostraMinima`). Três
+ *    cancelamentos não têm hora de concentração: têm três horas. Um gráfico com
+ *    três riscos convidaria o lojista a mudar a operação por causa de um acaso.
+ * 2. **Não escreve frase quando está espalhado.** "Espalhado" é uma resposta, e
+ *    ela é o próprio desenho plano do gráfico — uma frase que aparece sempre
+ *    deixa de ser lida (regra 2 de `insights.ts`).
+ * 3. **Não chama isso de "hora do cancelamento".** É a hora em que o pedido
+ *    ENTROU; o instante do cancelamento não está no contrato. A diferença é
+ *    dita na linha de apoio, não escondida.
+ */
+function Horas({ horas }: { horas: CancellationHours }) {
+  /*
+   * A FALHA É UMA LINHA DE APOIO, NÃO UMA TARJA. A taxa, o valor e a tabela de
+   * situações vêm do relatório e não passaram por aqui: uma faixa vermelha por
+   * um recorte ausente apagaria a resposta que carregou.
+   */
+  if (horas.falhou) {
+    return (
+      <p className="t-aux perf__ressalva" data-testid="perf-horas-falhou">
+        Não deu para ler a hora destes pedidos agora — o resto da seção continua valendo.
+      </p>
+    );
+  }
+
+  if (horas.isLoading || !horas.leitura) return null;
+
+  const { leitura } = horas;
+
+  return (
+    <div className="perf__horas" data-testid="perf-horas">
+      <p className="t-label perf__sublabel">A que horas eles entraram</p>
+
+      <HourChart horas={leitura.horas} total={leitura.total} />
+
+      <Frase insight={readHoraCancelamento(leitura)} />
+
+      {/*
+        AS DUAS RESSALVAS, NUMA LINHA SÓ E SEMPRE — não só quando dá ruim.
+
+        A primeira é do contrato e não some nunca: `created_at` é a entrada do
+        pedido, não o instante do cancelamento. A segunda só aparece quando a
+        paginação de fato cortou, e aí ela diz de quantos a leitura saiu — um
+        recorte DECLARADO, não silencioso.
+      */}
+      <p className="t-aux perf__ressalva">
+        A hora é a de ENTRADA do pedido — o painel não recebe o instante em que ele foi cancelado.
+        {horas.truncado
+          ? ` A leitura saiu de ${horas.lidos} dos ${horas.esperados} pedidos do período.`
+          : ''}
+      </p>
+    </div>
   );
 }
 
@@ -840,7 +1341,7 @@ function Comissao({ commission }: { commission: CommissionReport }) {
  * pedido no período. Não existe "0%" a escrever, porque não existe o todo do
  * qual seria fatia.
  */
-function formatPercent(value: string | null | undefined): string {
+function formatPercent(value: string | number | null | undefined): string {
   const numeric = toNumber(value);
   if (numeric === null) return '—';
   return `${(Math.round(numeric * 10) / 10).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;

@@ -15,6 +15,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import {
   installFakeApi,
+  FAKE_BRANCH,
   FAKE_BRANCH_2,
   LOGIN_EMAIL,
   LOGIN_PASSWORD,
@@ -143,7 +144,7 @@ test('os pedidos excluídos são ditos junto do número que eles qualificam', as
   await abrirDesempenho(page);
 
   await expect(page.getByTestId('perf-excluidos')).toContainText(
-    '3 pedidos não entram nestes números',
+    '6 pedidos não entram nestes números',
   );
 });
 
@@ -188,7 +189,7 @@ test('o total de produtos vem com a ressalva do backend colada nele', async ({ p
   await abrirDesempenho(page);
 
   const secao = page.locator('.perf__secao').filter({ hasText: 'O que vendeu' });
-  await expect(secao).toContainText('R$ 1.947,60');
+  await expect(secao).toContainText('R$ 2.495,60');
   await expect(secao).toContainText('não fecha com o faturamento do resumo');
 });
 
@@ -219,20 +220,205 @@ test('a tela diz de qual recorte são os números, e o seletor do topo os muda',
 
   // O número MUDA, e o aviso passa a nomear a loja. Sem uma das duas coisas o
   // lojista leria o faturamento de uma loja como o da rede, ou o contrário.
-  await expect(faturamento).toContainText('R$ 1.820,00');
+  await expect(faturamento).toContainText('R$ 1.349,50');
   await expect(aviso).toContainText('da filial');
   await expect(aviso).toContainText(branchName(FAKE_BRANCH_2));
 });
 
 /*
- * NÃO EXISTE ROTA POR HORA no contrato, e a tela não reserva lugar para uma:
- * espaço guardado para o que ninguém prometeu construir é ruído permanente.
+ * ============================================================================
+ * NÃO EXISTE FATURAMENTO POR HORA — e o requisito continua o mesmo
+ * ============================================================================
+ *
+ * ESTE TESTE MUDOU DE FORMA, NÃO DE ASSUNTO. Ele dizia "não há gráfico por
+ * hora, ponto", e o que ele protegia era outra coisa: que a tela não INVENTE um
+ * recorte que o backend não entrega. Nenhuma das seis rotas de relatório desce
+ * abaixo do dia, então um "horário de pico de faturamento" só poderia sair de
+ * estimativa — e estimativa nesta tela é proibida.
+ *
+ * O que passou a existir é de outra natureza e vem de outra rota: a HORA DE
+ * ENTRADA dos pedidos que não viraram venda, contada a partir do `created_at`
+ * de `GET /admin/orders`. É contagem, não dinheiro, e ela vive dentro de "O que
+ * não virou venda". A asserção abaixo separa as duas coisas.
  */
-test('não há gráfico nem lugar reservado para horários de pico', async ({ page }) => {
+test('não há faturamento por hora, e o pico de vendas não é inventado', async ({ page }) => {
   await abrirDesempenho(page);
 
   await expect(page.getByText(/hor[áa]rio de pico/i)).toHaveCount(0);
-  await expect(page.getByText(/por hora/i)).toHaveCount(0);
+  await expect(page.getByText(/faturamento por hora/i)).toHaveCount(0);
+
+  // A tabela equivalente do gráfico de dias continua sendo a única série de
+  // DINHEIRO da tela — a de hora conta pedidos.
+  await expect(
+    page.getByRole('table', { name: 'Faturamento e pedidos por dia' }),
+  ).toBeAttached();
+});
+
+/* ==========================================================================
+ * LOTE 6 — AS FILIAIS LADO A LADO
+ * ======================================================================= */
+
+/*
+ * A PERGUNTA QUE A SOMA ENGOLIA. Para quem tem duas lojas, "qual das duas vai
+ * melhor" é a primeira pergunta, e a tela respondia com um pedido de desculpas:
+ * somava as duas e avisava que estava somando.
+ *
+ * A fixture divide 3.169,50 em 1.820,00 (Aldeota) e 1.349,50 (Zona Norte), e a
+ * soma FECHA — é isso que este teste prova junto: as partes somam o todo que a
+ * banda do topo mostra.
+ */
+test('em "todas as filiais", a tela compara as lojas em vez de só somá-las', async ({ page }) => {
+  await abrirDesempenho(page);
+
+  const filiais = page.getByTestId('perf-filiais');
+  await expect(filiais).toContainText(branchName(FAKE_BRANCH));
+  await expect(filiais).toContainText(branchName(FAKE_BRANCH_2));
+  await expect(filiais).toContainText('R$ 1.820,00');
+  await expect(filiais).toContainText('R$ 1.349,50');
+
+  // A banda do topo continua mostrando a soma das duas.
+  const faturamento = page.locator('.numeros__item').filter({ hasText: 'Faturamento' });
+  await expect(faturamento).toContainText('R$ 3.169,50');
+});
+
+/*
+ * A ORDEM É A RESPOSTA: maior faturamento primeiro. Em ordem alfabética ou na
+ * ordem em que o token devolveu as filiais, "qual vai melhor" voltaria a exigir
+ * que o olho comparasse dois números de quatro dígitos.
+ */
+test('a comparação vem ordenada por faturamento, maior primeiro', async ({ page }) => {
+  await abrirDesempenho(page);
+
+  const linhas = page.getByTestId('perf-filiais').locator('.fatias__rotulo');
+  await expect(linhas.first()).toHaveText(branchName(FAKE_BRANCH));
+  await expect(linhas.last()).toHaveText(branchName(FAKE_BRANCH_2));
+});
+
+/*
+ * A FRASE QUE DESMONTA O NÚMERO DO TOPO. Na fixture a rede caiu 6,8% — mas ela
+ * não caiu por igual: a Aldeota SUBIU 14,5% e a Zona Norte caiu 25,5%. Sem esta
+ * frase, o dono leria "a semana foi pior" e procuraria a causa na rede inteira.
+ */
+test('a comparação diz quando uma loja subiu e a outra caiu', async ({ page }) => {
+  await abrirDesempenho(page);
+
+  const frase = page.getByTestId('perf-frase-filial-contraste');
+  await expect(frase).toContainText(branchName(FAKE_BRANCH));
+  await expect(frase).toContainText(branchName(FAKE_BRANCH_2));
+  await expect(frase).toContainText('não foi a rede, foi uma loja');
+});
+
+/*
+ * COM UMA FILIAL ESCOLHIDA A COMPARAÇÃO SOME, e não é economia de espaço: a
+ * linha de escopo passa a afirmar "estes números são da filial X", e pôr o
+ * faturamento da vizinha logo abaixo faria a tela contradizer a própria legenda
+ * três centímetros depois de escrevê-la.
+ *
+ * (O gerente nunca chega em "todas as filiais": `ensure_pode_ler_dinheiro`
+ * recusa quem não é dono sem recorte, e a tela pede a filial antes de pedir os
+ * relatórios. Ver `papeis.spec.ts`.)
+ */
+test('com uma filial escolhida, a tela é sobre ela e não compara', async ({ page }) => {
+  await abrirDesempenho(page);
+  await expect(page.getByTestId('perf-filiais')).toBeVisible();
+
+  await escolherFilial(page, FAKE_BRANCH_2);
+
+  await expect(page.getByTestId('perf-filiais')).toHaveCount(0);
+  await expect(page.getByTestId('perf-escopo')).toContainText('da filial');
+});
+
+/* ==========================================================================
+ * LOTE 6 — A HORA DOS CANCELAMENTOS
+ * ======================================================================= */
+
+/*
+ * O DADO VEM DA LISTAGEM DE PEDIDOS, e não do relatório de cancelamentos —
+ * `/reports/cancellations` cruza situação com pagamento e não tem relógio
+ * nenhum. A fixture põe seis pedidos que não viraram venda há três dias, três
+ * deles às 20h locais.
+ */
+test('os cancelamentos ganham corte por horário, com a hora que concentra', async ({ page }) => {
+  await abrirDesempenho(page);
+
+  const horas = page.getByTestId('perf-horas');
+  await expect(horas).toContainText('A que horas eles entraram');
+
+  const tabela = page.getByRole('table', {
+    name: 'Pedidos que não viraram venda, por hora de entrada',
+  });
+  await expect(tabela).toBeAttached();
+  await expect(tabela.getByRole('row')).not.toHaveCount(0);
+
+  await expect(page.getByTestId('perf-frase-hora-cancelamento')).toContainText('20h');
+});
+
+/*
+ * A HORA É A DE ENTRADA, E A TELA DIZ ISSO.
+ *
+ * `AdminOrderListItem` devolve `created_at`; o instante do CANCELAMENTO não
+ * está no contrato. A diferença importa — um pedido que entra às 20h e é
+ * recusado às 20h05 e outro que entra às 20h e é cancelado às 21h30 caem os
+ * dois nas 20h, e a ação que cada um pede não é a mesma. Chamar isso de "hora
+ * do cancelamento" seria uma mentira de uma palavra.
+ */
+test('a tela não chama a hora de entrada de "hora do cancelamento"', async ({ page }) => {
+  await abrirDesempenho(page);
+
+  await expect(page.getByTestId('perf-horas')).toContainText('hora é a de ENTRADA do pedido');
+  await expect(page.getByText(/hora em que foi cancelado/i)).toHaveCount(0);
+});
+
+/* ==========================================================================
+ * LOTE 6 — OS GRUPOS DE PRODUTO
+ * ======================================================================= */
+
+/*
+ * RANKING DIZ O QUE VENDE, GRUPO DIZ O QUE FAZER. Os dois convivem, e a ordem
+ * é a decisão: o grupo primeiro, porque a premissa da tela é que o dono abre o
+ * painel para saber o que fazer amanhã.
+ *
+ * A fixture tem os três grupos povoados de propósito — com três produtos, como
+ * era antes, todos caíam em "campeões" e dois dos ramos ficavam sem teste.
+ */
+test('os produtos viram grupos de ação, e o ranking continua embaixo', async ({ page }) => {
+  await abrirDesempenho(page);
+
+  await expect(page.getByTestId('perf-grupo-campeoes')).toContainText('Pizza Calabresa G');
+  await expect(page.getByTestId('perf-grupo-promissores')).toContainText('Refrigerante lata');
+  await expect(page.getByTestId('perf-grupo-repensaveis')).toContainText('Água 500 ml');
+
+  /*
+    O CORTE ESTÁ ESCRITO NA TELA, e o teste continua cobrando isso — mudou o
+    LUGAR, não o requisito: ele morava dentro de cada grupo e virou uma legenda
+    para os três, porque a mesma régua explicada em três frases quase iguais
+    gastava três linhas (§8). "Campeão" sem o corte continua sendo uma opinião,
+    e é isso que a asserção protege.
+  */
+  await expect(page.getByTestId('perf-sem-sazonais')).toContainText('campeão a partir de 5%');
+
+  const secao = page.locator('.perf__secao').filter({ hasText: 'O que vendeu' });
+  await expect(secao).toContainText('Ranking por unidades');
+});
+
+/*
+ * ============================================================================
+ * O QUARTO GRUPO NÃO EXISTE, E A TELA DIZ POR QUÊ — não fica em silêncio
+ * ============================================================================
+ *
+ * "Sazonais" é o quarto nome do padrão de mercado, e ele não é detectável com o
+ * que o contrato devolve: `/reports/products` traz um período agregado por vez,
+ * sem recorte de tempo dentro dele. Uma variação entre duas janelas não separa
+ * sazonalidade de crescimento, de promoção, de item em falta nem de estreia.
+ *
+ * Este teste é a fechadura: quem for "completar os quatro quadrantes" quebra
+ * aqui em vez de publicar um chute que tira um prato do cardápio de alguém.
+ */
+test('não existe grupo de sazonais, e a tela explica a ausência', async ({ page }) => {
+  await abrirDesempenho(page);
+
+  await expect(page.getByTestId('perf-grupo-sazonais')).toHaveCount(0);
+  await expect(page.getByTestId('perf-sem-sazonais')).toContainText('seria chute');
 });
 
 test('o período troca entre 7 e 30 dias, e "Escolher…" abre as datas', async ({ page }) => {

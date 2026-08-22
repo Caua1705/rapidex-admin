@@ -35,6 +35,7 @@ type PaymentMethod = Schemas['AdminPaymentMethodResponse'];
 type CustomerListItem = Schemas['AdminCustomerListItem'];
 type ReviewItem = Schemas['AdminOrderReviewItem'];
 type SalesSummary = Schemas['SalesSummaryResponse'];
+type MetricComparison = Schemas['MetricComparison'];
 type SalesByDay = Schemas['SalesByDayResponse'];
 type ReportPaymentMethods = Schemas['src__schemas__admin_report_schema__PaymentMethodsResponse'];
 type ProductSales = Schemas['ProductSalesResponse'];
@@ -169,7 +170,85 @@ function initialOrders(): OrderListItem[] {
       payment_status: 'paid',
       created_at: minutesAgo(25),
     }),
+
+    ...cancelamentosDeTresDiasAtras(),
   ];
+}
+
+/**
+ * ============================================================================
+ * OS SEIS PEDIDOS QUE NÃO VIRARAM VENDA — a fixture da HORA
+ * ============================================================================
+ *
+ * Eles existem porque o Desempenho passou a ler a hora dos cancelamentos, e o
+ * dado dessa leitura NÃO vem do relatório de cancelamentos: vem de
+ * `GET /admin/orders`, pelo `created_at` de cada item. Sem pedidos cancelados
+ * de verdade na fixture, o E2E exercitaria a seção com zero linhas.
+ *
+ * TRÊS DECISÕES ESTÃO CRAVADAS AQUI:
+ *
+ * 1. **HÁ TRÊS DIAS, E NÃO HOJE.** Pedidos abre em "hoje" e a Cozinha carrega
+ *    por status: se estes seis fossem de hoje, os contadores da faixa de
+ *    Pedidos e a lista inteira mudariam por causa de uma fixture de outra tela.
+ *    Três dias atrás cai dentro dos 7 dias do Desempenho e fora do dia de
+ *    Pedidos — e é o filtro de data do falso que faz a separação valer.
+ *
+ * 2. **SEIS, E NÃO TRÊS.** `HORA_LIMIARES.amostraMinima` é 5: abaixo disso a
+ *    tela se recusa a desenhar o gráfico, porque três cancelamentos não têm
+ *    "hora de concentração" — têm três horas. Com seis, a seção existe e pode
+ *    ser testada.
+ *
+ * 3. **METADE NAS 20h.** Três dos seis entram às 20h locais, que é 50% e passa
+ *    de `picoPct` (40%): é o caso "concentrado numa hora", que é a leitura que
+ *    a seção existe para dar. Os outros três ficam espalhados, para que o
+ *    gráfico tenha forma em vez de uma barra só.
+ *
+ * As contagens batem com `initialCancellations` de propósito — quatro
+ * `cancelled` e dois `rejected`, seis no total. O relatório e a listagem
+ * discordando seria um defeito plantado no falso, e ele passaria despercebido
+ * justamente porque a tela mostra os dois números em blocos diferentes.
+ */
+function cancelamentosDeTresDiasAtras(): OrderListItem[] {
+  /* A hora é a LOCAL da operação (UTC−3): 20h em Fortaleza são 23h em UTC. */
+  const horasLocais: readonly { hora: number; status: string; pagamento: string }[] = [
+    { hora: 13, status: 'cancelled', pagamento: 'refunded' },
+    { hora: 19, status: 'rejected', pagamento: 'pending' },
+    { hora: 20, status: 'cancelled', pagamento: 'refunded' },
+    { hora: 20, status: 'cancelled', pagamento: 'refunded' },
+    { hora: 20, status: 'rejected', pagamento: 'pending' },
+    { hora: 21, status: 'cancelled', pagamento: 'pending' },
+  ];
+
+  const diaLocal = OPERATION_DAY.format(new Date(Date.now() - 3 * 24 * 60 * 60_000));
+
+  /*
+   * A CONVERSÃO PASSA PELO INSTANTE, e não por "somar 3 na hora do texto".
+   *
+   * 21h locais são 00h UTC do DIA SEGUINTE — colar `T00:…Z` no mesmo dia local
+   * jogaria o pedido 24 horas para trás, para dentro do período ainda, e a
+   * fixture mentiria em silêncio: o gráfico mostraria o balde certo pelo motivo
+   * errado, e o primeiro pedido depois das 21h a ser acrescentado aqui cairia
+   * no dia anterior sem nada acusar.
+   */
+  const emUtc = (horaLocal: number, minuto: number) =>
+    new Date(
+      Date.parse(
+        `${diaLocal}T${String(horaLocal).padStart(2, '0')}:${String(minuto).padStart(2, '0')}:00Z`,
+      ) +
+        3 * 60 * 60_000,
+    ).toISOString();
+
+  return horasLocais.map((item, index) =>
+    order({
+      id: `ord-cancel-${index}`,
+      order_number: 900 + index,
+      customer_name_snapshot: 'Cliente do histórico',
+      status: item.status,
+      payment_method: 'pix',
+      payment_status: item.pagamento,
+      created_at: emUtc(item.hora, 10 + index * 3),
+    }),
+  );
 }
 
 /**
@@ -971,54 +1050,130 @@ function reportPeriod(start: string, end: string): Schemas['ReportPeriod'] {
  *
  * Sem `branchId` é a soma de todas as lojas, que é o que o dono lê.
  */
+/**
+ * ============================================================================
+ * O RESUMO DE VENDAS, POR RECORTE — e a soma das lojas FECHA com a rede
+ * ============================================================================
+ *
+ * O falso devolvia dois resumos: um para "todas" e UM para qualquer filial. Isso
+ * bastava enquanto a tela só perguntava "o número muda quando eu troco de
+ * loja?". Deixou de bastar quando o Desempenho passou a COMPARAR as filiais
+ * lado a lado: com a mesma resposta para as duas, a comparação desenharia duas
+ * barras de 50% e o teste que ela existe para proteger passaria sem provar
+ * nada.
+ *
+ * E a soma tem de fechar. `1820,00 + 1349,50 = 3169,50`, `1590 + 1812 = 3402`,
+ * `31 + 23 = 54`, `26 + 22 = 48`. Um falso em que as partes não somam o todo é
+ * um defeito plantado: a tela mostra a rede numa banda e as lojas na seção
+ * seguinte, e ninguém percebe a conta furada até um lojista somar na mão.
+ */
+type RecorteDeResumo = {
+  orders: number;
+  ordersPrev: number;
+  revenue: string;
+  revenuePrev: string;
+  excluidos: number;
+};
+
+const RESUMO_POR_FILIAL: Record<string, RecorteDeResumo> = {
+  [BRANCH_ID]: {
+    orders: 31,
+    ordersPrev: 26,
+    revenue: '1820.00',
+    revenuePrev: '1590.00',
+    excluidos: 4,
+  },
+  [BRANCH_ID_2]: {
+    orders: 23,
+    ordersPrev: 22,
+    revenue: '1349.50',
+    revenuePrev: '1812.00',
+    excluidos: 2,
+  },
+};
+
+const RESUMO_DA_REDE: RecorteDeResumo = {
+  orders: 54,
+  ordersPrev: 48,
+  revenue: '3169.50',
+  revenuePrev: '3402.00',
+  excluidos: 6,
+};
+
+/** Uma `MetricComparison` calculada, para que os números não se contradigam. */
+function comparacaoDe(atual: number, anterior: number, casas: number): MetricComparison {
+  const mudanca = atual - anterior;
+  return {
+    current: atual.toFixed(casas),
+    previous: anterior.toFixed(casas),
+    change: mudanca.toFixed(casas),
+    /*
+     * NULO QUANDO O ANTERIOR FOI ZERO, como o contrato manda: não existe
+     * variação percentual a partir de zero. É o caso em que um `?? 0` na tela
+     * escreveria "0%" e diria que ficou igual.
+     */
+    change_percent: anterior === 0 ? null : ((mudanca / anterior) * 100).toFixed(1),
+  };
+}
+
 function initialSalesSummary(start: string, end: string, branchId = ''): SalesSummary {
-  const daFilial = branchId !== '';
+  const recorte = (branchId ? RESUMO_POR_FILIAL[branchId] : RESUMO_DA_REDE) ?? RESUMO_DA_REDE;
+  const receita = Number(recorte.revenue);
+  const receitaAnterior = Number(recorte.revenuePrev);
+  const ticket = receita / recorte.orders;
+  const ticketAnterior = receitaAnterior / recorte.ordersPrev;
+
+  /* As fatias de entrega e retirada são as mesmas proporções em qualquer
+     recorte — o que muda é o dinheiro em cima do qual elas incidem. */
+  const entrega = receita * 0.792;
+  const retirada = receita - entrega;
+
   return {
     restaurant_id: RESTAURANT_ID,
     period: reportPeriod(start, end),
     previous_period: reportPeriod(start, end),
-    orders_count: daFilial ? 31 : 54,
-    revenue_total: daFilial ? '1820.00' : '3169.50',
-    average_ticket: daFilial ? '58.71' : '58.69',
+    orders_count: recorte.orders,
+    revenue_total: recorte.revenue,
+    average_ticket: ticket.toFixed(2),
     breakdown: {
-      subtotal_total: '2980.00',
-      delivery_fee_total: '240.00',
-      service_fee_total: '108.00',
-      discount_total: '158.50',
-      commission_total: '316.95',
+      subtotal_total: (receita * 0.94).toFixed(2),
+      delivery_fee_total: (receita * 0.0757).toFixed(2),
+      service_fee_total: (receita * 0.0341).toFixed(2),
+      discount_total: (receita * 0.05).toFixed(2),
+      commission_total: (receita * 0.1).toFixed(2),
     },
     order_types: [
       {
         order_type: 'delivery',
-        orders_count: 41,
-        revenue_total: '2510.00',
+        orders_count: Math.round(recorte.orders * 0.76),
+        revenue_total: entrega.toFixed(2),
         revenue_share_percent: '79.2',
       },
       {
         order_type: 'pickup',
-        orders_count: 13,
-        revenue_total: '659.50',
+        orders_count: recorte.orders - Math.round(recorte.orders * 0.76),
+        revenue_total: retirada.toFixed(2),
         revenue_share_percent: '20.8',
       },
     ],
-    excluded_orders_count: 3,
-    orders_count_comparison: { current: '54', previous: '48', change: '6', change_percent: '12.5' },
-    revenue_comparison: {
-      current: '3169.50',
-      previous: '3402.00',
-      change: '-232.50',
-      change_percent: '-6.8',
-    },
+    excluded_orders_count: recorte.excluidos,
+    orders_count_comparison: comparacaoDe(recorte.orders, recorte.ordersPrev, 0),
+    revenue_comparison: comparacaoDe(receita, receitaAnterior, 2),
     /*
-     * O NULO. Sem período anterior com movimento não existe variação percentual
-     * — e é aqui que um `?? 0` escreveria "0%" e diria que o ticket ficou igual.
+     * O NULO CONTINUA EXERCITADO, e continua sendo só na REDE. Sem período
+     * anterior com movimento não existe variação percentual — e é aqui que um
+     * `?? 0` escreveria "0%" e diria que o ticket ficou igual. Nas filiais o
+     * ticket varia de verdade, porque a comparação entre lojas precisa de uma
+     * seta para cada lado para ter o que provar.
      */
-    average_ticket_comparison: {
-      current: '58.69',
-      previous: '0.00',
-      change: '58.69',
-      change_percent: null,
-    },
+    average_ticket_comparison: branchId
+      ? comparacaoDe(ticket, ticketAnterior, 2)
+      : {
+          current: ticket.toFixed(2),
+          previous: '0.00',
+          change: ticket.toFixed(2),
+          change_percent: null,
+        },
   };
 }
 
@@ -1142,6 +1297,24 @@ function initialPaymentsReport(start: string, end: string): ReportPaymentMethods
   };
 }
 
+/**
+ * O relatório de produtos.
+ *
+ * ELE CRESCEU DE TRÊS PARA OITO ITENS, e não foi por capricho de fixture: a
+ * seção "O que vendeu" passou a separar os produtos em três grupos por fatia da
+ * receita (campeões, promissores, repensáveis — ver `product-quadrants.ts`), e
+ * com três produtos os três caíam todos em "campeões". Uma fixture que só
+ * exercita um dos ramos deixa os outros dois sem teste nenhum.
+ *
+ * A ORDEM É POR UNIDADES, DECRESCENTE, como o contrato promete — e é ela que
+ * torna a fixture interessante: o refrigerante é o TERCEIRO em unidades e um
+ * mero "promissor" em dinheiro; a água é a quinta em unidades e "repensável". É
+ * exatamente a discordância entre ranking e grupo que a seção existe para
+ * mostrar, e agora ela está no falso.
+ *
+ * `listed_revenue_total` é a soma da própria lista — 2.495,60 — e é o
+ * denominador de todas as fatias da seção.
+ */
 function initialProductSales(start: string, end: string): ProductSales {
   return {
     restaurant_id: RESTAURANT_ID,
@@ -1161,6 +1334,34 @@ function initialProductSales(start: string, end: string): ProductSales {
         quantity_total: 24,
         revenue_total: '597.60',
       },
+      {
+        product_id: 'prod-6',
+        product_name: 'Refrigerante lata',
+        orders_count: 17,
+        quantity_total: 19,
+        revenue_total: '96.00',
+      },
+      {
+        product_id: 'prod-3',
+        product_name: 'Filé à parmegiana',
+        orders_count: 8,
+        quantity_total: 8,
+        revenue_total: '316.00',
+      },
+      {
+        product_id: 'prod-7',
+        product_name: 'Água 500 ml',
+        orders_count: 7,
+        quantity_total: 7,
+        revenue_total: '41.00',
+      },
+      {
+        product_id: 'prod-8',
+        product_name: 'Pudim da casa',
+        orders_count: 6,
+        quantity_total: 6,
+        revenue_total: '63.00',
+      },
       /* Produto apagado depois da venda: `product_id` nulo é caso do contrato. */
       {
         product_id: null,
@@ -1169,24 +1370,46 @@ function initialProductSales(start: string, end: string): ProductSales {
         quantity_total: 4,
         revenue_total: '180.00',
       },
+      {
+        product_id: 'prod-9',
+        product_name: 'Pão de alho',
+        orders_count: 4,
+        quantity_total: 4,
+        revenue_total: '32.00',
+      },
     ],
-    listed_revenue_total: '1947.60',
+    listed_revenue_total: '2495.60',
     revenue_note:
       'Receita bruta dos itens, sem cupom, cashback nem taxas — não fecha com o faturamento do resumo.',
   };
 }
 
+/**
+ * Os pedidos que não viraram venda.
+ *
+ * AS CONTAGENS BATEM COM `cancelamentosDeTresDiasAtras()`, e isso passou a
+ * importar: a mesma seção agora mostra a contagem do RELATÓRIO e um gráfico
+ * montado a partir da LISTAGEM de pedidos. Com os dois discordando, a tela
+ * escreveria "6 pedidos não viraram venda" em cima de um gráfico com quatro
+ * barras — um defeito que não quebra nada e que ninguém nota, porque os dois
+ * números moram em blocos diferentes.
+ *
+ * Quatro `cancelled` e dois `rejected`, seis no total. A taxa é sobre TODOS os
+ * pedidos do período — 6 / (54 + 6) = 10,0% —, e não só sobre os faturados: é a
+ * armadilha que a ressalva da seção existe para desarmar.
+ */
 function initialCancellations(start: string, end: string): Cancellations {
   return {
     restaurant_id: RESTAURANT_ID,
     period: reportPeriod(start, end),
-    orders_count: 3,
-    amount_total: '186.00',
+    orders_count: 6,
+    amount_total: '327.00',
     billable_orders_count: 54,
-    cancellation_rate_percent: '5.3',
+    cancellation_rate_percent: '10.0',
     breakdown: [
-      { status: 'cancelled', payment_status: 'refunded', orders_count: 2, amount_total: '141.00' },
-      { status: 'rejected', payment_status: 'pending', orders_count: 1, amount_total: '45.00' },
+      { status: 'cancelled', payment_status: 'refunded', orders_count: 3, amount_total: '186.00' },
+      { status: 'cancelled', payment_status: 'pending', orders_count: 1, amount_total: '52.00' },
+      { status: 'rejected', payment_status: 'pending', orders_count: 2, amount_total: '89.00' },
     ],
   };
 }
@@ -1619,6 +1842,46 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     return state.orders.find((item) => item.id === orderId);
   }
 
+  /**
+   * O recorte de `GET /admin/orders`, compartilhado com `/status-counts`.
+   *
+   * O PERÍODO PASSOU A VALER AQUI, e ele não valia. Enquanto a listagem só
+   * servia a Pedidos e à Cozinha — as duas abrem em "hoje" e a fixture inteira
+   * era de hoje —, ignorar as datas não fazia diferença nenhuma. Deixou de ser
+   * verdade quando o Desempenho passou a ler a HORA dos cancelamentos dessa
+   * mesma rota: sem filtro de data, o falso devolveria pedidos de fora do
+   * período e a leitura do gráfico sairia de uma amostra que o backend nunca
+   * mandaria.
+   *
+   * O DIA É O DA OPERAÇÃO (America/Fortaleza), como no backend: um pedido das
+   * 22h de sexta conta na sexta, não no sábado UTC.
+   */
+  function pedidosFiltrados(query: URLSearchParams): OrderListItem[] {
+    const branchId = query.get('branch_id');
+    const status = query.get('status');
+    const inicio = query.get('start_date');
+    const fim = query.get('end_date');
+    const busca = query.get('search')?.trim().toLowerCase();
+
+    return state.orders.filter((item) => {
+      if (branchId && item.branch_id !== branchId) return false;
+      if (status && item.status !== status) return false;
+
+      const dia = operationDay(item.created_at);
+      if (inicio && (!dia || dia < inicio)) return false;
+      if (fim && (!dia || dia > fim)) return false;
+
+      if (busca) {
+        const digitos = busca.replace(/\D/g, '');
+        const porNumero = digitos ? String(item.order_number).includes(digitos) : false;
+        const porNome = item.customer_name_snapshot.toLowerCase().includes(busca);
+        if (!porNumero && !porNome) return false;
+      }
+
+      return true;
+    });
+  }
+
   function historyOf(item: OrderListItem): Schemas['StatusHistoryResponse'][] {
     state.history[item.id] ??= [
       {
@@ -1857,15 +2120,25 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     }
 
     if (method === 'GET' && path === '/admin/orders') {
-      // Respeita o filtro de filial, que é o que o seletor do cabeçalho manda,
-      // e o de status, que é como a Cozinha carrega as três colunas dela.
       const query = new URL(request.url()).searchParams;
-      const branchId = query.get('branch_id');
-      const status = query.get('status');
-      const items = state.orders.filter(
-        (item) => (!branchId || item.branch_id === branchId) && (!status || item.status === status),
-      );
-      return json(route, 200, { items, total: items.length, limit: 100, offset: 0 });
+      const items = pedidosFiltrados(query);
+      /*
+       * A PAGINAÇÃO É DE VERDADE, e passou a ser: `limit` e `offset` viravam
+       * eco na resposta enquanto os itens vinham todos. Quem paga por isso é a
+       * leitura de HORA do Desempenho, que percorre páginas até acabar
+       * (`useCancellationHours`) — com uma página que ignora o `offset`, o laço
+       * receberia a mesma lista para sempre e o falso esconderia um laço
+       * infinito de produção.
+       */
+      const limit = Number(query.get('limit') ?? 100) || 100;
+      const offset = Number(query.get('offset') ?? 0) || 0;
+
+      return json(route, 200, {
+        items: items.slice(offset, offset + limit),
+        total: items.length,
+        limit,
+        offset,
+      });
     }
 
     // --- relatórios (Desempenho) -------------------------------------------
@@ -2087,13 +2360,17 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     }
 
     if (method === 'GET' && path === '/admin/orders/status-counts') {
+      // O MESMO RECORTE DA LISTA. Contadores que ignorassem o período diriam
+      // "Cancelados 4" em cima de uma lista de hoje sem nenhum cancelado — e o
+      // lojista sairia procurando o pedido que a tela não mostra.
+      const itens = pedidosFiltrados(new URL(request.url()).searchParams);
       const counts: Record<string, number> = {};
-      state.orders.forEach((item) => {
+      itens.forEach((item) => {
         counts[item.status] = (counts[item.status] ?? 0) + 1;
       });
       return json(route, 200, {
         counts: Object.entries(counts).map(([status, count]) => ({ status, count })),
-        total: state.orders.length,
+        total: itens.length,
       });
     }
 

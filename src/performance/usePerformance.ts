@@ -18,6 +18,7 @@ import type {
   SalesByDay,
   SalesSummary,
 } from '../api/types';
+import { PRODUTOS_ANALISADOS } from './product-quadrants';
 import {
   datesForPreset,
   previousRange,
@@ -26,7 +27,15 @@ import {
   type PerformanceRange,
 } from './report-model';
 
-/** Quantos produtos o ranking pede. A tela escreve esse número na seção. */
+/**
+ * Quantas LINHAS o ranking desenha. A tela escreve esse número na seção.
+ *
+ * Ele deixou de ser o `limit` da requisição: quem pede é `PRODUTOS_ANALISADOS`,
+ * porque `listed_revenue_total` é a soma da PRÓPRIA lista devolvida e portanto o
+ * denominador dos grupos de produto. Pedir dez e afirmar que um deles é "12% da
+ * receita de itens" seria 12% de um total que exclui tudo o que ficou em 11º.
+ * Ver `product-quadrants.ts`.
+ */
 export const RANKING_SIZE = 10;
 
 type Reports = {
@@ -126,7 +135,7 @@ export function usePerformance(
           ? fetchSalesByDay({ ...anterior, branchId: janela.branchId })
           : Promise.resolve(null),
         fetchPaymentMethodsReport(janela),
-        fetchProductSales(janela, RANKING_SIZE),
+        fetchProductSales(janela, PRODUTOS_ANALISADOS),
         fetchCancellations(janela),
         /*
          * A COMISSÃO É SÓ DO DONO, e para os outros ela não é nem pedida.

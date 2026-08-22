@@ -571,12 +571,18 @@
   color: var(--ink-3);
 }
 
-/* --- as fatias (entrega × retirada) ---------------------------------------
+/* --- as fatias: entrega × retirada, e as filiais lado a lado ---------------
  *
  * DUAS LINHAS NÃO SÃO UMA TABELA. Quatro colunas com cabeçalho para dois
  * valores gastam mais tinta em moldura do que em dado — e a pergunta da seção
  * ("qual dos dois?") se responde melhor com a barra de proporção do que com
  * dois números de quatro dígitos a comparar.
+ *
+ * ELE SERVE DUAS SEÇÕES DE DESEMPENHO, e não é reuso oportunista: as duas fazem
+ * a mesma pergunta visual — poucos valores comparáveis, cada um com sua fatia
+ * do todo, onde a BARRA responde "qual é o maior" antes de o olho ler o número.
+ * Entrega × retirada foi a primeira; "As filiais" é a segunda, e ela trouxe
+ * junto o `__delta`, que é a única peça que a primeira não usa.
  */
 
 .fatias {
@@ -611,8 +617,53 @@
 .fatias__meta {
   grid-column: 1 / -1;
   margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  /*
+   * O VÃO É O SEPARADOR, e não um ponto médio escrito.
+   *
+   * A variação já teve um `·` de `::before`, no ritmo do resto da linha. No
+   * celular a meta quebra em duas fileiras, e o ponto ia junto: a segunda linha
+   * começava com um "·" órfão pendurado na margem. Separador que só funciona
+   * enquanto o texto não quebra não é separador — e o vão de 8px mais a cor e a
+   * seta da variação já a destacam do resto da meta.
+   */
+  gap: var(--sp-4) var(--sp-8);
   font-size: var(--ta-size);
   line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+/*
+ * A VARIAÇÃO DA LINHA, quando a comparação existe — hoje, só "As filiais".
+ *
+ * MESMA TINTA SEMÂNTICA DOS TRÊS NÚMEROS DO TOPO (`--ok`/`--danger`, medidos
+ * por `check-contrast.mjs` nos dois temas), e pelo mesmo motivo: com +12,5% e
+ * -8,3% no mesmo cinza, a informação que decide qual loja precisa de atenção só
+ * existe depois de o olho achar o sinal de menos. A cor NÃO é o único canal —
+ * a seta e o sinal no texto dizem o mesmo (WCAG 1.4.1).
+ *
+ * Ela quebra para a própria linha quando aperta (o `flex-wrap` acima), em vez
+ * de espremer o "ticket R$ 58,71" ao lado: é a mais longa das três metas.
+ */
+.fatias__delta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+  color: var(--ink-3);
+}
+
+.fatias__delta--up {
+  color: var(--ok);
+}
+
+.fatias__delta--down {
+  color: var(--danger);
+}
+
+.fatias__delta--none,
+.fatias__delta--vazio {
   color: var(--ink-3);
 }
 

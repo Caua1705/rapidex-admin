@@ -609,6 +609,18 @@
   --chart-h-mobile: 150px;
   --chart-band: 120px;
   --chart-band-mobile: 46px;
+  /*
+   * O GRÁFICO CURTO. Ele é a segunda série da tela de Desempenho — os
+   * cancelamentos por hora de entrada — e mora dentro de uma seção de METADE da
+   * grade, entre uma frase e uma tabela. Com `--chart-h` a seção sozinha
+   * passaria de uma dobra, e ela não é a resposta principal da página.
+   *
+   * A faixa também é mais estreita: as barras contam pedidos (um ou dois
+   * dígitos), não dinheiro, e o rótulo embaixo é "20h" — três caracteres contra
+   * os cinco de uma data.
+   */
+  --chart-h-curto: 116px;
+  --chart-band-curto: 52px;
 
   /* ==========================================================================
    * 11. MOVIMENTO
