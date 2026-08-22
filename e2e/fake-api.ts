@@ -1964,7 +1964,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       const item = findOrder(statusMatch[1]);
       if (!item) return json(route, 404, { detail: 'Pedido não encontrado.' });
 
-      const body = request.postDataJSON() as { status: string };
+      // `note` é o motivo da recusa: opcional no contrato, e é ele que faz o
+      // histórico dizer POR QUE o pedido não saiu.
+      const body = request.postDataJSON() as { status: string; note?: string };
       const permitidos = TRANSICOES[item.status] ?? [];
       if (!permitidos.includes(body.status)) {
         // Mesma forma de erro do backend: 409 com a frase já em português.
@@ -1979,6 +1981,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         status: body.status,
         changed_by: FAKE_USER.name,
         created_at: new Date().toISOString(),
+        ...(body.note ? { note: body.note } : {}),
       });
       return json(route, 200, detailOf(item, historyOf(item)));
     }

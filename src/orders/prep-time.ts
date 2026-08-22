@@ -105,6 +105,34 @@ export function formatPrepRange(
   return `${min}–${max} min`;
 }
 
+/**
+ * A PROMESSA QUE CHEGA AO CLIENTE — preparo MAIS entrega.
+ *
+ * Os botões de +5/+10/−5 existem desde sempre e nada na tela dizia o que aquele
+ * tempo significa. O lojista empurrava dez minutos achando que mexia num número
+ * só; o que ele move é o prazo que o cliente lê no aplicativo, porque o preparo
+ * é uma das duas parcelas dele — a outra é a rua.
+ *
+ * A CONTA É PONTA COM PONTA: mínimo com mínimo, máximo com máximo. Somar o
+ * máximo de um com o mínimo do outro daria uma faixa que não existe em lugar
+ * nenhum.
+ *
+ * `null` quando falta qualquer uma das duas. Meia conta não é conta: com a
+ * entrega sem faixa, mostrar "25–35" como promessa ao cliente seria prometer só
+ * o tempo da cozinha — que é exatamente o erro de leitura que esta linha existe
+ * para desfazer.
+ */
+export function promessaAoCliente(
+  preparo: PrepRange | null,
+  entrega: { min: number; max: number } | null,
+): PrepRange | null {
+  if (preparo === null || entrega === null) return null;
+  return {
+    prep_time_min: preparo.prep_time_min + entrega.min,
+    prep_time_max: preparo.prep_time_max + entrega.max,
+  };
+}
+
 /** Os empurrões que a barra oferece, na ordem em que aparecem. */
 export const PREP_TIME_DELTAS = [5, 10, -5] as const;
 

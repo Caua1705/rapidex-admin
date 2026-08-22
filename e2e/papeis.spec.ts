@@ -110,18 +110,32 @@ test('o balcão avança o pedido, e não cancela', async ({ page }) => {
   api.entrarComoPapel('attendant');
   await entrar(page);
 
-  // O painel de detalhe abre no primeiro pedido sozinho.
+  // O painel de detalhe abre no primeiro pedido sozinho, e ele está pendente.
   await expect(page.getByTestId('change-status-accepted')).toBeVisible();
-  // Cancelar é rota própria e é da gerência. O botão não está lá — nem travado.
-  await expect(page.getByTestId('change-status-cancelled')).toHaveCount(0);
-  // Recusar continua: é `PATCH /status`, e é de quem opera.
+  // Recusar é a saída do pendente: é `PATCH /status`, e é de quem opera.
   await expect(page.getByTestId('change-status-rejected')).toBeVisible();
+
+  /*
+   * E CANCELAR NÃO APARECE EM LUGAR NENHUM, nem no pedido que já está em
+   * produção — ali a saída existe, e é justamente a que este papel não tem.
+   * Sem abrir o #1003, o teste passaria por outro motivo: pendente não oferece
+   * cancelar para ninguém.
+   */
+  await page.getByTestId('order-card-1003').click();
+  await expect(page.getByTestId('change-status-ready')).toBeVisible();
+  await expect(page.getByTestId('change-status-cancelled')).toHaveCount(0);
 });
 
 test('a gerência cancela', async ({ page }) => {
   api.entrarComoPapel('manager');
   await entrar(page);
 
+  /*
+   * NO PEDIDO QUE JÁ ESTÁ EM PRODUÇÃO. Em pendente a saída chama-se recusar, e
+   * ela é de quem opera — cancelar é o que apaga trabalho já feito, e é essa a
+   * que pede gerência.
+   */
+  await page.getByTestId('order-card-1003').click();
   await expect(page.getByTestId('change-status-cancelled')).toBeVisible();
 });
 
@@ -292,6 +306,7 @@ test('o dono continua vendo tudo', async ({ page }) => {
 
   await expect(page.getByRole('link', { name: 'Clientes' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Desempenho' })).toBeVisible();
+  await page.getByTestId('order-card-1003').click();
   await expect(page.getByTestId('change-status-cancelled')).toBeVisible();
 
   await page.goto('/cardapio');

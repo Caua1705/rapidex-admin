@@ -128,14 +128,23 @@
  * O FIO À ESQUERDA é o que separa as duas naturezas dentro da mesma faixa. Ele
  * anda COM o grupo (é um pseudo-elemento dele, não um elemento no meio da
  * barra), então continua no lugar certo quando o recorte cresce ou encolhe.
+ *
+ * E O GRUPO QUEBRA ENTRE SI, não só no telefone. Eram duas leituras curtas e uma
+ * bolinha; com a promessa ao cliente são três, e em 1440 COM O PAINEL DE
+ * DETALHE ABERTO a faixa tem 828px — os controles somam mais que isso e o
+ * grupo saía cortado no meio de "preparo + entrega", levando junto o estado da
+ * conexão. `.prep` é `white-space: nowrap` de propósito (cada leitura é uma
+ * frase só), então quem tem de ceder é o grupo.
  */
 .promessa {
   position: relative;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   margin-left: auto;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp-16);
+  column-gap: var(--sp-16);
+  row-gap: var(--sp-4);
   padding-left: var(--sp-20);
 }
 
@@ -342,6 +351,36 @@
 
 /* De qual loja é este número — qualificador do valor, não rótulo do controle. */
 .prep__branch {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+/*
+ * ==========================================================================
+ * O QUE O CLIENTE VÊ — a terceira leitura, e a que explica as outras duas
+ * ==========================================================================
+ *
+ * "Cliente vê 55–80 min · preparo + entrega". Ela é o mesmo objeto das outras
+ * duas (rótulo nível 3, valor, qualificador de apoio) porque É a mesma coisa:
+ * um número que a loja está prometendo. O que ela acrescenta é a CONTA — os
+ * botões de +5/+10/−5 ajustavam um prazo sem nada dizendo que ele é uma das
+ * duas parcelas do que o cliente lê no aplicativo.
+ *
+ * ELA NÃO LEVA FIO À ESQUERDA, e chegou a levar: um fio separando o RESULTADO
+ * das duas parcelas parecia certo no papel e no primeiro enquadramento. Em 1440
+ * com o painel de detalhe aberto, a faixa tem 828px, o grupo quebra em duas
+ * fileiras e ele nasce no COMEÇO da segunda — um traço vertical marcando nada,
+ * que é a mesma razão pela qual o fio entre o recorte e a promessa vira
+ * horizontal quando os dois empilham. Quem separa aqui é a ordem: as duas
+ * parcelas, e depois o que sai delas.
+ */
+
+/*
+ * "preparo + entrega" — o "+" é a frase inteira, e é por isso que ela não
+ * virou parágrafo. Tinta de apoio: ela explica o número, não compete com ele.
+ */
+.prep__conta {
   font-size: var(--ta-size);
   line-height: var(--ta-line);
   color: var(--ink-3);

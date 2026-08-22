@@ -1,8 +1,7 @@
 import { useState } from 'react';
 
-import { useResolvedBranch } from '../auth/use-branch-scope';
 import { formatDelta, formatPrepRange, PREP_TIME_DELTAS } from './prep-time';
-import { usePrepTime } from './usePrepTime';
+import type { usePrepTime } from './usePrepTime';
 
 /**
  * Ajuste rápido do tempo de preparo, no topo da tela de pedidos.
@@ -22,21 +21,28 @@ import { usePrepTime } from './usePrepTime';
  * Hoje ele RESOLVE a filial (a principal, na falta de escolha), opera sobre
  * ela e DIZ QUAL É, sem tocar no seletor do topo. Com uma filial só o nome não
  * aparece: não há o que desambiguar.
+ *
+ * A FILIAL E A FAIXA VÊM DE FORA, e é a única coisa que mudou nesta rodada: o
+ * grupo da promessa (`Promessa`, em `OrdersToolbar`) precisa da MESMA faixa
+ * para somá-la à entrega e dizer o que o cliente vê. Lida duas vezes, ela seria
+ * uma segunda requisição para o mesmo número — e, no instante entre o PATCH e a
+ * releitura, dois números diferentes na mesma barra. A resolução da filial
+ * continua sendo a de `useResolvedBranch`: ela só passou a ser chamada um nível
+ * acima, junto com a leitura que já dependia dela.
  */
-export function PrepTimeControl() {
-  const { branchId, branch, isAutoResolved, hasChoice } = useResolvedBranch();
-  const prep = usePrepTime(branchId);
+export function PrepTimeControl({
+  prep,
+  branchId,
+  nomeFilial,
+}: {
+  prep: ReturnType<typeof usePrepTime>;
+  /** Vazio quando o lojista não enxerga filial nenhuma: os botões travam. */
+  branchId: string;
+  /** Vazio quando dizer o nome não acrescenta nada. Ver `Promessa`. */
+  nomeFilial: string;
+}) {
   const [baseMin, setBaseMin] = useState('');
   const [baseMax, setBaseMax] = useState('');
-
-  /*
-   * O nome da filial só entra quando ele ACRESCENTA: com "todas" no cabeçalho
-   * e mais de uma loja, o valor na barra é de uma delas e não dizer qual seria
-   * mentir por omissão. Com a filial já escolhida no topo, o cabeçalho já a
-   * nomeia — repetir aqui é a mesma informação duas vezes na mesma tela (§8).
-   */
-  const nomeFilial =
-    isAutoResolved && hasChoice && branch ? branch.display_name?.trim() || branch.name : '';
 
   const min = Number(baseMin);
   const max = Number(baseMax);

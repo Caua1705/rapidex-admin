@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import { ApiError, networkError } from '../api/errors';
 import { checkCancelReason } from './cancel-reason';
-import { classifyPrepTimeFailure, formatDelta, formatPrepRange } from './prep-time';
+import {
+  classifyPrepTimeFailure,
+  formatDelta,
+  formatPrepRange,
+  promessaAoCliente,
+} from './prep-time';
 
 describe('classifyPrepTimeFailure', () => {
   it('reconhece a falta de base pelo código da máquina', () => {
@@ -108,5 +113,34 @@ describe('checkCancelReason', () => {
 
   it('conta o motivo já aparado, não os espaços', () => {
     expect(checkCancelReason(`   ${'a'.repeat(300)}   `).valid).toBe(true);
+  });
+});
+
+/*
+ * A PROMESSA QUE CHEGA AO CLIENTE. Os botões de +5/+10/−5 ajustavam um prazo
+ * sem nada na tela dizendo que ele é UMA das duas parcelas do que o cliente lê.
+ */
+describe('promessaAoCliente', () => {
+  it('soma ponta com ponta: mínimo com mínimo, máximo com máximo', () => {
+    expect(
+      promessaAoCliente({ prep_time_min: 25, prep_time_max: 35 }, { min: 30, max: 45 }),
+    ).toEqual({ prep_time_min: 55, prep_time_max: 80 });
+  });
+
+  it('acompanha o empurrão do preparo — é isso que a linha ensina', () => {
+    const depoisDoMais10 = promessaAoCliente(
+      { prep_time_min: 35, prep_time_max: 45 },
+      { min: 30, max: 45 },
+    );
+    expect(formatPrepRange(depoisDoMais10)).toBe('65–90 min');
+  });
+
+  /*
+   * Meia conta não é conta: sem a entrega, mostrar só o preparo prometeria o
+   * tempo da cozinha como se fosse o da porta — o erro que a linha desfaz.
+   */
+  it('não existe sem as duas pontas', () => {
+    expect(promessaAoCliente(null, { min: 30, max: 45 })).toBeNull();
+    expect(promessaAoCliente({ prep_time_min: 25, prep_time_max: 35 }, null)).toBeNull();
   });
 });

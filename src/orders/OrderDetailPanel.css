@@ -106,14 +106,50 @@
   line-height: var(--tb-line);
 }
 
+/*
+ * O RODAPÉ — no máximo dois botões, e a razão de um deles estar travado.
+ *
+ * Ele empilha em vez de correr numa fileira só: a frase que explica o botão
+ * travado é um bloco de texto, e texto disputando a linha com dois controles
+ * alinhados à direita quebra em duas palavras por linha assim que o painel
+ * encolhe. A frase vem ANTES dos botões porque se lê antes de decidir.
+ */
 .panel__footer {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: stretch;
   gap: var(--sp-8);
   padding: var(--sp-12) var(--sp-20);
   border-top: 1px solid var(--line);
   background: var(--surface);
+}
+
+.panel__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-8);
+}
+
+/*
+ * POR QUE NÃO DÁ PARA AVANÇAR AGORA.
+ *
+ * Voz de ATENÇÃO, não de erro: nada deu errado — está faltando acontecer uma
+ * coisa (o Pix confirmar), e ela acontece sozinha. Não é um `.alert--warn` de
+ * corpo inteiro porque o rodapé tem 60px e um wash com padding ali empurraria
+ * os botões para fora da dobra no celular; é uma linha, colada no botão que ela
+ * trava.
+ *
+ * Ela não é o único sinal: o botão ao lado perde o preenchimento e ganha o fio
+ * tracejado (`.btn--travado`). Estado nunca depende só de cor.
+ */
+.panel__travado {
+  margin: 0;
+  color: var(--alert);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-weight: var(--w-medium);
 }
 
 /* ==========================================================================
@@ -344,20 +380,26 @@
 }
 
 /* ==========================================================================
- * O DIÁLOGO DE CANCELAMENTO
+ * OS DIÁLOGOS DE SAÍDA DO PEDIDO — cancelar e recusar
  *
- * Ele NÃO TINHA FOLHA DE ESTILO. `.cancel`, `.cancel__warning`, `.cancel__meta`
- * e `.cancel__error` eram escritos no TSX e não existiam em CSS nenhum: a ação
+ * Ele NÃO TINHA FOLHA DE ESTILO. `.saida`, `.saida__aviso`, `.saida__meta`
+ * e `.saida__erro` eram escritos no TSX e não existiam em CSS nenhum: a ação
  * mais consequente do painel — a única que não pode ser desfeita — saía como
  * três parágrafos crus empilhados, com a área de texto colada no aviso e o
  * contador de caracteres embaixo, alinhado à esquerda.
+ *
+ * AS CLASSES SÃO AS MESMAS NOS DOIS, e é de propósito: são a mesma pergunta em
+ * estágios diferentes do pedido ("isto não sai, e não tem volta"). Elas se
+ * chamavam `.cancel*` de quando havia um diálogo só — com o de recusa nascendo
+ * ao lado, um `.cancel__aviso` dentro dele seria a classe mentindo sobre o que
+ * está na tela, e é assim que a segunda cópia de um estilo começa.
  *
  * Ele mora aqui, e não numa folha própria, porque é desta coluna que ele nasce:
  * `OrderDetailPanel.css` é a folha que sempre está carregada quando o diálogo
  * pode existir.
  * ======================================================================= */
 
-.cancel {
+.saida {
   display: flex;
   flex-direction: column;
   gap: var(--sp-12);
@@ -368,7 +410,7 @@
  * `.alert--error`, porque nada deu errado ainda: é a consequência do botão que
  * a pessoa está prestes a apertar.
  */
-.cancel__warning {
+.saida__aviso {
   margin: 0;
   color: var(--danger);
   font-size: var(--tb-size);
@@ -377,11 +419,25 @@
 }
 
 /*
+ * O QUE ACONTECE DEPOIS, logo abaixo do aviso e em voz normal. O aviso diz o
+ * TAMANHO ("não pode ser desfeita"); esta diz a COISA (o pedido vai para o
+ * histórico, a cozinha não recebe nada). Em vermelho as duas, a segunda roubaria
+ * o alarme da primeira.
+ */
+.saida__consequencia {
+  /* O vão da coluna é 12; puxar 8 deixa os 4 de "dentro do mesmo bloco". */
+  margin: calc(var(--sp-8) * -1) 0 0;
+  color: var(--ink-2);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+}
+
+/*
  * A LINHA DE APOIO DA ÁREA DE TEXTO: o que acontece com o motivo à esquerda, o
  * contador à direita. Eles dividem a mesma linha porque qualificam o MESMO
  * campo — empilhados, viravam duas notas soltas embaixo de uma caixa.
  */
-.cancel__meta {
+.saida__meta {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -391,13 +447,13 @@
   line-height: var(--ta-line);
 }
 
-.cancel__meta .tnum,
-.cancel__meta > :last-child {
+.saida__meta .tnum,
+.saida__meta > :last-child {
   flex: 0 0 auto;
   font-variant-numeric: tabular-nums;
 }
 
-.cancel__error {
+.saida__erro {
   color: var(--danger);
   font-weight: var(--w-medium);
 }
@@ -441,17 +497,26 @@
   }
 
   /*
-   * NO TELEFONE O RODAPÉ É A AÇÃO DA TELA. Os botões esticam e ficam lado a
-   * lado em partes iguais: com o painel ocupando os 390px inteiros, dois
-   * botões encolhidos no canto direito seriam dois alvos pequenos no lugar
-   * mais difícil de alcançar com o polegar.
+   * NO TELEFONE O RODAPÉ É A AÇÃO DA TELA, e os dois botões NÃO são iguais.
+   *
+   * Eles já esticaram em partes iguais, quando o rodapé era uma fileira de
+   * destinos do mesmo peso. Com um avanço e uma saída, metade da largura para
+   * cada um dá ao botão destrutivo o mesmo alvo do botão que se aperta
+   * cinquenta vezes por turno — no lugar em que o polegar tem menos precisão.
+   *
+   * Agora o AVANÇO toma o espaço que sobra e a SAÍDA fica na largura do texto
+   * dela. Os dois continuam com 44px de altura: no toque nada encolhe.
    */
   .panel__footer {
     padding-bottom: calc(var(--sp-12) + env(safe-area-inset-bottom));
   }
 
-  .panel__footer .btn {
+  .panel__acoes .btn {
     flex: 1 1 0;
     min-height: var(--control-h-touch);
+  }
+
+  .panel__acoes .btn--ghost-danger {
+    flex: 0 1 auto;
   }
 }

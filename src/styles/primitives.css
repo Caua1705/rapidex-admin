@@ -59,6 +59,36 @@
 }
 
 /*
+ * ============================================================================
+ * TRAVADO — "ainda não dá", que NÃO é a mesma coisa que "estou trabalhando"
+ * ============================================================================
+ *
+ * `:disabled` sozinho é opacidade, e num botão CHEIO isso deixa um retângulo em
+ * brasa mais claro. Foi o que aconteceu com o "Aceitar pedido" de um pedido com
+ * Pix não confirmado: laranja desbotado lê como botão APERTADO, e quem bate o
+ * olho conclui que já aceitou. O oposto do que o botão está dizendo.
+ *
+ * Travado, ele volta ao plano da folha e troca o fio por um TRACEJADO: a forma
+ * diz que a ação existe e não está disponível, sem depender de cor (WCAG
+ * 1.4.1). O motivo fica ESCRITO ao lado — `title` não sobrevive ao toque, e
+ * esta tela é aberta no celular no meio do serviço.
+ *
+ * POR QUE É UM MODIFICADOR E NÃO `.btn--primary:disabled`. Os outros primários
+ * do painel ficam desabilitados enquanto SALVAM (a barra de Minha loja, o envio
+ * do login, os diálogos do Cardápio). Ali o botão está trabalhando, e apagá-lo
+ * no instante em que a pessoa espera a resposta o faria parecer quebrado. Quem
+ * põe esta classe é quem sabe que a razão é uma CONDIÇÃO, não uma requisição em
+ * voo.
+ */
+.btn--travado:disabled {
+  opacity: 1;
+  border-color: var(--line-strong);
+  border-style: dashed;
+  background: var(--surface);
+  color: var(--ink-3);
+}
+
+/*
  * O PRIMÁRIO É O ÚNICO BOTÃO EM BRASA DA TELA. Se dois aparecem juntos, um
  * deles não é a ação — é uma alternativa, e alternativa é `.btn` comum.
  */

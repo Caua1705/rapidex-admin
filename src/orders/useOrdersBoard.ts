@@ -140,10 +140,15 @@ export function useOrdersBoard() {
    * Um 409 vira mensagem na tela e o pedido continua como estava.
    */
   const changeOrderStatus = useCallback(
-    async (orderId: string, status: string): Promise<boolean> => {
+    /**
+     * `note` é o motivo da recusa, e é opcional — a rota já o aceita. É o que
+     * faz o histórico do pedido dizer por que ele não saiu, em vez de só
+     * "Recusado". Ver `RejectOrderDialog`.
+     */
+    async (orderId: string, status: string, note?: string): Promise<boolean> => {
       setActionError(null);
       try {
-        const detail = await updateOrderStatus(orderId, status);
+        const detail = await updateOrderStatus(orderId, status, note);
         commitOrders(upsertOrder(ordersRef.current, listItemFromDetail(detail)));
         scheduleCountsRefresh();
         return true;

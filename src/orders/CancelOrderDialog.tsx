@@ -54,8 +54,8 @@ export function CancelOrderDialog({
         </>
       }
     >
-      <div className="cancel">
-        <p className="cancel__warning">Esta ação não pode ser desfeita.</p>
+      <div className="saida">
+        <p className="saida__aviso">Esta ação não pode ser desfeita.</p>
 
         {errorMessage ? (
           <p className="alert alert--error" role="alert" data-testid="cancel-error">
@@ -77,9 +77,9 @@ export function CancelOrderDialog({
           />
         </label>
 
-        <div className="cancel__meta">
+        <div className="saida__meta">
           {showError ? (
-            <span className="cancel__error">{check.message}</span>
+            <span className="saida__erro">{check.message}</span>
           ) : (
             <span className="faint">Fica gravado no histórico do pedido.</span>
           )}

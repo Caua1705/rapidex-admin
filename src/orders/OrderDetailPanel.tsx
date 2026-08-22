@@ -7,6 +7,8 @@ import { XIcon } from '../ds/icons';
 import { StatusChip } from '../ds/StatusChip';
 import { customerHistoryLine, formatPhone } from '../customers/customer-model';
 import { CancelOrderDialog } from './CancelOrderDialog';
+import { RejectOrderDialog } from './RejectOrderDialog';
+import { advanceActionFor, exitActionFor, type ConfirmKind } from './order-actions';
 import {
   ORDER_TYPE_LABELS,
   PAYMENT_METHOD_LABELS,
@@ -18,12 +20,7 @@ import {
 import { readOptionGroups } from './order-options';
 import { useCustomerHistory } from './useCustomerHistory';
 import { stageOf } from './order-status';
-import {
-  STATUS_LABELS,
-  checkTransition,
-  isAwaitingOnlinePayment,
-  nextStatusesFor,
-} from './order-status';
+import { STATUS_LABELS, checkTransition, isAwaitingOnlinePayment } from './order-status';
 import './OrderDetailPanel.css';
 
 /** Endereço em uma linha só, pulando o que veio vazio. */
@@ -68,8 +65,15 @@ export function OrderDetailPanel({
    */
   branchId: string;
   onClose: () => void;
-  /** Devolve true quando o backend aceitou a transição. */
-  onChangeStatus: (orderId: string, status: string) => Promise<boolean>;
+  /**
+   * Devolve true quando o backend aceitou a transição.
+   *
+   * `note` é o motivo da RECUSA, e é opcional: `PATCH /admin/orders/{id}/status`
+   * já o aceita, e é ele que grava no histórico por que o pedido não saiu. Ver
+   * `RejectOrderDialog` para o porquê de aqui ele não ser obrigatório como no
+   * cancelamento.
+   */
+  onChangeStatus: (orderId: string, status: string, note?: string) => Promise<boolean>;
   /** Devolve true quando o backend aceitou o cancelamento. */
   /**
    * "Cancelar" existe para este papel.
@@ -86,8 +90,13 @@ export function OrderDetailPanel({
   const [detail, setDetail] = useState<OrderDetail | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
-  const [askingCancel, setAskingCancel] = useState(false);
-  const [isCancelling, setIsCancelling] = useState(false);
+  /**
+   * Qual confirmação está aberta. As duas saídas do pedido pedem uma, e é a
+   * mesma pergunta com nomes diferentes — por isso um estado só, e não um
+   * booleano por diálogo.
+   */
+  const [confirmando, setConfirmando] = useState<ConfirmKind | null>(null);
+  const [isConfirmando, setIsConfirmando] = useState(false);
   // Muda de valor para forçar o recarregamento do detalhe após uma transição.
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -101,7 +110,7 @@ export function OrderDetailPanel({
     let cancelled = false;
     setDetail(null);
     setLoadError(null);
-    setAskingCancel(false);
+    setConfirmando(null);
 
     void (async () => {
       try {
@@ -127,11 +136,30 @@ export function OrderDetailPanel({
 
   async function handleCancel(reason: string) {
     if (!orderId) return;
-    setIsCancelling(true);
+    setIsConfirmando(true);
     const cancelled = await onCancelOrder(orderId, reason);
-    setIsCancelling(false);
+    setIsConfirmando(false);
     if (cancelled) {
-      setAskingCancel(false);
+      setConfirmando(null);
+      setReloadToken((token) => token + 1);
+    }
+  }
+
+  /**
+   * A recusa vai pelo MESMO `PATCH /status` de sempre — o que mudou é que ela
+   * passa por uma confirmação antes, e leva junto o motivo quando o lojista
+   * escreve um. O diálogo só fecha se o backend aceitou: recusado por 409, o
+   * lojista precisa ler o que aconteceu antes de sair.
+   */
+  async function handleReject(note: string) {
+    if (!orderId) return;
+    setIsConfirmando(true);
+    setPendingStatus('rejected');
+    const changed = await onChangeStatus(orderId, 'rejected', note === '' ? undefined : note);
+    setIsConfirmando(false);
+    setPendingStatus(null);
+    if (changed) {
+      setConfirmando(null);
       setReloadToken((token) => token + 1);
     }
   }
@@ -145,24 +173,32 @@ export function OrderDetailPanel({
   const vazio = orderId === null;
 
   /*
-   * OS BOTÕES QUE ESTE PAPEL PODE APERTAR.
+   * DOIS BOTÕES, NO MÁXIMO: o avanço e a saída.
    *
-   * CANCELAR É DA GERÊNCIA E RECUSAR NÃO É, e a diferença não é de gosto: são
-   * rotas diferentes. "Recusar" um pedido pendente vai por
-   * `PATCH /admin/orders/{id}/status` (quem opera pode), e cancelar vai por
-   * `PATCH /admin/orders/{id}/cancel`, que é rota própria e é da gerência.
-   * Para quem está no balcão, isso significa poder dizer "não vou aceitar este
-   * pedido" e não poder desfazer um que já entrou em produção.
+   * Antes era um botão por destino da máquina de estados, todos com o mesmo
+   * peso — num pedido pendente, "Aceito" em brasa entre "Recusado" e
+   * "Cancelado" em vermelho. Qual dos três é o caminho normal do turno não
+   * estava dito em lugar nenhum. As regras de qual é qual moram em
+   * `order-actions.ts`, com o porquê de cada estágio.
    *
-   * O BOTÃO SOME, não fica desabilitado. Os outros desta mesma fileira usam
-   * `disabled` + `title` quando a TRANSIÇÃO não é permitida — e ali é o certo,
-   * porque a razão é temporária ("o pagamento ainda não confirmou") e o botão
-   * volta a funcionar sozinho. Aqui a razão é quem a pessoa é, e ela não muda
-   * durante o turno: um botão permanentemente travado é um convite a insistir.
+   * O BOTÃO DA SAÍDA SOME quando o papel não a tem (cancelar é da gerência),
+   * em vez de ficar travado: a razão é quem a pessoa é, e ela não muda durante
+   * o turno — um botão permanentemente cinza é um convite a insistir.
    */
-  const alvos = detail
-    ? nextStatusesFor(detail.status).filter((target) => target !== 'cancelled' || podeCancelar)
-    : [];
+  const avanco = detail ? advanceActionFor(detail) : null;
+  const saida = detail ? exitActionFor(detail, podeCancelar) : null;
+
+  /*
+   * POR QUE O AVANÇO NÃO PODE SER APERTADO AGORA — e ele fica ESCRITO.
+   *
+   * Esta é a outra metade do defeito do botão travado: o motivo vivia só no
+   * `title`, que não existe no toque. No celular, onde este painel é a tela
+   * inteira, o lojista via um botão morto e nada explicando. Agora a frase fica
+   * no rodapé, colada no botão que ela trava.
+   */
+  const trava = detail && avanco ? checkTransition(detail, avanco.target) : null;
+  const motivoTravado = trava && !trava.allowed ? trava.reason : null;
+  const enviando = pendingStatus !== null;
 
   return (
     <aside
@@ -234,42 +270,70 @@ export function OrderDetailPanel({
 
       {detail ? (
         <footer className="panel__footer">
-          {alvos.map((target) => {
-            const check = checkTransition(detail, target);
-            const isCancel = target === 'cancelled';
-            return (
-              <button
-                key={target}
-                type="button"
-                className={`btn btn--sm ${
-                  isCancel || target === 'rejected' ? 'btn--danger' : 'btn--primary'
-                }`}
-                disabled={!check.allowed || pendingStatus !== null}
-                // O título explica POR QUE o botão está travado. Sem isso o
-                // lojista clica, nada acontece e ele acha que a tela travou.
-                title={check.allowed ? undefined : check.reason}
-                // Cancelar não sai daqui direto: o motivo é obrigatório, e
-                // quem o pede é o diálogo.
-                onClick={() => (isCancel ? setAskingCancel(true) : void handleChangeStatus(target))}
-                data-testid={`change-status-${target}`}
-              >
-                {pendingStatus === target ? 'Enviando…' : (STATUS_LABELS[target] ?? target)}
-              </button>
-            );
-          })}
-          {alvos.length === 0 ? (
-            <span className="faint">Estado final: este pedido não muda mais.</span>
+          {motivoTravado ? (
+            <p className="panel__travado" data-testid="acao-travada">
+              {motivoTravado}
+            </p>
           ) : null}
+
+          {avanco === null && saida === null ? (
+            <span className="faint">Estado final: este pedido não muda mais.</span>
+          ) : (
+            /*
+              A SAÍDA VEM PRIMEIRO E O AVANÇO POR ÚLTIMO — o rodapé alinha à
+              direita, então o avanço termina na quina de baixo, que é onde o
+              polegar chega no celular e onde o olho pousa no desktop. A ordem
+              do documento é a mesma da leitura: o que se lê antes de decidir,
+              e depois a decisão.
+            */
+            <div className="panel__acoes">
+              {saida ? (
+                <button
+                  type="button"
+                  className="btn btn--sm btn--ghost-danger"
+                  disabled={enviando || isConfirmando}
+                  // Nenhuma das duas saídas sai daqui direto: as duas passam
+                  // por confirmação, e é o diálogo que pede o motivo.
+                  onClick={() => setConfirmando(saida.confirm)}
+                  data-testid={`change-status-${saida.target}`}
+                >
+                  {saida.label}
+                </button>
+              ) : null}
+
+              {avanco ? (
+                <button
+                  type="button"
+                  className={`btn btn--sm btn--primary${motivoTravado ? ' btn--travado' : ''}`}
+                  disabled={motivoTravado !== null || enviando}
+                  onClick={() => void handleChangeStatus(avanco.target)}
+                  data-testid={`change-status-${avanco.target}`}
+                >
+                  {pendingStatus === avanco.target ? avanco.sending : avanco.label}
+                </button>
+              ) : null}
+            </div>
+          )}
         </footer>
       ) : null}
 
-      {askingCancel && detail ? (
+      {confirmando === 'cancelar' && detail ? (
         <CancelOrderDialog
           orderNumber={detail.order_number}
-          isSending={isCancelling}
+          isSending={isConfirmando}
           errorMessage={actionErrorMessage}
-          onClose={() => setAskingCancel(false)}
+          onClose={() => setConfirmando(null)}
           onConfirm={(reason) => void handleCancel(reason)}
+        />
+      ) : null}
+
+      {confirmando === 'recusar' && detail ? (
+        <RejectOrderDialog
+          orderNumber={detail.order_number}
+          isSending={isConfirmando}
+          errorMessage={actionErrorMessage}
+          onClose={() => setConfirmando(null)}
+          onConfirm={(note) => void handleReject(note)}
         />
       ) : null}
     </aside>

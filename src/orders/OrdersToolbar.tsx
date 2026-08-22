@@ -1,11 +1,14 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
+import { useResolvedBranch } from '../auth/use-branch-scope';
 import { BellIcon, RefreshIcon } from '../ds/icons';
 import { SearchField } from '../ds/SearchField';
 import { datesForPeriod, type OrdersFilterState, type PeriodPreset } from './order-filters';
+import { formatPrepRange, promessaAoCliente } from './prep-time';
 import { PrepTimeControl } from './PrepTimeControl';
-import { useDeliveryEstimate } from './useDeliveryEstimate';
+import { useDeliveryEstimate, type DeliveryEstimate as Estimativa } from './useDeliveryEstimate';
 import type { StreamStatus } from './useOrderStream';
+import { usePrepTime } from './usePrepTime';
 
 const PERIODOS: readonly { value: PeriodPreset; label: string }[] = [
   { value: 'today', label: 'Hoje' },
@@ -244,25 +247,86 @@ export function OrdersToolbar({
         {contagens}
       </div>
 
-      {/* --- a promessa: o que a loja está prometendo agora ------------------ */}
+      <Promessa streamStatus={streamStatus} />
+    </div>
+  );
+}
+
+/**
+ * ============================================================================
+ * A PROMESSA — preparo MAIS entrega, e o que disso chega ao cliente
+ * ============================================================================
+ *
+ * Nenhum controle daqui recorta a lista: os três dizem em que pé a loja está.
+ * O ajuste de preparo é ESCRITA e precisa de uma filial resolvida; o filtro do
+ * outro lado da barra é de LEITURA e aceita vazio ("todas as que eu enxergo").
+ * Ver `auth/branch-scope`.
+ *
+ * A LINHA QUE FALTAVA: "Cliente vê 55–80 min · preparo + entrega".
+ *
+ * Os botões de +5/+10/−5 estão aqui desde sempre e NADA dizia o que aquele
+ * tempo significa. Os dois números viviam lado a lado como se fossem promessas
+ * independentes, e o lojista empurrava dez minutos no preparo achando que mexia
+ * num número só — quando o que ele move é o prazo que o cliente lê no
+ * aplicativo.
+ *
+ * ELA É UM TERCEIRO LEITOR, e não uma frase de ajuda, por três razões:
+ *
+ *   - a gramática do grupo já é essa (rótulo nível 3, valor, qualificador em
+ *     tinta de apoio) — é o mesmo desenho de "Preparo" e "Entrega", e não uma
+ *     peça nova no meio de uma faixa de 40px;
+ *   - a conta fica À VISTA: apertando +10, o número do cliente anda dez minutos
+ *     junto. A regra se ensina sozinha, no clique, uma vez;
+ *   - ela sobrevive ao celular. `title` não existe no toque, e um balão
+ *     esconderia justamente do turno a informação de que o turno precisa.
+ *
+ * "preparo + entrega" fica escrito porque a soma sozinha ainda deixaria o
+ * lojista adivinhando de onde saíram os 55 — e é o "+" que responde à pergunta
+ * que abriu esta rodada.
+ *
+ * A FILIAL E A FAIXA SÃO LIDAS AQUI, uma vez, e descem para o controle: ele
+ * ajusta a faixa e este grupo a soma. Duas leituras seriam duas requisições
+ * para o mesmo número e, no instante entre o PATCH e a releitura, dois números
+ * diferentes na mesma barra.
+ */
+function Promessa({ streamStatus }: { streamStatus: StreamStatus }) {
+  const { branchId, branch, isAutoResolved, hasChoice } = useResolvedBranch();
+  const prep = usePrepTime(branchId);
+  const entrega = useDeliveryEstimate();
+
+  /*
+   * O nome da filial só entra quando ele ACRESCENTA: com "todas" no cabeçalho
+   * e mais de uma loja, o valor na barra é de uma delas e não dizer qual seria
+   * mentir por omissão. Com a filial já escolhida no topo, o cabeçalho já a
+   * nomeia — repetir aqui é a mesma informação duas vezes na mesma tela (§8).
+   */
+  const nomeFilial =
+    isAutoResolved && hasChoice && branch ? branch.display_name?.trim() || branch.name : '';
+
+  const cliente = promessaAoCliente(prep.range, entrega);
+
+  return (
+    <div className="promessa" aria-label="O que a loja promete agora">
+      <PrepTimeControl prep={prep} branchId={branchId} nomeFilial={nomeFilial} />
+      <DeliveryEstimate estimate={entrega} />
+
       {/*
-        AS DUAS PROMESSAS — preparo e entrega — mais o estado do tempo real.
-        Nenhum dos três recorta a lista; os três dizem em que pé a loja está.
-
-        `PrepTimeControl` sem `branchId`: o controle resolve a própria filial. O
-        filtro do outro lado é de LEITURA e aceita vazio ("todas as que eu
-        enxergo"); o ajuste de preparo é ESCRITA e precisa de uma. Ver
-        `auth/branch-scope`.
+        SEM AS DUAS PONTAS, NÃO HÁ LINHA. Uma promessa calculada só com o
+        preparo prometeria o tempo da cozinha como se fosse o da porta — que é
+        justamente o erro de leitura que ela existe para desfazer.
       */}
-      <div className="promessa" aria-label="O que a loja promete agora">
-        <PrepTimeControl />
-        <DeliveryEstimate />
-
-        <span className={`conn conn--${streamStatus}`} data-testid="stream-status">
-          <span className="conn__dot" />
-          <span className="conn__texto">{STREAM_LABELS[streamStatus]}</span>
+      {cliente ? (
+        <span className="prep" data-testid="promessa-cliente">
+          <span className="prep__label">Cliente vê</span>
+          <span className="prep__range">{formatPrepRange(cliente)}</span>
+          <span className="prep__conta">preparo + entrega</span>
         </span>
-      </div>
+      ) : null}
+
+      <span className={`conn conn--${streamStatus}`} data-testid="stream-status">
+        <span className="conn__dot" />
+        <span className="conn__texto">{STREAM_LABELS[streamStatus]}</span>
+      </span>
     </div>
   );
 }
@@ -280,9 +344,7 @@ export function OrdersToolbar({
  * há coluna. A classe documenta "isto se alinha com o de cima", e aqui isso não
  * é verdade.
  */
-function DeliveryEstimate() {
-  const estimate = useDeliveryEstimate();
-
+function DeliveryEstimate({ estimate }: { estimate: Estimativa | null }) {
   return (
     <span className="prep" data-testid="delivery-estimate">
       <span className="prep__label">Entrega</span>

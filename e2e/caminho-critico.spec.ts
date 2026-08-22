@@ -213,6 +213,17 @@ test('pedido com pagamento online não confirmado fica destacado e travado', asy
   await expect(painel.getByText(/A cozinha não pode preparar/)).toBeVisible();
   // O botão de aceitar existe, mas travado: a tela não oferece o que vai falhar.
   await expect(painel.getByTestId('change-status-accepted')).toBeDisabled();
+
+  /*
+   * E O MOTIVO FICA ESCRITO NO RODAPÉ, colado no botão que ele trava. Ele vivia
+   * só no `title`, que não existe no toque: no celular, onde este painel é a
+   * tela inteira, o lojista via um botão morto e nada explicando. O aviso do
+   * corpo não resolve — ele fica no alto de uma área que rola, e o rodapé é
+   * grudento.
+   */
+  await expect(painel.getByTestId('acao-travada')).toContainText(
+    'Pagamento online ainda não confirmado',
+  );
 });
 
 test('transição recusada pelo backend vira mensagem clara na tela', async ({ page }) => {
@@ -353,16 +364,21 @@ test('o seletor de filial do cabeçalho filtra o quadro', async ({ page }) => {
  * desfazer. O motivo é obrigatório porque, sem ele, ninguém consegue dizer no
  * dia seguinte se foi o cliente que desistiu ou a cozinha que não deu conta.
  */
+/*
+ * NO #1003, QUE JÁ ESTÁ EM PREPARO. Cancelar é a saída de um pedido que a
+ * cozinha já começou; em pendente a saída chama-se recusar, e é outro diálogo
+ * (ver "recusar pede confirmação", abaixo).
+ */
 test('cancelar exige motivo e grava o que foi escrito', async ({ page }) => {
   await fazerLogin(page);
-  await page.getByTestId('order-card-1002').click();
+  await page.getByTestId('order-card-1003').click();
 
   const painel = page.getByTestId('order-panel');
   await painel.getByTestId('change-status-cancelled').click();
 
   // O clique não cancelou nada ainda: abriu a confirmação.
   const confirmacao = page.getByRole('dialog');
-  await expect(confirmacao).toContainText('Cancelar o pedido #1002?');
+  await expect(confirmacao).toContainText('Cancelar o pedido #1003?');
   await expect(confirmacao).toContainText('Esta ação não pode ser desfeita.');
   expect(api.cancelReasons()).toHaveLength(0);
 
@@ -378,13 +394,13 @@ test('cancelar exige motivo e grava o que foi escrito', async ({ page }) => {
 
   await expect
     .poll(() => api.cancelReasons())
-    .toEqual([{ orderId: 'ord-1002', reason: 'Cliente desistiu por telefone.' }]);
+    .toEqual([{ orderId: 'ord-1003', reason: 'Cliente desistiu por telefone.' }]);
 
   // O card SAIU do quadro: cancelado é histórico, e histórico é a outra aba.
-  await expect(page.getByTestId('order-card-1002')).toHaveCount(0);
+  await expect(page.getByTestId('order-card-1003')).toHaveCount(0);
   await page.getByTestId('orders-tab-historico').click();
   await expect(
-    page.locator('[data-testid="board-historico"] [data-testid="order-card-1002"]'),
+    page.locator('[data-testid="board-historico"] [data-testid="order-card-1003"]'),
   ).toBeVisible();
   await page.getByTestId('orders-tab-andamento').click();
   await expect(painel.getByText('Cliente desistiu por telefone.')).toBeVisible();
@@ -392,11 +408,11 @@ test('cancelar exige motivo e grava o que foi escrito', async ({ page }) => {
 
 test('cancelar recusado pelo backend mostra o erro sem fechar a confirmação', async ({ page }) => {
   await fazerLogin(page);
-  await page.getByTestId('order-card-1002').click();
+  await page.getByTestId('order-card-1003').click();
   await page.getByTestId('order-panel').getByTestId('change-status-cancelled').click();
 
   // Outro atendente concluiu o pedido enquanto a confirmação estava aberta.
-  api.setStatusFromAnotherUser('ord-1002', 'completed');
+  api.setStatusFromAnotherUser('ord-1003', 'completed');
 
   const confirmacao = page.getByRole('dialog');
   await confirmacao.getByLabel('Motivo do cancelamento').fill('Cliente desistiu.');
@@ -405,6 +421,80 @@ test('cancelar recusado pelo backend mostra o erro sem fechar a confirmação', 
   await expect(confirmacao.getByTestId('cancel-error')).toContainText('estado final');
   // Continua aberta: o lojista precisa ver o que aconteceu antes de sair.
   await expect(confirmacao).toBeVisible();
+});
+
+/*
+ * ============================================================================
+ * RECUSAR — tão irreversível quanto cancelar, e não pedia nada
+ * ============================================================================
+ *
+ * O botão ficava colado no "Aceitar pedido", que é o que o lojista aperta
+ * cinquenta vezes por turno, no rodapé de um painel que no celular ocupa a tela
+ * inteira. Um clique e o pedido saía do quadro, sem volta e sem pergunta.
+ */
+test('recusar pede confirmação e grava o motivo no histórico', async ({ page }) => {
+  await fazerLogin(page);
+  await page.getByTestId('order-card-1002').click();
+
+  const painel = page.getByTestId('order-panel');
+  await painel.getByTestId('change-status-rejected').click();
+
+  // O clique não recusou nada: abriu a confirmação.
+  const confirmacao = page.getByRole('dialog');
+  await expect(confirmacao).toContainText('Recusar o pedido #1002?');
+  await expect(confirmacao).toContainText('Esta ação não pode ser desfeita.');
+  await expect(page.getByTestId('order-card-1002')).toBeVisible();
+
+  // Desistir da recusa devolve a tela ao lugar, com o pedido no quadro.
+  await confirmacao.getByRole('button', { name: 'Manter o pedido' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByTestId('order-card-1002')).toBeVisible();
+
+  /*
+   * O MOTIVO É OPCIONAL — o pedido nem começou, e exigir justificativa no meio
+   * do almoço para dizer "acabou a costela" viraria pedágio. Escrito, ele vai
+   * como `note` do PATCH e entra no histórico do pedido.
+   */
+  await painel.getByTestId('change-status-rejected').click();
+  const segunda = page.getByRole('dialog');
+  await expect(segunda.getByTestId('confirm-reject')).toBeEnabled();
+  await segunda.getByLabel('Motivo (opcional)').fill('Acabou a costela.');
+  await segunda.getByTestId('confirm-reject').click();
+
+  // O card saiu do quadro, e o histórico do pedido diz por quê.
+  await expect(page.getByTestId('order-card-1002')).toHaveCount(0);
+  await expect(painel.getByText('Acabou a costela.')).toBeVisible();
+});
+
+/*
+ * UM AVANÇO E UMA SAÍDA, POR ESTÁGIO. O rodapé desenhava um botão para cada
+ * destino da máquina de estados, todos com o mesmo peso — num pedido pendente,
+ * "Aceito" em brasa entre "Recusado" e "Cancelado" em vermelho.
+ */
+test('o rodapé mostra um avanço e uma saída, e eles mudam com o estágio', async ({ page }) => {
+  await fazerLogin(page);
+  const painel = page.getByTestId('order-panel');
+
+  // PENDENTE: aceitar, e a saída é recusar. Cancelar não divide a linha com ela.
+  await page.getByTestId('order-card-1002').click();
+  await expect(painel.getByTestId('change-status-accepted')).toHaveText('Aceitar pedido');
+  await expect(painel.getByTestId('change-status-rejected')).toBeVisible();
+  await expect(painel.getByTestId('change-status-cancelled')).toHaveCount(0);
+
+  // EM PREPARO: o avanço é outro, e a saída passa a ser cancelar.
+  await page.getByTestId('order-card-1003').click();
+  await expect(painel.getByTestId('change-status-ready')).toHaveText('Marcar como pronto');
+  await expect(painel.getByTestId('change-status-cancelled')).toBeVisible();
+  await expect(painel.getByTestId('change-status-rejected')).toHaveCount(0);
+
+  /*
+   * E DE "PRONTO" QUEM ESCOLHE É A MODALIDADE. O #1003 é RETIRADA: o avanço
+   * dele é concluir, e "Enviar para entrega" não aparece nem travado — o
+   * backend recusaria, e essa razão não muda durante o turno.
+   */
+  await painel.getByTestId('change-status-ready').click();
+  await expect(painel.getByTestId('change-status-completed')).toHaveText('Concluir pedido');
+  await expect(painel.getByTestId('change-status-out_for_delivery')).toHaveCount(0);
 });
 
 /*
