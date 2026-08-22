@@ -273,6 +273,43 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/admin/branches/{branch_id}/print-settings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Branch Print Settings
+     * @description Rodape e contagem de vias desta filial.
+     *
+     *     `receipt_footer_message` e o que ESTA FILIAL gravou (nulo = herdando a
+     *     mensagem do restaurante); `effective_receipt_footer_message` e o que vai
+     *     sair impresso. A tela precisa dos dois — um preenche o campo de edicao, o
+     *     outro mostra o que o cliente vai ler.
+     */
+    get: operations['get_branch_print_settings_admin_branches__branch_id__print_settings_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Update Branch Print Settings
+     * @description Edicao parcial. So o que vier no corpo e alterado.
+     *
+     *     `receipt_footer_message` tem tres estados e os tres sao usados: ausente
+     *     nao mexe, `null` volta a HERDAR a mensagem do restaurante e `""` desliga
+     *     o rodape NESTA loja — sem ele, a filial nao teria como recusar a campanha
+     *     da rede.
+     *
+     *     Zero copias e valido: a retirada normalmente nao precisa da via do
+     *     cliente, que e a que iria grampeada na sacola.
+     */
+    patch: operations['update_branch_print_settings_admin_branches__branch_id__print_settings_patch'];
+    trace?: never;
+  };
   '/admin/branches/{branch_id}/print-test': {
     parameters: {
       query?: never;
@@ -3119,6 +3156,8 @@ export interface components {
       estimated_delivery_time_min?: number | null;
       /** Min Order Value */
       min_order_value: number;
+      /** Receipt Footer Message */
+      receipt_footer_message?: string | null;
       /** Service Fee Amount */
       service_fee_amount: number;
       /**
@@ -3152,6 +3191,8 @@ export interface components {
       estimated_delivery_time_min?: number | null;
       /** Min Order Value */
       min_order_value?: number | string | null;
+      /** Receipt Footer Message */
+      receipt_footer_message?: string | null;
       /** Service Fee Amount */
       service_fee_amount?: number | string | null;
       /** Service Fee Enabled */
@@ -3515,6 +3556,83 @@ export interface components {
       prep_time_max?: number | null;
       /** Prep Time Min */
       prep_time_min?: number | null;
+    };
+    /**
+     * BranchPrintSettingsResponse
+     * @description Como a comanda desta filial e impressa (revisao 20260821_0029).
+     *
+     *     Duas coisas numa tela so porque sao a mesma pergunta do lojista — "como
+     *     a minha comanda sai?" —, e porque as duas so existem por filial.
+     *
+     *     **Os dois campos de mensagem nao sao redundantes**, pelo mesmo motivo do
+     *     par `overrides`/`effective` da tela de operacao: `receipt_footer_message`
+     *     e o que ESTA FILIAL gravou e alimenta o campo de edicao (nulo = herdando,
+     *     e o campo aparece vazio); `effective_receipt_footer_message` e o que vai
+     *     sair na bobina, ja resolvido com o padrao do restaurante. Publicar so o
+     *     efetivo faria toda filial parecer divergente; so a sobrescrita, faria a
+     *     tela nao ter como mostrar o que o cliente vai ler.
+     *
+     *     As quatro contagens nao tem par: elas nao herdam nada.
+     */
+    BranchPrintSettingsResponse: {
+      /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
+      /** Effective Receipt Footer Message */
+      effective_receipt_footer_message?: string | null;
+      /** Print Customer Copies Delivery */
+      print_customer_copies_delivery: number;
+      /** Print Customer Copies Pickup */
+      print_customer_copies_pickup: number;
+      /** Print Production Copies Delivery */
+      print_production_copies_delivery: number;
+      /** Print Production Copies Pickup */
+      print_production_copies_pickup: number;
+      /** Receipt Footer Message */
+      receipt_footer_message?: string | null;
+    };
+    /**
+     * BranchPrintSettingsUpdate
+     * @description Edicao parcial: so o que vier no corpo e alterado.
+     *
+     *     `receipt_footer_message` tem TRES estados, e os tres sao usados:
+     *
+     *     - **ausente do corpo** — nao mexe;
+     *     - **`null`** — esta filial volta a HERDAR a mensagem do restaurante;
+     *     - **`""`** — esta filial NAO imprime rodape, nem o dela nem o da marca.
+     *
+     *     Sem o terceiro, a loja que nao quer a campanha da rede nao teria como
+     *     recusa-la: qualquer valor que ela gravasse sairia impresso. E por isso o
+     *     service usa `exclude_unset` e nao `exclude_none` — o segundo apagaria a
+     *     diferenca entre o primeiro e o segundo estado.
+     *
+     *     **Zero copias e valido, e e o pedido que originou a feature**: a
+     *     retirada normalmente nao precisa da via do cliente (a que vai grampeada
+     *     na sacola). Zero na via de PRODUCAO tambem passa — e a loja de um
+     *     quiosque so, onde quem monta o pedido e quem o vende — mas vale saber
+     *     que ela desliga a comanda da cozinha daquele tipo de pedido.
+     *
+     *     Zerar as DUAS do mesmo tipo e permitido e nao e recusado aqui, mas tem
+     *     um efeito de segunda ordem que vale conhecer: a lista de vias sai vazia,
+     *     e o agente instalado em campo trata lista vazia como "pagamento ainda
+     *     nao confirmado?" no log dele — mensagem errada para este caso, que nao
+     *     da para corrigir sem visitar a loja. Nada quebra (o pedido so nao e
+     *     marcado como impresso, e o replay para em uma hora); a linha do log e
+     *     que mente.
+     */
+    BranchPrintSettingsUpdate: {
+      /** Print Customer Copies Delivery */
+      print_customer_copies_delivery?: number | null;
+      /** Print Customer Copies Pickup */
+      print_customer_copies_pickup?: number | null;
+      /** Print Production Copies Delivery */
+      print_production_copies_delivery?: number | null;
+      /** Print Production Copies Pickup */
+      print_production_copies_pickup?: number | null;
+      /** Receipt Footer Message */
+      receipt_footer_message?: string | null;
     };
     /** BranchResponse */
     BranchResponse: {
@@ -4901,6 +5019,18 @@ export interface components {
      *     ainda nao confirmado nao gera via de producao — a mesma regra do
      *     "aguardando pagamento, nao preparar" que ja barra o pedido de entrar na
      *     cozinha (`ensure_payment_allows_order_status`).
+     *
+     *     **Copia e ENTRADA REPETIDA nesta lista, e nao um campo `copies`.** A
+     *     filial que pediu duas vias do cliente recebe dois itens identicos, um
+     *     atras do outro. Um campo novo seria mais bonito e o agente nao saberia
+     *     le-lo: **nao existe atualizacao remota do agente** — ele e um `.exe`
+     *     instalado a mao, e cada versao nova e uma visita por loja. Repetindo a
+     *     entrada, a feature vale hoje em toda instalacao ja em campo, inclusive
+     *     nas anteriores a esta revisao.
+     *
+     *     `jobs` tambem pode vir VAZIA: a filial que zerou as duas contagens
+     *     daquele tipo de pedido nao imprime nada. O agente ja trata a lista vazia
+     *     (ele avisa no log e nao marca o pedido como impresso).
      */
     OrderPrintJobsResponse: {
       /**
@@ -6488,6 +6618,72 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['PrintAgentStatusResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_branch_print_settings_admin_branches__branch_id__print_settings_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        branch_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BranchPrintSettingsResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  update_branch_print_settings_admin_branches__branch_id__print_settings_patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        branch_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BranchPrintSettingsUpdate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BranchPrintSettingsResponse'];
         };
       };
       /** @description Validation Error */

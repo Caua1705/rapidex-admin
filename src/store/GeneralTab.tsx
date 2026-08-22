@@ -5,6 +5,13 @@ import { Checkbox } from '../ds/Checkbox';
 import { Field } from '../ds/Field';
 import { Input } from '../ds/Input';
 import { RangeInput } from '../ds/RangeInput';
+import { Textarea } from '../ds/Textarea';
+import {
+  checkFooter,
+  countFooterLines,
+  FOOTER_MAX_CHARS,
+  FOOTER_MAX_LINES,
+} from '../print-sectors/print-settings';
 import { SaveBar } from './SaveBar';
 import {
   checkEstimatedRange,
@@ -21,6 +28,8 @@ type Draft = {
   estimatedMax: string;
   serviceFeeEnabled: boolean;
   serviceFeeAmount: string;
+  /** A mensagem da MARCA no rodapé da comanda. Vazio = não há mensagem. */
+  receiptFooter: string;
 };
 
 const EMPTY: Draft = {
@@ -29,6 +38,7 @@ const EMPTY: Draft = {
   estimatedMax: '',
   serviceFeeEnabled: true,
   serviceFeeAmount: '',
+  receiptFooter: '',
 };
 
 /**
@@ -86,6 +96,13 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
       // explícito desliga.
       serviceFeeEnabled: loaded.service_fee_enabled !== false,
       serviceFeeAmount: formatDecimalInput(loaded.service_fee_amount),
+      /*
+       * AQUI NÃO HÁ TRÊS ESTADOS, e é a diferença para a mesma mensagem na
+       * filial: acima do restaurante não há de quem herdar, então vazio e nulo
+       * dizem a mesma coisa — não há mensagem da marca. Quem precisa distinguir
+       * "herdar" de "não imprimir" é a filial, em Impressão.
+       */
+      receiptFooter: loaded.receipt_footer_message ?? '',
     };
     setDraft(next);
     setBaseline(next);
@@ -118,12 +135,30 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
     });
     if (!serviceFee.ok) return setProblem(`Taxa de serviço: ${serviceFee.message}`);
 
+    /*
+     * O MESMO TETO DA FILIAL, conferido pela mesma função — 240 caracteres e 6
+     * linhas são da BOBINA, não do banco, e valem para as duas pontas. Aqui o
+     * modo é sempre "escrever": o restaurante não herda de ninguém.
+     */
+    const rodape = checkFooter({
+      footerMode: draft.receiptFooter.trim() === '' ? 'nao-imprime' : 'propria',
+      footerText: draft.receiptFooter,
+      customerDelivery: 0,
+      productionDelivery: 0,
+      customerPickup: 0,
+      productionPickup: 0,
+    });
+    if (!rodape.valid) return setProblem(`Mensagem no rodapé: ${rodape.message}`);
+
     const body: RestaurantSettingsUpdate = {
       min_order_value: minOrder.value,
       estimated_delivery_time_min: estimatedMin.value,
       estimated_delivery_time_max: estimatedMax.value,
       service_fee_enabled: draft.serviceFeeEnabled,
       service_fee_amount: serviceFee.value ?? 0,
+      // Vazio vira `null`: "não há mensagem da marca". Isso NÃO cala a filial
+      // que gravou a própria — só a que estava herdando esta.
+      receipt_footer_message: draft.receiptFooter.trim() === '' ? null : draft.receiptFooter,
     };
 
     if (await settings.save(body)) setBaseline(draft);
@@ -207,6 +242,56 @@ export function GeneralTab({ settings }: { settings: ReturnType<typeof useStoreS
                 data-testid="settings-service-fee-amount"
               />
             </Field>
+          </div>
+        </section>
+
+        {/*
+          A MENSAGEM DA MARCA NO RODAPÉ DA COMANDA.
+
+          Ela mora aqui, e não em Impressão, porque é padrão de RESTAURANTE como
+          os números acima: a filial que não gravou a própria imprime esta. Em
+          Impressão, cada filial escolhe entre herdar isto, escrever a dela ou
+          não imprimir rodapé nenhum.
+
+          É espaço de graça no papel que já sai e já chega na mão de quem pediu
+          — e deixa de ser de graça quando vira meio metro de propaganda em todo
+          pedido, que é o que os dois tetos seguram.
+        */}
+        <section className="store-form__group">
+          <h3 className="store-form__heading">Rodapé da comanda</h3>
+
+          <div className="store-form__fields">
+            {/* A mesma largura de bobina do campo em Impressão: 48 colunas. */}
+            <div className="rodape__campo">
+              <Field
+                label="Mensagem da marca"
+                hint={`Sai no fim da via do cliente, em todas as filiais que não escreverem a própria. Até ${FOOTER_MAX_CHARS} caracteres e ${FOOTER_MAX_LINES} linhas.`}
+              >
+                <Textarea
+                  rows={3}
+                  maxLength={FOOTER_MAX_CHARS}
+                  value={draft.receiptFooter}
+                  placeholder="@nossaloja · peça direto e ganhe 5% de volta"
+                  onValueChange={(receiptFooter) => patch({ receiptFooter })}
+                  data-testid="settings-receipt-footer"
+                />
+              </Field>
+
+              {/*
+                O CONTADOR É DO CAMPO, e por isso mora DENTRO do mesmo item da
+                grade. Solto como irmão, `store-form__fields` o tratava como um
+                segundo campo e o punha na coluna ao lado — "40/240" a 400px da
+                caixa que ele conta.
+              */}
+              <div className="rodape__meta">
+                <span className="faint">
+                  {countFooterLines(draft.receiptFooter)} de {FOOTER_MAX_LINES} linhas
+                </span>
+                <span className="faint tnum">
+                  {draft.receiptFooter.length}/{FOOTER_MAX_CHARS}
+                </span>
+              </div>
+            </div>
           </div>
         </section>
       </div>

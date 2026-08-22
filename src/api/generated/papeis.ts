@@ -48,6 +48,7 @@ export const PAPEL_POR_ROTA = {
   '/admin/branches/{branch_id}/payment-methods': { GET: 'PESSOAS', POST: 'GERENCIA' },
   '/admin/branches/{branch_id}/prep-time': { PATCH: 'PESSOAS' },
   '/admin/branches/{branch_id}/print-agent': { GET: 'PESSOAS' },
+  '/admin/branches/{branch_id}/print-settings': { GET: 'PESSOAS', PATCH: 'GERENCIA' },
   '/admin/branches/{branch_id}/print-test': { POST: 'PESSOAS' },
   '/admin/branches/{branch_id}/printers': { GET: 'GERENCIA' },
   '/admin/branches/{branch_id}/printing-sectors': { GET: 'PESSOAS', POST: 'GERENCIA' },

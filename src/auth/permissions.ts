@@ -109,7 +109,15 @@ export type Acao =
   | 'impressao.verPrograma'
   | 'impressao.verImpressoras'
   | 'impressao.mandarTeste'
-  | 'impressao.editarSetores';
+  | 'impressao.editarSetores'
+  /*
+   * LER COMO A COMANDA SAI É DE QUEM OPERA; MUDAR É DA GERÊNCIA. As duas ações
+   * são a mesma rota em métodos diferentes, e é a única dupla assim do painel:
+   * quem está ao lado da impressora precisa saber por que saíram duas vias, e
+   * não precisa poder mudar para três.
+   */
+  | 'impressao.verConfiguracao'
+  | 'impressao.editarConfiguracao';
 
 /**
  * A ponte. Cada ação, a rota que ela chama.
@@ -204,6 +212,8 @@ const ROTA_DA_ACAO = {
   'impressao.verImpressoras': 'GET /admin/branches/{branch_id}/printers',
   'impressao.mandarTeste': 'POST /admin/branches/{branch_id}/print-test',
   'impressao.editarSetores': 'POST /admin/branches/{branch_id}/printing-sectors',
+  'impressao.verConfiguracao': 'GET /admin/branches/{branch_id}/print-settings',
+  'impressao.editarConfiguracao': 'PATCH /admin/branches/{branch_id}/print-settings',
 } as const satisfies Record<Acao, RotaComPapel>;
 
 /**

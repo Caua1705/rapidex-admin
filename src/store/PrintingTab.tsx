@@ -8,11 +8,13 @@ import { checkSectorName } from '../print-sectors/print-sectors';
 import { formatItemCount } from '../print-sectors/sector-coverage';
 import { usePrintAgent } from '../print-sectors/usePrintAgent';
 import { usePrintSectors } from '../print-sectors/usePrintSectors';
+import { usePrintSettings } from '../print-sectors/usePrintSettings';
 import { useSectorCoverage } from '../print-sectors/useSectorCoverage';
 import { Field } from '../ds/Field';
 import { EditIcon, PlusIcon } from '../ds/icons';
 import { Select, type SelectOption } from '../ds/Select';
 import { Switch } from '../ds/Switch';
+import { ComandaBlock } from './ComandaBlock';
 
 /**
  * ============================================================================
@@ -86,6 +88,7 @@ export function PrintingTab({ branchId }: { branchId: string }) {
   const podeEditarSetores = pode('impressao.editarSetores');
   const printing = usePrintSectors(branchId);
   const agent = usePrintAgent(branchId);
+  const printSettings = usePrintSettings(branchId);
   const coverage = useSectorCoverage(branchId, printing.sectors);
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -304,6 +307,21 @@ export function PrintingTab({ branchId }: { branchId: string }) {
           </div>
         </section>
       ) : null}
+
+      {/*
+        --- 3c. COMO A COMANDA SAI ---------------------------------------
+
+        As vias e o rodapé, na mesma rota e no mesmo formulário. Eles vêm
+        DEPOIS dos setores e ANTES do teste porque é essa a ordem em que se
+        usa a tela: configura-se para onde a comanda vai, depois o que ela
+        traz, e só então se manda uma para conferir.
+
+        O BLOCO NÃO SOME PARA QUEM NÃO EDITA. A leitura é de quem opera
+        (`PESSOAS` contra `GERENCIA` na escrita), e essa assimetria está no
+        contrato de propósito: quem está em pé ao lado da impressora é quem
+        pergunta "por que saíram duas vias?". Some o controle, não o dado.
+      */}
+      <ComandaBlock print={printSettings} podeEditar={pode('impressao.editarConfiguracao')} />
 
       {/*
         --- 4. O TESTE DA COMANDA ----------------------------------------

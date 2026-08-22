@@ -231,6 +231,24 @@ export type PrintSectorRequest = Schemas['ProductPrintingSectorRequest'];
 export type ProductPrintSector = Schemas['ProductPrintingSectorResponse'];
 export type CategoryPrintSectorResult = Schemas['CategoryPrintingSectorResponse'];
 
+// --- como a comanda desta filial sai --------------------------------------
+
+/**
+ * O rodapé e as quatro contagens de via (revisão `20260821_0029`).
+ *
+ * OS DOIS CAMPOS DE MENSAGEM NÃO SÃO REDUNDANTES, e é o mesmo par
+ * `overrides`/`effective` da tela de Operação: `receipt_footer_message` é o que
+ * ESTA FILIAL gravou (e alimenta o controle de edição), enquanto
+ * `effective_receipt_footer_message` é o que vai sair na bobina, já resolvido
+ * com o padrão do restaurante. Só o efetivo faria toda filial parecer
+ * divergente; só a sobrescrita, a tela não teria como mostrar o que o cliente
+ * vai ler.
+ *
+ * As quatro contagens não têm par: elas não herdam nada.
+ */
+export type BranchPrintSettings = Schemas['BranchPrintSettingsResponse'];
+export type BranchPrintSettingsUpdate = Schemas['BranchPrintSettingsUpdate'];
+
 // --- o programa de impressão (o agente na máquina do balcão) --------------
 
 /*

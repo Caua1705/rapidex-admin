@@ -463,3 +463,139 @@ test('aplicar "Não imprimir" à categoria limpa o setor de todos', async ({ pag
   await expect(page.getByTestId('product-sector-prod-1')).toHaveText('');
   expect(api.categorySectorCalls().at(-1)?.printSectorId).toBeNull();
 });
+
+/* ==========================================================================
+ * COMO A COMANDA SAI — o rodapé e as vias
+ *
+ * Os dois vieram na mesma rodada e têm REGIMES OPOSTOS: a mensagem herda o
+ * padrão da marca, as quatro contagens não herdam nada. O que os testes daqui
+ * protegem é a distinção que não aparece na tela — no rodapé, `null` (voltar a
+ * herdar) e `''` (esta loja não imprime) produzem a MESMA bobina em branco, e
+ * só o corpo do PATCH diz qual dos dois foi pedido.
+ * ======================================================================= */
+
+test('o rodapé abre herdando, e a prévia mostra o que sai hoje', async ({ page }) => {
+  await fazerLogin(page);
+  await abrirAbaImpressao(page);
+
+  const bloco = page.getByTestId('print-footer-block');
+  await expect(bloco.getByTestId('print-footer-mode-herda')).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+
+  // A prévia é a mensagem da MARCA, acinzentada: é o que o cliente lê hoje.
+  await expect(bloco.getByTestId('print-footer-preview')).toContainText('@pizzariadoze');
+  // Herdando não há caixa de texto: não há o que escrever.
+  await expect(bloco.getByTestId('print-footer-text')).toHaveCount(0);
+});
+
+/*
+ * O TESTE QUE PAGA A RODADA. Se a tela mandar `''` onde queria `null`, a loja
+ * para de imprimir a campanha da rede e ninguém entende — não há tela onde isso
+ * apareça, só a bobina.
+ */
+test('“não imprimir” manda string vazia e “herdar” manda null', async ({ page }) => {
+  await fazerLogin(page);
+  await abrirAbaImpressao(page);
+
+  const bloco = page.getByTestId('print-footer-block');
+
+  // Esta loja recusa a campanha da rede.
+  await bloco.getByTestId('print-footer-mode-nao-imprime').click();
+  await page.getByTestId('store-save').click();
+  await expect(page.getByTestId('store-saved')).toBeVisible();
+
+  expect(api.printSettingsPatches().at(-1)?.body).toEqual({ receipt_footer_message: '' });
+  // E a prévia da marca sai da tela: não é mais o que vai sair.
+  await expect(bloco.getByTestId('print-footer-preview')).toHaveCount(0);
+
+  // Voltar atrás é `null`, e NÃO um campo apagado.
+  await bloco.getByTestId('print-footer-mode-herda').click();
+  await page.getByTestId('store-save').click();
+  await expect(page.getByTestId('store-saved')).toBeVisible();
+
+  expect(api.printSettingsPatches().at(-1)?.body).toEqual({ receipt_footer_message: null });
+  await expect(bloco.getByTestId('print-footer-preview')).toContainText('@pizzariadoze');
+});
+
+test('escrever a mensagem da loja, e a caixa vazia não vira “não imprimir”', async ({ page }) => {
+  await fazerLogin(page);
+  await abrirAbaImpressao(page);
+
+  const bloco = page.getByTestId('print-footer-block');
+  await bloco.getByTestId('print-footer-mode-propria').click();
+
+  /*
+   * ESCOLHEU ESCREVER E NÃO ESCREVEU: é erro, e não um `''` silencioso. Quem
+   * quer desligar tem uma opção com esse nome logo ao lado.
+   */
+  await bloco.getByTestId('print-footer-text').fill('   ');
+  await page.getByTestId('store-save').click();
+  await expect(page.getByTestId('store-error')).toContainText('Não imprimir');
+  expect(api.printSettingsPatches()).toHaveLength(0);
+
+  await bloco.getByTestId('print-footer-text').fill('Peça direto no site\te ganhe 5%');
+  await page.getByTestId('store-save').click();
+  await expect(page.getByTestId('store-saved')).toBeVisible();
+
+  expect(api.printSettingsPatches().at(-1)?.body).toEqual({
+    receipt_footer_message: 'Peça direto no site\te ganhe 5%',
+  });
+
+  /*
+   * O BACKEND NORMALIZA NA GRAVAÇÃO — a tabulação vira espaço —, e a tela
+   * REPINTA o campo com o que voltou. Mostrar o que foi digitado enquanto a
+   * bobina imprime outra coisa é a divergência que só aparece no papel.
+   */
+  await expect(bloco.getByTestId('print-footer-text')).toHaveValue(
+    'Peça direto no site e ganhe 5%',
+  );
+});
+
+test('as vias vão de 0 a 5, sem herdar, e zero é uma escolha', async ({ page }) => {
+  await fazerLogin(page);
+  await abrirAbaImpressao(page);
+
+  const bloco = page.getByTestId('print-copies-block');
+  // Nenhum controle de herança aqui: as quatro são só da filial.
+  await expect(bloco.getByText('Só desta filial')).toBeVisible();
+
+  // A retirada normalmente não leva a via do cliente — o caso que originou tudo.
+  await escolher(bloco.getByTestId('print-copies-customer-pickup'), '0');
+  await page.getByTestId('store-save').click();
+  await expect(page.getByTestId('store-saved')).toBeVisible();
+
+  // Vai o ZERO, e não um nulo: `null` numa contagem é 422, porque ela não herda.
+  expect(api.printSettingsPatches().at(-1)?.body).toEqual({
+    print_customer_copies_pickup: 0,
+  });
+
+  // E o que não mudou não é reenviado.
+  expect(
+    Object.keys(api.printSettingsPatches().at(-1)?.body ?? {}),
+  ).toHaveLength(1);
+});
+
+test('o balcão lê como a comanda sai, e não a edita', async ({ page }) => {
+  api.entrarComoPapel('attendant');
+  await fazerLogin(page);
+  await abrirAbaImpressao(page);
+
+  /*
+   * A LEITURA É DE QUEM OPERA e a escrita é da gerência — a única dupla assim
+   * do painel. Quem está em pé ao lado da impressora é quem pergunta "por que
+   * saíram duas vias?", e some o controle, não o dado.
+   */
+  await expect(page.getByTestId('print-copies-readonly')).toContainText('1 do cliente');
+  await expect(page.getByTestId('print-copies-readonly')).toContainText(
+    '1 da produção por setor',
+  );
+  await expect(page.getByTestId('print-copies-customer-pickup')).toHaveCount(0);
+
+  await expect(page.getByTestId('print-footer-readonly')).toContainText(
+    'segue a mensagem da marca',
+  );
+  await expect(page.getByTestId('print-footer-mode-herda')).toHaveCount(0);
+  await expect(page.getByTestId('store-save-bar')).toHaveCount(0);
+});

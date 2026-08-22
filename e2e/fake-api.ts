@@ -483,6 +483,9 @@ function initialSettings(): RestaurantSettings {
     default_delivery_fee: 7.5,
     service_fee_enabled: true,
     service_fee_amount: 2,
+    // A mensagem da MARCA. É dela que a filial herda enquanto não escreve a
+    // própria — e é ela que some da bobina quando a loja manda `''`.
+    receipt_footer_message: 'Obrigado pela preferência! @pizzariadoze',
   };
 }
 
@@ -1296,6 +1299,13 @@ export type FakeApi = {
   entrarComoPapel: (papel: 'owner' | 'manager' | 'attendant' | 'print_agent') => void;
   /** Cada POST de via de teste, para conferir o corpo que a tela mandou. */
   printTests: () => { branchId: string; body: PrintTestRequest }[];
+  /**
+   * Os corpos de `PATCH .../print-settings`, na ordem.
+   *
+   * É por aqui que o teste separa `null` de `''` no rodapé — os dois somem numa
+   * asserção de tela, porque a tela mostra o efeito e não o que foi enviado.
+   */
+  printSettingsPatches: () => { branchId: string; body: Record<string, unknown> }[];
   /** Cada PATCH de produto, com o corpo — é onde se prova campo AUSENTE. */
   productPatches: () => { productId: string; body: Record<string, unknown> }[];
   /**
@@ -1463,6 +1473,23 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     printAgents: initialPrintAgents(),
     printers: initialPrinters(),
     printTests: [] as { branchId: string; body: PrintTestRequest }[],
+    /*
+     * COMO A COMANDA SAI, por filial. O rodapé guarda os TRÊS estados de
+     * verdade — `null` (herdando), `''` (esta loja recusou) e o texto —, que é
+     * a única forma de o teste provar que a tela não confunde os dois vazios.
+     */
+    printSettings: {} as Record<
+      string,
+      {
+        receipt_footer_message: string | null;
+        print_customer_copies_delivery: number;
+        print_production_copies_delivery: number;
+        print_customer_copies_pickup: number;
+        print_production_copies_pickup: number;
+      }
+    >,
+    /** Cada corpo de PATCH .../print-settings, para conferir o que foi enviado. */
+    printSettingsPatches: [] as { branchId: string; body: Record<string, unknown> }[],
     productPatches: [] as { productId: string; body: Record<string, unknown> }[],
     /** Cada PATCH de setor na categoria inteira, para conferir o lote. */
     categorySectorCalls: [] as { categoryId: string; printSectorId: string | null }[],
@@ -2260,6 +2287,65 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       });
     }
 
+    /*
+     * COMO A COMANDA SAI. Antes de `print-test` não importa (os caminhos são
+     * distintos), mas depois de `printers` sim: todos começam com
+     * `/admin/branches/{id}/`.
+     */
+    const printSettingsMatch = /^\/admin\/branches\/([^/]+)\/print-settings$/.exec(path);
+    if (printSettingsMatch?.[1]) {
+      const branchId = printSettingsMatch[1];
+      const atual = state.printSettings[branchId] ?? {
+        receipt_footer_message: null,
+        // A migração faz as quatro nascerem em 1, inclusive a produção da
+        // retirada: nascer em zero pararia a comanda da cozinha no deploy.
+        print_customer_copies_delivery: 1,
+        print_production_copies_delivery: 1,
+        print_customer_copies_pickup: 1,
+        print_production_copies_pickup: 1,
+      };
+      state.printSettings[branchId] = atual;
+
+      if (method === 'PATCH') {
+        const body = request.postDataJSON() as Record<string, unknown>;
+        state.printSettingsPatches.push({ branchId, body });
+
+        /*
+         * `exclude_unset` DE VERDADE: só o que veio no corpo é alterado. Com
+         * `??` no lugar disto, `receipt_footer_message: null` viraria "não
+         * mexe" e o falso passaria a mentir justamente sobre o estado que esta
+         * rodada existe para acertar.
+         */
+        for (const chave of Object.keys(body)) {
+          if (chave === 'receipt_footer_message') {
+            const valor = body[chave];
+            // O backend NORMALIZA na gravação: é isso que faz o valor devolvido
+            // não ser byte a byte o enviado, e a tela ter de repintar o campo.
+            atual.receipt_footer_message =
+              typeof valor === 'string' ? valor.replace(/\t/g, ' ').trim() : null;
+            continue;
+          }
+          const valor = body[chave];
+          if (typeof valor !== 'number') {
+            // `null` numa contagem é 422, e não "herda": as colunas são NOT NULL.
+            return json(route, 422, {
+              detail: [{ loc: ['body', chave], msg: 'a contagem de vias não pode ser nula' }],
+            });
+          }
+          (atual as unknown as Record<string, number>)[chave] = valor;
+        }
+      }
+
+      const marca = state.settings.receipt_footer_message ?? null;
+      return json(route, 200, {
+        branch_id: branchId,
+        ...atual,
+        // `_ou_herdado`: o vazio da filial é uma ESCOLHA e não cai no padrão.
+        effective_receipt_footer_message:
+          atual.receipt_footer_message !== null ? atual.receipt_footer_message : marca,
+      });
+    }
+
     const printTestMatch = /^\/admin\/branches\/([^/]+)\/print-test$/.exec(path);
     if (method === 'POST' && printTestMatch?.[1]) {
       const branchId = printTestMatch[1];
@@ -2615,6 +2701,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       state.papel = papel;
     },
     printTests: () => state.printTests,
+    printSettingsPatches: () => state.printSettingsPatches,
     productPatches: () => state.productPatches,
     setPrintAgentSeconds(branchId, seconds) {
       state.printAgents[branchId] = {

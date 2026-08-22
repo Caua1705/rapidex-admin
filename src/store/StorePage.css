@@ -877,6 +877,171 @@
 }
 
 /* ==========================================================================
+ * AS VIAS — quantas folhas saem, por tipo de pedido
+ *
+ * Uma grade de 2×2 e não quatro campos empilhados: as quatro contagens são o
+ * cruzamento de DUAS perguntas (qual via, qual tipo de pedido), e é o
+ * cruzamento que se lê. Empilhados, os rótulos teriam de repetir as duas
+ * palavras em cada linha ("Via do cliente na entrega", "Via do cliente na
+ * retirada"…), que é o formulário cru dizendo quatro vezes o que a grade diz
+ * uma.
+ *
+ * O CABEÇALHO É RÓTULO SOBRE UM FIO, a mesma gramática de `ds/DataTable`: uma
+ * faixa cinza para duas palavras seria moldura onde bastam o alinhamento e um
+ * fio de 1px.
+ *
+ * As colunas de valor têm largura de CONTEÚDO — um seletor de 0 a 5 não precisa
+ * de mais que isso, e sobra para o nome da via, que é o que se lê primeiro.
+ * ======================================================================= */
+/*
+ * A LARGURA DELA É MEDIDA DE CONTEÚDO, e não a da folha. Solta em `1fr`, a
+ * coluna do nome abria os 1000px da seção e punha o seletor a 780px de "Do
+ * cliente" — o olho atravessava a tela inteira para ligar um rótulo de duas
+ * palavras a um dígito. 420 é o que cabe: o nome com a ajuda embaixo, mais as
+ * duas colunas de um seletor de 0 a 5.
+ */
+.vias {
+  max-width: 420px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(2, minmax(76px, 104px));
+  align-items: center;
+  column-gap: var(--sp-12);
+  row-gap: var(--sp-12);
+}
+
+/*
+ * O FIO CORRE SÓ SOB AS DUAS COLUNAS QUE TÊM CABEÇALHO. Ele já correu sob a
+ * célula vazia do canto também, por simetria de tabela — e ali virava um
+ * sublinhado de 190px embaixo de nada, que o olho lê como campo faltando. O
+ * cabeçalho de coluna sublinha a coluna que ele nomeia.
+ */
+.vias__coluna {
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.vias__coluna {
+  color: var(--ink-3);
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
+}
+
+/*
+ * O NOME DA VIA, com o que ela é logo abaixo. "uma por setor" é a informação
+ * que muda a conta na cabeça do lojista — três setores e duas vias são seis
+ * folhas —, e ela vale mais colada no nome do que numa frase embaixo da grade.
+ */
+.vias__nome {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--ink);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-strong);
+}
+
+.vias__ajuda {
+  color: var(--ink-3);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-weight: var(--w-regular);
+}
+
+/*
+ * A LEITURA, para quem não edita: some o controle, não o dado. Duas linhas de
+ * razão, como o bloco de pagamento do detalhe do pedido — rótulo à esquerda,
+ * o que sai à direita.
+ */
+.vias__leitura {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: var(--sp-12);
+  row-gap: var(--sp-4);
+  margin: 0;
+}
+
+.vias__leitura dt {
+  color: var(--ink-3);
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--tl-weight);
+  letter-spacing: var(--tl-track);
+}
+
+.vias__leitura dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+}
+
+/* ==========================================================================
+ * O RODAPÉ DA COMANDA — a prévia do que sai na bobina
+ *
+ * Ela é uma CITAÇÃO do que está gravado noutro lugar (a mensagem da marca), e
+ * não um campo desta tela: plano de agrupamento, tinta de apoio, sem contorno.
+ * Desenhá-la como um campo faria o lojista tentar editar ali o texto que se
+ * edita em Geral.
+ *
+ * `pre-line` porque a quebra de linha do lojista é respeitada na impressão —
+ * mostrar o texto corrido aqui faria a prévia mentir sobre o formato.
+ * ======================================================================= */
+.rodape__previa {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-12);
+  border-radius: var(--r-field);
+  background: var(--surface-muted);
+}
+
+.rodape__texto {
+  margin: 0;
+  white-space: pre-line;
+  color: var(--ink-3);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+}
+
+/*
+ * A CAIXA TEM A LARGURA DA BOBINA, e essa é a medida de conteúdo aqui: 48
+ * colunas é o que a via do cliente comporta numa linha (240 caracteres são
+ * cinco linhas cheias, e é de onde o teto saiu). Solta, ela abria os 1000px da
+ * coluna e convidava a escrever uma linha só, comprida — que na impressão
+ * quebra em três e desalinha o que o lojista tinha alinhado.
+ */
+/*
+ * ELE ENVOLVE A CAIXA E O CONTADOR, e não só a caixa: o contador é do campo, e
+ * solto como irmão ele virava um segundo item da grade de `store-form__fields`
+ * — "40/240" na coluna ao lado, a 400px do que ele conta.
+ */
+.rodape__campo {
+  max-width: 48ch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+/*
+ * A LINHA DE APOIO DA CAIXA DE TEXTO: as linhas à esquerda, os caracteres à
+ * direita. Os dois tetos existem e são diferentes — 240 caracteres não segura
+ * "a\nb\nc…", que cabe no teto e sairia com meio metro de bobina.
+ */
+.rodape__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-12);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+}
+
+/* ==========================================================================
  * PRÉVIA DA ENTREGA — a conta que o lojista confere antes de salvar
  * ======================================================================= */
 .delivery-preview {
