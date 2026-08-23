@@ -2,12 +2,16 @@ import { describe, expect, it } from 'vitest';
 
 import type { OrderListItem } from '../api/types';
 import {
+  BOARD_BLOCKS,
   LANES,
+  MINUTOS_ATE_PAGAMENTO_PARADO,
+  PAGAMENTO_PARADO_LANE,
   countFor,
   countForView,
   firstVisibleOrder,
   groupIntoLanes,
   historyOrders,
+  isPagamentoParado,
   statusesForView,
 } from './board-lanes';
 
@@ -24,6 +28,19 @@ function orderWithStatus(id: string, status: string): OrderListItem {
     payment_status: 'on_delivery',
     total: 10,
     created_at: '2026-08-07T12:00:00Z',
+  };
+}
+
+/** O relógio das provas: `created_at` dos fixtures + os minutos pedidos. */
+const CRIADO_EM = Date.parse('2026-08-07T12:00:00Z');
+const minutosDepois = (minutos: number) => CRIADO_EM + minutos * 60_000;
+
+/** Um pedido de Pix esperando o gateway, criado na hora de `CRIADO_EM`. */
+function pixPendente(id: string, payment_status = 'pending'): OrderListItem {
+  return {
+    ...orderWithStatus(id, 'pending'),
+    payment_method: 'pix',
+    payment_status,
   };
 }
 
@@ -61,9 +78,109 @@ describe('groupIntoLanes', () => {
     expect(grouped.novos?.map((order) => order.id)).toEqual(['a']);
   });
 
-  it('devolve uma lista para cada faixa, mesmo vazia', () => {
+  it('devolve uma lista para cada bloco desenhado, mesmo vazia', () => {
     const grouped = groupIntoLanes([]);
-    LANES.forEach((lane) => expect(grouped[lane.key]).toEqual([]));
+    BOARD_BLOCKS.forEach((lane) => expect(grouped[lane.key]).toEqual([]));
+  });
+});
+
+describe('isPagamentoParado', () => {
+  it('não é parado enquanto a espera não chega no limite', () => {
+    const order = pixPendente('a');
+    expect(isPagamentoParado(order, minutosDepois(MINUTOS_ATE_PAGAMENTO_PARADO - 1))).toBe(false);
+  });
+
+  it('é parado a partir do limite', () => {
+    const order = pixPendente('a');
+    expect(isPagamentoParado(order, minutosDepois(MINUTOS_ATE_PAGAMENTO_PARADO))).toBe(true);
+  });
+
+  /*
+   * Cartão recusado não é "ainda pode pagar": é uma tentativa que terminou.
+   * Esperar trinta minutos por ela seria esperar por nada.
+   */
+  it('recusado cai na hora, sem esperar o limite', () => {
+    const order = pixPendente('a', 'failed');
+    expect(isPagamentoParado(order, minutosDepois(0))).toBe(true);
+  });
+
+  it('pago e pagamento na entrega nunca entram, por mais velhos que sejam', () => {
+    const daquiATresDias = minutosDepois(3 * 24 * 60);
+    expect(isPagamentoParado(pixPendente('a', 'paid'), daquiATresDias)).toBe(false);
+    expect(isPagamentoParado(orderWithStatus('b', 'pending'), daquiATresDias)).toBe(false);
+  });
+
+  /* Sem hora não há espera a medir, e na dúvida a linha fica onde o lojista a vê. */
+  it('pedido sem created_at não é dado como parado', () => {
+    const order = { ...pixPendente('a'), created_at: null };
+    expect(isPagamentoParado(order, minutosDepois(999))).toBe(false);
+  });
+
+  it('aceita um limite diferente do padrão', () => {
+    const order = pixPendente('a');
+    expect(isPagamentoParado(order, minutosDepois(10), 5)).toBe(true);
+    expect(isPagamentoParado(order, minutosDepois(10), 15)).toBe(false);
+  });
+});
+
+describe('o bloco dos pagamentos parados', () => {
+  it('desce só o que passou do limite, e mantém a ordem da lista', () => {
+    const grouped = groupIntoLanes(
+      [pixPendente('recente'), pixPendente('velho-1'), pixPendente('velho-2')].map((order, i) =>
+        i === 0 ? order : { ...order, created_at: '2026-08-07T10:00:00Z' },
+      ),
+      minutosDepois(1),
+    );
+
+    expect(grouped.novos?.map((o) => o.id)).toEqual(['recente']);
+    expect(grouped[PAGAMENTO_PARADO_LANE.key]?.map((o) => o.id)).toEqual(['velho-1', 'velho-2']);
+  });
+
+  /*
+   * A GARANTIA CENTRAL DA RODADA: nada sai do quadro. O que a partição faz é
+   * mudar de bloco, e a soma continua sendo a mesma lista.
+   */
+  it('não perde pedido nenhum: o que sai de Novos entra no bloco', () => {
+    const orders = [pixPendente('a'), pixPendente('b'), orderWithStatus('c', 'preparing')];
+    const grouped = groupIntoLanes(orders, minutosDepois(90));
+
+    expect(Object.values(grouped).flat()).toHaveLength(3);
+    expect(grouped.novos).toEqual([]);
+    expect(grouped[PAGAMENTO_PARADO_LANE.key]?.map((o) => o.id)).toEqual(['a', 'b']);
+  });
+
+  /*
+   * O cliente pagou no minuto 45. É o caso que justifica separar em vez de
+   * esconder: o SSE atualiza `payment_status` e a linha volta para o topo sem
+   * nenhuma regra de "desesconder".
+   */
+  it('volta para Novos assim que o pagamento entra', () => {
+    const pago = { ...pixPendente('a'), payment_status: 'paid' };
+    const grouped = groupIntoLanes([pago], minutosDepois(45));
+
+    expect(grouped.novos?.map((o) => o.id)).toEqual(['a']);
+    expect(grouped[PAGAMENTO_PARADO_LANE.key]).toEqual([]);
+  });
+
+  /* A descida é só da primeira faixa: o que já está com a cozinha não desce. */
+  it('não mexe em pedido que já saiu de Novos', () => {
+    const aceitoSemPagar = { ...pixPendente('a'), status: 'accepted' };
+    const grouped = groupIntoLanes([aceitoSemPagar], minutosDepois(90));
+
+    expect(grouped.preparo?.map((o) => o.id)).toEqual(['a']);
+    expect(grouped[PAGAMENTO_PARADO_LANE.key]).toEqual([]);
+  });
+
+  /* O bloco não pode virar faixa: `LANES` é quem alimenta os contadores. */
+  it('fica fora de LANES, para o badge de Novos não dobrar', () => {
+    expect(LANES.some((lane) => lane.key === PAGAMENTO_PARADO_LANE.key)).toBe(false);
+    expect(BOARD_BLOCKS.map((lane) => lane.key)).toEqual([
+      'novos',
+      PAGAMENTO_PARADO_LANE.key,
+      'preparo',
+      'prontos',
+    ]);
+    expect(countFor(statusesForView('andamento'), { pending: 3 })).toBe(3);
   });
 });
 
@@ -138,6 +255,17 @@ describe('firstVisibleOrder', () => {
     ];
     // `a` veio primeiro na resposta, mas "Novos" é a faixa de cima.
     expect(firstVisibleOrder(orders, 'andamento')?.id).toBe('b');
+  });
+
+  /*
+   * Com todos os novos parados no pagamento, o bloco deles é o que está no
+   * alto — e é nele que o olho cai. Varrer só `LANES` abriria a tela num
+   * pedido do meio da lista.
+   */
+  it('encontra o pedido do bloco de pagamento parado antes do que está em preparo', () => {
+    const parado = { ...pixPendente('parado'), created_at: '2020-01-01T00:00:00Z' };
+    const orders = [orderWithStatus('preparando', 'preparing'), parado];
+    expect(firstVisibleOrder(orders, 'andamento')?.id).toBe('parado');
   });
 
   it('pula faixa vazia', () => {

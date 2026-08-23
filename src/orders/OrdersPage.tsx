@@ -7,6 +7,7 @@ import { usePermissoes } from '../auth/use-permissions';
 import { useBranchOperation } from '../store/useBranchOperation';
 import { emptyBoardState } from './empty-board';
 import {
+  BOARD_BLOCKS,
   LANES,
   countFor,
   countForView,
@@ -366,7 +367,12 @@ export function OrdersPage() {
         <div className="orders__lista" data-testid="board-lanes">
           {view === 'andamento' ? (
             <>
-              {LANES.map((lane) => (
+              {/*
+                `BOARD_BLOCKS` E NÃO `LANES`: são quatro blocos desenhados para
+                três faixas contadas. O quarto é o pé de "Novos" — os pedidos
+                online cujo dinheiro não entrou. Ver `board-lanes.ts`.
+              */}
+              {BOARD_BLOCKS.map((lane) => (
                 <OrderBlock
                   key={lane.key}
                   lane={lane}

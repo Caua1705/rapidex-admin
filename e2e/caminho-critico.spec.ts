@@ -306,6 +306,49 @@ test('pedido com pagamento online não confirmado fica destacado e travado', asy
   );
 });
 
+/*
+ * O PIX QUE NUNCA FOI PAGO — e a garantia é que ele NÃO SUMIU.
+ *
+ * Pedido online com o dinheiro parado há mais de meia hora desce para um bloco
+ * próprio no pé de "Novos". Nada é chamado, nada muda de status: o backend não
+ * tem rotina de expiração e a tela não inventa uma.
+ *
+ * O 1001 fica de controle no mesmo quadro: ele também é Pix pendente, mas de
+ * quatro minutos — ainda pode ser pago, e continua onde o lojista decide.
+ */
+test('pedido com pagamento parado desce para o bloco, sem sair do quadro', async ({ page }) => {
+  await fazerLogin(page);
+  await api.waitForStream();
+
+  api.pushNewOrder(
+    api.makeOrder({
+      id: 'ord-1011',
+      order_number: 1011,
+      customer_name_snapshot: 'Pix Esquecido',
+      payment_method: 'pix',
+      payment_status: 'pending',
+      created_at: new Date(Date.now() - 90 * 60_000).toISOString(),
+    }),
+  );
+
+  const bloco = page.locator('[data-lane="pagamento-parado"]');
+  await expect(bloco.getByTestId('order-card-1011')).toBeVisible();
+  await expect(page.locator('[data-lane="novos"] [data-testid="order-card-1011"]')).toHaveCount(0);
+
+  // O de quatro minutos não desceu junto: o corte é de tempo, não de forma de
+  // pagamento.
+  await expect(page.locator('[data-lane="novos"] [data-testid="order-card-1001"]')).toBeVisible();
+
+  /*
+   * O BLOCO NÃO INVENTA CONTADOR. `GET /admin/orders/status-counts` conta por
+   * `status`, nunca por `payment_status`: os três pendentes — o Pix parado
+   * incluído — continuam somando no badge de "Novos", de propósito. Contar da
+   * lista carregada seria contar de uma fatia de 100 já filtrada, e um badge
+   * que às vezes bate e às vezes não é pior que um badge grosso.
+   */
+  await expect(page.getByTestId('badge-novos')).toHaveText('3');
+});
+
 test('transição recusada pelo backend vira mensagem clara na tela', async ({ page }) => {
   await fazerLogin(page);
 

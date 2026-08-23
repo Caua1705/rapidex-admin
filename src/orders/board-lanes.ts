@@ -1,6 +1,7 @@
 import type { OrderListItem } from '../api/types';
 import type { Stage } from '../ds/status';
-import type { OrderStatus } from './order-status';
+import { elapsedMinutes } from './format';
+import { isAwaitingOnlinePayment, type OrderStatus } from './order-status';
 
 /**
  * O QUADRO EM TRÊS FAIXAS — e por que sete colunas saíram.
@@ -52,6 +53,111 @@ export const LANES: readonly Lane[] = [
 ];
 
 /**
+ * ============================================================================
+ * O PEDIDO ONLINE CUJO DINHEIRO NUNCA CHEGOU
+ * ============================================================================
+ *
+ * Pix gerado e não pago fica `pending` PARA SEMPRE. Não existe rotina no
+ * backend que expire pedido pendente — é uma decisão em aberto, de propósito —
+ * e o gateway só avisa quando avisa: `PAYMENT_STATUSES` do backend documenta
+ * que Pix expirado vira `failed`, mas o que se vê na prática é a linha parada
+ * em `pending` dias depois.
+ *
+ * O EFEITO NO QUADRO: eles entulham "Novos", que é a faixa que existe para
+ * dizer "isto precisa de decisão AGORA". Um pedido de seis dias no topo dessa
+ * faixa não precisa de decisão nenhuma — e faz o lojista reler a mesma linha
+ * morta toda vez que abre a tela.
+ *
+ * ELES NÃO SAEM DO QUADRO, E ISSO É A DECISÃO. Descem para um bloco próprio no
+ * pé de "Novos", com rótulo próprio, na mesma faixa e na mesma matiz. Três
+ * razões, e a primeira basta:
+ *
+ *   1. VOLTA SOZINHO. Se o cliente pagar no minuto 45, o SSE traz
+ *      `order.updated`, `payment_status` vira `paid`, e `groupIntoLanes`
+ *      recoloca a linha no topo de "Novos" no mesmo instante. Esconder exigiria
+ *      uma regra de "desesconder", que é a parte que sempre erra.
+ *   2. SUMIR É UMA DECISÃO QUE O BACKEND NÃO TOMOU. Pedido fora do quadro é
+ *      pedido que ninguém olha de novo — a tela estaria cancelando por omissão.
+ *   3. ESCONDER PEDE UM "ONDE FOI PARAR", que é um filtro novo na barra.
+ *
+ * NADA AQUI TOCA O PEDIDO. Não há chamada, não há status novo, não há
+ * cancelamento: é uma partição da lista que já estava na tela.
+ *
+ * O CONTADOR DE "NOVOS" CONTINUA SOMANDO OS DOIS BLOCOS, e isso é limitação de
+ * contrato, não escolha: `GET /admin/orders/status-counts` conta por `status`,
+ * nunca por `payment_status`. Contar da lista carregada seria contar de uma
+ * fatia de 100 já filtrada — um badge que às vezes bate e às vezes não é pior
+ * que um badge grosso.
+ */
+
+/**
+ * Quanto tempo um pagamento online pode ficar sem entrar antes de a linha
+ * descer para o bloco.
+ *
+ * TRINTA MINUTOS É A ORDEM DE GRANDEZA DO TTL PADRÃO DE UM QR PIX, e é o número
+ * menos defendido desta rodada: **falta confirmar contra o TTL real do QR do
+ * Mercado Pago**. Quando esse número for conhecido, ele entra aqui — é o único
+ * lugar do painel que decide isso, e `groupIntoLanes` aceita um valor
+ * diferente por parâmetro para o dia em que ele vier de configuração.
+ */
+export const MINUTOS_ATE_PAGAMENTO_PARADO = 30;
+
+/** O bloco dos parados. Fora de `LANES` de propósito — ver `BOARD_BLOCKS`. */
+export const PAGAMENTO_PARADO_LANE: Lane = {
+  key: 'pagamento-parado',
+  title: 'Não pagos',
+  statuses: ['pending'],
+  /* A MESMA MATIZ DE "NOVOS". Eles não são outro estágio do pedido: são o mesmo
+     estágio esperando uma coisa que talvez não venha. Quem já acusa o problema
+     na linha é o fio vermelho que `ds-row--alerta` acende, e ele não depende
+     deste bloco existir. */
+  stage: 'pendente',
+};
+
+/**
+ * A ORDEM EM QUE O QUADRO DESENHA OS BLOCOS — e por que ela não é `LANES`.
+ *
+ * `LANES` continua sendo a lista de FAIXAS: é ela que diz quais status cada
+ * faixa cobre, e é dela que saem os contadores do topo. Acrescentar o bloco dos
+ * parados ali faria `countFor` somar `pending` duas vezes e o badge de "Novos"
+ * dobrar.
+ *
+ * Esta é a lista de DESENHO, e ela existe só para o bloco nascer logo abaixo
+ * de "Novos" — que é o que faz ele ser lido como o pé daquela faixa, e não como
+ * uma quarta faixa do turno.
+ */
+export const BOARD_BLOCKS: readonly Lane[] = LANES.flatMap((lane) =>
+  lane.key === 'novos' ? [lane, PAGAMENTO_PARADO_LANE] : [lane],
+);
+
+/**
+ * Este pedido está esperando um dinheiro que provavelmente não vem?
+ *
+ * `failed` cai no bloco NA HORA, sem esperar os trinta minutos: cartão recusado
+ * não é "ainda pode pagar", é uma tentativa que já terminou. O cliente pode
+ * tentar de novo no mesmo pedido — e quando tentar, `payment_status` volta para
+ * `pending` e a linha sobe de volta com o relógio zerado do lado certo.
+ *
+ * Pagamento na entrega (`on_delivery`) e pago (`paid`) nunca entram aqui:
+ * `isAwaitingOnlinePayment` já os libera, e é a mesma função que decide se a
+ * linha mostra o alerta "não preparar".
+ *
+ * SEM `created_at` A LINHA FICA ONDE ESTÁ. Não dá para medir a espera de um
+ * pedido sem hora, e na dúvida o pedido continua onde o lojista o vê.
+ */
+export function isPagamentoParado(
+  order: OrderListItem,
+  now: number = Date.now(),
+  minutos: number = MINUTOS_ATE_PAGAMENTO_PARADO,
+): boolean {
+  if (!isAwaitingOnlinePayment(order.payment_status)) return false;
+  if (order.payment_status === 'failed') return true;
+
+  const espera = elapsedMinutes(order.created_at, now);
+  return espera !== null && espera >= minutos;
+}
+
+/**
  * O HISTÓRICO — o que saiu do quadro.
  *
  * `rejected` e `cancelled` andam juntos porque são o mesmo fim de linha para
@@ -74,9 +180,13 @@ export function statusesForView(view: BoardView): readonly OrderStatus[] {
  * na primeira faixa, que é a que alguém olha. Sumir seria pior — o lojista
  * ficaria sem saber que ele existe.
  */
-export function groupIntoLanes(orders: OrderListItem[]): Record<string, OrderListItem[]> {
+export function groupIntoLanes(
+  orders: OrderListItem[],
+  now: number = Date.now(),
+  minutos: number = MINUTOS_ATE_PAGAMENTO_PARADO,
+): Record<string, OrderListItem[]> {
   const grouped: Record<string, OrderListItem[]> = {};
-  LANES.forEach((lane) => {
+  BOARD_BLOCKS.forEach((lane) => {
     grouped[lane.key] = [];
   });
 
@@ -85,7 +195,21 @@ export function groupIntoLanes(orders: OrderListItem[]): Record<string, OrderLis
     const lane = LANES.find((candidate) =>
       candidate.statuses.includes(order.status as OrderStatus),
     );
-    grouped[lane?.key ?? LANES[0]!.key]?.push(order);
+    const key = lane?.key ?? LANES[0]!.key;
+
+    /*
+     * A DESCIDA SÓ VALE NA PRIMEIRA FAIXA. Um pedido já aceito com pagamento
+     * pendente é outro problema — e um que o backend não deixa acontecer, já
+     * que `checkTransition` e a rota recusam levar para a cozinha o que não
+     * foi pago. Se acontecer mesmo assim, ele fica no bloco do estágio dele,
+     * onde o alerta da linha continua dizendo "não preparar".
+     */
+    if (key === LANES[0]!.key && isPagamentoParado(order, now, minutos)) {
+      grouped[PAGAMENTO_PARADO_LANE.key]?.push(order);
+      return;
+    }
+
+    grouped[key]?.push(order);
   });
 
   return grouped;
@@ -106,8 +230,15 @@ export function groupIntoLanes(orders: OrderListItem[]): Record<string, OrderLis
 export function firstVisibleOrder(orders: OrderListItem[], view: BoardView): OrderListItem | null {
   if (view === 'historico') return historyOrders(orders)[0] ?? null;
 
+  /*
+   * A VARREDURA É POR `BOARD_BLOCKS`, não por `LANES`: com todos os novos
+   * parados no pagamento, `LANES` pularia o bloco inteiro e a tela abriria num
+   * pedido do meio da lista — enquanto o olho encontra primeiro a linha que
+   * está no alto. A promessa deste retorno é "o primeiro que o olho encontra",
+   * e quem sabe a ordem do desenho é a lista de desenho.
+   */
   const grouped = groupIntoLanes(orders);
-  for (const lane of LANES) {
+  for (const lane of BOARD_BLOCKS) {
     const primeiro = grouped[lane.key]?.[0];
     if (primeiro) return primeiro;
   }
