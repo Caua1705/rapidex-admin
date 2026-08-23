@@ -67,6 +67,7 @@ export const PAPEL_POR_ROTA = {
   '/admin/categories/{category_id}': { PATCH: 'GERENCIA' },
   '/admin/categories/{category_id}/printing-sector': { PATCH: 'GERENCIA' },
   '/admin/categories/reorder': { PATCH: 'GERENCIA' },
+  '/admin/coupon-templates': { GET: 'GERENCIA' },
   '/admin/coupons': { GET: 'GERENCIA', POST: 'SOMENTE_DONO' },
   '/admin/coupons/{coupon_id}': { PATCH: 'SOMENTE_DONO' },
   '/admin/customers': { GET: 'GERENCIA' },

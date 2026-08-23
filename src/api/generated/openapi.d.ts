@@ -703,6 +703,23 @@ export interface paths {
     patch: operations['set_category_printing_sector_admin_categories__category_id__printing_sector_patch'];
     trace?: never;
   };
+  '/admin/coupon-templates': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List Coupon Templates */
+    get: operations['list_coupon_templates_admin_coupon_templates_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/admin/coupons': {
     parameters: {
       query?: never;
@@ -2325,12 +2342,50 @@ export interface paths {
      *     create_order de proposito — a chamada ao gateway nao pode acontecer com
      *     a transacao do pedido aberta.
      *
+     *     **O login e OPCIONAL na rota e obrigatorio para CARTAO**, e a diferenca e
+     *     proposital: o token de acompanhamento continua sendo a autorizacao (pix
+     *     de convidado tem que seguir funcionando sem conta), mas a cobranca de
+     *     cartao precisa de um e-mail de pagador de verdade para a analise
+     *     antifraude do gateway — e quem recusa e o service, com
+     *     `login_required`, nao esta rota.
+     *
+     *     `payload` e opcional pelo mesmo motivo: pix continua sendo um POST sem
+     *     corpo, exatamente como antes de o cartao existir.
+     *
      *     Falha ao criar a cobranca responde 502 ou 503 com `detail` no formato
      *     de `PaymentErrorDetail` — um objeto, nao a string de sempre: sem o
      *     `retryable` nao ha como o frontend escolher entre oferecer "tentar de
      *     novo" e mandar o cliente falar com o restaurante.
      */
     post: operations['start_payment_restaurants__restaurant_slug__orders__tracking_token__payment_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/restaurants/{restaurant_slug}/payment-config': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Payment Config
+     * @description O que o navegador precisa para tokenizar um cartao.
+     *
+     *     Publica, como o cardapio, e sem segredo nenhum: a `public_key` e o unico
+     *     dado do gateway que o proprio Mercado Pago manda expor no frontend. O
+     *     `access_token` e o `webhook_secret` do mesmo restaurante sao cifrados em
+     *     repouso e nao passam por esta rota.
+     *
+     *     Sem rate limit proprio: e uma leitura barata e sem efeito, chamada uma vez
+     *     por abertura da tela de pagamento.
+     */
+    get: operations['get_payment_config_restaurants__restaurant_slug__payment_config_get'];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -4235,6 +4290,45 @@ export interface components {
       restaurant_id: string;
     };
     /**
+     * CardPaymentPayload
+     * @description O que o navegador produziu com o SDK do Mercado Pago.
+     *
+     *     **Nao existe campo para numero, CVV ou validade do cartao, e nunca deve
+     *     existir.** Esses dados vao do navegador direto para o gateway, que
+     *     devolve o `token` — e o token e a unica coisa que este backend enxerga.
+     *     Acrescentar aqui qualquer parte do cartao muda o perimetro de PCI do
+     *     projeto inteiro.
+     */
+    CardPaymentPayload: {
+      /**
+       * Issuer Id
+       * @description Emissor, quando o SDK o resolve.
+       */
+      issuer_id?: string | null;
+      /**
+       * Payer Document Number
+       * @description Documento do portador. Atravessa para o gateway e NAO e gravado em lugar nenhum daqui.
+       */
+      payer_document_number?: string | null;
+      /**
+       * Payer Document Type
+       * @description Tipo do documento do portador, normalmente 'CPF'.
+       * @example CPF
+       */
+      payer_document_type?: string | null;
+      /**
+       * Payment Method Id
+       * @description Bandeira que o SDK resolveu ('visa', 'master', 'elo'). NAO e o `payment_method` do pedido ('credit_card') — sao vocabularios diferentes, e o gateway quer o dele.
+       * @example master
+       */
+      payment_method_id: string;
+      /**
+       * Token
+       * @description Token de uso unico gerado pelo SDK no navegador.
+       */
+      token: string;
+    };
+    /**
      * CashbackBalanceResponse
      * @description O saldo do cliente, com o total e a quebra por restaurante.
      */
@@ -4682,6 +4776,38 @@ export interface components {
       total_after_coupon: string;
       /** Valid */
       valid: boolean;
+    };
+    /**
+     * CouponTemplateResponse
+     * @description A arte da vitrine, para o painel montar o seletor do POST /admin/coupons.
+     *
+     *     `coupon_template_id` e obrigatorio na criacao do cupom e os templates sao
+     *     da PLATAFORMA, nao do restaurante: nao ha rota que os cadastre e nao ha
+     *     coluna `restaurant_id` neles. Por isso a lista vem inteira, sem recorte.
+     *
+     *     `image_url` acompanha `image_path` pelo mesmo motivo de
+     *     `PublicCouponResponse`: o caminho sozinho nao renderiza — quem monta a URL
+     *     do bucket e o backend (`build_storage_url`), e duplicar essa regra no
+     *     painel seria a segunda copia da configuracao do Supabase.
+     */
+    CouponTemplateResponse: {
+      /** Discount Type */
+      discount_type: string;
+      /** Discount Value */
+      discount_value?: string | null;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Image Path */
+      image_path?: string | null;
+      /** Image Url */
+      image_url?: string | null;
+      /** Name */
+      name: string;
+      /** Sort Order */
+      sort_order: number;
     };
     /** CouponUpdate */
     CouponUpdate: {
@@ -5621,6 +5747,36 @@ export interface components {
       detail: components['schemas']['OrdersInFlightDetail'];
     };
     /**
+     * PaymentConfigResponse
+     * @description O que o navegador precisa para tokenizar um cartao.
+     *
+     *     **`public_key` e publica por desenho** — o proprio Mercado Pago manda
+     *     expor no frontend, e e por isso que ela e a unica coluna de
+     *     `restaurant_payment_credentials` guardada em texto puro. O `access_token`
+     *     e o `webhook_secret` da mesma linha sao cifrados e nao passam nem perto
+     *     desta resposta.
+     *
+     *     `card_enabled` falso significa "nao ofereca cartao nesta tela": ou o
+     *     restaurante nao tem credencial cadastrada para o ambiente ativo, ou o
+     *     provider ativo nao processa cartao (o sandbox nao processa, de
+     *     proposito). Sem esse campo o front so descobriria isso no 503, com o
+     *     cliente ja tendo digitado o cartao.
+     */
+    PaymentConfigResponse: {
+      /**
+       * Card Enabled
+       * @description Se o front deve oferecer cartao nesta tela.
+       */
+      card_enabled: boolean;
+      /** Provider */
+      provider: string;
+      /**
+       * Public Key
+       * @description Chave publica do restaurante no gateway, para inicializar o SDK. Nula quando nao ha credencial cadastrada.
+       */
+      public_key?: string | null;
+    };
+    /**
      * PaymentErrorCode
      * @description Os desfechos possiveis de uma cobranca que nao pode ser criada.
      *
@@ -5630,7 +5786,12 @@ export interface components {
      *     tambem e a fonte unica dos codigos — PaymentService importa daqui.
      * @enum {string}
      */
-    PaymentErrorCode: 'gateway_unavailable' | 'payment_unavailable' | 'payment_rejected';
+    PaymentErrorCode:
+      | 'gateway_unavailable'
+      | 'payment_unavailable'
+      | 'payment_rejected'
+      | 'login_required'
+      | 'card_token_required';
     /**
      * PaymentErrorDetail
      * @description O `detail` quando a cobranca nao pode ser criada.
@@ -6565,17 +6726,38 @@ export interface components {
       revenue_total: string;
     };
     /**
+     * StartPaymentRequest
+     * @description Corpo da criacao da cobranca.
+     *
+     *     OPCIONAL, e isso e o contrato: pix continua sendo um POST sem corpo, como
+     *     era antes do cartao existir, entao quem ja integrou nao muda nada. `card`
+     *     so e exigido quando a forma de pagamento do pedido e cartao.
+     */
+    StartPaymentRequest: {
+      card?: components['schemas']['CardPaymentPayload'] | null;
+    };
+    /**
      * StartPaymentResponse
      * @description Resposta da criacao da cobranca.
      *
-     *     `checkout_url` e `qr_code` sao alternativos e dependem do gateway e do
-     *     metodo: pix costuma vir com qr_code, cartao com url. O sandbox nao
-     *     devolve nenhum dos dois — nao ha para onde mandar o cliente.
+     *     `checkout_url` e `qr_code` sao do pix (o "copia e cola" e a pagina
+     *     hospedada). O sandbox nao devolve nenhum dos dois — nao ha para onde
+     *     mandar o cliente. Cartao nao devolve nenhum dos dois tampouco: nao ha
+     *     para onde ir, o desfecho ja esta em `payment_status`.
+     *
+     *     **`payment_status` e o campo que muda de significado por metodo**, e o
+     *     front precisa saber disso:
+     *
+     *         pix       sempre "pending" — o veredito vem por webhook depois
+     *         cartao    o VEREDITO, ja: "paid", "failed" ou "in_review"
      */
     StartPaymentResponse: {
       /** Checkout Url */
       checkout_url?: string | null;
-      /** Payment Status */
+      /**
+       * Payment Status
+       * @description Estado do pagamento. No pix e sempre 'pending'; no cartao ja e o desfecho ('paid', 'failed' ou 'in_review').
+       */
       payment_status: string;
       /** Provider */
       provider: string;
@@ -6583,6 +6765,12 @@ export interface components {
       provider_payment_id: string;
       /** Qr Code */
       qr_code?: string | null;
+      /**
+       * Status Detail
+       * @description Motivo cru do gateway, so no cartao. Distingue recusas que pedem coisas diferentes do cliente — 'cc_rejected_insufficient_amount' (tentar outro cartao) de 'cc_rejected_bad_filled_security_code' (redigitar o CVV).
+       * @example cc_rejected_insufficient_amount
+       */
+      status_detail?: string | null;
     };
     /** StatusHistoryResponse */
     StatusHistoryResponse: {
@@ -7901,6 +8089,26 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  list_coupon_templates_admin_coupon_templates_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CouponTemplateResponse'][];
         };
       };
     };
@@ -10504,7 +10712,11 @@ export interface operations {
       };
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['StartPaymentRequest'] | null;
+      };
+    };
     responses: {
       /** @description Successful Response */
       200: {
@@ -10513,6 +10725,24 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['StartPaymentResponse'];
+        };
+      };
+      /** @description Cobranca de cartao sem o token do navegador */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PaymentErrorResponse'];
+        };
+      };
+      /** @description Cartao exige cliente autenticado */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PaymentErrorResponse'];
         };
       };
       /** @description Validation Error */
@@ -10540,6 +10770,37 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['PaymentErrorResponse'];
+        };
+      };
+    };
+  };
+  get_payment_config_restaurants__restaurant_slug__payment_config_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        restaurant_slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PaymentConfigResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };
