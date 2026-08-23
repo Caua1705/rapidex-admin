@@ -587,11 +587,33 @@ for (const largura of [640, 768, 1024, 1440]) {
  * detalhe, e `/admin/orders` busca por NOME, não por telefone — o link juntaria
  * duas "Ana Paula". Este teste trava a ausência de propósito, para que ela não
  * volte como um link plausível numa rodada distraída.
+ *
+ * ============================================================================
+ * A EXCEÇÃO: `tel:` NÃO É NAVEGAÇÃO
+ * ============================================================================
+ *
+ * Este teste começou proibindo QUALQUER link na linha, e a guarda era ampla de
+ * propósito. O telefone discável a atravessou, e ele é legítimo pelo que a
+ * própria guarda protege: `tel:` não abre tela nenhuma do painel, não inventa
+ * rota de detalhe e não busca pedido nenhum por nome — ele entrega o número ao
+ * discador do aparelho e o painel fica onde estava. O risco que o comentário
+ * acima nomeia (duas "Ana Paula" juntadas por uma busca) continua impossível.
+ *
+ * Então a guarda ESTREITA em vez de sair: nada de `href` que navegue dentro do
+ * painel, e o único link tolerado é o de discagem. Uma rodada distraída que
+ * ponha um `<Link to=...>` aqui continua batendo neste teste.
  */
 test('a linha não é clicável: não há rota de detalhe do cliente', async ({ page }) => {
   await abrirClientes(page);
 
   const ana = page.getByRole('row').filter({ hasText: 'Ana Paula' });
-  await expect(ana.getByRole('link')).toHaveCount(0);
   await expect(ana.getByRole('button')).toHaveCount(0);
+
+  // Nenhum link que navegue no painel — nem absoluto, nem relativo.
+  await expect(ana.locator('a[href^="/"], a[href^="."], a[href^="http"]')).toHaveCount(0);
+
+  // E o único que existe é o que disca, com o número desta linha.
+  const links = ana.getByRole('link');
+  await expect(links).toHaveCount(1);
+  await expect(links).toHaveAttribute('href', 'tel:+5585999990000');
 });

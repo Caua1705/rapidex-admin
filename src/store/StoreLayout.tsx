@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import { PageBar } from '../ds/PageBar';
+import { useKeepActiveInView } from '../ds/useKeepActiveInView';
 
 import { useAdoptedBranch } from '../auth/use-branch-scope';
 import { usePermissoes } from '../auth/use-permissions';
@@ -80,6 +81,13 @@ export function StoreLayout() {
    * ele lê como o que é: "Minha loja › Horários de funcionamento".
    */
   const secaoAberta = STORE_SECTIONS.find((secao) => rota.endsWith(`/${secao.id}`));
+  /*
+   * NO TELEFONE ESTA COLUNA VIRA UMA FITA HORIZONTAL de oito seções que
+   * transborda 271px. Ela nascia em zero, então quem abria Impressão ou
+   * Pagamento via cinco OUTRAS seções e nenhuma marcada — a única pista de
+   * "onde estou" era a migalha na faixa do topo.
+   */
+  const { fitaRef, ativoRef } = useKeepActiveInView<HTMLElement>(secaoAberta?.id ?? null);
   const { pode } = usePermissoes();
   /*
    * AS SEÇÕES QUE ESTE PAPEL ALCANÇA.
@@ -180,7 +188,7 @@ export function StoreLayout() {
           sem plano próprio: a lateral do painel diz em que parte do PRODUTO
           você está; isto diz em que parte de UMA tela.
         */}
-        <nav className="store__index" aria-label="Seções de Minha loja">
+        <nav className="store__index" aria-label="Seções de Minha loja" ref={fitaRef}>
           {/*
             NENHUMA SEÇÃO FICA ATENUADA. As de filial já ficaram, quando abri-las
             sem filial escolhida levava a um bloco que pedia uma — a atenuação era
@@ -194,6 +202,12 @@ export function StoreLayout() {
               key={secao.id}
               to={secao.id}
               className={({ isActive }) => `store__anchor${isActive ? ' store__anchor--on' : ''}`}
+              /* Ver `useKeepActiveInView`: no telefone esta coluna é uma fita, e
+                 a seção aberta pode ser a oitava. Ref de função porque o alvo é
+                 um `<a>` e o hook guarda um `HTMLElement` qualquer. */
+              ref={(el) => {
+                if (secao.id === secaoAberta?.id) ativoRef.current = el;
+              }}
               data-testid={`store-anchor-${secao.id}`}
             >
               {secao.label}

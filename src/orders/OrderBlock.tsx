@@ -29,12 +29,18 @@ export function OrderBlock({
   windowMinutes,
   selectedOrderId,
   onOpenOrder,
+  onAdvanceOrder,
+  advancingOrderId,
 }: {
   lane: Lane;
   orders: OrderListItem[];
   windowMinutes: number | null;
   selectedOrderId: string | null;
   onOpenOrder: (orderId: string) => void;
+  /** O avanço na própria linha — ver `OrderLine`. */
+  onAdvanceOrder: (orderId: string, target: string) => void;
+  /** Qual linha tem transição em voo, se alguma. */
+  advancingOrderId: string | null;
 }) {
   if (orders.length === 0) return null;
 
@@ -56,6 +62,8 @@ export function OrderBlock({
           windowMinutes={windowMinutes}
           isSelected={order.id === selectedOrderId}
           onOpen={() => onOpenOrder(order.id)}
+          onAdvance={onAdvanceOrder}
+          isAdvancing={order.id === advancingOrderId}
         />
       ))}
     </section>

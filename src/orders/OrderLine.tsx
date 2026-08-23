@@ -10,7 +10,8 @@ import {
   formatTime,
   labelFor,
 } from './format';
-import { isAwaitingOnlinePayment, stageOf } from './order-status';
+import { advanceActionFor } from './order-actions';
+import { checkTransition, isAwaitingOnlinePayment, stageOf } from './order-status';
 
 /**
  * O PEDIDO NA LISTA — e este arquivo é só o TRADUTOR.
@@ -32,6 +33,8 @@ export function OrderLine({
   windowMinutes = null,
   isSelected,
   onOpen,
+  onAdvance,
+  isAdvancing = false,
 }: {
   order: OrderListItem;
   /**
@@ -48,8 +51,50 @@ export function OrderLine({
   windowMinutes?: number | null;
   isSelected: boolean;
   onOpen: () => void;
+  /**
+   * AVANÇAR O PEDIDO SEM ABRIR O DETALHE — só existe no quadro "Em andamento".
+   *
+   * Ausente no histórico, onde não há o que avançar; e ausente também é o que
+   * um dia desliga a ação por papel, sem esta linha precisar saber de papel.
+   */
+  onAdvance?: (orderId: string, target: string) => void;
+  /** Esta linha tem uma transição em voo. */
+  isAdvancing?: boolean;
 }) {
   const awaitingPayment = isAwaitingOnlinePayment(order.payment_status);
+
+  /*
+   * ============================================================================
+   * O AVANÇO DA LINHA
+   * ============================================================================
+   *
+   * É O MESMO MAPA DO RODAPÉ DO DETALHE (`order-actions.ts`), lido aqui: um
+   * avanço por estágio, com o rótulo curto. Duas listas de "qual é o próximo
+   * passo" é como o rodapé passa a oferecer uma coisa e a linha outra.
+   *
+   * E É A MESMA TRAVA (`checkTransition`). A diferença é o que se faz com ela:
+   * o rodapé desenha o botão travado E ESCREVE O MOTIVO ao lado, porque lá há
+   * uma linha inteira para a frase. Aqui não há — então travado o botão
+   * simplesmente NÃO EXISTE, e quem responde "por que não dá" é o alerta que já
+   * ocupa a fileira de apoio desta linha ("Aguardando pagamento · não
+   * preparar"). Um alvo morto de 44px na quina do polegar, sem motivo escrito
+   * ao lado, é só um convite a insistir.
+   */
+  const avanco = advanceActionFor(order);
+  const liberado = avanco !== null && checkTransition(order, avanco.target).allowed;
+  const acao =
+    avanco && liberado && onAdvance
+      ? {
+          label: avanco.short,
+          sending: avanco.sending,
+          isSending: isAdvancing,
+          onAvancar: () => onAdvance(order.id, avanco.target),
+          /* O verbo inteiro para quem ouve a tela: cinquenta "Aceitar" iguais
+             não dizem qual pedido está sendo aceito. */
+          'aria-label': `${avanco.label} #${order.order_number}`,
+          'data-testid': `row-advance-${order.order_number}`,
+        }
+      : undefined;
 
   return (
     <OrderRow
@@ -92,6 +137,7 @@ export function OrderLine({
         ) : undefined
       }
       total={formatCurrency(order.total)}
+      acao={acao}
       selected={isSelected}
       onOpen={onOpen}
       data-testid={`order-card-${order.order_number}`}

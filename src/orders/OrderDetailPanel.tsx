@@ -5,7 +5,7 @@ import { fetchOrderDetail } from '../api/orders';
 import type { OrderDetail, OrderItem } from '../api/types';
 import { XIcon } from '../ds/icons';
 import { StatusChip } from '../ds/StatusChip';
-import { customerHistoryLine, formatPhone } from '../customers/customer-model';
+import { customerHistoryLine, formatPhone, phoneHref } from '../customers/customer-model';
 import { CancelOrderDialog } from './CancelOrderDialog';
 import { RejectOrderDialog } from './RejectOrderDialog';
 import { advanceActionFor, exitActionFor, type ConfirmKind } from './order-actions';
@@ -369,8 +369,14 @@ function DetailBody({ detail, branchId }: { detail: OrderDetail; branchId: strin
             alta para discar, e um bloco de onze dígitos corridos obriga a pessoa
             a contar com o dedo na tela — o painel era o único lugar que ainda o
             mostrava cru.
+
+            E AGORA ELE DISCA. Este painel é a tela inteira no celular, e é aqui
+            que o dono está quando precisa ligar para o cliente — endereço que
+            não fecha, item que acabou. Ver `phoneHref`: o texto continua sendo
+            o que se lê, o `href` é o que o aparelho entende. Sem número
+            discável, volta a ser um `<span>` — link morto é pior que texto.
           */}
-          <span className="tnum">{formatPhone(detail.customer_phone_snapshot)}</span>
+          <TelefoneDoCliente phone={detail.customer_phone_snapshot} />
         </div>
 
         {/*
@@ -482,6 +488,26 @@ function DetailBody({ detail, branchId }: { detail: OrderDetail; branchId: strin
         </ul>
       </section>
     </div>
+  );
+}
+
+/**
+ * O telefone do cliente — link de discagem quando dá, texto quando não dá.
+ *
+ * Ele leva `.tnum`? NÃO, e é a mesma regra de `formatPhone`: telefone não é
+ * número comparável descendo uma coluna. Aqui ele estava com `.tnum` por
+ * engano de cópia, e a troca corrige isso de passagem.
+ */
+function TelefoneDoCliente({ phone }: { phone: string }) {
+  const href = phoneHref(phone);
+  const texto = formatPhone(phone);
+
+  if (!href) return <span>{texto}</span>;
+
+  return (
+    <a className="detail__fone" href={href} data-testid="customer-phone-link">
+      {texto}
+    </a>
   );
 }
 

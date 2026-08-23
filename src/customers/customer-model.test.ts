@@ -8,6 +8,7 @@ import {
   formatPhone,
   formatSince,
   phoneDigits,
+  phoneHref,
 } from './customer-model';
 import type { CustomerListItem } from '../api/types';
 
@@ -158,6 +159,45 @@ describe('phoneDigits', () => {
   it('devolve o que não é número brasileiro sem mutilar', () => {
     expect(phoneDigits('+1 415 555 0100')).toBe('14155550100');
     expect(phoneDigits('')).toBe('');
+  });
+});
+
+describe('phoneHref', () => {
+  /*
+   * ELE É PARA DISCAR, NÃO PARA LER. `formatPhone` escreve o que aparece na
+   * tela; isto escreve o que o aparelho recebe. Se as duas coisas se
+   * confundirem, o link sai com parênteses e traço e o discador do telefone
+   * erra o número — que é pior do que não oferecer link nenhum.
+   */
+  it('monta o `tel:` em formato de discagem, com o país', () => {
+    expect(phoneHref('(85) 99999-0000')).toBe('tel:+5585999990000');
+    expect(phoneHref('85999990000')).toBe('tel:+5585999990000');
+    expect(phoneHref('(85) 3222-4444')).toBe('tel:+558532224444');
+  });
+
+  it('não repete o 55 de quem já veio com ele', () => {
+    expect(phoneHref('5585999990000')).toBe('tel:+5585999990000');
+    expect(phoneHref('+55 85 99999-0000')).toBe('tel:+5585999990000');
+  });
+
+  /*
+   * O CASO QUE FAZ DISCAR ERRADO. "+1 415 555 0100" tem onze dígitos, igual a
+   * um celular brasileiro — a contagem sozinha diria "é do Brasil" e o link
+   * sairia como +55 1415555010. O `+` escrito no cadastro é o que impede.
+   */
+  it('respeita o país que o cadastro já afirma', () => {
+    expect(phoneHref('+1 415 555 0100')).toBe('tel:+14155550100');
+  });
+
+  it('entrega os dígitos crus quando não sabe ler o formato', () => {
+    expect(phoneHref('0800 111 2233')).toBe('tel:08001112233');
+  });
+
+  /* Sem número não há link: um `<a href>` morto é pior que texto. */
+  it('devolve nulo quando não há o que discar', () => {
+    expect(phoneHref('')).toBeNull();
+    expect(phoneHref('1234')).toBeNull();
+    expect(phoneHref('sem telefone')).toBeNull();
   });
 });
 

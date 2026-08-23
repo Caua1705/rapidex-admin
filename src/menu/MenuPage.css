@@ -1111,6 +1111,15 @@
   .rail__reorder {
     opacity: 1;
   }
+
+  /*
+   * A FITA DE CATEGORIAS MEDIA 42px — dois a menos que o dedo pede, e por
+   * acidente: a altura vinha do conteúdo (nome + contagem) e não de uma régra.
+   * Aqui ela passa a ser dita.
+   */
+  .rail__select {
+    min-height: var(--tap-mobile);
+  }
 }
 
 /* ==========================================================================

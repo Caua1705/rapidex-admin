@@ -224,6 +224,40 @@
 }
 
 /*
+ * O TELEFONE QUE DISCA (ver `TelefoneDoCliente`).
+ *
+ * Ele NÃO é sublinhado nem pintado de link: numa lista de pares rótulo/valor,
+ * um azul sublinhado no meio de seis linhas de texto seria a coisa mais forte
+ * do bloco, e o que se lê aqui antes de aceitar é o pedido, não o telefone. O
+ * que diz que ele é tocável é a área de toque de 44px — que no celular é a
+ * affordance de verdade — e o realce de plano ao apertar.
+ *
+ * Só existe onde não há ponteiro: no computador ninguém liga pelo navegador, e
+ * um alvo de 44px numa linha de 20px arrombaria o ritmo do bloco.
+ */
+.detail__fone {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+@media (hover: none) {
+  .detail__fone {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-mobile);
+    margin-block: calc(var(--tap-mobile) / -2 + var(--tb-line) / 2);
+    padding-inline: var(--sp-8);
+    margin-right: calc(var(--sp-8) * -1);
+    border-radius: var(--r-chip);
+    transition: background var(--motion-fast) var(--ease);
+  }
+
+  .detail__fone:active {
+    background: var(--active);
+  }
+}
+
+/*
  * O TOTAL. Ele é o número que se confere no caixa, e ganha o mesmo corpo de
  * alta prioridade que o cronômetro da linha (`--row-time-*`) — é a régua do
  * sistema para "número que se lê antes do texto em volta".
@@ -490,10 +524,17 @@
     flex-basis: 100%;
   }
 
+  /*
+   * Com `viewport-fit=cover` (ver index.html) o painel de tela cheia encosta
+   * nas bordas físicas do aparelho: deitado, o notch entra pela lateral e
+   * comeria a primeira letra de "Recusar pedido". Em pé os dois `env()` valem
+   * zero e o respiro é o mesmo de sempre.
+   */
   .panel__header,
   .panel__body,
   .panel__footer {
-    padding-inline: var(--page-pad-mobile);
+    padding-left: max(var(--page-pad-mobile), env(safe-area-inset-left));
+    padding-right: max(var(--page-pad-mobile), env(safe-area-inset-right));
   }
 
   /*

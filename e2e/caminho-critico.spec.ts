@@ -201,12 +201,92 @@ test('os adicionais aparecem recuados e agrupados por grupo', async ({ page }) =
   await expect(painel).not.toContainText('não vêm no contrato');
 });
 
+/*
+ * ============================================================================
+ * ACEITAR SEM ABRIR O DETALHE — o caminho do telefone
+ * ============================================================================
+ *
+ * A CONTA QUE ELE PAGA. Aceitar um pedido no celular custava quatro toques:
+ * tocar a linha, esperar o painel de TELA CHEIA, apertar "Aceitar pedido" e
+ * apertar "Fechar detalhe" — que media 28×34 — para reencontrar a lista. É o
+ * caminho mais caro do painel, e é a ação mais frequente do turno.
+ *
+ * O TESTE RODA EM 390px porque o avanço na linha só existe no layout compacto:
+ * no largo o detalhe é uma coluna permanente ao lado, com o mesmo botão e sem
+ * nenhum desvio a poupar.
+ */
+test('no telefone, aceita o pedido pela própria linha, sem abrir o detalhe', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await fazerLogin(page);
+
+  await expect(page.locator('[data-lane="novos"] [data-testid="order-card-1002"]')).toBeVisible();
+
+  /*
+   * O VERBO É O CURTO, e ele vem do MESMO mapa do rodapé do detalhe
+   * (`order-actions.ts`). Duas listas de "qual é o próximo passo" é como o
+   * rodapé passa a oferecer uma coisa e a linha outra.
+   */
+  const avancar = page.getByTestId('row-advance-1002');
+  await expect(avancar).toHaveText('Aceitar');
+
+  /*
+   * O ALVO TEM 44px DE VERDADE, não área estendida: o irmão dele é o botão que
+   * ABRE o detalhe e ocupa todo o resto da linha. Uma sobra invisível cairia em
+   * cima dele, e o dedo que erra por 4px abriria o pedido em vez de aceitá-lo.
+   */
+  const alvo = await avancar.boundingBox();
+  expect(alvo?.height).toBeGreaterThanOrEqual(44);
+
+  await avancar.click();
+
+  /*
+   * O pedido mudou de bloco sozinho, sem recarregar. "Aceito" e "Preparando"
+   * dividem o bloco `preparo` (ver `board-lanes`): para quem olha o quadro, o
+   * pedido já está com a cozinha.
+   */
+  await expect(page.locator('[data-lane="preparo"] [data-testid="order-card-1002"]')).toBeVisible();
+  await expect(page.locator('[data-lane="novos"] [data-testid="order-card-1002"]')).toHaveCount(0);
+
+  /*
+   * E A LISTA CONTINUOU NA TELA. É o ganho inteiro: no telefone o painel é a
+   * tela cheia, então abri-lo é perder de vista os outros pedidos — e voltar
+   * custava achar o "Fechar detalhe" no canto de cima.
+   */
+  /*
+   * `not.toBeVisible()` e não `toHaveCount(0)`: o painel existe no DOM em
+   * qualquer largura — é a coluna permanente do desktop — e quem o tira da
+   * frente no telefone é `.panel--vazio { display: none }`. O que importa aqui
+   * é que ele NÃO COBRIU A TELA, não que ele tenha sido desmontado.
+   */
+  await expect(page.getByTestId('order-panel')).not.toBeVisible();
+  await expect(page.getByTestId('board-lanes')).toBeVisible();
+
+  // E o verbo do novo estágio já está na linha, pronto para o próximo passo.
+  await expect(page.getByTestId('row-advance-1002')).toHaveText('Preparar');
+});
+
 test('pedido com pagamento online não confirmado fica destacado e travado', async ({ page }) => {
   await fazerLogin(page);
 
   const cardNaoPago = page.getByTestId('order-card-1001');
-  await expect(cardNaoPago).toHaveClass(/ds-row--alerta/);
+  /*
+   * O MODIFICADOR É DA LINHA, NÃO DO BOTÃO. `order-card-1001` identifica o
+   * botão que ABRE o detalhe; quem carrega a régua, o fio do estágio e o
+   * alerta é a `.ds-row` em volta dele. A linha deixou de ser um `<button>`
+   * quando o avanço passou a morar nela — botão não aninha botão. Ver o
+   * cabeçalho de `ds/OrderRow`.
+   */
+  const linhaNaoPaga = page.locator('.ds-row').filter({ has: cardNaoPago });
+  await expect(linhaNaoPaga).toHaveClass(/ds-row--alerta/);
   await expect(cardNaoPago).toContainText('não preparar');
+
+  /*
+   * E A LINHA NÃO OFERECE O AVANÇO. No telefone o "Aceitar" mora na própria
+   * linha; aqui ele não pode existir, porque o backend recusaria — e um alvo
+   * morto de 44px na quina do polegar, sem o motivo escrito ao lado, é só um
+   * convite a insistir. Quem responde "por que não dá" é o alerta acima.
+   */
+  await expect(page.getByTestId('row-advance-1001')).toHaveCount(0);
 
   await cardNaoPago.click();
   const painel = page.getByTestId('order-panel');

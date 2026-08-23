@@ -206,7 +206,14 @@ export function OrdersToolbar({
               }
               data-testid={`orders-period-${periodo.value}`}
             >
-              {periodo.label}
+              {/*
+                O RÓTULO NUM FILHO PRÓPRIO, e é ele que leva a sublinha do
+                ativo. No toque o botão cresce para 44px de alvo (ver
+                `OrdersPage.css`), e uma sublinha desenhada na borda do BOTÃO
+                desceria junto — 11px abaixo da letra, solta. No `<span>` ela
+                continua colada no texto, que é onde a marcação significa.
+              */}
+              <span className="filtros__periodo-rotulo">{periodo.label}</span>
             </button>
           ))}
         </div>

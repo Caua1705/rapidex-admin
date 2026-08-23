@@ -9,7 +9,7 @@ import { branchName } from '../layout/branch-heading';
 import { formatCurrency, formatDate } from '../orders/format';
 import { CustomerFilterPanel } from './CustomerFilterPanel';
 import { NO_FILTERS, hasActiveFilters, type CustomerFilterState } from './customer-filters';
-import { customerKey, customerName, formatPhone, formatSince } from './customer-model';
+import { customerKey, customerName, formatPhone, formatSince, phoneHref } from './customer-model';
 import { billableNote, formatAverageTicket } from './customer-segment';
 import { SegmentTag } from './SegmentTag';
 import { useCustomers } from './useCustomers';
@@ -180,8 +180,14 @@ export function CustomersPage() {
           cinquenta títulos. Quem identifica a linha é o peso, não o corpo.
         */}
           <span className="cliente__nome">{customerName(customer)}</span>
-          {/* Telefone NÃO leva `.tnum`: não é número que se compara em coluna. */}
-          <span className="t-aux cliente__fone">{formatPhone(customer.customer_phone)}</span>
+          {/*
+            Telefone NÃO leva `.tnum`: não é número que se compara em coluna.
+
+            E ELE DISCA NO CELULAR — ver `phoneHref`. Esta lista é a agenda da
+            loja, e a única coisa que se faz com um cliente a partir dela é
+            ligar. Sem número discável volta a ser texto: link morto é pior.
+          */}
+          <TelefoneDoCliente phone={customer.customer_phone} />
         </span>
       ),
       classe: <SegmentTag customer={customer} />,
@@ -438,6 +444,26 @@ export function CustomersPage() {
         ) : null}
       </div>
     </div>
+  );
+}
+
+/**
+ * O telefone da linha — link de discagem quando dá, texto quando não dá.
+ *
+ * Gêmeo do que existe em `orders/OrderDetailPanel`, e os dois são pequenos o
+ * bastante para viverem cada um na sua tela: o que precisava ser um só é a
+ * REGRA de montar o `href`, e ela está em `customer-model` (`phoneHref`).
+ */
+function TelefoneDoCliente({ phone }: { phone: string }) {
+  const href = phoneHref(phone);
+  const texto = formatPhone(phone);
+
+  if (!href) return <span className="t-aux cliente__fone">{texto}</span>;
+
+  return (
+    <a className="t-aux cliente__fone" href={href} data-testid="customer-phone-link">
+      {texto}
+    </a>
   );
 }
 

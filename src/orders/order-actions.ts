@@ -40,6 +40,25 @@
  * O QUE ESTE MÓDULO NÃO DECIDE: se o botão pode ser apertado AGORA. Isso é
  * `checkTransition` em `order-status.ts`, e continua sendo — aqui só se decide
  * QUAL botão existe.
+ *
+ * ============================================================================
+ * O AVANÇO SAIU DO RODAPÉ E FOI TAMBÉM PARA A LINHA
+ * ============================================================================
+ *
+ * Este mapa nasceu para o rodapé do detalhe. Hoje ele serve DOIS lugares, e é
+ * de propósito que seja o mesmo mapa: no telefone, o avanço aparece na própria
+ * linha da lista (ver `ds/OrderRow`).
+ *
+ * O motivo é medido. Aceitar um pedido no celular custava quatro toques —
+ * tocar a linha, esperar o painel de tela cheia, apertar "Aceitar pedido",
+ * apertar "Fechar detalhe" (que media 28×34) para reencontrar a lista. É o
+ * caminho mais caro do painel e é a ação mais frequente do turno.
+ *
+ * O QUE NÃO FOI PARA A LINHA: a SAÍDA. Recusar e cancelar são irreversíveis e
+ * pedem confirmação; ao lado do avanço, numa linha de 90px de altura tocada com
+ * o polegar, seriam dois alvos vizinhos com consequências opostas. A saída
+ * continua a um toque de distância, dentro do detalhe, que é onde se lê o
+ * pedido antes de negá-lo.
  */
 import { isTerminalStatus, type OrderStatus } from './order-status';
 
@@ -51,6 +70,20 @@ export type OrderAction = {
   target: OrderStatus;
   /** O que o botão diz — sempre um verbo, nunca o nome do estado. */
   label: string;
+  /**
+   * O MESMO VERBO, NO TAMANHO DA LINHA.
+   *
+   * O avanço deixou de morar só no rodapé do detalhe: ele aparece também na
+   * LINHA da lista, no telefone (ver `ds/OrderRow`). Lá "Marcar como pronto"
+   * mede mais que o nome do cliente ao lado, então o rótulo encolhe — mas
+   * encolhe AQUI, no mesmo mapa, e não numa segunda tabela em outro arquivo.
+   * Duas listas de rótulo para a mesma ação é como o rodapé passa a dizer uma
+   * coisa e a linha outra.
+   *
+   * Continua sendo VERBO, pela mesma razão do `label`: "Pronto" é o nome do
+   * estado e leria como "já está pronto".
+   */
+  short: string;
   /** O que ele diz enquanto o backend responde. */
   sending: string;
   /** `null` quando a ação vai direto: avançar o pedido tem desfazer. */
@@ -60,8 +93,8 @@ export type OrderAction = {
 /** O pedido, pelo pouco que estas regras precisam saber dele. */
 export type ActionSubject = { status: string; order_type: string };
 
-function avanco(target: OrderStatus, label: string): OrderAction {
-  return { target, label, sending: 'Enviando…', confirm: null };
+function avanco(target: OrderStatus, label: string, short: string): OrderAction {
+  return { target, label, short, sending: 'Enviando…', confirm: null };
 }
 
 /**
@@ -73,11 +106,11 @@ function avanco(target: OrderStatus, label: string): OrderAction {
 export function advanceActionFor(order: ActionSubject): OrderAction | null {
   switch (order.status) {
     case 'pending':
-      return avanco('accepted', 'Aceitar pedido');
+      return avanco('accepted', 'Aceitar pedido', 'Aceitar');
     case 'accepted':
-      return avanco('preparing', 'Iniciar preparo');
+      return avanco('preparing', 'Iniciar preparo', 'Preparar');
     case 'preparing':
-      return avanco('ready', 'Marcar como pronto');
+      return avanco('ready', 'Marcar como pronto', 'Marcar pronto');
     /*
      * DE "PRONTO" QUEM ESCOLHE É A MODALIDADE. A retirada não sai para
      * entrega (o backend recusa, e `checkTransition` já dizia isso), então
@@ -87,10 +120,10 @@ export function advanceActionFor(order: ActionSubject): OrderAction | null {
      */
     case 'ready':
       return order.order_type === 'delivery'
-        ? avanco('out_for_delivery', 'Enviar para entrega')
-        : avanco('completed', 'Concluir pedido');
+        ? avanco('out_for_delivery', 'Enviar para entrega', 'Despachar')
+        : avanco('completed', 'Concluir pedido', 'Concluir');
     case 'out_for_delivery':
-      return avanco('completed', 'Concluir pedido');
+      return avanco('completed', 'Concluir pedido', 'Concluir');
     default:
       return null;
   }
@@ -111,6 +144,7 @@ export function exitActionFor(order: ActionSubject, podeCancelar: boolean): Orde
     return {
       target: 'rejected',
       label: 'Recusar pedido',
+      short: 'Recusar',
       sending: 'Recusando…',
       confirm: 'recusar',
     };
@@ -121,6 +155,7 @@ export function exitActionFor(order: ActionSubject, podeCancelar: boolean): Orde
   return {
     target: 'cancelled',
     label: 'Cancelar pedido',
+    short: 'Cancelar',
     sending: 'Cancelando…',
     confirm: 'cancelar',
   };

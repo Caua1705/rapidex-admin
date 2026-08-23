@@ -12,23 +12,45 @@
  * bloco e outro.
  */
 
+/*
+ * A LINHA É A MOLDURA; O BOTÃO É O QUE SE LÊ.
+ *
+ * `.ds-row` deixou de ser o `<button>` (ver o cabeçalho de `OrderRow.tsx`: a
+ * ação da linha não podia ser filha dele). O que ficou aqui é tudo que
+ * representa a LINHA INTEIRA — a régua, o plano de seleção, o realce de
+ * ponteiro —, para que o avanço ao lado esteja dentro do mesmo realce e a
+ * régua termine na margem, e não antes do botão.
+ */
 .ds-row {
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+  transition: background var(--motion-fast) var(--ease);
+}
+
+/*
+ * O BOTÃO DE ABRIR carrega a GRADE, que continua vindo de fora
+ * (`--grade-pedido`, declarada uma vez na lista). Ele toma a largura que sobra:
+ * sem avanço ao lado, isso é a linha inteira, e o desenho largo é exatamente o
+ * que sempre foi.
+ */
+.ds-row__abrir {
+  flex: 1;
+  min-width: 0;
   display: grid;
   grid-template-columns: var(--grade-pedido);
   align-items: center;
   column-gap: var(--sp-8);
-  width: 100%;
   min-height: var(--row-h);
   padding: var(--sp-8) var(--page-pad) var(--sp-8) 0;
   border: 0;
-  border-top: 1px solid var(--line);
   border-radius: 0;
   background: none;
-  color: var(--ink);
+  color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background var(--motion-fast) var(--ease);
 }
 
 .ds-row:hover {
@@ -37,6 +59,16 @@
 
 .ds-row--selecionada {
   background: var(--surface-selected);
+}
+
+/*
+ * O AVANÇO NÃO EXISTE NO LAYOUT LARGO. Ali o detalhe é uma coluna permanente
+ * ao lado com o mesmo botão: repetir o único primário do pedido em cinquenta
+ * linhas encheria a tela de laranja para não poupar toque nenhum — a coluna já
+ * está aberta. Ele volta no compacto, no fim deste arquivo.
+ */
+.ds-row__acao {
+  display: none;
 }
 
 /*
@@ -279,14 +311,12 @@
  * sem um elemento a mais na árvore de acessibilidade.
  */
 @container lista (max-width: 700px) {
+  /*
+   * O FIO DO ESTÁGIO FICA NA LINHA, não no botão: ele marca a linha inteira, e
+   * no botão pararia antes do avanço ao lado.
+   */
   .ds-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    column-gap: var(--sp-8);
-    row-gap: var(--sp-4);
-    min-height: var(--row-touch-h);
-    padding: var(--sp-12) var(--page-pad-mobile);
+    align-items: stretch;
     box-shadow: inset 2px 0 0 var(--st);
   }
 
@@ -294,11 +324,101 @@
     box-shadow: inset 2px 0 0 var(--danger);
   }
 
-  .ds-row::after {
+  .ds-row__abrir {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: var(--sp-8);
+    row-gap: var(--sp-4);
+    min-height: var(--row-touch-h);
+    padding: var(--sp-12) var(--page-pad-mobile);
+  }
+
+  /*
+   * COM AVANÇO AO LADO, o respiro da direita passa a ser do botão: mantê-lo
+   * aqui somaria 16px ao vão entre o texto e a ação, e o nome do cliente
+   * pagaria a conta.
+   */
+  .ds-row--com-acao .ds-row__abrir {
+    padding-right: var(--sp-8);
+  }
+
+  .ds-row__abrir::after {
     content: '';
     order: 4;
     flex: 0 0 100%;
     height: 0;
+  }
+
+  /*
+   * ==========================================================================
+   * O AVANÇO NA LINHA
+   * ==========================================================================
+   *
+   * A CONTA QUE ELE PAGA: aceitar um pedido no telefone custava tocar a linha,
+   * esperar o painel de tela cheia, apertar "Aceitar pedido" e apertar "Fechar
+   * detalhe" para reencontrar a lista. Quatro toques na ação mais frequente do
+   * turno, um deles num alvo de 28×34.
+   *
+   * ELE FICA AO LADO DAS DUAS FILEIRAS, e não numa terceira. Numa fileira
+   * própria a linha passaria de 76px para ~132px e a lista mostraria três
+   * pedidos onde mostrava seis — e a régua do telefone é justamente "ver os 3
+   * novos", não trocar seis por três. Ao lado, ele cabe na altura que a linha
+   * já tinha: 44px de botão dentro de 76px de linha.
+   *
+   * O NOME DO CLIENTE CEDE ~70px e continua o campo que mais cresce da fileira
+   * de cima. Com o avanço presente, quem sobra na linha é o que identifica o
+   * pedido; o resto está a um toque, no detalhe.
+   */
+  .ds-row__acao {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    padding-right: var(--page-pad-mobile);
+  }
+
+  /*
+   * A COLUNA DA AÇÃO TEM LARGURA FIXA, e é isso que devolve o alinhamento à
+   * lista. Os verbos têm tamanhos diferentes ("Aceitar" mede 61px, "Marcar
+   * pronto" mede 95), e com o botão encolhendo junto com a palavra o VALOR de
+   * cada linha parava numa abscissa diferente — o único número que se confere
+   * descendo a lista passava a dançar de linha para linha.
+   *
+   * 100px é o mais largo dos cinco verbos com respiro. Custa ~35px do nome do
+   * cliente na linha de "Aceitar"; devolve uma coluna reta.
+   */
+  .ds-row__acao .ds-row__avancar {
+    min-width: 100px;
+  }
+
+  /*
+   * E O SEPARADOR DA MODALIDADE SAI. Com a ação ao lado, a fileira de apoio
+   * perde ~100px e "Dinheiro Paga na entrega" desce para uma linha própria —
+   * deixando o "·" da modalidade pendurado no fim da linha de cima, apontando
+   * para nada. Mesma regra, e mesmo motivo, do caso `--alerta` logo abaixo.
+   */
+  .ds-row--com-acao .ds-row__modalidade::after {
+    content: none;
+  }
+
+  /*
+   * 44px DE VERDADE, não alvo estendido. O irmão dele é o botão de ABRIR, que
+   * ocupa todo o resto da linha: uma área invisível transbordando para a
+   * esquerda cairia em cima dele, e o dedo que erra por 4px abriria o detalhe
+   * em vez de aceitar — ou pior, aceitaria quando queria só olhar.
+   */
+  /*
+   * O SELETOR É QUALIFICADO PELO PAI de propósito. `.btn--sm` também vale
+   * 0,1,0 e devolve o botão a 34px no toque (`primitives.css`); no empate quem
+   * ganha é quem vem depois no pacote, e lá é o primitivo. `.ds-row__acao
+   * .ds-row__avancar` vale 0,2,0 e resolve isso sem `!important`.
+   */
+  .ds-row__acao .ds-row__avancar {
+    min-height: var(--tap-mobile);
+  }
+
+  .ds-row__acao .ds-row__avancar::after {
+    display: none;
   }
 
   .ds-row__tempo {

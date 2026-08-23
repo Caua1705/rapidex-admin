@@ -23,6 +23,12 @@
  * BOTÃO
  * ======================================================================= */
 .btn {
+  /*
+   * `position: relative` existe para a ÁREA DE TOQUE ESTENDIDA lá embaixo
+   * (§ "O ALVO É MAIOR QUE O DESENHO"). Ele não move nada: o botão continua no
+   * fluxo, e sem `top`/`left` a caixa fica onde estava.
+   */
+  position: relative;
   min-height: var(--control-h);
   display: inline-flex;
   align-items: center;
@@ -471,6 +477,57 @@
 
   .input {
     height: var(--field-h-touch);
+  }
+}
+
+/* ==========================================================================
+ * O ALVO É MAIOR QUE O DESENHO
+ * ==========================================================================
+ *
+ * O DIAGNÓSTICO. `.btn--sm` sai da regra de 44px logo acima e volta para 34px,
+ * e `.btn--sm.icon-btn` fixa a largura em 28. Medido no telefone, isso é TODO
+ * botão de ícone do painel em 28×34: o sino que avisa que entrou pedido, o
+ * "Atualizar agora", o "Fechar detalhe" que devolve a lista, o lápis do
+ * cardápio, o renomear setor. Doze achados da auditoria, um motivo só.
+ *
+ * O CONSERTO NÃO ENGORDA O DESENHO. Engordar `.btn--sm` para 44px mudaria o
+ * ritmo de todas as barras densas — a faixa de 52px do topo, o cabeçalho do
+ * cardápio, o rodapé do painel —, e essas barras são densas de propósito. O
+ * que cresce é só a ÁREA QUE RESPONDE AO DEDO, num pseudo-elemento invisível
+ * centrado no botão. É exatamente o recurso que `.ds-choice--nua` já usa para
+ * dar 44px ao quadradinho de 18px do checkbox sem redesenhá-lo.
+ *
+ * A ALTURA SEMPRE ESTICA; A LARGURA SÓ TEM PISO. `width: 100%` com
+ * `min-width` significa "a largura do botão, no mínimo 44" — um botão de
+ * texto de 107px continua com 107px de alvo, e não ganha 44px de sobra
+ * invisível para cada lado que roubaria o clique do vizinho. Quem ganha
+ * largura é só quem é mais estreito que o dedo, que é o caso dos ícones.
+ *
+ * ELE PODE MORDER O VÃO DO VIZINHO, e isso é aceitável: com `gap: 8px` entre
+ * dois ícones de 28px, a sobra de cada lado cai dentro do VÃO, nunca sobre a
+ * área visível do botão ao lado. O caso em que isso não valeria é o de botões
+ * ENCOSTADOS — os passos de preparo (+5/+10/−5), que se tocam de propósito.
+ * Lá o conserto é outro e está em `OrdersPage.css`: eles ganham largura de
+ * verdade, porque no telefone a fileira já é só deles.
+ */
+@media (hover: none) {
+  .btn--sm::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    min-width: var(--tap-mobile);
+    height: var(--tap-mobile);
+    transform: translate(-50%, -50%);
+  }
+
+  /*
+   * Botão desabilitado não recebe clique, e um alvo estendido nele só serviria
+   * para cobrir o vizinho que ainda funciona.
+   */
+  .btn--sm:disabled::after {
+    display: none;
   }
 }
 

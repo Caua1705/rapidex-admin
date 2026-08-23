@@ -2,7 +2,23 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      `viewport-fit=cover` É O QUE LIGA A SAFE-AREA, e sem ele o resto é
+      decoração.
+
+      O painel já pedia `env(safe-area-inset-bottom)` em quatro lugares — a
+      barra de baixo, a folha do "Mais", a coluna de Minha loja e o rodapé do
+      detalhe do pedido, que é onde mora "Aceitar pedido". Só que no iOS essas
+      variáveis valem ZERO enquanto a página não declara que quer desenhar sob
+      o notch e sob a barra de gestos: sem `viewport-fit=cover` o Safari
+      encolhe o viewport até a área segura e responde 0 para todas elas.
+
+      Ou seja: o código do respiro estava escrito e inerte, e "Aceitar pedido"
+      terminava exatamente na borda de baixo da tela — em cima da barra de
+      gestos do iPhone. Esta linha é o que faz os quatro `env()` existentes
+      passarem a valer.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="color-scheme" content="dark light" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 

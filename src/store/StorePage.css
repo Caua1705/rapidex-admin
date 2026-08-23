@@ -1303,9 +1303,56 @@
     border-bottom: 1px solid var(--line);
   }
 
+  /*
+   * ==========================================================================
+   * A COLUNA DEIXA DE ROLAR SOZINHA — e é isto que faz a BARRA DE SALVAR
+   * voltar a grudar no telefone
+   * ==========================================================================
+   *
+   * O DEFEITO, medido: com o formulário de Geral sujo numa tela de 844px de
+   * altura, `store-save-bar` estava em y=1204. Ou seja, fora da tela, no fim do
+   * documento — exatamente onde o botão de salvar morava ANTES de existir uma
+   * barra grudenta, e exatamente o que `SaveBar.tsx` foi escrito para impedir:
+   * "quem editava um campo do meio e trocava de aba perdia a alteração sem
+   * nunca ter visto que havia algo para salvar".
+   *
+   * POR QUE ELA NÃO GRUDAVA. `position: sticky` gruda dentro do ANCESTRAL QUE
+   * ROLA, e `.store__col` declara `overflow-y: auto` — então ela era o
+   * ancestral eleito. Só que no telefone a moldura não tem altura fixa
+   * (`.shell` é `min-height`, não `height`): a coluna cresce com o conteúdo,
+   * `scrollHeight === clientHeight`, e quem rola é a PÁGINA. Sticky num
+   * contêiner que não rola não tem contra o que grudar, e o elemento fica na
+   * posição estática dele. Não era o `bottom` que estava errado — era o
+   * contêiner.
+   *
+   * O CONSERTO É DEVOLVER A ROLAGEM PARA QUEM JÁ ESTAVA ROLANDO. Sem
+   * `overflow` próprio, a coluna para de ser contêiner de rolagem e a barra
+   * passa a grudar no VIEWPORT, que é o que de fato rola aqui.
+   */
   .store__col {
+    overflow: visible;
     padding: var(--sp-16) var(--page-pad-mobile);
-    padding-bottom: calc(var(--bottombar-h) + var(--sp-24));
+    /*
+     * Espaço para a barra de baixo do shell E para a própria barra de salvar
+     * flutuando acima dela: sem isso, o último campo do formulário fica
+     * permanentemente coberto quando há algo para salvar.
+     */
+    padding-bottom: calc(var(--bottombar-h) + var(--control-h-touch) + var(--sp-24));
+  }
+
+  /*
+   * ELA PARA ACIMA DA BARRA DE BAIXO, não na borda da tela. `bottom: 0` a
+   * colaria no rodapé do viewport — e ali mora a navegação do celular, que é
+   * `position: fixed` e ganharia por camada. O botão de salvar existiria e
+   * estaria embaixo de "Pedidos / Cardápio / Loja / Mais".
+   *
+   * `env(safe-area-inset-bottom)` entra porque a barra de baixo já cresce com
+   * ele (ver `AppShell.css`) — e desde `viewport-fit=cover` no index.html esse
+   * valor deixou de ser zero no iPhone.
+   */
+  .store-form__actions {
+    bottom: calc(var(--bottombar-h) + env(safe-area-inset-bottom));
+    margin-inline: calc(var(--sp-4) * -1);
   }
 
   .store__anchor {

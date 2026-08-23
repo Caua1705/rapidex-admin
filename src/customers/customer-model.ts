@@ -133,6 +133,55 @@ export function formatPhone(phone: string): string {
 }
 
 /**
+ * ============================================================================
+ * O `tel:` — O TELEFONE VIRA UMA LIGAÇÃO
+ * ============================================================================
+ *
+ * O painel escrevia o telefone do cliente num `<span>`, no detalhe do pedido e
+ * na lista de Clientes. No computador isso é o certo: ninguém liga pelo
+ * navegador. No CELULAR — que é onde o dono está quando o pedido dá problema —
+ * é a ação mais nativa que existe, e ela não existia: sobrava decorar onze
+ * dígitos e sair do painel para o teclado do telefone.
+ *
+ * FORMATO DE DISCAGEM, NÃO DE LEITURA. Quem escreve o que se lê é
+ * `formatPhone`, e ele continua sendo o texto do link — parênteses e traço
+ * ajudam o olho. O `href` é o inverso: `+` e dígitos, sem pontuação, que é o
+ * que o RFC 3966 pede e o que faz o discador do aparelho acertar o número.
+ *
+ * O `+55` ENTRA QUANDO DÁ PARA AFIRMAR QUE É BRASILEIRO — dez ou onze dígitos,
+ * ou treze já começando em 55. Fora disso o número sai como veio, com `+` se
+ * ele já tinha um: chutar o país de um número internacional é discar errado, e
+ * discar errado é pior que não oferecer o link.
+ *
+ * `null` quando não há o que discar. É o que faz a tela voltar a escrever um
+ * `<span>` em vez de oferecer um link morto — cadastro pela metade existe.
+ */
+export function phoneHref(phone: string): string | null {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length < 8) return null;
+
+  // Já veio internacional escrito: respeita o país que o cadastro afirma.
+  if (phone.trim().startsWith('+')) return `tel:+${digits}`;
+
+  if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) {
+    return `tel:+${digits}`;
+  }
+  /*
+   * DEZ OU ONZE DÍGITOS **QUE COMEÇAM COM DDD**. O primeiro dígito não pode ser
+   * zero: DDD brasileiro vai de 11 a 99, e o que começa com zero é número de
+   * serviço — 0800, 0300, 4004. "0800 111 2233" tem exatamente onze dígitos, e
+   * só pela contagem sairia como `tel:+550800...`, que não completa a ligação.
+   * Esses discam como estão, sem país.
+   */
+  if ((digits.length === 10 || digits.length === 11) && !digits.startsWith('0')) {
+    return `tel:+55${digits}`;
+  }
+
+  // Formato que não sabemos ler: entrega os dígitos e deixa o aparelho decidir.
+  return `tel:${digits}`;
+}
+
+/**
  * O nome que aparece na linha.
  *
  * Cliente sem nome cadastrado existe (compra por telefone, no balcão), e a

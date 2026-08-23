@@ -1,5 +1,6 @@
 import type { Category } from '../api/types';
 import { ChevronDownIcon, ChevronUpIcon, GripIcon, PlusIcon } from '../ds/icons';
+import { useKeepActiveInView } from '../ds/useKeepActiveInView';
 import { isCategoryActive } from './menu-model';
 import { useReorderDrag } from './useReorderDrag';
 
@@ -78,6 +79,14 @@ export function CategoryRail({
     disabled: !onMoveTo,
   });
 
+  /*
+   * NO TELEFONE ESTA LISTA É UMA FITA HORIZONTAL, e ela nascia em zero: a
+   * categoria aberta ficava fora da tela, à direita, e a fita mostrava outras
+   * três sem nenhuma marcada. Com um cardápio de verdade — dez, quinze
+   * categorias — a aberta praticamente nunca está à vista.
+   */
+  const { fitaRef, ativoRef } = useKeepActiveInView<HTMLUListElement>(selectedCategoryId);
+
   return (
     <div className="rail">
       <div className="rail__header">
@@ -95,7 +104,7 @@ export function CategoryRail({
         ) : null}
       </div>
 
-      <ul className="rail__list">
+      <ul className="rail__list" ref={fitaRef}>
         {categories.map((category, index) => {
           const selected = category.id === selectedCategoryId;
           const active = isCategoryActive(category);
@@ -104,7 +113,16 @@ export function CategoryRail({
           return (
             <li
               key={category.id}
-              ref={arrastar.registrar(index)}
+              /*
+                DOIS DONOS PARA O MESMO NÓ: o gesto de arrastar mede a posição
+                de cada item, e a fita precisa saber onde está o ABERTO para
+                enquadrá-lo. Uma função só que alimenta os dois — trocar por
+                um dos dois refs sozinho quebraria silenciosamente o outro.
+              */
+              ref={(el) => {
+                arrastar.registrar(index)(el);
+                if (selected) ativoRef.current = el;
+              }}
               className={`rail__item${selected ? ' rail__item--selected' : ''}${
                 arrastar.drag?.from === index ? ' rail__item--arrastando' : ''
               }`}

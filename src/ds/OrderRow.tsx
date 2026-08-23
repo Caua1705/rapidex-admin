@@ -44,19 +44,40 @@ import './OrderRow.css';
  *   6 PAGAMENTO    forma e situação — e o único lugar onde a linha levanta a voz
  *   7 VALOR        tabular, à direita, porque é o que se confere no caixa
  *
- * NÃO É UMA <table>, E ISSO É DE PROPÓSITO. A linha inteira é UMA ação (abrir o
- * detalhe), e a única forma de uma tabela ter linha clicável é pendurar um
- * `onClick` numa `<tr>` — que é como uma tela perde o teclado. Aqui a linha é
- * um `<button>` em `display: grid`, e o alinhamento das colunas vem de
+ * NÃO É UMA <table>, E ISSO É DE PROPÓSITO. A parte que se lê é UMA ação (abrir
+ * o detalhe), e a única forma de uma tabela ter linha clicável é pendurar um
+ * `onClick` numa `<tr>` — que é como uma tela perde o teclado. Aqui ela é um
+ * `<button>` em `display: grid`, e o alinhamento das colunas vem de
  * `--grade-pedido`, declarada UMA vez na lista e herdada por todas as linhas.
  * Uma grade só, uma fonte de verdade: é o que impede a coluna de desalinhar
  * entre o quadro e o histórico.
  *
+ * ============================================================================
+ * A LINHA DEIXOU DE SER UM BOTÃO E VIROU UM BOTÃO DENTRO DE UMA LINHA
+ * ============================================================================
+ *
+ * `.ds-row` era o próprio `<button>`. Agora é um `<div>` com DOIS filhos: o
+ * `.ds-row__abrir`, que é o botão de antes com as sete células dentro, e o
+ * `.ds-row__acao`, que carrega o AVANÇO do estágio no telefone.
+ *
+ * A troca não foi estética: botão não aninha botão. Um `<button>` dentro de
+ * outro é marcação inválida, o navegador desmonta a árvore de um jeito que
+ * ninguém controla e o alvo de dentro para de existir para o leitor de tela.
+ * Com o clique da linha e a ação sendo irmãos, os dois são alvos de verdade —
+ * inclusive para o teclado, que agora para em dois lugares por linha.
+ *
+ * O QUE NÃO MUDOU: a régua, o fio do estágio e o plano de seleção continuam na
+ * `.ds-row`, que é quem representa a linha inteira. Se eles descessem para o
+ * botão, a ação ao lado ficaria fora do realce e a régua terminaria antes da
+ * margem.
+ *
  * DOIS LAYOUTS, E SÓ DOIS. O largo (acima) e o COMPACTO, que entra por
  * `@container` quando a lista tem menos de 900px — no telefone e também com o
  * painel de detalhe aberto. O compacto NÃO é a linha larga dobrada em duas:
- * ele é outro desenho, com alvo de toque de 76px, o tempo e o valor nas pontas
- * e o resto numa segunda linha de apoio. Ver `OrderRow.css`.
+ * ele é outro desenho, com alvo de toque folgado, o tempo e o valor nas pontas
+ * e o resto numa segunda linha de apoio. É TAMBÉM o único layout em que o
+ * avanço aparece na linha — no largo, o detalhe é uma coluna permanente ao
+ * lado, com o mesmo botão e sem nenhum desvio a pagar. Ver `OrderRow.css`.
  *
  * Ela não conhece o contrato da API: quem traduz um `OrderListItem` para estas
  * propriedades é `orders/OrderLine`. Isso é o que permite ao `ds/` compilar sem
@@ -77,6 +98,7 @@ export function OrderRow({
   pagamentoNota,
   total,
   alerta,
+  acao,
   selected = false,
   onOpen,
   'data-testid': testId,
@@ -123,16 +145,42 @@ export function OrderRow({
    * é um atributo do pedido, é uma proibição.
    */
   alerta?: ReactNode;
+  /**
+   * O AVANÇO DO ESTÁGIO, na própria linha — e só no layout compacto.
+   *
+   * Ausente = não há o que avançar aqui: pedido em estado final, pedido travado
+   * pelo pagamento, ou histórico. A ausência é o que apaga o botão, e é de
+   * propósito que não exista um estado "desabilitado": um alvo morto de 44px
+   * ocupando a quina do polegar convida a insistir, e o motivo de ele não
+   * funcionar já está escrito na própria linha (ver `alerta`).
+   *
+   * Quem decide QUAL é o avanço não é este componente — é `orders/OrderLine`,
+   * a partir de `order-actions.ts`. O design system não sabe o que é um pedido
+   * aceito.
+   */
+  acao?: {
+    /** O verbo curto: "Aceitar", "Preparar", "Despachar". */
+    label: string;
+    /** O que ele diz enquanto o backend responde. */
+    sending: string;
+    /** Em voo: o botão fica inerte e diz `sending`. */
+    isSending?: boolean;
+    onAvancar: () => void;
+    'data-testid'?: string;
+    /**
+     * O nome acessível. Na tela o botão diz só "Aceitar", e cinquenta
+     * "Aceitar" iguais numa lista não dizem a um leitor de tela QUAL pedido
+     * está sendo aceito. Aqui vai a frase inteira: "Aceitar pedido #1001".
+     */
+    'aria-label': string;
+  };
   selected?: boolean;
   onOpen: () => void;
   'data-testid'?: string;
   'data-status'?: string;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      data-testid={testId}
+    <div
       data-status={dataStatus}
       className={[
         'ds-row',
@@ -140,45 +188,79 @@ export function OrderRow({
         selected ? 'ds-row--selecionada' : '',
         alerta ? 'ds-row--alerta' : '',
         abreBloco ? 'ds-row--abre' : '',
+        acao ? 'ds-row--com-acao' : '',
       ]
         .filter(Boolean)
         .join(' ')}
     >
       {/*
+        O QUE SE LÊ É UM BOTÃO SÓ. As sete células são conteúdo dele, não alvos
+        separados: a linha inteira abre o detalhe, e é isso que faz o alvo de
+        abrir ser do tamanho da linha em vez do tamanho do número do pedido.
+      */}
+      <button type="button" onClick={onOpen} data-testid={testId} className="ds-row__abrir">
+        {/*
         A COLUNA MESCLADA. O fio de 2px é desenhado pela CÉLULA e vale para
         todas as linhas do bloco; o rótulo mora num filho próprio, porque é ele
         — e não a célula — que some nas linhas do meio do bloco.
       */}
-      <span className="ds-row__estagio">
-        <span className="ds-row__estagio-rotulo">{stageLabel}</span>
-      </span>
+        <span className="ds-row__estagio">
+          <span className="ds-row__estagio-rotulo">{stageLabel}</span>
+        </span>
 
-      <span className="ds-row__tempo">
-        <span className="ds-row__decorrido tnum">{elapsedLabel}</span>
-        <MaturationBar elapsedMinutes={elapsedMinutes} windowMinutes={windowMinutes} />
-      </span>
+        <span className="ds-row__tempo">
+          <span className="ds-row__decorrido tnum">{elapsedLabel}</span>
+          <MaturationBar elapsedMinutes={elapsedMinutes} windowMinutes={windowMinutes} />
+        </span>
 
-      <span className="ds-row__cliente">{customer}</span>
+        <span className="ds-row__cliente">{customer}</span>
 
-      <span className="ds-row__pedido">
-        <span className="ds-row__numero tnum">#{number}</span>
-        <span className="ds-row__hora tnum">{timeLabel}</span>
-      </span>
+        <span className="ds-row__pedido">
+          <span className="ds-row__numero tnum">#{number}</span>
+          <span className="ds-row__hora tnum">{timeLabel}</span>
+        </span>
 
-      <span className="ds-row__modalidade">{modalidade}</span>
+        <span className="ds-row__modalidade">{modalidade}</span>
 
-      <span className="ds-row__pagamento">
-        {alerta ? (
-          <span className="ds-row__alerta">{alerta}</span>
-        ) : (
-          <>
-            <span className="ds-row__forma">{pagamento}</span>
-            {pagamentoNota ? <span className="ds-row__situacao">{pagamentoNota}</span> : null}
-          </>
-        )}
-      </span>
+        <span className="ds-row__pagamento">
+          {alerta ? (
+            <span className="ds-row__alerta">{alerta}</span>
+          ) : (
+            <>
+              <span className="ds-row__forma">{pagamento}</span>
+              {pagamentoNota ? <span className="ds-row__situacao">{pagamentoNota}</span> : null}
+            </>
+          )}
+        </span>
 
-      <span className="ds-row__valor tnum">{total}</span>
-    </button>
+        <span className="ds-row__valor tnum">{total}</span>
+      </button>
+
+      {/*
+        O AVANÇO — irmão do botão que abre, nunca filho dele.
+
+        Ele existe na marcação em qualquer largura e é o CSS que o esconde no
+        layout largo (ver `OrderRow.css`): lá o detalhe é uma coluna permanente
+        ao lado, com o mesmo botão, e um segundo igual por linha seria o único
+        laranja repetido cinquenta vezes na mesma tela.
+
+        `btn--primary` porque ele é o avanço, e o avanço é o único primário do
+        pedido — a mesma tinta que o rodapé do detalhe usa para a mesma ação.
+      */}
+      {acao ? (
+        <span className="ds-row__acao">
+          <button
+            type="button"
+            className="btn btn--sm btn--primary ds-row__avancar"
+            onClick={acao.onAvancar}
+            disabled={acao.isSending}
+            aria-label={acao['aria-label']}
+            data-testid={acao['data-testid']}
+          >
+            {acao.isSending ? acao.sending : acao.label}
+          </button>
+        </span>
+      ) : null}
+    </div>
   );
 }

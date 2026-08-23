@@ -54,7 +54,14 @@
   display: flex;
   align-items: center;
   gap: var(--sp-12);
-  padding-inline: var(--page-pad-mobile);
+  /*
+   * O RESPIRO LATERAL PASSA A CONHECER O NOTCH. Com `viewport-fit=cover` ligado
+   * (ver index.html), a página desenha de borda a borda — e no telefone
+   * DEITADO o notch come a lateral. `max()` não muda nada em pé, onde os dois
+   * `env()` valem zero: o que sobra é o mesmo `--page-pad-mobile` de sempre.
+   */
+  padding-left: max(var(--page-pad-mobile), env(safe-area-inset-left));
+  padding-right: max(var(--page-pad-mobile), env(safe-area-inset-right));
   background: var(--surface);
   border-bottom: 1px solid var(--line);
 }
@@ -77,6 +84,7 @@
 }
 
 .shell__sair {
+  position: relative;
   min-height: var(--control-h-sm);
   padding-inline: var(--sp-8);
   border-radius: var(--r-chip);
@@ -93,6 +101,26 @@
   background: var(--hover);
 }
 
+/*
+ * "SAIR" MEDIA 31×28 — o menor alvo do painel, e ele encerra a sessão no meio
+ * do turno. Mesmo recurso de `.btn--sm` em `primitives.css` (§ "O ALVO É MAIOR
+ * QUE O DESENHO"): quem cresce é a área que responde ao dedo, não o desenho —
+ * a barra do topo continua com os mesmos 52px.
+ */
+@media (hover: none) {
+  .shell__sair::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    min-width: var(--tap-mobile);
+    height: var(--tap-mobile);
+    transform: translate(-50%, -50%);
+  }
+
+}
+
 /* --- celular: a lateral vira barra de baixo ------------------------------ */
 
 .shell__bottom {
@@ -102,6 +130,9 @@
   height: calc(var(--bottombar-h) + env(safe-area-inset-bottom));
   display: flex;
   padding-bottom: env(safe-area-inset-bottom);
+  /* Mesma razão de `.shell__bar`: deitado, o notch entra pela lateral. */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
   background: var(--nav-bg);
   border-top: 1px solid var(--nav-line);
 }
@@ -181,6 +212,24 @@
 
 .branch .ds-select__trigger--bare:hover {
   background: var(--hover);
+}
+
+/*
+ * NO TOQUE O SELETOR DE FILIAL VOLTA AOS 44px.
+ *
+ * Ele é largo, mas `.branch` acima o devolve a `--control-h` (34) para caber no
+ * ritmo da barra de 52px do desktop. No telefone ele é o controle que troca a
+ * LOJA que se está olhando, e 34px é pouco para isso.
+ *
+ * ESTA REGRA PRECISA VIR DEPOIS DAQUELA. As duas valem 0,2,0 de especificidade
+ * e moram no mesmo arquivo: no empate ganha a última. Escrita lá em cima, junto
+ * do `.shell__sair`, ela era simplesmente ignorada — e a medição em 390px
+ * continuava acusando 153×34.
+ */
+@media (hover: none) {
+  .branch .ds-select__trigger--bare {
+    min-height: var(--control-h-touch);
+  }
 }
 
 .branch__text {

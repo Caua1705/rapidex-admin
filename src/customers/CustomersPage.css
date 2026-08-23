@@ -326,6 +326,35 @@
   white-space: nowrap;
 }
 
+/*
+ * O TELEFONE QUE DISCA (ver `TelefoneDoCliente`), quando ele é um `<a>`.
+ *
+ * Sem sublinha e sem cor de link: numa lista de cinquenta clientes, cinquenta
+ * links azuis sublinhados seriam a coisa mais forte da tela, e o que se lê aqui
+ * é a classificação do cliente. No toque ele ganha alvo próprio — a affordance
+ * de "isto liga" é o alvo, não a tinta.
+ */
+a.cliente__fone {
+  color: inherit;
+  text-decoration: none;
+}
+
+@media (hover: none) {
+  a.cliente__fone {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-mobile);
+    margin-left: calc(var(--sp-8) * -1);
+    padding-inline: var(--sp-8);
+    border-radius: var(--r-chip);
+    transition: background var(--motion-fast) var(--ease);
+  }
+
+  a.cliente__fone:active {
+    background: var(--active);
+  }
+}
+
 /* ==========================================================================
  * CELULAR
  *

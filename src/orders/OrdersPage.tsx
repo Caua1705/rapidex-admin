@@ -52,6 +52,12 @@ export function OrdersPage() {
   const operation = useBranchOperation(activeBranchId);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [view, setView] = useState<BoardView>('andamento');
+  /**
+   * QUAL LINHA TEM UM AVANÇO EM VOO. Um id, e não um booleano: com dois pedidos
+   * novos, apertar "Aceitar" no primeiro não pode deixar o segundo inerte — o
+   * turno não espera a rede.
+   */
+  const [advancingOrderId, setAdvancingOrderId] = useState<string | null>(null);
 
   const { applyStreamEvent, reload, updateFilters } = board;
   const { play } = sound;
@@ -96,8 +102,47 @@ export function OrdersPage() {
     onReconnected: reload,
   });
 
+  /**
+   * ============================================================================
+   * AVANÇAR DA PRÓPRIA LINHA
+   * ============================================================================
+   *
+   * É `board.changeOrderStatus`, o MESMO caminho do rodapé do detalhe — mesma
+   * rota, mesma validação do backend, mesma resposta aplicada na lista. Não há
+   * uma segunda maneira de mudar o status de um pedido nesta tela.
+   *
+   * QUANDO DÁ CERTO, A LINHA SE MOVE SOZINHA: `changeOrderStatus` já reinsere o
+   * pedido devolvido pelo backend, e `groupIntoLanes` o realoca no bloco do
+   * novo estágio no mesmo quadro. Não há recarga e não há nada a fazer aqui.
+   *
+   * QUANDO DÁ ERRADO, o erro fica em `board.actionError`, preso ao id do
+   * pedido. É esse par que a lista lê para escrever o aviso NA LINHA que falhou
+   * — sem isso, aceitar da lista um pedido que o painel não tem aberto falharia
+   * em silêncio, e o dono ficaria olhando um pedido que não anda.
+   */
+  const handleAdvance = useCallback(
+    async (orderId: string, target: string) => {
+      setAdvancingOrderId(orderId);
+      await board.changeOrderStatus(orderId, target);
+      setAdvancingOrderId(null);
+    },
+    [board],
+  );
+
   const lanes = groupIntoLanes(board.orders);
   const historico = historyOrders(board.orders);
+
+  /*
+   * O erro de um avanço feito DA LISTA — ver o aviso lá embaixo. Nulo quando o
+   * pedido que falhou é o que está aberto no painel: lá a frase já existe.
+   */
+  const pedidoComErro =
+    board.actionError && board.actionError.orderId !== selectedOrderId
+      ? board.orders.find((order) => order.id === board.actionError?.orderId)
+      : undefined;
+  const erroDeAvanco = pedidoComErro
+    ? `Pedido #${pedidoComErro.order_number}: ${board.actionError?.message}`
+    : null;
 
   /*
    * ============================================================================
@@ -280,6 +325,33 @@ export function OrdersPage() {
           </p>
         ) : null}
 
+        {/*
+          O AVANÇO DA LINHA QUE O BACKEND RECUSOU.
+
+          Ele existe porque a ação saiu do painel: o rodapé do detalhe escreve o
+          próprio erro (`actionErrorMessage`, logo abaixo), mas quem aperta
+          "Aceitar" na LINHA costuma estar com o painel fechado — é justamente o
+          desvio que a ação da linha veio poupar. Sem isto, um 409 sumiria e o
+          dono ficaria olhando um pedido que não anda, sem nada dito.
+
+          ELE NOMEIA O PEDIDO. No topo da lista, "Não dá para ir de Aceito para
+          Aceito" sozinho não diz de qual das seis linhas se está falando.
+
+          E ELE SÓ APARECE QUANDO O PAINEL NÃO ESTÁ MOSTRANDO O MESMO ERRO: com
+          o pedido aberto ao lado, a frase já está no rodapé, colada no botão
+          que falhou — repeti-la aqui seria a mesma falha dita duas vezes na
+          mesma dobra.
+        */}
+        {erroDeAvanco ? (
+          <p
+            className="alert alert--error orders__alert"
+            role="alert"
+            data-testid="row-advance-error"
+          >
+            {erroDeAvanco}
+          </p>
+        ) : null}
+
         {streamStatus === 'offline' ? (
           <p className="alert alert--warn orders__alert">
             Sem conexão com o servidor. Pedidos novos não vão aparecer sozinhos até a rede voltar.
@@ -302,6 +374,8 @@ export function OrdersPage() {
                   windowMinutes={windowMinutes}
                   selectedOrderId={selectedOrderId}
                   onOpenOrder={setSelectedOrderId}
+                  onAdvanceOrder={(orderId, target) => void handleAdvance(orderId, target)}
+                  advancingOrderId={advancingOrderId}
                 />
               ))}
 

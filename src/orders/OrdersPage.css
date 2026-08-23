@@ -262,15 +262,21 @@
 }
 
 .filtros__periodo-opt {
-  padding-bottom: 2px;
-  border-bottom: 1px solid transparent;
+  position: relative;
   color: var(--ink-3);
   font-size: var(--ta-size);
   line-height: var(--ta-line);
   white-space: nowrap;
-  transition:
-    color var(--motion-fast) var(--ease),
-    border-color var(--motion-fast) var(--ease);
+  transition: color var(--motion-fast) var(--ease);
+}
+
+/* A sublinha do ativo mora no rótulo, não na borda do botão — ver o `<span>`
+   em `OrdersToolbar.tsx`. */
+.filtros__periodo-rotulo {
+  display: inline-block;
+  padding-bottom: 2px;
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--motion-fast) var(--ease);
 }
 
 .filtros__periodo-opt:hover {
@@ -280,7 +286,49 @@
 .filtros__periodo-opt[aria-pressed='true'] {
   color: var(--ink);
   font-weight: var(--w-semibold);
+}
+
+.filtros__periodo-opt[aria-pressed='true'] .filtros__periodo-rotulo {
   border-bottom-color: var(--ink);
+}
+
+/*
+ * O PERÍODO ERA O MENOR ALVO DA TELA: 21px de altura, medidos no telefone.
+ * Ele não é botão de caixa — é texto sublinhado no ativo, e o sublinhado É a
+ * marcação —, então nunca teve altura própria: media a linha da letra.
+ *
+ * 21px reprova até na régua de PONTEIRO (WCAG 2.5.8 pede 24). Por isso o
+ * conserto tem dois degraus, e nenhum deles mexe no desenho:
+ *
+ *   - no ponteiro, a área estendida chega a `--tap` (24px). É invisível, o
+ *     texto não anda e a faixa continua com a mesma altura;
+ *   - no toque, a altura é de VERDADE (44px). Ali a fileira do recorte já é
+ *     só dela (ver o bloco de 767px no fim deste arquivo), então crescer não
+ *     empurra nada — e um alvo estendido que só existe no `::after` não ajuda
+ *     quem erra o dedo por 10px.
+ */
+.filtros__periodo-opt::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: var(--tap);
+  transform: translateY(-50%);
+}
+
+@media (hover: none) {
+  .filtros__periodo-opt {
+    /* `inline-flex` para que a altura nova centre o texto em vez de o empurrar
+       para o topo — o sublinhado do ativo continua colado na letra. */
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-mobile);
+  }
+
+  .filtros__periodo-opt::after {
+    display: none;
+  }
 }
 
 .filtros__datas {
@@ -636,6 +684,31 @@
   }
 
   /*
+   * OS PASSOS GANHAM LARGURA DE VERDADE — e são a exceção declarada da regra
+   * de alvo estendido em `primitives.css`.
+   *
+   * Lá, o alvo de 44px de `.btn--sm` é um pseudo-elemento invisível centrado no
+   * botão. Isso funciona para ícones separados por um vão, onde a sobra cai no
+   * vão. Aqui NÃO funciona: os três passos se encostam de propósito (são um
+   * controle segmentado, `margin-left: -1px`), e a sobra de 44px de cada um
+   * cairia em cima do vizinho — medido, "−5" roubava 6,5px da área visível de
+   * "+10". Somar 10 minutos e tirar 5 são coisas opostas para acontecerem por
+   * causa de onde o pseudo-elemento terminou.
+   *
+   * Então aqui eles crescem MESMO. Cabe: nesta largura a fileira já é só do
+   * ajuste (`.prep--ajuste` toma 100%), e 3×44 são 132px de 358 disponíveis.
+   *
+   * A DESLIGADA DO PSEUDO-ELEMENTO fica FORA deste bloco, logo abaixo, numa
+   * consulta por capacidade: entre 768 e 1023 num tablet de toque a fileira
+   * ainda não é só deles (não cabe crescer), mas o alvo que rouba o clique do
+   * vizinho é errado em qualquer largura.
+   */
+  .prep__step {
+    min-width: var(--tap-mobile);
+    min-height: var(--tap-mobile);
+  }
+
+  /*
    * NO TELEFONE A PALAVRA DA CONEXÃO VOLTA. A consulta de container a esconde
    * abaixo de 1100px porque lá ela disputa espaço com os outros controles da
    * mesma fileira; aqui a fileira é dela, e um ponto colorido sozinho, sem
@@ -654,5 +727,19 @@
   .orders__vazio,
   .orders__rodape {
     padding-inline: var(--page-pad-mobile);
+  }
+}
+
+/*
+ * A EXCEÇÃO DO CONTROLE SEGMENTADO — ver o bloco de 767px acima.
+ *
+ * Por CAPACIDADE e não por largura: o alvo estendido de `.btn--sm` só é seguro
+ * onde há vão entre um botão e o outro, e estes três se tocam. Onde não há
+ * ponteiro, o pseudo-elemento sai — e quem dá o alvo é a largura de verdade,
+ * quando ela cabe.
+ */
+@media (hover: none) {
+  .prep__step::after {
+    display: none;
   }
 }
