@@ -109,8 +109,54 @@ describe('paymentOutcome', () => {
     expect(outcome.label).toBe('Estornado');
   });
 
-  it('quem não estornou não ganha aviso nenhum', () => {
-    for (const payment_status of ['paid', 'pending', 'failed', 'on_delivery']) {
+  /*
+   * O ANTIFRAUDE. `in_review` só acontece com CARTÃO e não tinha rótulo: caía
+   * no `labelFor` e o lojista lia "in_review" na linha "Situação".
+   */
+  it('a análise antifraude tem rótulo próprio e aviso de atenção', () => {
+    const outcome = paymentOutcome({ payment_status: 'in_review', status_history: [] });
+
+    expect(outcome.label).toBe('Em análise antifraude');
+    expect(outcome.notice?.tone).toBe('warn');
+  });
+
+  /*
+   * A DISTINÇÃO QUE ESTE ARQUIVO EXISTE PARA GUARDAR, do lado da espera.
+   *
+   * `pending` e `in_review` travam a cozinha igual, e é por isso que é fácil
+   * escrevê-los com a mesma frase. Mas são LIGAÇÕES OPOSTAS: no primeiro se
+   * cobra o cliente, no segundo não há o que cobrar de ninguém. Se estas duas
+   * asserções passarem a bater, a separação que o backend fez foi jogada fora
+   * exatamente onde ela seria usada.
+   */
+  it('a espera do antifraude não é a espera do pix', () => {
+    const analise = paymentOutcome({ payment_status: 'in_review', status_history: [] });
+    const pix = paymentOutcome({ payment_status: 'pending', status_history: [] });
+
+    expect(analise.label).not.toBe(pix.label);
+    expect(analise.notice?.text).not.toBe(pix.notice?.text);
+
+    // O que a frase do antifraude precisa dizer, e a do pix não diz.
+    expect(analise.notice?.text).toContain('48 horas úteis');
+    expect(analise.notice?.text).toContain('Mercado Pago');
+    // Que a cozinha está travada continua sendo dito nas duas.
+    expect(analise.notice?.text).toContain('cozinha não pode preparar');
+    expect(pix.notice?.text).toContain('cozinha não pode preparar');
+  });
+
+  it('a espera comum nomeia a situação dentro da frase', () => {
+    expect(paymentOutcome({ payment_status: 'pending', status_history: [] }).notice?.text).toBe(
+      'Pagamento online ainda não confirmado (Aguardando pagamento). A cozinha não pode ' +
+        'preparar este pedido.',
+    );
+    expect(paymentOutcome({ payment_status: 'failed', status_history: [] }).notice?.text).toContain(
+      '(Pagamento recusado)',
+    );
+  });
+
+  /* Dinheiro no lugar certo não pede aviso nenhum. */
+  it('pago e a pagar na entrega não ganham aviso', () => {
+    for (const payment_status of ['paid', 'on_delivery']) {
       expect(paymentOutcome({ payment_status, status_history: [] }).notice).toBeNull();
     }
   });
@@ -119,6 +165,17 @@ describe('paymentOutcome', () => {
     expect(paymentOutcome({ payment_status: 'paid', status_history: [] }).label).toBe('Pago');
     expect(paymentOutcome({ payment_status: 'pending', status_history: [] }).label).toBe(
       'Aguardando pagamento',
+    );
+  });
+
+  /*
+   * Status que o painel não conhece continua caindo no próprio nome — o que é
+   * feio, mas honesto. O defeito de `in_review` era ser um estado REAL do
+   * backend caindo aí; um valor que ninguém nunca viu não tem tradução a ter.
+   */
+  it('estado desconhecido não inventa rótulo', () => {
+    expect(paymentOutcome({ payment_status: 'algo_novo', status_history: [] }).label).toBe(
+      'algo_novo',
     );
   });
 });

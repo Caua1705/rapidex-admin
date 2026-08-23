@@ -20,7 +20,7 @@ import { readOptionGroups } from './order-options';
 import { paymentOutcome, type PaymentOutcome } from './payment-outcome';
 import { useCustomerHistory } from './useCustomerHistory';
 import { stageOf } from './order-status';
-import { STATUS_LABELS, checkTransition, isAwaitingOnlinePayment } from './order-status';
+import { STATUS_LABELS, checkTransition } from './order-status';
 import './OrderDetailPanel.css';
 
 /** Endereço em uma linha só, pulando o que veio vazio. */
@@ -360,7 +360,7 @@ function DetailBody({ detail, branchId }: { detail: OrderDetail; branchId: strin
 
   return (
     <div className="detail">
-      <PagamentoAviso detail={detail} outcome={pagamento} />
+      <PagamentoAviso outcome={pagamento} />
 
       <section className="detail__block">
         <h3 className="detail__heading">Cliente</h3>
@@ -494,33 +494,21 @@ function DetailBody({ detail, branchId }: { detail: OrderDetail; branchId: strin
 }
 
 /**
- * O AVISO DE PAGAMENTO NO TOPO DO PAINEL — e são DUAS conversas, não uma.
+ * O AVISO DE PAGAMENTO NO TOPO DO PAINEL.
  *
- * A primeira é a espera: pagamento online que ainda não chegou trava a cozinha,
- * e a frase é sobre o que NÃO dá para fazer.
+ * São QUATRO conversas diferentes, e nenhuma delas é escrita aqui: o dinheiro
+ * que voltou por decisão, o que voltou por contestação, o cartão que o
+ * antifraude segurou e o pagamento que simplesmente não chegou. Todas saem de
+ * `paymentOutcome`, porque a distinção entre as duas últimas é justamente a que
+ * se perde quando cada componente escreve a sua (ver `payment-outcome.ts`).
  *
- * A segunda é o dinheiro que já voltou. Ela não cabe na primeira: dizer
- * "pagamento ainda não confirmado" de um pedido que foi pago, entregue e depois
- * contestado é falso nas três metades. Por isso o desfecho tem precedência —
- * quando `paymentOutcome` tem aviso, é ele que aparece, e a frase da espera não
- * é dita.
- *
- * O tom vem do desfecho e não daqui: este componente só transforma
- * `'error' | 'info'` na classe do primitivo.
+ * O que sobra para este componente é o que só ele sabe: em que classe do
+ * primitivo cada tom se desenha.
  */
-function PagamentoAviso({ detail, outcome }: { detail: OrderDetail; outcome: PaymentOutcome }) {
-  if (outcome.notice) {
-    return <p className={`alert alert--${outcome.notice.tone}`}>{outcome.notice.text}</p>;
-  }
+function PagamentoAviso({ outcome }: { outcome: PaymentOutcome }) {
+  if (!outcome.notice) return null;
 
-  if (!isAwaitingOnlinePayment(detail.payment_status)) return null;
-
-  return (
-    <p className="alert alert--warn">
-      Pagamento online ainda não confirmado ({outcome.label}). A cozinha não pode preparar este
-      pedido.
-    </p>
-  );
+  return <p className={`alert alert--${outcome.notice.tone}`}>{outcome.notice.text}</p>;
 }
 
 /**

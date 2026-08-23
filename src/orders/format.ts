@@ -118,9 +118,31 @@ export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   other: 'Outro',
 };
 
+/*
+ * OS SEIS ESTADOS DE `PAYMENT_STATUSES` (`core/constants.py`), e a lista está
+ * completa de propósito: o que falta aqui não some da tela, aparece com o nome
+ * cru do backend ("in_review") na linha "Situação" do painel.
+ *
+ * `pending` E `in_review` NÃO PODEM SER A MESMA FRASE. As duas são espera e as
+ * duas travam a cozinha, mas são LIGAÇÕES OPOSTAS:
+ *
+ *   `pending`    o cliente ainda não pagou. A conversa é COM ELE.
+ *   `in_review`  o cliente já passou o cartão e o antifraude do gateway segurou
+ *                para análise. Não há o que cobrar de ninguém — só esperar.
+ *
+ * É por isso que o backend separou os dois estados (ver o comentário de
+ * `PAYMENT_STATUSES`), e chamar os dois de "aguardando pagamento" aqui jogaria
+ * fora a separação inteira do lado onde ela é usada.
+ *
+ * O rótulo diz "antifraude" e não só "em análise" porque é o que responde
+ * "análise de quê?" sem obrigar a abrir o aviso do topo. A comanda impressa diz
+ * "PAGAMENTO EM ANALISE" (`services/print_layout.py`) — mesma coisa, e o painel
+ * é onde cabe a palavra a mais.
+ */
 export const PAYMENT_STATUS_LABELS: Record<string, string> = {
   on_delivery: 'Paga na entrega',
   pending: 'Aguardando pagamento',
+  in_review: 'Em análise antifraude',
   paid: 'Pago',
   failed: 'Pagamento recusado',
   refunded: 'Estornado',

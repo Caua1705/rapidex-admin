@@ -40,9 +40,21 @@
  * um gateway futuro que escreva de outro jeito: o painel afirma o que sabe
  * (voltou dinheiro) e não inventa a disputa. Errar para o lado da contestação
  * seria acusar o cliente com base em ausência de dado.
+ *
+ * ----------------------------------------------------------------------------
+ * E JÁ QUE ESTE É O LUGAR: TODAS AS FRASES DE PAGAMENTO SAEM DAQUI
+ * ----------------------------------------------------------------------------
+ *
+ * `paymentOutcome` devolve o rótulo da linha "Situação" E o aviso do topo,
+ * inteiro, para os seis estados de `PAYMENT_STATUSES`. Não é centralização por
+ * gosto: a distinção que mais custa nesta tela é entre `pending` e `in_review`
+ * — duas esperas que travam a cozinha igual e pedem ligações opostas —, e ela
+ * só sobrevive se houver um lugar só decidindo o que cada estado diz. Espalhada
+ * pelos componentes, a segunda espera volta a ser escrita como a primeira.
  */
 import type { OrderStatusHistoryEntry } from '../api/types';
 import { PAYMENT_STATUS_LABELS, labelFor } from './format';
+import { isAwaitingOnlinePayment } from './order-status';
 
 /**
  * Como um evento de dinheiro aparece em `order_status_history.status` —
@@ -81,49 +93,98 @@ export type PaymentOutcome = {
   /** O que a linha "Situação" do bloco Pagamento diz. */
   label: string;
   /**
-   * O aviso do topo do painel, quando o dinheiro JÁ VOLTOU. `null` no resto —
-   * inclusive no pagamento que ainda não chegou, que tem aviso próprio e outra
-   * conversa ("a cozinha não pode começar").
+   * O AVISO DO TOPO DO PAINEL — a frase inteira, não um pedaço dela.
    *
-   * O TOM SAI DAQUI, e não do componente, pelo mesmo motivo de `stageOf()` em
+   * `null` quando não há nada a avisar: pagamento pago, ou a pagar na entrega.
+   * Nos outros casos o texto sai daqui pronto, e é isto que impede que a mesma
+   * espera ganhe duas frases diferentes conforme o componente que a desenha.
+   *
+   * O TOM TAMBÉM SAI DAQUI, pelo mesmo motivo de `stageOf()` em
    * `order-status.ts`: é aqui que se sabe o que o contrato do backend
-   * significa. O painel só escolhe entre `alert--error` e `alert--info`; ele
-   * não sabe o que é um `charged_back`.
+   * significa. O painel só transforma o tom na classe do primitivo; ele não
+   * sabe o que é um `charged_back` nem um `in_review`.
    */
-  notice: { tone: 'error' | 'info'; text: string } | null;
+  notice: { tone: 'error' | 'warn' | 'info'; text: string } | null;
 };
 
 /** O `payment_status` em que o valor pago voltou por inteiro. */
 const REFUNDED = 'refunded';
 
+/**
+ * O antifraude do gateway segurou a cobrança para análise.
+ *
+ * SÓ ACONTECE COM CARTÃO — pix não passa por análise —, e é o estado que o
+ * fluxo de cartão trouxe para o painel. Ele existe separado de `pending` no
+ * backend por uma razão que é toda de tela: as duas esperas travam a cozinha
+ * igual, mas pedem conversas OPOSTAS com o cliente (ver `PAYMENT_STATUS_LABELS`
+ * em `format.ts`).
+ */
+const IN_REVIEW = 'in_review';
+
 export function paymentOutcome(order: {
   payment_status: string;
   status_history: readonly OrderStatusHistoryEntry[];
 }): PaymentOutcome {
-  if (order.payment_status !== REFUNDED) {
-    return { label: labelFor(PAYMENT_STATUS_LABELS, order.payment_status), notice: null };
-  }
+  if (order.payment_status === REFUNDED) {
+    if (isChargeback(order.status_history)) {
+      return {
+        label: 'Contestado pelo cliente',
+        notice: {
+          // Erro, e não atenção: é a única linha do painel que anuncia dinheiro
+          // saindo de uma venda que já foi entregue.
+          tone: 'error',
+          text:
+            'O cliente contestou esta cobrança no cartão e o valor foi devolvido a ele. ' +
+            'Não foi a loja que estornou — a defesa da contestação corre no gateway, com prazo.',
+        },
+      };
+    }
 
-  if (isChargeback(order.status_history)) {
     return {
-      label: 'Contestado pelo cliente',
+      label: labelFor(PAYMENT_STATUS_LABELS, REFUNDED),
       notice: {
-        // Erro, e não atenção: é a única linha do painel que anuncia dinheiro
-        // saindo de uma venda que já foi entregue.
-        tone: 'error',
-        text:
-          'O cliente contestou esta cobrança no cartão e o valor foi devolvido a ele. ' +
-          'Não foi a loja que estornou — a defesa da contestação corre no gateway, com prazo.',
+        // Informação, e não erro: estorno é uma decisão, não um acidente.
+        tone: 'info',
+        text: 'O valor pago foi estornado ao cliente.',
       },
     };
   }
 
-  return {
-    label: labelFor(PAYMENT_STATUS_LABELS, REFUNDED),
-    notice: {
-      // Informação, e não erro: estorno é uma decisão, não um acidente.
-      tone: 'info',
-      text: 'O valor pago foi estornado ao cliente.',
-    },
-  };
+  if (order.payment_status === IN_REVIEW) {
+    return {
+      label: labelFor(PAYMENT_STATUS_LABELS, IN_REVIEW),
+      notice: {
+        // Atenção e não erro: nada deu errado, uma coisa está faltando
+        // acontecer — que é exatamente o que `--alert` significa no sistema.
+        tone: 'warn',
+        // O GATEWAY É NOMEADO porque quem lê precisa saber onde a análise
+        // corre para poder acompanhá-la. Em produção ele é sempre o Mercado
+        // Pago; o provider `sandbox` também alcança este estado, mas só em
+        // desenvolvimento, onde o nome errado não engana ninguém.
+        text:
+          'Cartão em análise antifraude do Mercado Pago. Não é o cliente que está devendo — ' +
+          'ele já passou o cartão, e quem ainda não respondeu é o gateway. A análise pode ' +
+          'levar até 48 horas úteis, e a cozinha não pode preparar este pedido até ela sair.',
+      },
+    };
+  }
+
+  const label = labelFor(PAYMENT_STATUS_LABELS, order.payment_status);
+
+  /*
+   * A ESPERA COMUM — o pix que ainda não caiu, o cartão recusado que o cliente
+   * pode tentar de novo. Aqui a frase é sobre o que NÃO dá para fazer, e a
+   * situação entre parênteses é o que diz qual das duas esperas é.
+   */
+  if (isAwaitingOnlinePayment(order.payment_status)) {
+    return {
+      label,
+      notice: {
+        tone: 'warn',
+        text: `Pagamento online ainda não confirmado (${label}). A cozinha não pode preparar este pedido.`,
+      },
+    };
+  }
+
+  return { label, notice: null };
 }
