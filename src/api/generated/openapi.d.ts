@@ -1036,6 +1036,13 @@ export interface paths {
      *
      *     Apagar e seguro aqui: `orders.payment_method` guarda texto, nao FK,
      *     entao pedido ja fechado nao muda.
+     *
+     *     MAS esta rota e GERENCIA e `earns_cashback` e do dono
+     *     (`ensure_pode_definir_cashback`), entao apagar e recriar devolve o campo
+     *     ao default `True` — revertendo um `False` que o dono escolheu, pelas maos
+     *     de quem nao podia escreve-lo. Residuo conhecido e ACEITO: fechar exigiria
+     *     tirar o DELETE do gerente, caro por um caminho que tambem tira a forma da
+     *     tela do cliente. Ver `docs/cashback.md`.
      */
     delete: operations['delete_payment_method_admin_payment_methods__method_id__delete'];
     options?: never;
@@ -1475,6 +1482,42 @@ export interface paths {
     options?: never;
     head?: never;
     patch?: never;
+    trace?: never;
+  };
+  '/admin/restaurant': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Restaurant Profile
+     * @description O perfil do restaurante: nome, slug e os dois textos sobre a casa.
+     *
+     *     `/restaurant` e nao `/settings` porque sao tabelas diferentes com donos
+     *     diferentes: `/settings` e `restaurant_settings`, o PADRAO que a filial
+     *     herda; aqui e `restaurants`, a marca, que filial nenhuma herda.
+     */
+    get: operations['get_restaurant_profile_admin_restaurant_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Update Restaurant Profile
+     * @description Grava a descricao publica e as anotacoes para o assistente.
+     *
+     *     Os dois campos tem PUBLICOS opostos, e a tela precisa dizer isso:
+     *     `description` sai na vitrine (o cliente le), `assistant_notes` entra no
+     *     contexto do assistente de IA e nao sai em resposta publica nenhuma.
+     *
+     *     Nulo APAGA o campo. Nao ha fallback de um para o outro: sem
+     *     `assistant_notes` o prompt sai sem a linha `Sobre a casa`, e nao com a
+     *     descricao no lugar dela.
+     */
+    patch: operations['update_restaurant_profile_admin_restaurant_patch'];
     trace?: never;
   };
   '/admin/reviews': {
@@ -3453,6 +3496,62 @@ export interface components {
       price?: number | string | null;
       /** Sort Order */
       sort_order?: number | null;
+    };
+    /**
+     * AdminRestaurantProfileResponse
+     * @description O PERFIL do restaurante: quem ele e, e nao com que numeros ele opera.
+     *
+     *     Separado de `AdminRestaurantSettingsResponse` porque sao tabelas
+     *     diferentes com donos diferentes: aquele e `restaurant_settings`, o PADRAO
+     *     que a filial herda; este e `restaurants`, a marca, que filial nenhuma
+     *     herda porque ela e uma so.
+     *
+     *     `name` e `slug` saem para a tela mostrar de quem esta falando, e NAO sao
+     *     gravaveis (ver `AdminRestaurantProfileUpdate`). Logo, capa e cores
+     *     continuam so por SQL: entram aqui quando a tela que os edita existir, e o
+     *     lugar delas ja e este.
+     */
+    AdminRestaurantProfileResponse: {
+      /** Assistant Notes */
+      assistant_notes?: string | null;
+      /** Description */
+      description?: string | null;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Name */
+      name: string;
+      /** Slug */
+      slug: string;
+    };
+    /**
+     * AdminRestaurantProfileUpdate
+     * @description Os dois textos do lojista sobre a casa, e eles tem PUBLICOS opostos.
+     *
+     *     `description` e VITRINE: sai em `RestaurantPublicResponse`, e o cliente
+     *     decide pedir por ela. Anuncio ali e o uso certo.
+     *
+     *     `assistant_notes` e PROMPT: entra no contexto do assistente de IA (chat e
+     *     voz) e nao sai em resposta publica nenhuma. O que serve ali e o oposto do
+     *     anuncio — o que a casa faz, o que ela nao faz, o que o atendente precisa
+     *     saber para nao inventar. Foi para poder dizer isso na tela sem mentir que
+     *     os dois campos se separaram (revisao 20260823_0034).
+     *
+     *     Nao ha fallback de um para o outro: `assistant_notes` nulo e prompt sem a
+     *     linha `Sobre a casa`, e nao a `description` no lugar dela.
+     *
+     *     `name` e `slug` NAO estao aqui. O slug e a URL publica do cardapio — a
+     *     unica coisa que o cliente tem salva — e troca-lo por PATCH quebraria todo
+     *     link que existe no mundo, em silencio e sem redirecionamento. Se um dia
+     *     for preciso, e rota propria, com o motivo escrito.
+     */
+    AdminRestaurantProfileUpdate: {
+      /** Assistant Notes */
+      assistant_notes?: string | null;
+      /** Description */
+      description?: string | null;
     };
     /**
      * AdminRestaurantSettingsResponse
@@ -9025,6 +9124,59 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['SalesSummaryResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_restaurant_profile_admin_restaurant_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminRestaurantProfileResponse'];
+        };
+      };
+    };
+  };
+  update_restaurant_profile_admin_restaurant_patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AdminRestaurantProfileUpdate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminRestaurantProfileResponse'];
         };
       };
       /** @description Validation Error */

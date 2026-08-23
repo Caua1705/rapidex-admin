@@ -112,6 +112,15 @@ export type Acao =
   | 'loja.abrirFechar'
   | 'loja.editarTiposDePedido'
   | 'loja.editarPadroes'
+  /*
+   * A MARCA É OUTRO RECURSO, NÃO OUTRA VISTA DOS PADRÕES — e por isso é outra
+   * ação, mesmo tendo o mesmo papel de `loja.editarPadroes`. `/admin/settings`
+   * grava `restaurant_settings`, o padrão que a filial herda; `/admin/restaurant`
+   * grava `restaurants`, a marca. Apontar as duas para a mesma rota faria o
+   * compilador parar de conferir uma delas — o mesmo motivo das quatro de
+   * cashback logo acima.
+   */
+  | 'loja.editarMarca'
   | 'loja.editarValoresDaFilial'
   | 'loja.editarFilial'
   | 'loja.editarHorarios'
@@ -240,6 +249,7 @@ const ROTA_DA_ACAO = {
   'loja.abrirFechar': 'PATCH /admin/branches/{branch_id}/store-status',
   'loja.editarTiposDePedido': 'PATCH /admin/branches/{branch_id}/order-types',
   'loja.editarPadroes': 'PATCH /admin/settings',
+  'loja.editarMarca': 'PATCH /admin/restaurant',
   'loja.editarValoresDaFilial': 'PATCH /admin/branches/{branch_id}/settings',
   'loja.editarFilial': 'PATCH /admin/branches/{branch_id}',
   'loja.editarHorarios': 'PUT /admin/branches/{branch_id}/business-hours',

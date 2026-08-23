@@ -1114,7 +1114,21 @@
  * razão, como o bloco de pagamento do detalhe do pedido — rótulo à esquerda,
  * o que sai à direita.
  */
-.vias__leitura {
+/*
+ * O PAR NOME/VALOR SÓ DE LEITURA — a peça de Minha loja para o que a tela
+ * MOSTRA e não deixa editar.
+ *
+ * Ela nasceu nas vias da comanda (o número que quem opera lê sem poder mudar) e
+ * a Marca precisou da mesma coisa para nome, endereço do cardápio e código.
+ * Duas cópias divergiriam na primeira vez que uma delas ganhasse um degrau de
+ * tinta, então é uma peça só, com o nome do bloco que a usa — como
+ * `store-form__section` e `store-form__grid` ao lado.
+ *
+ * POR QUE `dl` E NÃO CAMPO DESABILITADO: campo desabilitado convida ao clique e
+ * não explica a recusa. É a mesma regra do botão que some em vez de ficar
+ * inerte — quem não pode editar precisa VER que aquilo não é um formulário.
+ */
+.store-form__leitura {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: baseline;
@@ -1123,7 +1137,7 @@
   margin: 0;
 }
 
-.vias__leitura dt {
+.store-form__leitura dt {
   color: var(--ink-3);
   font-size: var(--tl-size);
   line-height: var(--tl-line);
@@ -1131,11 +1145,12 @@
   letter-spacing: var(--tl-track);
 }
 
-.vias__leitura dd {
+.store-form__leitura dd {
   margin: 0;
   color: var(--ink);
   font-size: var(--tb-size);
   line-height: var(--tb-line);
+  overflow-wrap: anywhere;
 }
 
 /* ==========================================================================
@@ -1197,6 +1212,86 @@
   gap: var(--sp-12);
   font-size: var(--ta-size);
   line-height: var(--ta-line);
+}
+
+/* ==========================================================================
+ * MARCA — os dois textos sobre a casa, e a distinção entre eles
+ *
+ * `description` é a vitrine (o cliente lê no cardápio) e `assistant_notes` é o
+ * contexto do assistente de IA (ninguém além dele lê). Os dois eram O MESMO
+ * CAMPO até hoje, então a tela não pode contar com o lojista já saber a
+ * diferença: ela é dita pelo rótulo, pelo público escrito debaixo dele, pela
+ * ajuda, pelo exemplo dentro da caixa vazia e pelo tamanho da caixa.
+ * ======================================================================= */
+
+/*
+ * O RÓTULO DO GRUPO CARREGA O PÚBLICO, na mesma coluna de 180px.
+ *
+ * "Descrição" e "Anotações para o assistente" não dizem sozinhos quem lê cada
+ * um. Colada ao nome do grupo, a linha de público faz a coluna da esquerda ler
+ * como uma comparação — "o cliente lê no cardápio" contra "só o assistente lê"
+ * — em vez de custar uma frase de aviso no meio do formulário.
+ *
+ * No celular o grupo empilha (ver o bloco de 720px) e as duas linhas continuam
+ * juntas em cima dos campos, que é o mesmo que elas dizem no desktop.
+ */
+.marca__rotulo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.marca__publico,
+.marca__nota {
+  margin: 0;
+}
+
+.marca__bloco {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+}
+
+/*
+ * A CAIXA TEM A LARGURA DA LEITURA, e essa é a medida de conteúdo aqui: 68
+ * caracteres é o que se lê sem perder a linha ao voltar para a esquerda. Solta,
+ * ela abriria a coluna inteira do formulário e convidaria a escrever uma linha
+ * só, comprida — que no cardápio do cliente quebra numa largura que não é esta.
+ *
+ * ELE ENVOLVE A CAIXA E O CONTADOR, e não só a caixa: o contador é do campo, e
+ * solto como irmão ele viraria um segundo item da grade do grupo — o mesmo
+ * defeito que o contador do rodapé da comanda já teve.
+ */
+.marca__campo {
+  max-width: 68ch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.marca__nota {
+  max-width: 68ch;
+}
+
+/* O contador fica à direita, embaixo da caixa que ele conta. */
+.marca__meta {
+  display: flex;
+  justify-content: flex-end;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+}
+
+/*
+ * PASSOU DO TETO: O NÚMERO ACENDE.
+ *
+ * A cor é o SEGUNDO canal, nunca o único (WCAG 1.4.1): o primeiro é o próprio
+ * número dizendo "312/300" por escrito, e o terceiro é a mensagem de erro no
+ * campo quando a gravação está travada.
+ */
+.marca__acima {
+  color: var(--danger);
+  font-weight: var(--w-medium);
 }
 
 /* ==========================================================================

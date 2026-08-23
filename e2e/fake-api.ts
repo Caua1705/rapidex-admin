@@ -27,6 +27,7 @@ type PrintSector = Schemas['PrintingSectorResponse'];
 type PrintAgentPrinter = Schemas['PrintAgentPrinterResponse'];
 type PrintTestRequest = Schemas['PrintTestRequest'];
 type RestaurantSettings = Schemas['AdminRestaurantSettingsResponse'];
+type RestaurantProfile = Schemas['AdminRestaurantProfileResponse'];
 type BranchOperation = Schemas['AdminBranchOperationResponse'];
 type BranchOverrides = Schemas['AdminBranchOperationOverrides'];
 type BusinessHour = Schemas['BusinessHourResponse'];
@@ -592,6 +593,40 @@ function initialSettings(): RestaurantSettings {
     // própria — e é ela que some da bobina quando a loja manda `''`.
     receipt_footer_message: 'Obrigado pela preferência! @pizzariadoze',
   };
+}
+
+/**
+ * O PERFIL DO RESTAURANTE — a marca, e não os padrões que a filial herda.
+ *
+ * Os dois textos nascem DENTRO dos tetos (1000 e 300). O caso do texto legado
+ * acima do teto — que a Response deixa passar porque só o corpo do PATCH os
+ * declara — é plantado pelo teste que precisa dele, com `setProfileTexts`.
+ */
+function initialProfile(): RestaurantProfile {
+  return {
+    id: RESTAURANT_ID,
+    name: 'Pizzaria Doze',
+    slug: 'pizzaria-doze',
+    description: 'Pizza de forno a lenha desde 2011, no Centro.',
+    assistant_notes: 'Pizzaria. Forno a lenha, massa fina e rodízio às quintas.',
+  };
+}
+
+/**
+ * O campo do corpo que passou do teto, ou `null`.
+ *
+ * Os tetos vivem em `AdminRestaurantProfileUpdate` e SÓ nele: a Response não os
+ * declara, e é por isso que `setProfileTexts` consegue plantar um texto legado
+ * maior que o teto sem o falso se contradizer.
+ */
+function campoAcimaDoTeto(body: Record<string, unknown>): string | null {
+  if (typeof body.description === 'string' && body.description.length > 1000) {
+    return 'description';
+  }
+  if (typeof body.assistant_notes === 'string' && body.assistant_notes.length > 300) {
+    return 'assistant_notes';
+  }
+  return null;
 }
 
 /**
@@ -1565,6 +1600,21 @@ export type FakeApi = {
   settings: () => RestaurantSettings;
   /** Corpo de cada PATCH /admin/settings, para conferir o que a tela mandou. */
   settingsPatches: () => Record<string, unknown>[];
+  /** O perfil do restaurante como o "banco" o tem agora. */
+  profile: () => RestaurantProfile;
+  /**
+   * Corpo de cada PATCH /admin/restaurant.
+   *
+   * É AQUI que se confere a edição parcial: o campo que o lojista não mexeu não
+   * pode aparecer no corpo, senão um texto legado acima do teto tomaria 422 e
+   * levaria junto o campo que ele estava tentando salvar.
+   */
+  profilePatches: () => Record<string, unknown>[];
+  /** Planta os dois textos antes do login — inclusive acima do teto. */
+  setProfileTexts: (textos: {
+    description?: string | null;
+    assistant_notes?: string | null;
+  }) => void;
   /** Corpo de cada PATCH /admin/branches/{id}. */
   branchPatches: () => { branchId: string; body: Record<string, unknown> }[];
   /** Corpo de cada PUT de horários — é onde se confere que vão os 7 dias. */
@@ -1755,6 +1805,8 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     branchSettingsCalls: [] as { branchId: string; body: Record<string, unknown> }[],
     settings: initialSettings(),
     settingsPatches: [] as Record<string, unknown>[],
+    profile: initialProfile(),
+    profilePatches: [] as Record<string, unknown>[],
     branchPatches: [] as { branchId: string; body: Record<string, unknown> }[],
     /** Cada PATCH de tipos de pedido, para conferir que só vai o campo mexido. */
     orderTypeCalls: [] as { branchId: string; body: Record<string, unknown> }[],
@@ -1809,7 +1861,13 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     bandCalls: [] as { branchId: string; body: Record<string, unknown> }[],
     deliveryBands: {} as Record<
       string,
-      { id: string; branch_id: string; max_distance_km: number; delivery_time_min: number; delivery_time_max: number }[]
+      {
+        id: string;
+        branch_id: string;
+        max_distance_km: number;
+        delivery_time_min: number;
+        delivery_time_max: number;
+      }[]
     >,
     productPatches: [] as { productId: string; body: Record<string, unknown> }[],
     /** Cada PATCH de setor na categoria inteira, para conferir o lote. */
@@ -2124,7 +2182,11 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       }
       if (method === 'PUT') {
         const body = request.postDataJSON() as {
-          bands?: { max_distance_km: number; delivery_time_min: number; delivery_time_max: number }[];
+          bands?: {
+            max_distance_km: number;
+            delivery_time_min: number;
+            delivery_time_max: number;
+          }[];
         };
         state.bandCalls.push({ branchId, body });
 
@@ -2135,7 +2197,11 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
          */
         state.deliveryBands[branchId] = [...(body.bands ?? [])]
           .sort((a, b) => a.max_distance_km - b.max_distance_km)
-          .map((band, indice) => ({ id: `faixa-${branchId}-${indice}`, branch_id: branchId, ...band }));
+          .map((band, indice) => ({
+            id: `faixa-${branchId}-${indice}`,
+            branch_id: branchId,
+            ...band,
+          }));
         return json(route, 200, state.deliveryBands[branchId]);
       }
     }
@@ -2579,7 +2645,6 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       });
     }
 
-
     // --- cashback ----------------------------------------------------------
 
     /*
@@ -2600,10 +2665,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       return { source: 'none', rule: null };
     }
 
-    function regraGravada(
-      body: Record<string, unknown>,
-      branchId: string | null,
-    ): CashbackRule {
+    function regraGravada(body: Record<string, unknown>, branchId: string | null): CashbackRule {
       return {
         id: branchId ? `cb-${branchId}` : 'cb-rede',
         restaurant_id: 'rest-1',
@@ -2664,6 +2726,36 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         state.settingsPatches.push(body);
         Object.assign(state.settings, body);
         return json(route, 200, state.settings);
+      }
+    }
+
+    // --- minha loja: a marca ----------------------------------------------
+
+    /*
+     * OUTRA TABELA, OUTRO PATCH. `/admin/settings` grava `restaurant_settings`,
+     * o padrão que a filial herda; isto grava `restaurants`, a marca.
+     *
+     * `Object.assign` com o corpo é o que encena a EDIÇÃO PARCIAL do backend:
+     * campo ausente não mexe (é assim que um texto legado acima do teto
+     * sobrevive a um salvamento do outro campo), e `null` explícito apaga.
+     */
+    if (path === '/admin/restaurant') {
+      if (method === 'GET') return json(route, 200, state.profile);
+      if (method === 'PATCH') {
+        const body = request.postDataJSON() as Record<string, unknown>;
+        state.profilePatches.push(body);
+
+        // O 422 do teto, como o Pydantic o devolve: a tela tem de recusar
+        // ANTES disto, e este ramo é o que prova que ela recusou.
+        const acima = campoAcimaDoTeto(body);
+        if (acima) {
+          return json(route, 422, {
+            detail: [{ loc: ['body', acima], msg: 'String should have at most N characters' }],
+          });
+        }
+
+        Object.assign(state.profile, body);
+        return json(route, 200, state.profile);
       }
     }
 
@@ -3284,6 +3376,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     cancelReasons: () => state.cancelReasons,
     settings: () => state.settings,
     settingsPatches: () => state.settingsPatches,
+    profile: () => state.profile,
+    profilePatches: () => state.profilePatches,
+    setProfileTexts: (textos) => Object.assign(state.profile, textos),
     cashbackPuts: () => state.cashbackPuts,
     setCashbackRestaurantRule(rule) {
       state.cashbackRestaurantRule = rule;

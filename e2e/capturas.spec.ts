@@ -162,6 +162,16 @@ for (const tamanho of TAMANHOS) {
       await fotografar(page, 'minha-loja-geral', tamanho.nome, tema);
 
       /*
+       * MARCA ENTRA NO ARNÊS porque ela existe para uma coisa VISUAL: fazer o
+       * lojista entender, sem documentação, que a descrição é vitrine e as
+       * anotações do assistente não são. Se a foto não mostra a distinção, a
+       * seção não cumpriu a razão de ter sido criada.
+       */
+      await page.goto('/minha-loja/marca');
+      await expect(page.getByTestId('marca-identidade')).toBeVisible();
+      await fotografar(page, 'minha-loja-marca', tamanho.nome, tema);
+
+      /*
        * IMPRESSÃO ENTROU NO ARNÊS nesta rodada, e não por ser mais uma seção: é
        * a tela com mais peças de estado por centímetro do painel — o ponto do
        * programa, a lista da máquina, o seletor de impressora em cada linha de

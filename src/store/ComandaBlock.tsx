@@ -210,7 +210,7 @@ export function ComandaBlock({
             pergunta "por que saíram duas vias?", e é por isso que a LEITURA
             desta configuração é de quem opera.
           */
-          <dl className="vias__leitura" data-testid="print-copies-readonly">
+          <dl className="store-form__leitura" data-testid="print-copies-readonly">
             <dt>Entrega</dt>
             <dd>{describeCopies(draft.customerDelivery, draft.productionDelivery)}</dd>
             <dt>Retirada</dt>

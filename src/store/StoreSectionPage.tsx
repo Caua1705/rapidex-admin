@@ -4,6 +4,7 @@ import { usePermissoes } from '../auth/use-permissions';
 
 import { BranchTab } from './BranchTab';
 import { BranchValuesTab } from './BranchValuesTab';
+import { BrandTab } from './BrandTab';
 import { DeliveryTab } from './DeliveryTab';
 import { GeneralTab } from './GeneralTab';
 import { HoursTab } from './HoursTab';
@@ -61,6 +62,7 @@ export function StoreSectionPage({ id }: { id: StoreSectionId }) {
 
 function Corpo({ id, context }: { id: StoreSectionId; context: StoreOutletContext }) {
   if (id === 'operacao') return <OperationTab operation={context.operation} />;
+  if (id === 'marca') return <BrandTab />;
   if (id === 'geral') return <GeneralTab settings={context.settings} />;
   if (id === 'valores')
     return (

@@ -42,6 +42,42 @@ export type RestaurantSettings = Schemas['AdminRestaurantSettingsResponse'];
 export type RestaurantSettingsUpdate = Schemas['AdminRestaurantSettingsUpdate'];
 
 /**
+ * O PERFIL do restaurante — a MARCA, e não os padrões que a filial herda.
+ *
+ * Outra tabela e outro dono: `RestaurantSettings` é `restaurant_settings`, o
+ * padrão que cada filial sobrescreve em Valores; isto é `restaurants`, e filial
+ * nenhuma o herda porque ele é um só.
+ *
+ * `id`, `name` e `slug` saem na LEITURA e não existem no corpo do PATCH. O slug
+ * é a URL pública do cardápio — a única coisa que o cliente tem salva —, e
+ * trocá-lo por aqui quebraria todo link que existe, em silêncio e sem
+ * redirecionamento.
+ */
+export type RestaurantProfile = Schemas['AdminRestaurantProfileResponse'];
+
+/**
+ * Os dois textos do lojista sobre a casa, e eles têm PÚBLICOS OPOSTOS.
+ *
+ *   - `description` é VITRINE: sai em `RestaurantPublicResponse` e o cliente a
+ *     lê no cardápio antes de pedir. Teto de 1000.
+ *   - `assistant_notes` é PROMPT: entra no contexto do assistente de IA e não
+ *     sai em resposta pública nenhuma. Teto de 300.
+ *
+ * Os dois eram o mesmo campo até a revisão `20260823_0034` do backend, e foram
+ * separados justamente para a tela poder dizer "não escreva anúncio aqui" sem
+ * mentir sobre o que acontece com o texto.
+ *
+ * OS TETOS SÓ EXISTEM AQUI, no corpo do PATCH — a resposta não os declara. Logo
+ * um texto legado maior que o teto CHEGA na tela, e quem trata isso é
+ * `store/restaurant-profile.ts`.
+ *
+ * Nulo APAGA o campo, e não há fallback de um para o outro: sem
+ * `assistant_notes` o prompt sai sem a linha "Sobre a casa", e não com a
+ * descrição no lugar dela.
+ */
+export type RestaurantProfileUpdate = Schemas['AdminRestaurantProfileUpdate'];
+
+/**
  * Como UMA filial está operando agora — uma linha de `GET /admin/branches/operation`.
  *
  * `is_open` e `is_open_now` são coisas diferentes e as duas vêm de propósito:
@@ -244,7 +280,8 @@ export type CategoryPrintSectorResult = Schemas['CategoryPrintingSectorResponse'
  * Os minutos são o DESLOCAMENTO, não o prazo total: o preparo da filial
  * continua somando por cima. Ver `store/delivery-bands.ts`.
  */
-export type DeliveryTimeBand = Schemas['src__schemas__admin_settings_schema__DeliveryTimeBandResponse'];
+export type DeliveryTimeBand =
+  Schemas['src__schemas__admin_settings_schema__DeliveryTimeBandResponse'];
 export type DeliveryTimeBandInput = Schemas['DeliveryTimeBandInput'];
 
 /** Pausa a entrega por um tempo. `minutes: 0` retoma na hora; teto de 24h. */

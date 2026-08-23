@@ -719,3 +719,84 @@ test('apagar as faixas é uma ação nomeada, e diz o que passa a valer', async 
   await expect.poll(() => api.bandCalls().at(-1)?.body).toEqual({ bands: [] });
   await expect(bloco.getByTestId('delivery-bands-vazio')).toBeVisible();
 });
+
+/* ==========================================================================
+ * MARCA — os dois textos sobre a casa, e o outro destino de gravação
+ *
+ * Esta seção existe separada de Geral justamente por causa do que se testa
+ * aqui: ela grava em `PATCH /admin/restaurant` (a tabela `restaurants`) e não
+ * em `PATCH /admin/settings` (a `restaurant_settings`). Com os dois na mesma
+ * barra de salvar, um campo iria no corpo do outro.
+ * ======================================================================= */
+
+test('Marca grava no perfil do restaurante, e só o campo mexido vai no corpo', async ({ page }) => {
+  await abrirMinhaLoja(page);
+  await abrirSecao(page, 'marca');
+
+  await expect(page.getByTestId('store-branch-note')).toHaveText('vale para o restaurante inteiro');
+
+  // A identificação é LEITURA: nome, endereço público e código, sem campo.
+  await expect(page.getByTestId('marca-nome')).toHaveText(api.profile().name);
+  await expect(page.getByTestId('marca-slug')).toHaveText(`/${api.profile().slug}`);
+  await expect(page.getByTestId('marca-id')).toHaveText(api.profile().id);
+  await expect(page.getByTestId('marca-identidade').locator('input')).toHaveCount(0);
+
+  await page.getByTestId('marca-descricao').fill('Forno a lenha desde 2011, no Centro.');
+  await page.getByTestId('store-save').click();
+  await expect(page.getByTestId('store-saved')).toBeVisible();
+
+  // O OUTRO DESTINO: nada disto pode ter passado por /admin/settings.
+  expect(api.settingsPatches()).toHaveLength(0);
+  expect(api.profilePatches()).toEqual([{ description: 'Forno a lenha desde 2011, no Centro.' }]);
+  // O campo que o lojista não tocou não vai no corpo.
+  expect(api.profilePatches().at(-1)).not.toHaveProperty('assistant_notes');
+});
+
+/*
+ * O CORTE ERA SILENCIOSO: o lojista digitava 500 e 200 sumiam sem aviso. Sem
+ * `maxLength`, o texto passa do teto na tela — e é a tela que recusa, com o
+ * número que falta cortar, antes de o backend recusar com 422.
+ */
+test('passar do teto acende o contador e a gravação para antes do 422', async ({ page }) => {
+  await abrirMinhaLoja(page);
+  await abrirSecao(page, 'marca');
+
+  await page.getByTestId('marca-notas').fill('a'.repeat(312));
+
+  await expect(page.getByTestId('marca-notas-contador')).toHaveText('312/300');
+  await expect(page.getByTestId('marca-notas-contador')).toHaveClass(/marca__acima/);
+
+  await page.getByTestId('store-save').click();
+
+  await expect(page.getByTestId('store-error')).toContainText('corte 12 caracteres');
+  expect(api.profilePatches()).toHaveLength(0);
+});
+
+/*
+ * O TEXTO LEGADO — os tetos só existem no corpo do PATCH, e a resposta não os
+ * declara: um texto gravado antes de os dois campos se separarem chega aqui
+ * acima do teto sem ninguém ter digitado nada.
+ *
+ * Ele não pode invalidar a tela na abertura (o lojista não fez nada), e não
+ * pode passar em silêncio.
+ */
+test('texto legado acima do teto é dito na tela e não trava o outro campo', async ({ page }) => {
+  api.setProfileTexts({ assistant_notes: 'b'.repeat(400) });
+
+  await abrirMinhaLoja(page);
+  await abrirSecao(page, 'marca');
+
+  // Aberto assim, ele é DITO — e o formulário não abre sujo nem inválido.
+  await expect(page.getByTestId('marca-legado')).toContainText('corte 100 caracteres');
+  await expect(page.getByTestId('marca-notas-contador')).toHaveText('400/300');
+  await expect(page.getByTestId('store-save-bar')).toHaveCount(0);
+
+  // E salvar a DESCRIÇÃO continua funcionando: o campo legado fica fora do
+  // corpo, então não há 422 para levar junto o campo que o lojista arrumou.
+  await page.getByTestId('marca-descricao').fill('Vitrine nova.');
+  await page.getByTestId('store-save').click();
+
+  await expect(page.getByTestId('store-saved')).toBeVisible();
+  expect(api.profilePatches()).toEqual([{ description: 'Vitrine nova.' }]);
+  expect(api.profile().assistant_notes).toHaveLength(400);
+});

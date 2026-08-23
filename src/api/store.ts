@@ -27,6 +27,8 @@ import type {
   PaymentMethod,
   PaymentMethodCreate,
   PaymentMethodUpdate,
+  RestaurantProfile,
+  RestaurantProfileUpdate,
   RestaurantSettings,
   RestaurantSettingsUpdate,
 } from './types';
@@ -39,6 +41,35 @@ export async function fetchSettings(): Promise<RestaurantSettings> {
 
 export async function updateSettings(body: RestaurantSettingsUpdate): Promise<RestaurantSettings> {
   return unwrap(await apiClient.PATCH('/admin/settings', { body }));
+}
+
+/*
+ * O PERFIL É OUTRO RECURSO, NÃO OUTRA VISTA DO MESMO.
+ *
+ * `/admin/settings` é `restaurant_settings`, o PADRÃO que a filial herda;
+ * `/admin/restaurant` é `restaurants`, a MARCA, que filial nenhuma herda. Duas
+ * tabelas, dois PATCH, e é por isso que a seção Marca existe separada de Geral:
+ * uma barra de salvar com dois destinos tem desfecho em que "Alterações
+ * salvas." é mentira sobre metade do formulário.
+ */
+
+/** Leitura é PESSOAS: o nome e o slug da casa não são segredo de ninguém. */
+export async function fetchRestaurantProfile(): Promise<RestaurantProfile> {
+  return unwrap(await apiClient.GET('/admin/restaurant'));
+}
+
+/**
+ * Grava a descrição pública e as anotações do assistente. SOMENTE_DONO.
+ *
+ * EDIÇÃO PARCIAL, e aqui isso não é economia: campo ausente não mexe, e é o que
+ * permite salvar a descrição sem reenviar um `assistant_notes` legado que já
+ * chegou acima do teto de 300 e tomaria 422 levando o formulário inteiro junto.
+ * Quem monta o corpo é `store/restaurant-profile.ts`.
+ */
+export async function updateRestaurantProfile(
+  body: RestaurantProfileUpdate,
+): Promise<RestaurantProfile> {
+  return unwrap(await apiClient.PATCH('/admin/restaurant', { body }));
 }
 
 // --- operação da filial -------------------------------------------------

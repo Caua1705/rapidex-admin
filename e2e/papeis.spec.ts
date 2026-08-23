@@ -180,6 +180,13 @@ test('o balcão só enxerga as seções de Minha loja que ele opera', async ({ p
   // Formulário que nunca grava é pior que seção ausente.
   await expect(page.getByTestId('store-anchor-geral')).toHaveCount(0);
   await expect(page.getByTestId('store-anchor-horarios')).toHaveCount(0);
+  /*
+   * MARCA SOME TAMBÉM, e a leitura dela é `PESSOAS` — o balcão PODE ler o nome
+   * e os dois textos. Não é a leitura que decide: `PATCH /admin/restaurant` é
+   * SOMENTE_DONO, e o que sobraria aqui é uma tela com duas caixas de texto que
+   * aceitam digitação e nunca gravam.
+   */
+  await expect(page.getByTestId('store-anchor-marca')).toHaveCount(0);
 
   // E o endereço direto volta para Operação.
   await page.goto('/minha-loja/geral');
@@ -316,4 +323,5 @@ test('o dono continua vendo tudo', async ({ page }) => {
   await page.goto('/minha-loja/operacao');
   await expect(page.getByTestId('store-anchor-geral')).toBeVisible();
   await expect(page.getByTestId('store-anchor-valores')).toBeVisible();
+  await expect(page.getByTestId('store-anchor-marca')).toBeVisible();
 });

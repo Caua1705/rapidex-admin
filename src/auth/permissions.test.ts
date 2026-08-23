@@ -39,6 +39,7 @@ const ACOES: readonly Acao[] = [
   'loja.abrirFechar',
   'loja.editarTiposDePedido',
   'loja.editarPadroes',
+  'loja.editarMarca',
   'loja.editarValoresDaFilial',
   'loja.editarFilial',
   'loja.editarHorarios',

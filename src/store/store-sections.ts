@@ -1,5 +1,5 @@
 /**
- * As oito seções de Minha loja — e cada uma é uma ROTA.
+ * As nove seções de Minha loja — e cada uma é uma ROTA.
  *
  * Esta lista é a fonte única: as rotas (`App.tsx`) e a navegação da esquerda
  * (`StoreLayout`) leem daqui. Duas listas divergiriam no dia em que alguém
@@ -25,7 +25,15 @@
 import type { Acao } from '../auth/permissions';
 
 export type StoreSectionId =
-  'operacao' | 'geral' | 'valores' | 'filial' | 'horarios' | 'entrega' | 'pagamento' | 'impressao';
+  | 'operacao'
+  | 'marca'
+  | 'geral'
+  | 'valores'
+  | 'filial'
+  | 'horarios'
+  | 'entrega'
+  | 'pagamento'
+  | 'impressao';
 
 export type StoreSection = {
   id: StoreSectionId;
@@ -71,6 +79,31 @@ export const STORE_SECTIONS: readonly StoreSection[] = [
     titulo: 'Operação',
     estreita: true,
     scope: 'all-branches',
+  },
+  /*
+   * MARCA VEM ANTES DE GERAL, e não entre Geral e Valores — que seria o lugar
+   * "natural" para a segunda seção de escopo de restaurante.
+   *
+   * Geral e Valores editam os MESMOS quatro números, uma no padrão da rede e
+   * outra na sobrescrita da filial, e é a ADJACÊNCIA delas que faz a herança se
+   * ler na ordem da navegação. Enfiar qualquer coisa no meio desfaz isso.
+   *
+   * Sobra a ponta de cima, e ela é a certa por si: identidade antes de números.
+   * "Quem é a casa" vem antes de "com que valores ela opera", e as duas seções
+   * de restaurante ficam juntas no alto, acima das cinco de filial.
+   */
+  {
+    id: 'marca',
+    label: 'Marca',
+    titulo: 'Marca',
+    nota: 'vale para o restaurante inteiro',
+    scope: 'restaurant',
+    /*
+     * `PATCH /admin/restaurant` é SOMENTE_DONO, como o de padrões. A leitura é
+     * PESSOAS, mas a seção é formulário e barra de salvar: sem a escrita, o que
+     * sobra é uma tela que aceita digitação e nunca grava.
+     */
+    acao: 'loja.editarMarca',
   },
   {
     id: 'geral',
