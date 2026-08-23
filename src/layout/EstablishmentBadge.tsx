@@ -1,5 +1,5 @@
 import { useSession } from '../auth/session-context';
-import { establishmentFromBranches } from '../auth/restaurant-label';
+import { establishmentOf } from '../auth/restaurant-label';
 
 /**
  * ============================================================================
@@ -21,9 +21,9 @@ import { establishmentFromBranches } from '../auth/restaurant-label';
  * ----------------------------------------------------------------------------
  *
  * `restaurants.logo_path` existe no banco e `logo_url` já é servido — mas só na
- * API pública da vitrine, que o painel não alcança (ver
- * `auth/restaurant-label.ts`). Enquanto o backend não expuser os dois em
- * `/admin`, o ladrilho leva as INICIAIS do nome.
+ * API pública da vitrine. O NOME já veio para `/admin` (`GET /admin/restaurant`,
+ * ver `auth/restaurant-label.ts`); a logo ainda não. Enquanto ela não sair, o
+ * ladrilho leva as INICIAIS do nome.
  *
  * Iniciais não são um logo de mentira: elas não imitam marca nenhuma, saem do
  * texto que já está ali ao lado e desaparecem sozinhas no dia em que houver
@@ -50,20 +50,22 @@ import { establishmentFromBranches } from '../auth/restaurant-label';
  * afirmações opostas na mesma esquina (ver `layout/branch-heading.ts`).
  */
 export function EstablishmentBadge({ variant = 'lateral' }: { variant?: 'lateral' | 'barra' }) {
-  const { branches } = useSession();
-  const estabelecimento = establishmentFromBranches(branches);
+  const { restaurant, branches } = useSession();
+  const estabelecimento = establishmentOf(restaurant, branches);
 
   /*
-   * Sem filial ainda — a sessão está carregando. O bloco não é desenhado: um
+   * Sem perfil ainda — a sessão está carregando. O bloco não é desenhado: um
    * travessão piscando embaixo da marca lê como defeito, e o nome chega meio
    * segundo depois de qualquer jeito.
    */
   if (!estabelecimento) return null;
 
   /*
-   * A CONTAGEM SÓ APARECE QUANDO É MAIOR QUE UM, e é ela que faz o bloco ler
-   * como o CONJUNTO em vez de como uma das lojas — que é a leitura errada que
-   * o rótulo derivado da filial principal poderia sugerir.
+   * A CONTAGEM SÓ APARECE QUANDO É MAIOR QUE UM. Ela dizia sozinha que o bloco
+   * era sobre o CONJUNTO, num tempo em que o rótulo era o nome de uma filial e
+   * podia ser lido como uma das lojas. Hoje o nome é o da casa e não sugere
+   * mais isso; a contagem fica porque continua sendo a informação que falta —
+   * quantas lojas este lojista alcança.
    *
    * "1 loja" não seria dito: para quem está preso a uma filial, o painel não
    * sabe quantas o restaurante tem, e afirmar uma seria afirmar o que ele não
@@ -91,11 +93,12 @@ export function EstablishmentBadge({ variant = 'lateral' }: { variant?: 'lateral
         */}
         <span className="sr-only">Estabelecimento: </span>
         {/*
-          O texto é a MARCA; o `title` guarda o nome público inteiro da loja
-          principal, que é de onde ela foi tirada. Assim o corte no travessão
-          nunca esconde nada de quem quiser conferir.
+          O `title` repete o nome porque a lateral tem 160px e o CSS corta com
+          reticências. Ele não guarda mais um texto DIFERENTE do que se lê: o
+          nome vem inteiro de `restaurants.name` e nada é cortado antes de
+          chegar aqui.
         */}
-        <span className="estab__nome" title={estabelecimento.fullLabel}>
+        <span className="estab__nome" title={estabelecimento.label}>
           {estabelecimento.label}
         </span>
         {detalhe ? <span className="estab__detalhe">{detalhe}</span> : null}

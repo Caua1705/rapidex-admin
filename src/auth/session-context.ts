@@ -4,7 +4,7 @@
  */
 import { createContext, useContext } from 'react';
 
-import type { AdminUser, Branch } from '../api/types';
+import type { AdminUser, Branch, RestaurantProfile } from '../api/types';
 import type { Papel } from './permissions';
 
 export type SessionContextValue = {
@@ -20,7 +20,15 @@ export type SessionContextValue = {
   papel: Papel | null;
   /** Filiais que este lojista enxerga. Vem do escopo do token. */
   branches: Branch[];
-  /** Nome que aparece no topo. Ver comentário em SessionProvider. */
+  /**
+   * A casa que este lojista opera — nome e slug, de `GET /admin/restaurant`.
+   *
+   * `null` enquanto o perfil não chegou, ou quando a leitura falhou. Quem
+   * desenha a identificação do estabelecimento não desenha nada nesse caso;
+   * ver `layout/EstablishmentBadge.tsx`.
+   */
+  restaurant: RestaurantProfile | null;
+  /** O nome da casa, ou '—'. Ver `auth/restaurant-label.ts`. */
   restaurantLabel: string;
   /**
    * Filial que o painel está olhando. String vazia = todas as que o token

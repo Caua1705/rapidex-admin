@@ -3,9 +3,10 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { fetchCurrentUser, login } from '../api/auth';
 import { onSessionExpired } from '../api/client';
 import { listBranches } from '../api/orders';
-import type { AdminUser, Branch } from '../api/types';
+import { fetchRestaurantProfile } from '../api/store';
+import type { AdminUser, Branch, RestaurantProfile } from '../api/types';
 import { papelDe, podeEntrarNoPainel } from './permissions';
-import { restaurantLabelFromBranches } from './restaurant-label';
+import { restaurantLabelOf } from './restaurant-label';
 import { SessionContext, type SessionContextValue } from './session-context';
 import { clearSession, readSession, writeSession } from './session-storage';
 
@@ -28,6 +29,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return guardado;
   });
   const [branches, setBranches] = useState<Branch[]>([]);
+  /*
+   * O PERFIL DO RESTAURANTE — de onde sai o nome da casa desde que
+   * `GET /admin/restaurant` existe. Antes ele era derivado da filial principal;
+   * ver `restaurant-label.ts`.
+   *
+   * Ele NÃO é guardado no `localStorage` junto da sessão. Nome e slug são o que
+   * o backend disser HOJE: um restaurante renomeado com o nome velho gravado na
+   * máquina mostraria o nome velho até a pessoa deslogar, e o campo é lido em
+   * uma chamada de 40 bytes que sai junto das outras duas.
+   */
+  const [restaurant, setRestaurant] = useState<RestaurantProfile | null>(null);
   // Vazio = todas as filiais que o token alcança. O backend já limita o escopo,
   // então "todas" nunca vaza filial de outro restaurante.
   const [activeBranchId, setActiveBranchId] = useState('');
@@ -36,6 +48,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     clearSession();
     setUser(null);
     setBranches([]);
+    setRestaurant(null);
     setActiveBranchId('');
   }, []);
 
@@ -50,6 +63,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
     let cancelled = false;
     void (async () => {
+      /*
+       * O PERFIL SAI JUNTO, MAS FRACASSA SOZINHO.
+       *
+       * Ele não entra no `Promise.all` abaixo porque ali um erro derruba os
+       * três: o painel inteiro depende das filiais, e ficar sem elas porque a
+       * leitura do NOME falhou seria trocar um rótulo por uma tela vazia. Sem
+       * perfil o shell só não desenha o bloco de identificação.
+       */
+      const perfil = fetchRestaurantProfile().catch(() => null);
+
       try {
         const [currentUser, currentBranches] = await Promise.all([
           fetchCurrentUser(),
@@ -59,6 +82,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setUser(currentUser);
         setBranches(currentBranches);
         writeSession({ accessToken: readSession()?.accessToken ?? '', user: currentUser });
+
+        const perfilCarregado = await perfil;
+        if (cancelled) return;
+        setRestaurant(perfilCarregado);
       } catch {
         // Erro de rede não desloga: o painel continua com o que tem em mão e
         // volta ao normal quando a internet voltar. 401 já foi tratado acima.
@@ -104,13 +131,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       user,
       papel: papelDe(user?.role),
       branches,
-      restaurantLabel: restaurantLabelFromBranches(branches),
+      restaurant,
+      restaurantLabel: restaurantLabelOf(restaurant),
       activeBranchId,
       selectBranch: setActiveBranchId,
       signIn,
       signOut,
     }),
-    [user, branches, activeBranchId, signIn, signOut],
+    [user, branches, restaurant, activeBranchId, signIn, signOut],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
