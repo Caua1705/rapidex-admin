@@ -169,6 +169,45 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/admin/branches/{branch_id}/cashback-rules': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Branch Cashback Rule
+     * @description A regra que VALE nesta filial, com `source` dizendo de onde ela veio.
+     *
+     *     `source: "branch"` e regra propria da loja; `"restaurant"` e a da rede,
+     *     herdada inteira. O painel precisa da diferenca para saber se salvar ali
+     *     edita a rede ou **cria uma sobrescrita**.
+     */
+    get: operations['get_branch_cashback_rule_admin_branches__branch_id__cashback_rules_get'];
+    /**
+     * Replace Branch Cashback Rule
+     * @description Cria ou substitui a sobrescrita desta filial.
+     *
+     *     A partir daqui a loja **para de herdar**: mudanca na regra da rede nao a
+     *     alcanca mais, ate alguem apagar a sobrescrita. E tambem como uma loja sai
+     *     da campanha sozinha — sobrescrita propria com `enabled: false`.
+     */
+    put: operations['replace_branch_cashback_rule_admin_branches__branch_id__cashback_rules_put'];
+    post?: never;
+    /**
+     * Delete Branch Cashback Rule
+     * @description Apaga a sobrescrita: a filial volta a herdar a regra da rede.
+     *
+     *     404 quando a filial nao tem regra propria — "voltou a herdar agora" e "ja
+     *     herdava" sao estados diferentes na tela.
+     */
+    delete: operations['delete_branch_cashback_rule_admin_branches__branch_id__cashback_rules_delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/admin/branches/{branch_id}/delivery-pause': {
     parameters: {
       query?: never;
@@ -519,6 +558,37 @@ export interface paths {
      *     `GET /admin/branches`, que ja devolve so a filial do escopo.
      */
     patch: operations['set_store_status_admin_branches__branch_id__store_status_patch'];
+    trace?: never;
+  };
+  '/admin/cashback-rules': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Restaurant Cashback Rule
+     * @description A regra padrao da rede — a que toda filial sem sobrescrita herda.
+     *
+     *     `source: "none"` significa que ninguem configurou cashback neste
+     *     restaurante, e nao e o mesmo que `enabled: false`. Os dois nao geram
+     *     cashback; so o segundo tem numeros para a tela mostrar.
+     */
+    get: operations['get_restaurant_cashback_rule_admin_cashback_rules_get'];
+    /**
+     * Replace Restaurant Cashback Rule
+     * @description Cria ou substitui a regra da rede. Nao alcanca filial com sobrescrita.
+     *
+     *     **`weekdays` substitui a lista inteira.** Dia que sair do corpo deixa de
+     *     ter percentual proprio e volta a valer `default_percent` — nunca zero.
+     */
+    put: operations['replace_restaurant_cashback_rule_admin_cashback_rules_put'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   '/admin/categories': {
@@ -2578,6 +2648,90 @@ export interface components {
       /** Zipcode */
       zipcode?: string | null;
     };
+    /**
+     * AdminCashbackRuleResponse
+     * @description A LINHA de configuracao, como ela esta gravada.
+     *
+     *     `branch_id` nulo e a regra padrao da rede; preenchido e a sobrescrita de
+     *     uma filial.
+     */
+    AdminCashbackRuleResponse: {
+      /** Branch Id */
+      branch_id?: string | null;
+      /** Created At */
+      created_at?: string | null;
+      /** Default Percent */
+      default_percent: string;
+      /** Enabled */
+      enabled: boolean;
+      /** Expiry Days */
+      expiry_days: number;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Min Redeem Balance */
+      min_redeem_balance: string;
+      /**
+       * Restaurant Id
+       * Format: uuid
+       */
+      restaurant_id: string;
+      /** Updated At */
+      updated_at?: string | null;
+      /** Weekdays */
+      weekdays?: components['schemas']['CashbackWeekdayResponse'][];
+    };
+    /**
+     * AdminCashbackRuleView
+     * @description A regra que VALE, e de onde ela veio.
+     *
+     *     Existe porque `rule` sozinho e ambiguo: a mesma resposta sairia para a
+     *     filial que tem regra propria e para a que herda a da rede, e o painel
+     *     precisa da diferenca para decidir entre "editar a regra desta loja" e
+     *     "criar uma sobrescrita".
+     *
+     *     `source = "none"` e regra nenhuma configurada, e ai `rule` vem nulo. Nao
+     *     e o mesmo que `enabled: false`: um e "ninguem configurou", o outro e
+     *     "configurado e desligado". Os dois caem em SEM_CASHBACK no checkout, mas
+     *     so o segundo tem numeros para mostrar na tela.
+     */
+    AdminCashbackRuleView: {
+      rule?: components['schemas']['AdminCashbackRuleResponse'] | null;
+      /**
+       * Source
+       * @enum {string}
+       */
+      source: 'branch' | 'restaurant' | 'none';
+    };
+    /**
+     * AdminCashbackRuleWrite
+     * @description A regra INTEIRA. Nao ha PATCH aqui, e o motivo e a heranca.
+     *
+     *     A heranca do cashback e por LINHA, nao por coluna: a filial tem a regra
+     *     toda ou herda a toda. Um PATCH sobre uma filial que ainda nao tem regra
+     *     propria teria que responder "patch sobre o que?" — sobre os valores
+     *     herdados, criando uma sobrescrita silenciosa a partir de um campo so.
+     *     E exatamente o acidente que o `PUT` torna impossivel: quem escreve manda
+     *     a regra completa, e ve o que esta criando.
+     *
+     *     **`weekdays` SUBSTITUI a lista inteira**, como o `PUT` de horarios. Dia
+     *     que sair do corpo deixa de ter linha propria — e volta a valer
+     *     `default_percent`, nao zero.
+     */
+    AdminCashbackRuleWrite: {
+      /** Default Percent */
+      default_percent: number | string;
+      /** Enabled */
+      enabled: boolean;
+      /** Expiry Days */
+      expiry_days: number;
+      /** Min Redeem Balance */
+      min_redeem_balance: number | string;
+      /** Weekdays */
+      weekdays?: components['schemas']['CashbackWeekdayInput'][];
+    };
     /** AdminCategoryCreate */
     AdminCategoryCreate: {
       /**
@@ -2981,6 +3135,11 @@ export interface components {
       /** Brand */
       brand?: string | null;
       /**
+       * Earns Cashback
+       * @default true
+       */
+      earns_cashback: boolean;
+      /**
        * Enabled
        * @default true
        */
@@ -3022,6 +3181,8 @@ export interface components {
       branch_id: string;
       /** Brand */
       brand?: string | null;
+      /** Earns Cashback */
+      earns_cashback: boolean;
       /** Enabled */
       enabled: boolean;
       /** Icon Key */
@@ -3063,6 +3224,8 @@ export interface components {
     AdminPaymentMethodUpdate: {
       /** Brand */
       brand?: string | null;
+      /** Earns Cashback */
+      earns_cashback?: boolean | null;
       /** Enabled */
       enabled?: boolean | null;
       /** Icon Key */
@@ -4041,6 +4204,27 @@ export interface components {
       currency: 'BRL';
       /** Transactions */
       transactions: components['schemas']['CashbackTransactionResponse'][];
+    };
+    /**
+     * CashbackWeekdayInput
+     * @description O percentual de UM dia da semana.
+     *
+     *     `weekday` 0 = SEGUNDA (veja o topo do arquivo). Nao existe "dia
+     *     desligado": para um dia nao gerar, mande `percent: 0` explicitamente —
+     *     omiti-lo faz o dia herdar `default_percent`.
+     */
+    CashbackWeekdayInput: {
+      /** Percent */
+      percent: number | string;
+      /** Weekday */
+      weekday: number;
+    };
+    /** CashbackWeekdayResponse */
+    CashbackWeekdayResponse: {
+      /** Percent */
+      percent: string;
+      /** Weekday */
+      weekday: number;
     };
     /**
      * CategoryPrintingSectorResponse
@@ -6770,6 +6954,101 @@ export interface operations {
       };
     };
   };
+  get_branch_cashback_rule_admin_branches__branch_id__cashback_rules_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        branch_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminCashbackRuleView'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  replace_branch_cashback_rule_admin_branches__branch_id__cashback_rules_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        branch_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AdminCashbackRuleWrite'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminCashbackRuleResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  delete_branch_cashback_rule_admin_branches__branch_id__cashback_rules_delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        branch_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   pause_branch_delivery_admin_branches__branch_id__delivery_pause_patch: {
     parameters: {
       query?: never;
@@ -7293,6 +7572,59 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['AdminBranchOperationResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_restaurant_cashback_rule_admin_cashback_rules_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminCashbackRuleView'];
+        };
+      };
+    };
+  };
+  replace_restaurant_cashback_rule_admin_cashback_rules_put: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AdminCashbackRuleWrite'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminCashbackRuleResponse'];
         };
       };
       /** @description Validation Error */
