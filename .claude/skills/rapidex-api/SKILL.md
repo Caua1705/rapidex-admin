@@ -197,14 +197,39 @@ e `/restaurants/{restaurant_slug}/menu` no contrato. Elas são a **API pública 
 vitrine** (o cliente final, sem autenticação). O painel não usa nenhuma delas.
 Encontrar essas rotas não é motivo para concluir que a regra acima está errada.
 
-### O nome do restaurante não existe em `/admin`
+### O nome do restaurante está em `GET /admin/restaurant`, e em mais lugar nenhum
 
-Nem o JWT, nem `GET /admin/auth/me` (que só traz `restaurant_id`), nem
-`GET /admin/settings` devolvem o nome do restaurante. O que tem nome legível é a
-filial. Por isso o topo do painel usa a filial principal (`is_main`) e, na falta
-dela, a primeira da lista — em `src/auth/restaurant-label.ts`.
+`GET /admin/restaurant` (PESSOAS) devolve `AdminRestaurantProfileResponse`:
+`id`, `name`, `slug`, `description` e `assistant_notes`. É de lá que
+`src/auth/restaurant-label.ts` tira o nome que o shell mostra, e a função a
+chamar é `fetchRestaurantProfile()` em `src/api/store.ts`.
 
-Não procure `restaurant_name` numa resposta `/admin`: ele não está lá.
+**Continua não estando em lugar nenhum além dela.** Nem o JWT, nem
+`GET /admin/auth/me` (que só traz `restaurant_id`), nem `GET /admin/settings`.
+E o campo se chama `name`, não `restaurant_name` — este último não existe em
+resposta `/admin` nenhuma.
+
+`/admin/restaurant` e `/admin/settings` NÃO SÃO DUAS VISTAS DO MESMO RECURSO, e
+confundi-los é o erro que esta seção passou a existir para evitar:
+
+| Rota                | Tabela                | O que é                           |
+| ------------------- | --------------------- | --------------------------------- |
+| `/admin/settings`   | `restaurant_settings` | os PADRÕES que cada filial herda  |
+| `/admin/restaurant` | `restaurants`         | a MARCA, que filial nenhuma herda |
+
+O PATCH de cada uma é SOMENTE_DONO, e `name` e `slug` **não são graváveis** por
+nenhum dos dois: o slug é a URL pública do cardápio, e trocá-lo por PATCH
+quebraria em silêncio todo link já salvo no mundo.
+
+**A logo ainda não veio.** `restaurants.logo_path` existe no banco e `logo_url`
+é servido, mas só na API PÚBLICA da vitrine. Enquanto ela não sair em `/admin`,
+o ladrilho do shell leva as iniciais do nome.
+
+> Até `ea1c9e3` (2026-08-23) esta seção dizia o contrário — que nome nenhum
+> chegava a `/admin` e que por isso o topo do painel DERIVAVA a identificação da
+> filial principal (`is_main`). A rota apagou a derivação, e com ela o corte no
+> travessão que existia para tirar o nome de bairro de dentro do
+> `display_name` da filial.
 
 ## 4.4 O cardápio é da FILIAL, e a leitura sem recorte devolve ele duas vezes
 
