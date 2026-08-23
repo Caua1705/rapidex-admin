@@ -90,12 +90,22 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     title: 'Crescimento',
     entries: [
       { to: '/clientes', label: 'Clientes', Icon: CustomersIcon, acao: 'clientes.ver' },
-      {
-        to: '/cupons',
-        label: 'Cupons',
-        Icon: CouponIcon,
-        soon: 'Criar códigos de desconto com validade, valor mínimo e limite de uso.',
-      },
+      /*
+       * O `soon` SAIU e a tela existe — o mesmo mecanismo do Cashback logo
+       * abaixo: enquanto o campo estava aqui, a rota caía na página "em breve"
+       * e a tela construída ficava inalcançável.
+       *
+       * A frase antiga prometia "criar códigos de desconto com validade, valor
+       * mínimo e limite de uso" — e ela estava certa sobre tudo menos o começo:
+       * o lojista não cria o DESCONTO, ele escolhe uma arte da plataforma que
+       * já traz o valor impresso. Quem diz isso hoje é a própria tela, no
+       * seletor de arte, que é onde a frase continua sendo lida depois de a
+       * tela existir.
+       *
+       * `acao` entrou junto porque `GET /admin/coupons` é GERENCIA: o atendente
+       * que clicasse aqui cairia numa tela que responde 403.
+       */
+      { to: '/cupons', label: 'Cupons', Icon: CouponIcon, acao: 'cupons.ver' },
       /*
        * O `soon` SAIU e a tela existe. O campo é o mecanismo, não um texto de
        * apoio: enquanto ele estava aqui, a rota caía na página "em breve" e a

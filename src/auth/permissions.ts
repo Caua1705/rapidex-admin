@@ -108,6 +108,25 @@ export type Acao =
   | 'cashback.editarRede'
   | 'cashback.editarFilial'
   | 'cashback.apagarSobrescrita'
+  /*
+   * CUPOM É A MESMA DIVISÃO DO CASHBACK, e são três ações porque são três
+   * rotas. Ler é GERENCIA — quem toca a loja precisa saber qual campanha está
+   * no ar para responder ao cliente que ligou. Criar e editar são SOMENTE_DONO,
+   * e o router do backend explica por quê melhor do que um resumo: se o preço
+   * do cardápio é do dono porque "a conta de gerente não pode valer desconto
+   * ilimitado", um cupom de 99% pela porta ao lado vale exatamente o mesmo —
+   * sem nem precisar tocar no cardápio.
+   *
+   * NÃO HÁ AÇÃO DE APAGAR: não existe DELETE. Desligar é o PATCH, e por isso
+   * `cupons.editar` é o papel do botão "Desligar" também.
+   *
+   * A leitura das ARTES é rota própria e também GERENCIA. Ela não ganha ação
+   * separada porque não há botão que a chame sozinha: quem abre a tela precisa
+   * das duas listas para conseguir desenhar uma linha.
+   */
+  | 'cupons.ver'
+  | 'cupons.criar'
+  | 'cupons.editar'
   // --- minha loja
   | 'loja.abrirFechar'
   | 'loja.editarTiposDePedido'
@@ -243,6 +262,12 @@ const ROTA_DA_ACAO = {
   'cashback.editarRede': 'PUT /admin/cashback-rules',
   'cashback.editarFilial': 'PUT /admin/branches/{branch_id}/cashback-rules',
   'cashback.apagarSobrescrita': 'DELETE /admin/branches/{branch_id}/cashback-rules',
+
+  // --- cupons ---------------------------------------------------------------
+  'cupons.ver': 'GET /admin/coupons',
+  'cupons.criar': 'POST /admin/coupons',
+  /* Editar E desligar: `PATCH` é a única forma de tirar uma campanha do ar. */
+  'cupons.editar': 'PATCH /admin/coupons/{coupon_id}',
 
   // --- minha loja -----------------------------------------------------------
   /* Fechar a loja no sábado à noite é de quem está lá. */

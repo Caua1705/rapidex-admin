@@ -380,3 +380,58 @@ export type CashbackRuleWrite = Schemas['AdminCashbackRuleWrite'];
  */
 export type CashbackWeekdayInput = Schemas['CashbackWeekdayInput'];
 export type CashbackWeekday = Schemas['CashbackWeekdayResponse'];
+
+// --- cupons ---------------------------------------------------------------
+
+/**
+ * A CAMPANHA como o painel a lê.
+ *
+ * `total_usage_count` é o par de `total_usage_limit` e conta a MESMA coisa que
+ * o checkout conta para barrar o próximo cliente: redenção em `applied`, só.
+ * Pedido cancelado estorna a redenção e DEVOLVE A VAGA — o número na tela é
+ * quanto ainda cabe, não um histórico de tentativas. Ele é opcional no
+ * contrato porque não sai de coluna nenhuma (o service o preenche por fora), e
+ * o POST devolve 0 sem perguntar ao banco.
+ *
+ * NÃO HÁ `branch_id` AQUI, e não é omissão: cupom é do restaurante inteiro e
+ * vale em todas as lojas. Nenhuma tela pode escrever "vale na filial X".
+ */
+export type Coupon = Schemas['CouponAdminResponse'];
+
+/**
+ * O corpo da criação. `extra="forbid"` do outro lado: campo desconhecido é 422,
+ * não uma chave ignorada em silêncio.
+ *
+ * `discount_type` e `discount_value` são OBRIGATÓRIOS aqui e mesmo assim não
+ * são campo de formulário — eles saem da arte escolhida. O backend confere o
+ * TIPO contra o template (`_ensure_template_agrees`) e **não confere o VALOR**:
+ * escolher a arte de 10% e mandar 7% grava, anuncia 10% na vitrine e desconta
+ * 7% no checkout. A trava é nossa, e mora em `coupons/coupon-model.ts`.
+ */
+export type CouponCreate = Schemas['CouponCreate'];
+
+/**
+ * O corpo da edição — parcial no contrato, revalidado INTEIRO no backend.
+ *
+ * `update_admin` mescla o corpo sobre o cupom gravado e roda
+ * `CouponCampaignFields.model_validate(merged)`, então um campo que não veio
+ * ainda pode reprovar a chamada. Quem monta manda a campanha toda.
+ */
+export type CouponUpdate = Schemas['CouponUpdate'];
+
+/**
+ * A ARTE da vitrine — o desenho que já traz o valor impresso ("10% OFF",
+ * "R$ 5 OFF", "FRETE GRÁTIS").
+ *
+ * São da PLATAFORMA: não há rota que os cadastre, não há `restaurant_id` neles,
+ * e o lojista não sobe imagem. `image_url` vem pronta porque quem monta a URL
+ * do bucket é o backend (`build_storage_url`) — remontá-la aqui seria a segunda
+ * cópia da configuração do Supabase.
+ *
+ * `discount_value` é anulável por causa de `free_delivery`, onde não há valor a
+ * imprimir.
+ */
+export type CouponTemplate = Schemas['CouponTemplateResponse'];
+
+/** `percent`, `fixed` ou `free_delivery` — sempre lido da arte, nunca digitado. */
+export type CouponDiscountType = Coupon['discount_type'];

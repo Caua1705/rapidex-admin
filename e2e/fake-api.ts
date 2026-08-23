@@ -34,6 +34,8 @@ type BusinessHour = Schemas['BusinessHourResponse'];
 type BusinessHourInput = Schemas['BusinessHourInput'];
 type PaymentMethod = Schemas['AdminPaymentMethodResponse'];
 type CashbackRule = Schemas['AdminCashbackRuleResponse'];
+type Coupon = Schemas['CouponAdminResponse'];
+type CouponTemplate = Schemas['CouponTemplateResponse'];
 type CashbackWeekday = Schemas['CashbackWeekdayResponse'];
 type CustomerListItem = Schemas['AdminCustomerListItem'];
 type ReviewItem = Schemas['AdminOrderReviewItem'];
@@ -1640,6 +1642,21 @@ export type FakeApi = {
   setCashbackRestaurantRule: (rule: CashbackRule | null) => void;
   /** Planta (ou apaga) a sobrescrita de uma filial. */
   setCashbackBranchRule: (branchId: string, rule: CashbackRule | null) => void;
+  /** As campanhas que o "banco" tem agora. */
+  coupons: () => Coupon[];
+  /**
+   * O corpo de cada escrita de cupom.
+   *
+   * É AQUI que se confere a trava principal da tela: `discount_type` e
+   * `discount_value` têm de sair da ARTE escolhida, e não de campo nenhum do
+   * formulário. O backend confere o tipo e NÃO confere o valor — uma asserção
+   * de tela não alcança isso, só o corpo alcança.
+   */
+  couponBodies: () => { metodo: string; id: string | null; body: Record<string, unknown> }[];
+  /** Deixa o catálogo de artes só com estas. Chamar ANTES do login. */
+  setCouponTemplates: (templates: CouponTemplate[]) => void;
+  /** Troca as campanhas do "banco". Chamar ANTES do login. */
+  setCoupons: (coupons: Coupon[]) => void;
   /** Setores de impressão que o "banco" tem agora. */
   printSectors: () => PrintSector[];
   /**
@@ -1744,6 +1761,174 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * Instala o backend falso na página. Chame ANTES do primeiro page.goto().
  */
 export async function installFakeApi(page: Page): Promise<FakeApi> {
+
+/* ==========================================================================
+ * CUPONS
+ *
+ * A ARTE É DA PLATAFORMA, e o falso a trata assim: `coupon_templates` não tem
+ * `restaurant_id` e não há rota que as cadastre — a lista vem inteira, sem
+ * recorte, e só com as ativas.
+ *
+ * A semente cobre as CINCO situações de uma vez (programado, ativo, expirado,
+ * esgotado, desligado) mais a arte fora do ar. Não é excesso: é o que faz uma
+ * captura de tela mostrar a coluna de situação inteira em vez de uma etiqueta
+ * repetida seis vezes.
+ * ======================================================================= */
+
+const ARTE_SUMIDA = 'tpl-desativada-pela-plataforma';
+
+function diasDaqui(dias: number): string {
+  return new Date(Date.now() + dias * 86_400_000).toISOString();
+}
+
+function initialCouponTemplates(): CouponTemplate[] {
+  const arte = (
+    id: string,
+    name: string,
+    discount_type: string,
+    discount_value: string | null,
+    sort_order: number,
+  ): CouponTemplate => ({
+    id,
+    name,
+    image_path: `${id}.png`,
+    /*
+     * `image_url` VEM PRONTA do backend (`build_storage_url`) — o painel não
+     * monta URL de bucket. Aqui ela é um data: URI de 1px porque o e2e roda sem
+     * rede: uma URL de verdade viraria uma imagem quebrada em toda captura.
+     */
+    image_url:
+      'data:image/svg+xml;base64,' +
+      Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90"><rect width="160" height="90" fill="#dfe4ee"/><text x="80" y="52" font-family="sans-serif" font-size="20" text-anchor="middle" fill="#2b3444">${name}</text></svg>`,
+      ).toString('base64'),
+    discount_type,
+    discount_value,
+    sort_order,
+  });
+
+  return [
+    arte('tpl-percent-10', '10% OFF', 'percent', '10.00', 1),
+    arte('tpl-percent-15', '15% OFF', 'percent', '15.00', 2),
+    arte('tpl-percent-20', '20% OFF', 'percent', '20.00', 3),
+    /* Uma arte de valor fixo LIVRE na semente: é ela que permite ao e2e trocar
+       de arte percentual para não-percentual e conferir que o teto de desconto
+       sai do corpo junto com o campo. */
+    arte('tpl-fixed-3', 'R$ 3 OFF', 'fixed', '3.00', 4),
+    arte('tpl-fixed-5', 'R$ 5 OFF', 'fixed', '5.00', 5),
+    /*
+     * "Primeiro pedido" é uma ARTE, cadastrada como `fixed` de R$ 10 — ela só
+     * DIZ isso na vitrine. Marcar `first_order_only` não obriga a escolhê-la, e
+     * escolhê-la não marca o booleano: são coisas independentes, e o painel não
+     * pode ligar uma na outra.
+     */
+    arte('tpl-first', 'Primeiro pedido', 'fixed', '10.00', 6),
+    arte('tpl-free', 'Frete grátis', 'free_delivery', null, 7),
+  ];
+}
+
+function initialCoupons(restaurantId: string): Coupon[] {
+  const base = {
+    restaurant_id: restaurantId,
+    description: null,
+    max_discount_amount: null,
+    min_order_value: '0.00',
+    total_usage_limit: null,
+    usage_limit_per_customer: null,
+    cooldown_days: null,
+    first_order_only: false,
+    is_public: true,
+    is_active: true,
+    total_usage_count: 0,
+    created_at: null,
+    updated_at: null,
+  };
+
+  return [
+    {
+      ...base,
+      id: 'cupom-frete',
+      coupon_template_id: 'tpl-free',
+      code: 'SETEMBRO',
+      title: 'Setembro sem frete',
+      discount_type: 'free_delivery',
+      discount_value: '0.00',
+      min_order_value: '60.00',
+      valid_from: diasDaqui(-10),
+      valid_until: diasDaqui(20),
+      total_usage_limit: 100,
+      total_usage_count: 37,
+      usage_limit_per_customer: 1,
+      first_order_only: true,
+    },
+    {
+      ...base,
+      id: 'cupom-natal',
+      coupon_template_id: 'tpl-percent-10',
+      code: 'NATAL10',
+      title: 'Natal',
+      discount_type: 'percent',
+      discount_value: '10.00',
+      valid_from: diasDaqui(30),
+      valid_until: diasDaqui(45),
+    },
+    {
+      ...base,
+      id: 'cupom-volta',
+      coupon_template_id: 'tpl-percent-20',
+      code: 'VOLTA20',
+      title: 'Volta às aulas',
+      discount_type: 'percent',
+      discount_value: '20.00',
+      max_discount_amount: '15.00',
+      valid_from: diasDaqui(-60),
+      valid_until: diasDaqui(-30),
+    },
+    {
+      ...base,
+      id: 'cupom-cinco',
+      coupon_template_id: 'tpl-fixed-5',
+      code: 'CINCO',
+      title: 'Cinco reais',
+      discount_type: 'fixed',
+      discount_value: '5.00',
+      valid_from: diasDaqui(-5),
+      valid_until: diasDaqui(25),
+      total_usage_limit: 50,
+      total_usage_count: 50,
+    },
+    {
+      ...base,
+      id: 'cupom-pausado',
+      coupon_template_id: 'tpl-first',
+      code: 'PRIMEIRA',
+      title: 'Primeira compra',
+      discount_type: 'fixed',
+      discount_value: '10.00',
+      valid_from: diasDaqui(-20),
+      valid_until: diasDaqui(40),
+      is_active: false,
+    },
+    /*
+     * A CAMPANHA PENDURADA NUMA ARTE QUE A PLATAFORMA DESATIVOU. Ela não tem
+     * par em `GET /admin/coupon-templates`, e por isso o backend responde 400 a
+     * qualquer PATCH dela — inclusive a um que só a desligue.
+     */
+    {
+      ...base,
+      id: 'cupom-orfao',
+      coupon_template_id: ARTE_SUMIDA,
+      code: 'ANTIGA',
+      title: 'Campanha antiga',
+      discount_type: 'percent',
+      discount_value: '5.00',
+      valid_from: diasDaqui(-15),
+      valid_until: diasDaqui(15),
+      total_usage_count: 4,
+    },
+  ];
+}
+
   const state = {
     orders: initialOrders(),
     // O histórico é guardado de verdade porque o painel recarrega o detalhe
@@ -1832,6 +2017,11 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     cashbackBranchRules: {} as Record<string, CashbackRule | undefined>,
     /** Cada PUT de cashback, para conferir o corpo — é onde mora a armadilha. */
     cashbackPuts: [] as { escopo: 'rede' | 'filial'; body: Record<string, unknown> }[],
+    /* As campanhas e o catálogo de arte. Duas listas, como no backend. */
+    coupons: initialCoupons(RESTAURANT_ID),
+    couponTemplates: initialCouponTemplates(),
+    /** Corpo de cada POST/PATCH de cupom — onde se confere a trava da arte. */
+    couponBodies: [] as { metodo: string; id: string | null; body: Record<string, unknown> }[],
     /*
      * O PAPEL DE QUEM ESTÁ LOGADO.
      *
@@ -2663,6 +2853,56 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      * mandasse os sete dias, o `weekdays` gravado teria sete linhas e o teste
      * veria isso.
      */
+    /**
+     * As recusas de escrita de cupom, na ORDEM do backend.
+     *
+     * A ordem importa e está no service: `_load_active_template` vem antes de
+     * `_ensure_template_agrees`, e a checagem de código vem depois das duas.
+     * Trocá-la aqui faria o e2e concordar com uma tela que aponta o campo
+     * errado em produção.
+     */
+    function recusaDeCupom(body: Record<string, unknown>, ignorando: string | null) {
+      const templateId = String(body.coupon_template_id ?? '');
+      const arte = state.couponTemplates.find((item) => item.id === templateId);
+      if (!arte) {
+        return json(route, 400, { detail: 'Template de cupom invalido' });
+      }
+
+      if (arte.discount_type !== body.discount_type) {
+        return json(route, 422, {
+          detail: [
+            {
+              loc: ['body', 'discount_type'],
+              msg: `Tipo de desconto do cupom (${String(body.discount_type)}) nao confere com o do template (${arte.discount_type})`,
+              type: 'coupon_template_discount_type_mismatch',
+            },
+          ],
+        });
+      }
+
+      /* `lower(trim(code))`: para o lojista, PROMO10 e promo10 são o mesmo. */
+      const codigo = String(body.code ?? '')
+        .trim()
+        .toLowerCase();
+      const donoDoCodigo = state.coupons.find(
+        (item) => item.code.trim().toLowerCase() === codigo && item.id !== ignorando,
+      );
+      if (donoDoCodigo) {
+        return json(route, 409, { detail: 'Codigo de cupom ja existe neste restaurante' });
+      }
+
+      const donoDaArte = state.coupons.find(
+        (item) => item.coupon_template_id === templateId && item.id !== ignorando,
+      );
+      if (donoDaArte) {
+        return json(route, 409, {
+          detail: 'Esta arte ja esta em uso por outra campanha deste restaurante',
+        });
+      }
+
+      return null;
+    }
+
     function regraDaFilial(branchId: string): { source: string; rule: CashbackRule | null } {
       const propria = state.cashbackBranchRules[branchId];
       if (propria) return { source: 'branch', rule: propria };
@@ -2722,6 +2962,72 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         delete state.cashbackBranchRules[branchId];
         return route.fulfill({ status: 204, body: '' });
       }
+    }
+
+    /* --- cupons -----------------------------------------------------------
+     *
+     * As três recusas do backend estão aqui porque são elas que a tela tem de
+     * saber apontar, e nenhuma delas se encena com um 200:
+     *
+     *   400  arte desativada — e ela vem ANTES do 422 de tipo, de propósito
+     *   409  código repetido, INCLUSIVE em outra caixa (`lower(trim(code))`)
+     *   409  arte já em uso por outra campanha deste restaurante
+     *
+     * Os dois 409 têm mensagens diferentes porque apontam CAMPOS diferentes.
+     * Quando não apontavam, quem esbarrava na arte repetida trocava o código,
+     * tomava o mesmo erro e não tinha como sair do lugar.
+     */
+
+    if (path === '/admin/coupon-templates' && method === 'GET') {
+      return json(route, 200, state.couponTemplates);
+    }
+
+    if (path === '/admin/coupons') {
+      if (method === 'GET') return json(route, 200, state.coupons);
+
+      if (method === 'POST') {
+        const body = request.postDataJSON() as Record<string, unknown>;
+        state.couponBodies.push({ metodo: 'POST', id: null, body });
+
+        const recusa = recusaDeCupom(body, null);
+        if (recusa) return recusa;
+
+        const criado: Coupon = {
+          ...(body as unknown as Coupon),
+          id: `cupom-novo-${state.coupons.length + 1}`,
+          restaurant_id: RESTAURANT_ID,
+          /* Zero sem ir ao banco: cupom que acabou de nascer não tem redenção. */
+          total_usage_count: 0,
+          created_at: new Date().toISOString(),
+          updated_at: null,
+        };
+
+        state.coupons = [criado, ...state.coupons];
+        return json(route, 201, criado);
+      }
+    }
+
+    const cupomMatch = /^\/admin\/coupons\/([^/]+)$/.exec(path);
+    if (cupomMatch?.[1] && method === 'PATCH') {
+      const couponId = cupomMatch[1];
+      const body = request.postDataJSON() as Record<string, unknown>;
+      state.couponBodies.push({ metodo: 'PATCH', id: couponId, body });
+
+      const atual = state.coupons.find((item) => item.id === couponId);
+      if (!atual) return json(route, 404, { detail: 'Cupom nao encontrado' });
+
+      /*
+       * O BACKEND VALIDA A MESCLA, não o corpo. É por isso que um
+       * `{ is_active: false }` numa campanha de arte desativada responde 400:
+       * a arte conferida é a do RESULTADO, e ela continua sendo a que sumiu.
+       */
+      const mesclado: Coupon = { ...atual, ...(body as Partial<Coupon>) };
+      const recusa = recusaDeCupom(mesclado as unknown as Record<string, unknown>, couponId);
+      if (recusa) return recusa;
+
+      const gravado: Coupon = { ...mesclado, updated_at: new Date().toISOString() };
+      state.coupons = state.coupons.map((item) => (item.id === couponId ? gravado : item));
+      return json(route, 200, gravado);
     }
 
     // --- minha loja: configurações do restaurante --------------------------
@@ -3393,6 +3699,14 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     setCashbackBranchRule(branchId, rule) {
       if (rule === null) delete state.cashbackBranchRules[branchId];
       else state.cashbackBranchRules[branchId] = rule;
+    },
+    coupons: () => state.coupons,
+    couponBodies: () => state.couponBodies,
+    setCouponTemplates(templates) {
+      state.couponTemplates = templates;
+    },
+    setCoupons(coupons) {
+      state.coupons = coupons;
     },
     branchPatches: () => state.branchPatches,
     hoursPuts: () => state.hoursPuts,

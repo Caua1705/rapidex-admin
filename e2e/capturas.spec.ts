@@ -153,6 +153,29 @@ for (const tamanho of TAMANHOS) {
       await expect(page.getByTestId('cashback-aviso')).toBeVisible();
       await fotografar(page, 'cashback', tamanho.nome, tema);
 
+      /*
+       * CUPONS — a lista traz as CINCO situações de uma vez (a semente do falso
+       * é feita para isso), mais a etiqueta de atenção da campanha pendurada
+       * numa arte que saiu do catálogo e o aviso que a explica. É a foto onde
+       * se confere que cinco etiquetas neutras e uma colorida convivem sem a
+       * colorida virar decoração — e, em 390, que a tabela de sete colunas
+       * vira bloco sem perder a miniatura da arte.
+       */
+      await page.goto('/cupons');
+      await expect(page.getByTestId('cupons-fora-do-ar')).toBeVisible();
+      await fotografar(page, 'cupons', tamanho.nome, tema);
+
+      /*
+       * O DIÁLOGO, que é a peça de desenho desta tela: a grade de artes
+       * agrupada por tipo (duas colunas no telefone) e a frase-resumo fechando
+       * o formulário. Abrir uma campanha EXISTENTE, e não uma nova, é o que faz
+       * a frase aparecer preenchida em vez do estado "escolha uma arte".
+       */
+      await page.getByTestId('cupom-editar-SETEMBRO').click();
+      await expect(page.getByRole('dialog')).toBeVisible();
+      await fotografar(page, 'cupons-dialogo', tamanho.nome, tema);
+      await page.keyboard.press('Escape');
+
       await page.goto('/minha-loja/operacao');
       await expect(page.getByRole('heading', { name: 'Minha loja' })).toBeVisible();
       await fotografar(page, 'minha-loja', tamanho.nome, tema);

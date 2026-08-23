@@ -1,0 +1,476 @@
+/*
+ * CUPONS — a lista, o seletor de arte e o formulário.
+ *
+ * A tela é uma FOLHA: `--surface` do começo ao fim, sem cartão flutuando sobre
+ * chão cinza. Quem dá começo e fim a um bloco é um fio e o respiro.
+ */
+
+.cupons {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* O grupo do título: a ressalva de escopo e a ajuda andam juntas, como em
+   Avaliações — o vão de 16px da faixa separaria o ícone da frase que ele
+   explica. */
+.cupons__escopo-grupo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+}
+
+.cupons__escopo {
+  color: var(--ink-3);
+}
+
+.cupons__alerta {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-8);
+  margin: var(--sp-16) var(--page-pad) 0;
+}
+
+.cupons__alerta svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.cupons__lista {
+  /* A tabela corre até a margem da tela, como em Clientes. */
+  --tabela-pad: var(--page-pad);
+  padding-block: var(--sp-20) var(--sp-32);
+  max-width: var(--page-max);
+  width: 100%;
+}
+
+.cupons__estado {
+  padding: var(--sp-32) var(--page-pad);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-12);
+  /* Medida de LEITURA, não do sistema: uma frase de estado vazio que atravessa
+     1600px não se lê. */
+  max-width: 60ch;
+}
+
+/* --- a linha ------------------------------------------------------------ */
+
+/*
+ * A MINIATURA DA ARTE.
+ *
+ * Retangular e não quadrada porque a arte É retangular — ela é um banner da
+ * vitrine, e recortá-la num quadrado cortaria justamente o valor impresso, que
+ * é a única coisa que a miniatura precisa comunicar a esta distância.
+ */
+.cupons__miniatura {
+  width: 56px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: var(--r-chip);
+  background: var(--surface-muted);
+  display: block;
+}
+
+.cupons__miniatura--vazia {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-3);
+}
+
+.cupons__campanha {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/*
+ * O NOME DA CAMPANHA em 550, o mesmo peso do nome do cliente e do produto nas
+ * outras listas. Ele é o que identifica a linha, e precisa ficar acima do corpo
+ * comum sem chegar ao peso de título.
+ */
+.cupons__nome {
+  font-weight: var(--w-strong);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.cupons__codigo {
+  color: var(--ink-3);
+}
+
+/*
+ * Validade, desconto e uso NÃO QUEBRAM. Os três são medidas curtas, e uma
+ * quebra em "37 de / 100" ou "20% (até R$ / 15,00)" dá à linha uma altura
+ * diferente da vizinha — o alinhamento por coluna é o que faz a lista se ler
+ * de relance, e ele depende de as linhas terem o mesmo passo.
+ */
+.cupons__validade,
+.cupons__lista td:nth-child(3),
+.cupons__lista td:nth-child(5) {
+  white-space: nowrap;
+}
+
+.cupons__situacao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+}
+
+/*
+ * AS CINCO ETIQUETAS SÃO NEUTRAS, e é decisão, não esquecimento.
+ *
+ * Programado, ativo, expirado, esgotado e desligado são o ciclo NORMAL de uma
+ * campanha — o lojista marcou a data, ligou, ela venceu. Nenhuma delas pede
+ * ação, e a regra do sistema é que etiqueta colorida por gosto fica fora. A
+ * única que ganha cor é a arte fora do ar, que usa `.tag--alerta` porque
+ * aconteceu com o lojista e trava o desligamento da campanha.
+ *
+ * Esta classe existe só para o alinhamento do ícone dentro da etiqueta; a cor
+ * continua sendo a de `.tag`.
+ */
+.cupons__tag {
+  gap: var(--sp-4);
+}
+
+.cupons__acoes {
+  display: flex;
+  gap: var(--sp-8);
+  justify-content: flex-end;
+  /* Sem `wrap`: a coluna é medida para caber os dois em uma fileira, e uma
+     segunda fileira aqui desalinharia a linha inteira. */
+  flex-wrap: nowrap;
+}
+
+@media (max-width: 640px) {
+  .cupons__alerta {
+    margin-inline: var(--page-pad-mobile);
+  }
+
+  .cupons__lista {
+    --tabela-pad: var(--page-pad-mobile);
+  }
+
+  .cupons__estado {
+    padding-inline: var(--page-pad-mobile);
+  }
+
+  /* No bloco do celular as ações ficam à esquerda, junto do resto da linha. */
+  .cupons__acoes {
+    justify-content: flex-start;
+  }
+
+  /*
+   * A MINIATURA NÃO LEVA RÓTULO no bloco do celular.
+   *
+   * `DataTable` traz o cabeçalho da coluna de volta ao lado do valor, e é o que
+   * faz uma tabela virar bloco legível. A arte é a exceção: escrever "Arte" ao
+   * lado de uma imagem que É a arte gasta 40% da largura do bloco para nomear o
+   * óbvio, e empurra a imagem para um canto onde ela deixa de identificar a
+   * linha. É a mesma exceção que Clientes faz com a coluna de classificação.
+   */
+  .cupons__lista td:nth-child(1)::before {
+    content: none;
+  }
+}
+
+/* ==========================================================================
+ * O SELETOR DE ARTE
+ * ======================================================================= */
+
+.artes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-20);
+}
+
+/* `<fieldset>` sem a moldura do navegador: quem agrupa é a legenda e o vão. */
+.artes__grupo {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.artes__legenda {
+  padding: 0;
+  margin-bottom: var(--sp-8);
+  color: var(--ink-3);
+}
+
+/*
+ * A GRADE. `auto-fill` com um mínimo em vez de um número fixo de colunas: o
+ * catálogo vai crescer para vinte ou trinta artes, e o diálogo muda de largura
+ * entre o desktop e a folha do celular. Um `repeat(3, 1fr)` escrito à mão
+ * espremeria a arte a 90px na folha de 390.
+ */
+.artes__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: var(--sp-12);
+}
+
+.arte {
+  display: block;
+  position: relative;
+  cursor: pointer;
+}
+
+/*
+ * O RÁDIO NATIVO, SEM DESENHO PRÓPRIO — a mesma escolha de `ds/Choice`.
+ *
+ * Ele continua no documento (teclado, setas, nome acessível, `:checked`), mas
+ * não desenha nada: quem marca a escolha é a moldura do cartão. Ele NÃO usa
+ * `display: none` nem `visibility: hidden`, que o tirariam da ordem de foco —
+ * o controle precisa continuar alcançável pelo Tab.
+ */
+.arte__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  appearance: none;
+  background: none;
+  border: 0;
+  border-radius: var(--r-card);
+  cursor: pointer;
+}
+
+.arte__cartao {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-8);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  /* O cartão não recebe o clique: quem o recebe é o input por cima dele. */
+  pointer-events: none;
+}
+
+.arte__input:hover + .arte__cartao {
+  border-color: var(--line-strong);
+  background: var(--hover);
+}
+
+/*
+ * A ARTE ESCOLHIDA: plano de seleção e fio em tinta cheia — nunca a marca.
+ * Seleção não é ação primária, e o laranja tem um emprego só.
+ */
+.arte__input:checked + .arte__cartao {
+  border-color: var(--ink);
+  background: var(--surface-selected);
+}
+
+.arte__input:focus-visible + .arte__cartao {
+  outline: var(--focus-width) solid var(--focus);
+  outline-offset: var(--focus-offset);
+}
+
+.arte__imagem {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--r-chip);
+  background: var(--surface-muted);
+  display: block;
+}
+
+.arte__sem-imagem {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--r-chip);
+  background: var(--surface-muted);
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arte__nome {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.arte__valor {
+  color: var(--ink-3);
+}
+
+/*
+ * DUAS COLUNAS NO CELULAR, e não uma.
+ *
+ * Uma coluna transformaria dez artes em dez dobras de rolagem antes do primeiro
+ * campo do formulário. Com duas, a arte continua grande o bastante para o valor
+ * impresso ser legível, e o alvo de toque é o cartão inteiro — bem acima dos
+ * 44px.
+ */
+@media (max-width: 720px) {
+  .artes__grade {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ==========================================================================
+ * O FORMULÁRIO
+ * ======================================================================= */
+
+.cupom {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-24);
+}
+
+/* Um fio entre blocos: a mesma gramática dos grupos de Minha loja. */
+.cupom__bloco + .cupom__bloco {
+  padding-top: var(--sp-24);
+  border-top: 1px solid var(--line);
+}
+
+.cupom__bloco {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-16);
+}
+
+.cupom__titulo {
+  margin: 0;
+}
+
+/* Título e a frase que o explica são UM grupo: 4px entre eles, e o vão de 16px
+   do bloco vale entre o grupo e o primeiro campo. */
+.cupom__cabecalho {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.cupom__ajuda {
+  margin: 0;
+  color: var(--ink-3);
+}
+
+.cupom__aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-8);
+}
+
+.cupom__aviso svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.cupom__campo--dinheiro {
+  max-width: var(--w-dinheiro);
+}
+
+.cupom__campo--numero {
+  max-width: var(--w-numero);
+}
+
+.cupom__campo--data {
+  max-width: var(--w-faixa);
+}
+
+.cupom__campo--codigo {
+  max-width: var(--w-texto-curto);
+}
+
+/* --- a frase-resumo ----------------------------------------------------- */
+
+/*
+ * O RESUMO É UM BLOCO DE AGRUPAMENTO, não um cartão nem um aviso.
+ *
+ * `--surface-muted` porque ele não é alerta (nada está errado) nem elevação
+ * (nada está por cima de nada): ele agrupa e conclui o formulário, que é
+ * exatamente o papel desse plano no sistema.
+ */
+.cupom__resumo {
+  padding: var(--sp-16);
+  border-radius: var(--r-card);
+  background: var(--surface-muted);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+}
+
+.cupom__resumo-rotulo {
+  margin: 0;
+  color: var(--ink-3);
+}
+
+.cupom__frase {
+  margin: 0;
+  color: var(--ink);
+}
+
+.cupom__nota {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.cupom__frase-vazia {
+  margin: 0;
+  color: var(--ink-3);
+}
+
+/*
+ * O erro geral ocupa a linha inteira do rodapé, acima dos dois botões — o
+ * `.modal__footer` é `flex-wrap`, então a largura total o empurra para cima
+ * sem nenhuma regra de ordem.
+ */
+.cupom__erro-geral {
+  flex: 1 0 100%;
+  margin: 0;
+}
+
+/* ==========================================================================
+ * A LARGURA DAS COLUNAS
+ *
+ * Cada número é medida de CONTEÚDO, e é assim que ele deve ser ajustado:
+ *
+ *    72  a miniatura de 56px mais o respiro da célula
+ *   160  "20% (até R$ 15,00)" numa linha só — o mais largo dos três tipos
+ *   148  "01/09 a 30/09" sem quebrar
+ *    88  "37 de 100", alinhado à direita
+ *   164  a coluna de situação abriga DUAS etiquetas empilhadas ("Ativo" e
+ *        "Arte fora do ar", esta com ícone) — em 116 a segunda quebraria letra
+ *        a letra
+ *   124  o lápis (`icon-btn`) e "Desligar" lado a lado em `.btn--sm`
+ *
+ * SÓ A PARTIR DE 1180px, que é onde a lateral do shell ganha os nomes — a
+ * mesma faixa de Clientes, e pelo mesmo motivo: as seis larguras fixas somam
+ * 756px, e abaixo disso elas não cabem junto de um nome de campanha legível.
+ * Uma coluna declarada mais larga que o espaço não encolhe: ela empurra a
+ * tabela para fora da margem. Entre 640 e 1179px a distribuição fica com o
+ * navegador, que nunca comprime uma coluna abaixo do cabeçalho dela.
+ * ======================================================================= */
+@media (min-width: 1180px) {
+  .cupons__lista th:nth-child(1) {
+    width: 72px;
+  }
+
+  .cupons__lista th:nth-child(3) {
+    width: 160px;
+  }
+
+  .cupons__lista th:nth-child(4) {
+    width: 148px;
+  }
+
+  .cupons__lista th:nth-child(5) {
+    width: 88px;
+  }
+
+  .cupons__lista th:nth-child(6) {
+    width: 164px;
+  }
+
+  .cupons__lista th:nth-child(7) {
+    width: 124px;
+  }
+}

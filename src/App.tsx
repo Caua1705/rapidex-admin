@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { RequireAuth } from './auth/RequireAuth';
 import { SessionProvider } from './auth/SessionProvider';
 import { CashbackPage } from './cashback/CashbackPage';
+import { CouponsPage } from './coupons/CouponsPage';
 import { CustomersPage } from './customers/CustomersPage';
 import { KitchenPage } from './kitchen/KitchenPage';
 import { AppShell } from './layout/AppShell';
@@ -91,6 +92,24 @@ export function App() {
               <RequireAuth acao="cashback.ver">
                 <AppShell>
                   <CashbackPage />
+                </AppShell>
+              </RequireAuth>
+            }
+          />
+          {/*
+            CUPONS exige o papel da LEITURA (`GET /admin/coupons`, GERENCIA),
+            como Cashback: criar e editar são do dono, e isso é decidido DENTRO
+            da tela — o gerente entra, lê quais campanhas estão no ar para
+            responder ao cliente que ligou, e não vê "Nova campanha" nem o
+            lápis. Pôr a guarda de escrita aqui trancaria a porta para quem o
+            backend deixa entrar.
+          */}
+          <Route
+            path="/cupons"
+            element={
+              <RequireAuth acao="cupons.ver">
+                <AppShell>
+                  <CouponsPage />
                 </AppShell>
               </RequireAuth>
             }
