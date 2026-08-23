@@ -110,6 +110,47 @@ describe('isPagamentoParado', () => {
     expect(isPagamentoParado(orderWithStatus('b', 'pending'), daquiATresDias)).toBe(false);
   });
 
+  /*
+   * Dinheiro que entrou e voltou num pedido que ninguém aceitou. Não é espera:
+   * não volta sozinho, e por isso não espera o limite.
+   */
+  it('estornado cai na hora, como o recusado', () => {
+    expect(isPagamentoParado(pixPendente('a', 'refunded'), minutosDepois(0))).toBe(true);
+  });
+
+  /*
+   * ============================================================================
+   * A EXCLUSÃO QUE DEU NOME À REGRA
+   * ============================================================================
+   *
+   * `in_review` é o antifraude do gateway analisando um CARTÃO. O bloco existe
+   * para tirar da vista o que não vai acontecer, e a análise ainda pode virar
+   * pedido — o veredito chega por webhook sem o cliente fazer nada.
+   *
+   * E O TEMPO NÃO MUDA A NATUREZA DO ESTADO: a análise pode levar 48 horas
+   * úteis e continua não sendo abandono. Por isso a prova vai até três dias, e
+   * não até o limite de trinta minutos.
+   */
+  it('em análise antifraude nunca desce, nem depois de 48 horas', () => {
+    const emAnalise = pixPendente('a', 'in_review');
+
+    expect(isPagamentoParado(emAnalise, minutosDepois(31))).toBe(false);
+    expect(isPagamentoParado(emAnalise, minutosDepois(48 * 60))).toBe(false);
+    expect(isPagamentoParado(emAnalise, minutosDepois(3 * 24 * 60))).toBe(false);
+  });
+
+  /*
+   * A RAZÃO DE A LISTA SER DE QUEM ENTRA. Foi assim que `in_review` desceu
+   * sozinho: a condição era "tudo que não é pago", e um estado novo do backend
+   * herdou um bloco que não é dele. O próximo fica em "Novos" até alguém
+   * decidir o contrário — que é o lado certo para errar.
+   */
+  it('estado de pagamento que o painel não conhece fica em Novos', () => {
+    const inventado = pixPendente('a', 'algo_que_o_backend_inventou');
+
+    expect(isPagamentoParado(inventado, minutosDepois(3 * 24 * 60))).toBe(false);
+  });
+
   /* Sem hora não há espera a medir, e na dúvida a linha fica onde o lojista a vê. */
   it('pedido sem created_at não é dado como parado', () => {
     const order = { ...pixPendente('a'), created_at: null };
@@ -160,6 +201,15 @@ describe('o bloco dos pagamentos parados', () => {
 
     expect(grouped.novos?.map((o) => o.id)).toEqual(['a']);
     expect(grouped[PAGAMENTO_PARADO_LANE.key]).toEqual([]);
+  });
+
+  /* No quadro inteiro, e não só na função: a linha em análise fica em Novos. */
+  it('o pedido em análise antifraude continua em Novos', () => {
+    const emAnalise = pixPendente('a', 'in_review');
+    const grouped = groupIntoLanes([emAnalise, pixPendente('b')], minutosDepois(90));
+
+    expect(grouped.novos?.map((o) => o.id)).toEqual(['a']);
+    expect(grouped[PAGAMENTO_PARADO_LANE.key]?.map((o) => o.id)).toEqual(['b']);
   });
 
   /* A descida é só da primeira faixa: o que já está com a cozinha não desce. */

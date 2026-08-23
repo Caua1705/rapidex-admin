@@ -1,7 +1,7 @@
 import type { OrderListItem } from '../api/types';
 import type { Stage } from '../ds/status';
 import { elapsedMinutes } from './format';
-import { isAwaitingOnlinePayment, type OrderStatus } from './order-status';
+import type { OrderStatus } from './order-status';
 
 /**
  * O QUADRO EM TRÊS FAIXAS — e por que sete colunas saíram.
@@ -68,6 +68,13 @@ export const LANES: readonly Lane[] = [
  * faixa não precisa de decisão nenhuma — e faz o lojista reler a mesma linha
  * morta toda vez que abre a tela.
  *
+ * O BLOCO É SOBRE ABANDONO, E NÃO SOBRE ESPERA. É a distinção que decide quem
+ * desce: pix não pago é abandono — não há ninguém trabalhando naquilo —, e
+ * cartão em análise antifraude (`in_review`) é o gateway trabalhando, com
+ * veredito a caminho. A segunda espera FICA em "Novos" por mais que demore. Ver
+ * `PAGAMENTOS_QUE_PODEM_PARAR`, que é onde essa lista mora e onde está escrito
+ * por que ela é uma lista de quem entra.
+ *
  * ELES NÃO SAEM DO QUADRO, E ISSO É A DECISÃO. Descem para um bloco próprio no
  * pé de "Novos", com rótulo próprio, na mesma faixa e na mesma matiz. Três
  * razões, e a primeira basta:
@@ -131,16 +138,52 @@ export const BOARD_BLOCKS: readonly Lane[] = LANES.flatMap((lane) =>
 );
 
 /**
+ * OS ÚNICOS ESTADOS DE PAGAMENTO QUE PODEM DESCER PARA O BLOCO.
+ *
+ * É uma lista de QUEM ENTRA, e não uma regra de quem fica de fora, e a inversão
+ * é o conserto de um defeito real. Antes a condição era
+ * `isAwaitingOnlinePayment(...)` — "tudo que não é `paid` nem `on_delivery`" —,
+ * e foi assim que `in_review` desceu para cá SOZINHO no dia em que o cartão
+ * subiu: ninguém escreveu uma linha a respeito, e um estado novo do backend
+ * herdou um bloco que não é dele.
+ *
+ * Com a lista invertida, o próximo estado que o backend inventar fica em
+ * "Novos" até alguém decidir o contrário — que é o lado certo para errar, já
+ * que "Novos" é a faixa que o lojista olha.
+ *
+ * `in_review` NÃO ESTÁ AQUI, E É O CASO QUE ENSINOU A REGRA. O bloco existe
+ * para tirar da vista o que NÃO VAI ACONTECER; a análise antifraude ainda pode
+ * virar pedido. Pix não pago é abandono — não há ninguém trabalhando naquilo —,
+ * cartão em análise é o gateway trabalhando, e o veredito chega por webhook sem
+ * o cliente fazer nada. **O tempo não muda a natureza do estado:** a análise
+ * pode levar 48 horas úteis e continua não sendo abandono, então não há limite
+ * de minutos que a faça descer. Ela fica em "Novos", com o rótulo dela ("Em
+ * análise antifraude", ver `PAYMENT_STATUS_LABELS`).
+ *
+ * ISSO SEPARA DUAS PERGUNTAS QUE ANDAVAM JUNTAS POR ACIDENTE. "A cozinha pode
+ * preparar?" continua sendo `isAwaitingOnlinePayment`, e ela responde NÃO para
+ * `in_review` — o alerta da linha diz isso. "Isto ainda vai acontecer?" é esta
+ * lista. Eram a mesma função porque, enquanto só existia pix, as duas respostas
+ * coincidiam.
+ *
+ * Os três que entram:
+ *
+ *   `pending`   pix gerado e não pago — o caso que criou o bloco, e o único que
+ *               precisa do relógio para se decidir.
+ *   `failed`    tentativa que já terminou.
+ *   `refunded`  o dinheiro entrou e voltou (estorno ou contestação) num pedido
+ *               que o lojista nunca chegou a aceitar. Não vai acontecer.
+ */
+const PAGAMENTOS_QUE_PODEM_PARAR: readonly string[] = ['pending', 'failed', 'refunded'];
+
+/**
  * Este pedido está esperando um dinheiro que provavelmente não vem?
  *
- * `failed` cai no bloco NA HORA, sem esperar os trinta minutos: cartão recusado
- * não é "ainda pode pagar", é uma tentativa que já terminou. O cliente pode
- * tentar de novo no mesmo pedido — e quando tentar, `payment_status` volta para
- * `pending` e a linha sobe de volta com o relógio zerado do lado certo.
- *
- * Pagamento na entrega (`on_delivery`) e pago (`paid`) nunca entram aqui:
- * `isAwaitingOnlinePayment` já os libera, e é a mesma função que decide se a
- * linha mostra o alerta "não preparar".
+ * `failed` e `refunded` caem no bloco NA HORA, sem esperar os trinta minutos:
+ * nenhum dos dois é "ainda pode pagar". Cartão recusado é uma tentativa que já
+ * terminou, e o cliente pode tentar de novo no mesmo pedido — quando tentar,
+ * `payment_status` volta para `pending` e a linha sobe com o relógio zerado do
+ * lado certo. Dinheiro estornado não volta sozinho de jeito nenhum.
  *
  * SEM `created_at` A LINHA FICA ONDE ESTÁ. Não dá para medir a espera de um
  * pedido sem hora, e na dúvida o pedido continua onde o lojista o vê.
@@ -150,8 +193,8 @@ export function isPagamentoParado(
   now: number = Date.now(),
   minutos: number = MINUTOS_ATE_PAGAMENTO_PARADO,
 ): boolean {
-  if (!isAwaitingOnlinePayment(order.payment_status)) return false;
-  if (order.payment_status === 'failed') return true;
+  if (!PAGAMENTOS_QUE_PODEM_PARAR.includes(order.payment_status)) return false;
+  if (order.payment_status !== 'pending') return true;
 
   const espera = elapsedMinutes(order.created_at, now);
   return espera !== null && espera >= minutos;
