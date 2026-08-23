@@ -41,8 +41,6 @@ type ReportPaymentMethods = Schemas['src__schemas__admin_report_schema__PaymentM
 type ProductSales = Schemas['ProductSalesResponse'];
 type Cancellations = Schemas['CancellationsResponse'];
 type CommissionReport = Schemas['CommissionReportResponse'];
-type FunnelReport = Schemas['FunnelResponse'];
-type FunnelSource = Schemas['FunnelSourceItem'];
 
 export const LOGIN_EMAIL = 'dono@pizzaria.com';
 export const LOGIN_PASSWORD = 'senha-certa';
@@ -1293,118 +1291,6 @@ function emptyReport(path: string, start: string, end: string): unknown {
   } satisfies CommissionReport;
 }
 
-/*
- * ============================================================================
- * O FUNIL — dois estados, e o padrão é o de HOJE
- * ============================================================================
- *
- * O falso nasce com a MEDIÇÃO DESLIGADA, e não é preguiça de inventar número: é
- * o estado real da plataforma enquanto o app do cliente não dispara os lotes de
- * `POST /menu-events`. Os quatro primeiros degraus vêm em zero e o quinto vem
- * cheio, porque ele não é evento — é o pedido, contado em `orders`.
- *
- * É JUSTAMENTE O ESTADO QUE MAIS PRECISA DE TESTE. Um zero desenhado como zero
- * afirma que ninguém entrou no cardápio; lido como "ninguém contou", manda ligar
- * a medição. São conclusões opostas a partir do mesmo número, e é o que a tela
- * existe para separar.
- *
- * `measureFunnel()` liga o outro estado, para exercitar a escada, o degrau que
- * vaza e a divisão por origem com conversão de verdade.
- */
-const FUNNEL_STEPS_MEDINDO = [1240, 372, 268, 210, 176] as const;
-
-/*
- * As origens somam exatamente os totais acima — 1240 sessões e 176 pedidos.
- * Uma soma que não fecha faria o falso mentir de um jeito que o backend não
- * mente, e o teste passaria a proteger a mentira.
- *
- * `instagram-bio` traz 230 sessões e ZERO pedido: é a linha mais importante da
- * seção (o canal que traz gente que não compra), e sem ela o e2e nunca
- * exercitaria a frase que a nomeia.
- */
-const FUNNEL_ORIGENS_MEDINDO: readonly { source: string; sessions: number; orders: number }[] = [
-  { source: 'direct', sessions: 690, orders: 96 },
-  { source: 'qr-mesa-04', sessions: 320, orders: 80 },
-  { source: 'instagram-bio', sessions: 230, orders: 0 },
-];
-
-/** Com a medição desligada, todo pedido cai em `direct` e nenhuma sessão existe. */
-const FUNNEL_PEDIDOS_SEM_MEDICAO = 34;
-
-/**
- * A ressalva vem com as PALAVRAS DO BACKEND (`FUNNEL_ORDERS_NOTE`), sem acento
- * e tudo: é o texto que o lojista vai ler em produção, e humanizá-lo aqui faria
- * a captura mostrar uma tela que não existe.
- */
-const FUNNEL_ORDERS_NOTE =
-  'Todo pedido feito no periodo, cancelados e recusados inclusive: o funil mede se a pessoa terminou de pedir. Nao fecha com orders_count de /reports/summary.';
-
-function funnelSourceItem(sessions: number, orders: number, source: string): FunnelSource {
-  return {
-    source,
-    sessions_count: sessions,
-    orders_count: orders,
-    // Nulo sem denominador, como o `_share` do backend: não existe fatia a
-    // partir de zero, e "0%" diria que ninguém daquela origem comprou.
-    conversion_percent: sessions === 0 ? null : ((orders / sessions) * 100).toFixed(2),
-  };
-}
-
-function funnelReport(
-  start: string,
-  end: string,
-  medindo: boolean,
-  source: string,
-): FunnelReport {
-  const nomes = ['menu_view', 'product_view', 'cart_add', 'checkout_start', 'order'];
-
-  /*
-   * SEMPRE TODAS AS ORIGENS, mesmo com o filtro ligado — é a propriedade do
-   * contrato que faz o seletor da tela poder sair da própria resposta.
-   * Filtrada, esta lista teria uma linha só e o seletor perderia as outras
-   * opções assim que alguém escolhesse a primeira.
-   */
-  const sources: FunnelSource[] = medindo
-    ? FUNNEL_ORIGENS_MEDINDO.map((origem) =>
-        funnelSourceItem(origem.sessions, origem.orders, origem.source),
-      )
-    : [funnelSourceItem(0, FUNNEL_PEDIDOS_SEM_MEDICAO, 'direct')];
-
-  const escolhida = source ? sources.find((linha) => linha.source === source) : null;
-
-  // O filtro recorta os DEGRAUS: a escada da origem escolhida mantém as mesmas
-  // proporções do total, que é o suficiente para a tela ter o que desenhar.
-  const proporcao =
-    escolhida && medindo ? escolhida.sessions_count / FUNNEL_STEPS_MEDINDO[0] : 1;
-
-  const counts = medindo
-    ? FUNNEL_STEPS_MEDINDO.map((valor, indice) =>
-        indice === 4
-          ? (escolhida?.orders_count ?? valor)
-          : Math.round(valor * proporcao),
-      )
-    : [0, 0, 0, 0, escolhida?.orders_count ?? FUNNEL_PEDIDOS_SEM_MEDICAO];
-
-  return {
-    restaurant_id: RESTAURANT_ID,
-    branch_id: null,
-    source: source || null,
-    period: reportPeriod(start, end),
-    steps: counts.map((count, indice) => {
-      const anterior = indice > 0 ? counts[indice - 1]! : null;
-      return {
-        step: nomes[indice]!,
-        count,
-        conversion_from_previous_percent:
-          anterior === null || anterior === 0 ? null : ((count / anterior) * 100).toFixed(2),
-      };
-    }),
-    orders_count: counts[4]!,
-    sources,
-    orders_note: FUNNEL_ORDERS_NOTE,
-  };
-}
-
 function initialPaymentsReport(start: string, end: string): ReportPaymentMethods {
   return {
     restaurant_id: RESTAURANT_ID,
@@ -1629,15 +1515,6 @@ export type FakeApi = {
   closeBranch: (branchId: string) => void;
   /** Zera os relatórios: o período passa a não ter venda nenhuma. */
   emptyReports: () => void;
-  /**
-   * Liga a medição do funil.
-   *
-   * O falso nasce DESLIGADO porque é o estado real de hoje, e é o que a tela
-   * precisa acertar primeiro. Este interruptor existe para o outro lado: a
-   * escada com conversão, o degrau que vaza e a origem que traz gente e não
-   * compra.
-   */
-  measureFunnel: () => void;
   /** Faixa que o "banco" tem agora para a filial. */
   prepTimeOf: (branchId: string) => { min: number; max: number } | null;
   /** Cada PATCH /admin/products/{id}/availability que chegou. */
@@ -1833,11 +1710,6 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     closedBranches: new Set<string>(),
     /** Ligado por `emptyReports()`: os relatórios passam a responder zerados. */
     reportsEmpty: false,
-    /*
-     * O FUNIL NASCE SEM MEDIÇÃO — é o estado real enquanto o app do cliente não
-     * dispara evento nenhum. `measureFunnel()` liga o outro.
-     */
-    funnelMeasuring: false,
     // Minha loja. As filiais são cópias, e não as constantes exportadas: os
     // PATCH da tela gravam nelas, e mutar a constante vazaria de um teste para
     // o outro.
@@ -2337,7 +2209,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        * resposta própria para ele (uma frase, não seis seções zeradas). Sem
        * este interruptor não haveria como exercitá-la no e2e.
        */
-      if (state.reportsEmpty && path !== '/admin/reports/funnel') {
+      if (state.reportsEmpty) {
         return json(route, 200, emptyReport(path, inicio, fim));
       }
 
@@ -2373,21 +2245,6 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
 
       if (path === '/admin/reports/commission') {
         return json(route, 200, initialCommission(inicio, fim));
-      }
-
-      /*
-       * O FUNIL NÃO ENTRA NO `reportsEmpty` ACIMA, e a exceção é o ponto: aquele
-       * interruptor é "não vendeu nada no período", e o funil tem um estado
-       * vazio de outra natureza — "ninguém contou". Passá-lo pelo mesmo caminho
-       * faria os dois vazios virarem um só, que é a confusão que a tela existe
-       * para desfazer.
-       */
-      if (path === '/admin/reports/funnel') {
-        return json(
-          route,
-          200,
-          funnelReport(inicio, fim, state.funnelMeasuring, query.get('source') ?? ''),
-        );
       }
     }
 
@@ -3358,9 +3215,6 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     productReorderCalls: () => state.productReorderCalls,
     failAvailability(productId) {
       state.failAvailabilityFor.add(productId);
-    },
-    measureFunnel() {
-      state.funnelMeasuring = true;
     },
     prepTimeOf: (branchId) => state.prepTime[branchId] ?? null,
     makeOrder: order,

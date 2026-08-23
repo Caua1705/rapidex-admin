@@ -97,7 +97,6 @@ export type Acao =
   | 'clientes.ver'
   | 'desempenho.ver'
   | 'desempenho.verComissao'
-  | 'funil.ver'
   | 'avaliacoes.ver'
   // --- minha loja
   | 'loja.abrirFechar'
@@ -199,21 +198,6 @@ const ROTA_DA_ACAO = {
    * quem toca o balcão.
    */
   'desempenho.verComissao': 'GET /admin/reports/commission',
-  /*
-   * O FUNIL É DA GERÊNCIA E NÃO TEM A SEGUNDA REGRA, e é a diferença que fez
-   * dele uma tela própria em vez de uma seção de Desempenho.
-   *
-   * As cinco rotas de dinheiro acima também declaram GERENCIA, mas
-   * `ensure_pode_ler_dinheiro` recusa o gerente que não mandou `branch_id` —
-   * ver `podeLerDinheiro` no fim deste arquivo. Esta não passa por lá: não há
-   * um número de dinheiro na resposta, e o backend escreve o porquê com todas
-   * as letras — quem toca o balcão de uma loja é quem consegue agir sobre "o
-   * carrinho enche e o checkout esvazia".
-   *
-   * Consequência prática: gerente lê o funil da rede inteira sem escolher
-   * filial, e o atendente não vê a seção na navegação.
-   */
-  'funil.ver': 'GET /admin/reports/funnel',
   /*
    * AVALIAÇÃO É DA GERÊNCIA, e a diferença para os relatórios ao lado é o
    * motivo de esta linha existir: a divisão de `admin_scope` é "dinheiro do

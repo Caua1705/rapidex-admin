@@ -1,17 +1,16 @@
 /**
- * Chamadas das telas de relatório — Desempenho e Funil.
+ * Chamadas das telas de relatório — hoje só Desempenho.
  *
- * SÃO SETE ROTAS, E A SÉTIMA É DE OUTRA NATUREZA. As seis primeiras medem
- * DINHEIRO de quem comprou, e é literalmente o que existe: não há relatório por
- * hora — o mais fino é o dia. A sétima (`/reports/funnel`) é a única que
- * enxerga quem NÃO comprou, não tem um número de dinheiro dentro e por isso não
- * passa pela regra de escopo das outras — ver o bloco dela lá embaixo.
+ * SÃO SEIS ROTAS, E TODAS MEDEM DINHEIRO de quem comprou. É literalmente o que
+ * existe: não há relatório por hora — o mais fino é o dia. Houve uma sétima,
+ * `/reports/funnel`, que enxergava quem NÃO comprou e por isso não passava pela
+ * regra de escopo das outras; ela saiu do backend na revisão `20260822_0033`,
+ * junto com a tabela `menu_events` que a alimentava.
  *
- * AS SEIS PASSARAM A ACEITAR `branch_id`, e este arquivo dizia o contrário até
- * agora ("NENHUMA delas aceita"). Era verdade quando foi escrito e deixou de
- * ser na revisão `20260820_0026` do backend. A diferença não é conforto de
- * filtro: sem o parâmetro, `ensure_pode_ler_dinheiro` responde **403 ao
- * gerente**, porque sem recorte "ler o faturamento" significa ler o do
+ * AS SEIS ACEITAM `branch_id`, e este arquivo dizia o contrário até a revisão
+ * `20260820_0026` do backend ("NENHUMA delas aceita"). A diferença não é
+ * conforto de filtro: sem o parâmetro, `ensure_pode_ler_dinheiro` responde
+ * **403 ao gerente**, porque sem recorte "ler o faturamento" significa ler o do
  * restaurante inteiro — e o resultado da Aldeota não é do gerente do Centro.
  *
  * Vazio continua sendo "todas as filiais que o token alcança", e é o que o dono
@@ -26,7 +25,6 @@ import { apiClient, unwrap } from './client';
 import type {
   Cancellations,
   CommissionReport,
-  FunnelReport,
   ProductSales,
   ReportPaymentMethods,
   SalesByDay,
@@ -39,21 +37,6 @@ export type ReportRange = {
   endDate: string; // AAAA-MM-DD
   /** Vazio = todas as filiais que o token alcança. Só o dono lê assim. */
   branchId: string;
-  /**
-   * O identificador de origem — o rótulo do QR ou do link por onde a pessoa
-   * chegou (`qr-mesa-04`, `imã-geladeira`).
-   *
-   * VAZIO É "TODAS AS ORIGENS", E NUNCA "as sem origem": quem chega sem
-   * identificador tem `direct` GRAVADO no pedido, não nulo, e quem quiser só
-   * esses passa `source: 'direct'`. O contrato descreve as duas coisas com
-   * palavras diferentes de propósito — a distinção entre "veio direto" e "não
-   * sabemos" é a que o nulo apagaria.
-   *
-   * AS SETE ROTAS DAQUI ACEITAM O CAMPO desde a revisão `20260822_0031`. Só o
-   * funil o usa hoje, porque só ele tem uma tela que oferece a escolha; as
-   * outras seis passam a aceitá-lo no dia em que alguém desenhar esse filtro.
-   */
-  source?: string;
 };
 
 function toQuery(range: ReportRange) {
@@ -64,10 +47,6 @@ function toQuery(range: ReportRange) {
     // descreve. Mandar nulo explícito seria pedir a mesma coisa por um caminho
     // que a rota não documenta.
     ...(range.branchId ? { branch_id: range.branchId } : {}),
-    // Mesma regra do recorte de filial, e pelo mesmo motivo: ausente é
-    // "todas", e `null` explícito seria pedir isso por um caminho que a rota
-    // não documenta.
-    ...(range.source ? { source: range.source } : {}),
   };
 }
 
@@ -137,40 +116,6 @@ export async function fetchProductSales(range: ReportRange, limit: number): Prom
 export async function fetchCancellations(range: ReportRange): Promise<Cancellations> {
   return unwrap(
     await apiClient.GET('/admin/reports/cancellations', { params: { query: toQuery(range) } }),
-  );
-}
-
-/**
- * OS CINCO DEGRAUS DO CARDÁPIO, e a divisão por origem.
- *
- * A ÚNICA ROTA DE RELATÓRIO QUE ENXERGA QUEM NÃO COMPROU, e a única que NÃO
- * passa por `ensure_pode_ler_dinheiro`: não há um número de dinheiro na
- * resposta, e por isso a gerência a lê sem escolher filial antes — ao
- * contrário das seis acima. Quem toca o balcão de uma loja é quem consegue
- * agir sobre "o carrinho enche e o checkout esvazia".
- *
- * DUAS PROPRIEDADES DA RESPOSTA QUE A TELA NÃO PODE CONTRARIAR:
- *
- * 1. **`orders_count` NÃO fecha com o de `/reports/summary`**, e é de
- *    propósito: o funil conta pedido cancelado e recusado, porque ele mede se
- *    a PESSOA terminou de pedir — a loja recusar meia hora depois é outro
- *    problema, com outra solução. A ressalva vem pronta em `orders_note`, na
- *    mesma forma do `revenue_note` de `/reports/products`, e a tela a escreve.
- *
- * 2. **`sources` lista TODAS as origens do período mesmo com `source`
- *    preenchido.** Filtrada, ela teria uma linha só e não responderia nada. O
- *    filtro recorta os DEGRAUS; a divisão por origem continua inteira — e é o
- *    que permite ao seletor de origem da tela sair da própria resposta.
- *
- * O PERÍODO ÚTIL É MENOR QUE O DAS OUTRAS SEIS. O teto de 92 dias vale igual,
- * mas o evento de funil é apagado aos 90 (retenção): um recorte que comece
- * antes disso devolve degraus vazios com o quinto cheio, porque o pedido fica
- * para sempre e o evento não. Quem monta o par é `funnel/funnel-model.ts`, e é
- * ele que impede a tela de pedir o que o banco já apagou.
- */
-export async function fetchFunnelReport(range: ReportRange): Promise<FunnelReport> {
-  return unwrap(
-    await apiClient.GET('/admin/reports/funnel', { params: { query: toQuery(range) } }),
   );
 }
 

@@ -718,8 +718,7 @@ trigésimo de uma série cujo total já está escrito); o de HORAS cabe (a séri
 um turno, e o que sairia da tela seria o pico — a resposta inteira da seção).
 
 **Filtra por filial**, e o seletor do topo pega — as seis rotas de relatório
-aceitam `branch_id` desde a revisão `20260820_0026` (e `source` desde a
-`20260822_0031`, que nenhuma tela usa ainda). A tela escreve UMA vez, no
+aceitam `branch_id` desde a revisão `20260820_0026`. A tela escreve UMA vez, no
 pé da banda, de qual recorte são os números.
 
 **O que ela não tem, e diz que não tem:** faturamento por hora (nenhuma rota de
@@ -728,42 +727,6 @@ dizer que um item é de época seria preciso vê-lo repetir em vários períodos
 `/reports/products` devolve um período agregado por vez. A ausência é escrita na
 tela, não silenciosa: espaço vazio ninguém interpreta, e chute tira prato do
 cardápio de gente de verdade.
-
-### Funil — `src/funnel/`
-
-A tela irmã de Desempenho, e a única do painel que enxerga quem NÃO comprou.
-Mesma gramática: banda de topo com a resposta em corpo 22, fio forte fechando
-a banda, seções separadas por régua, nenhum cartão.
-
-**É TELA PRÓPRIA, e não uma seção de Desempenho**, por quatro razões que valem
-sozinhas: a permissão é outra (`/reports/funnel` não passa por
-`ensure_pode_ler_dinheiro`, então o gerente a lê sem escolher filial — dentro de
-Desempenho ele cairia no pedido de escolha e nunca chegaria ao funil); o período
-é outro (evento de funil vence em 90 dias, pedido fica para sempre); os dois
-`orders_count` não fecham de propósito, e lado a lado a tela se contradiria; e
-hoje ela nasce sem dado.
-
-**A escada REUSA `.fatias`** — a mesma peça de entrega × retirada e das filiais.
-O que nasce aqui é uma coisa só: a linha de QUEDA entre dois degraus, com a
-porcentagem de quem chegou. O diagnóstico ("problema de cardápio: foto, preço de
-vitrine") só aparece no degrau que a regra elegeu como o vazamento — pendurá-lo
-num degrau que segura 80% das pessoas seria a frase de preenchimento que
-`insights.ts` recusa. O vazamento é marcado em três canais: fio de 2px na
-margem, a palavra "Maior perda" escrita e tinta cheia. **Não é `--danger`**:
-converter pouco não é erro, é onde há trabalho a fazer.
-
-**O ESTADO VAZIO É A PARTE MAIS IMPORTANTE DELA.** Enquanto o app do cliente não
-dispara os eventos do cardápio, os quatro primeiros degraus vêm zerados e o
-quinto — que é o pedido — vem cheio. Desenhar esse zero como zero afirmaria que
-NINGUÉM ENTROU, quando o que houve foi ninguém CONTAR: são as duas leituras
-opostas que a tela existe para separar. Por isso, com a medição desligada, os
-quatro degraus mostram **"—" e não "0"**, o aviso é `.alert--info` (nada quebrou,
-e não há botão a apertar) e a escada encolhe para 34ch — sem barra, 72ch
-deixariam 500px de nada entre o rótulo e o travessão.
-
-**As duas seções compartilham o mesmo teto de 72ch**, escada e tabela de
-origens: sem isso a `DataTable` ocupava a `--page-max` inteira e as quatro
-colunas ficavam espalhadas por 1200px.
 
 ### Minha loja — `src/store/`
 
@@ -820,8 +783,8 @@ e justificada: o gráfico longo de Desempenho, a fita de categorias, a fita de
 seções, o quadro da Cozinha. Informação crítica não some em breakpoint; ela muda
 de posição ou de composição.
 
-Tetos: `--page-max` (1600px) limita o CONTEÚDO de Clientes, Cardápio,
-Desempenho e Funil — a folha continua correndo até a margem. `--form-max` (1040px) e o
+Tetos: `--page-max` (1600px) limita o CONTEÚDO de Clientes, Cardápio e
+Desempenho — a folha continua correndo até a margem. `--form-max` (1040px) e o
 teto de 1180px das seções largas limitam os formulários de Minha loja. Pedidos e
 Cozinha usam a largura toda por necessidade operacional.
 
@@ -887,8 +850,7 @@ Ao concluir uma mudança visual relevante:
 4. `CAPTURAS=1 npx playwright test e2e/capturas.spec.ts --workers=1` — o arnês
    fotografa Pedidos (com e sem detalhe), Cardápio (a lista, o item fora de
    venda por grupo obrigatório e a barra de seleção), Clientes, Desempenho,
-   Funil (nos dois estados de medição), Minha loja, Cozinha e "Em breve" em
-   1440 e 390, claro e escuro, com o mesmo backend
+   Minha loja, Cozinha e "Em breve" em 1440 e 390, claro e escuro, com o mesmo backend
    falso do e2e. As imagens saem em `capturas/`, que é ignorada pelo git: elas
    são para OLHAR numa revisão, não para versionar;
 5. **abra as capturas e faça uma segunda passagem** procurando aparência de

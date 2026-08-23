@@ -87,7 +87,6 @@ export const PAPEL_POR_ROTA = {
   '/admin/products/reorder': { PATCH: 'GERENCIA' },
   '/admin/reports/cancellations': { GET: 'GERENCIA' },
   '/admin/reports/commission': { GET: 'SOMENTE_DONO' },
-  '/admin/reports/funnel': { GET: 'GERENCIA' },
   '/admin/reports/payment-methods': { GET: 'GERENCIA' },
   '/admin/reports/products': { GET: 'GERENCIA' },
   '/admin/reports/sales-by-day': { GET: 'GERENCIA' },

@@ -134,28 +134,6 @@ for (const tamanho of TAMANHOS) {
       await fotografar(page, 'desempenho', tamanho.nome, tema);
 
       /*
-       * O FUNIL, NOS DOIS ESTADOS — e o primeiro é o que importa hoje.
-       *
-       * Sem medição é como a tela nasce enquanto o app do cliente não dispara
-       * evento nenhum, e é a foto que precisa ser olhada com mais cuidado: os
-       * quatro primeiros degraus com "—" em vez de "0", o aviso em nota (não em
-       * tarja vermelha) e o quinto degrau cheio logo abaixo, que é a prova.
-       */
-      await page.goto('/funil');
-      await expect(page.getByRole('heading', { name: 'Funil', level: 1 })).toBeVisible();
-      await fotografar(page, 'funil-sem-medicao', tamanho.nome, tema);
-
-      /*
-       * E o dia seguinte: a escada com conversão de verdade, o degrau que vaza
-       * marcado pelo fio na margem e a divisão por origem com a linha que
-       * importa (o canal que traz gente e não compra).
-       */
-      api.measureFunnel();
-      await page.reload();
-      await expect(page.getByTestId('funil-degraus')).toBeVisible();
-      await fotografar(page, 'funil', tamanho.nome, tema);
-
-      /*
        * AVALIAÇÕES abre RECORTADA em "até 3 estrelas", que é o estado que a
        * tela tem 99% do tempo — e é justamente o que a foto precisa mostrar: a
        * banda com a média do período INTEIRO em cima de uma lista curta. Se

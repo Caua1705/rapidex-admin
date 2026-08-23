@@ -309,22 +309,6 @@ export function PerformanceIcon(props: IconProps) {
 }
 
 /**
- * Funil: o afunilamento, em três traços que estreitam.
- *
- * NÃO É O FUNIL DE COZINHA (o cone com bico), que na grade de 24 vira um
- * triângulo com um risco embaixo e lê como taça. Três linhas horizontais
- * decrescentes são o desenho que diz "isto encolhe a cada etapa", que é
- * exatamente o que a tela mostra.
- */
-export function FunnelIcon(props: IconProps) {
-  return (
-    <Icon {...props}>
-      <path d="M4 6h16M7 12h10M10 18h4" />
-    </Icon>
-  );
-}
-
-/**
  * Avaliações: a estrela.
  *
  * A ÚNICA DO ARQUIVO QUE TEM ESTADO PREENCHIDO, e é o que a nota exige: cinco
