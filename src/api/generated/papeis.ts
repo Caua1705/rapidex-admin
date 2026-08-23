@@ -101,6 +101,9 @@ export const PAPEL_POR_ROTA = {
   '/admin/restaurant': { GET: 'PESSOAS', PATCH: 'SOMENTE_DONO' },
   '/admin/reviews': { GET: 'GERENCIA' },
   '/admin/settings': { GET: 'PESSOAS', PATCH: 'SOMENTE_DONO' },
+  '/admin/users': { GET: 'SOMENTE_DONO', POST: 'SOMENTE_DONO' },
+  '/admin/users/{admin_user_id}': { PATCH: 'SOMENTE_DONO' },
+  '/admin/users/{admin_user_id}/reset-password': { POST: 'SOMENTE_DONO' },
 } as const satisfies Partial<
   Record<
     keyof paths,

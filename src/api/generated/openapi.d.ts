@@ -1593,6 +1593,96 @@ export interface paths {
     patch: operations['update_restaurant_settings_admin_settings_patch'];
     trace?: never;
   };
+  '/admin/users': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Admin Users
+     * @description A equipe do restaurante. A conta de maquina fica de fora.
+     *
+     *     O agente de impressao ja tem tela propria em `/admin/printing`, que e onde
+     *     ele faz sentido — com nome de impressora e heartbeat ao lado. Aqui ele
+     *     seria uma linha sem cargo e sem ninguem por tras.
+     */
+    get: operations['list_admin_users_admin_users_get'];
+    put?: never;
+    /**
+     * Create Admin User
+     * @description Cadastra alguem e devolve a senha temporaria UMA vez.
+     *
+     *     A senha vem no corpo da resposta e nao existe em nenhum outro lugar: o
+     *     banco so tem o bcrypt dela. A tela precisa mostra-la com botao de copiar e
+     *     deixar claro que ela nao volta — segunda via e
+     *     `POST /admin/users/{id}/reset-password`, que gera outra.
+     *
+     *     `role` nao aceita `print_agent`: conta de maquina nasce so pelo
+     *     `scripts/create_admin_user.py`, porque criar um agente e parte de uma
+     *     instalacao fisica.
+     */
+    post: operations['create_admin_user_admin_users_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/admin/users/{admin_user_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Update Admin User
+     * @description Nome, papel, filial e `is_active`. Desativar tem efeito imediato.
+     *
+     *     `is_active: false` vale na requisicao SEGUINTE daquela pessoa, sem esperar
+     *     as 12h do token: `_load_admin_from_token` recarrega o usuario do banco a
+     *     cada chamada. Vale tambem para a conexao SSE, na proxima reconexao.
+     *
+     *     Tres coisas a rota recusa com 400, e as tres sao o mesmo buraco: desativar
+     *     a propria conta, desativar o unico dono ativo, rebaixar o unico dono ativo.
+     */
+    patch: operations['update_admin_user_admin_users__admin_user_id__patch'];
+    trace?: never;
+  };
+  '/admin/users/{admin_user_id}/reset-password': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Reset Admin User Password
+     * @description Nova senha temporaria, e todo token daquela pessoa morre na hora.
+     *
+     *     E para quem perdeu a senha e para a suspeita de vazamento. Se a pessoa for
+     *     o usuario de um agente de impressao... nao e: `print_agent` nao e alcancado
+     *     por estas rotas. A rotacao daquela senha continua sendo
+     *     `scripts/create_admin_user.py --reset-password`, seguida de editar o
+     *     `config.ini` da maquina do balcao.
+     */
+    post: operations['reset_admin_user_password_admin_users__admin_user_id__reset_password_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/auth/forgot-password': {
     parameters: {
       query?: never;
@@ -3732,7 +3822,83 @@ export interface components {
       /** Ticket */
       ticket: string;
     };
-    /** AdminUserResponse */
+    /** AdminUserCreate */
+    AdminUserCreate: {
+      /** Branch Id */
+      branch_id?: string | null;
+      /** Email */
+      email: string;
+      /** Name */
+      name: string;
+      /**
+       * Role
+       * @enum {string}
+       */
+      role: 'owner' | 'manager' | 'attendant';
+    };
+    /**
+     * AdminUserCreatedResponse
+     * @description A UNICA vez que a senha temporaria existe fora do bcrypt.
+     *
+     *     Nao ha rota que a devolva de novo, e isso e propriedade e nao limitacao:
+     *     uma rota "me mostra de novo" seria uma rota que devolve a senha de outra
+     *     pessoa. Segunda via e `POST /admin/users/{id}/reset-password`, que gera
+     *     OUTRA e revoga os tokens da anterior.
+     */
+    AdminUserCreatedResponse: {
+      admin_user: components['schemas']['AdminUserDetailResponse'];
+      /** Temporary Password */
+      temporary_password: string;
+    };
+    /**
+     * AdminUserDetailResponse
+     * @description O usuario como o painel o le. Nunca com `password_hash`.
+     *
+     *     O e-mail SAI aqui: e a tela do dono sobre a propria equipe, e sem ele nao
+     *     da para saber com qual conta a pessoa entra. Uma futura tela de gerente
+     *     sobre a equipe da filial nao pode reusar este schema pelo mesmo motivo.
+     */
+    AdminUserDetailResponse: {
+      /** Branch Id */
+      branch_id: string | null;
+      /** Created At */
+      created_at?: string | null;
+      /** Email */
+      email: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Is Active */
+      is_active: boolean;
+      /** Must Change Password */
+      must_change_password: boolean;
+      /** Name */
+      name: string;
+      /** Password Changed At */
+      password_changed_at?: string | null;
+      /**
+       * Restaurant Id
+       * Format: uuid
+       */
+      restaurant_id: string;
+      /** Role */
+      role: string;
+    };
+    /**
+     * AdminUserResponse
+     * @description Quem entrou. E o que o painel usa para desenhar a tela.
+     *
+     *     `must_change_password` e o sinal que o painel OBEDECE: com ele verdadeiro,
+     *     a unica tela que abre e a de troca de senha. Sai no login e no `/me` de
+     *     proposito — o painel precisa saber disso antes de tentar qualquer outra
+     *     rota, e nao descobrindo por 403.
+     *
+     *     Obrigatorio e nao opcional: e uma coluna, sempre presente, e um default
+     *     deixaria o painel tratar `null` como "pode entrar" no dia em que o campo
+     *     sumisse da resposta por engano.
+     */
     AdminUserResponse: {
       /** Branch Id */
       branch_id: string | null;
@@ -3745,6 +3911,8 @@ export interface components {
       id: string;
       /** Is Active */
       is_active: boolean;
+      /** Must Change Password */
+      must_change_password: boolean;
       /** Name */
       name: string;
       /**
@@ -3754,6 +3922,17 @@ export interface components {
       restaurant_id: string;
       /** Role */
       role: string;
+    };
+    /** AdminUserUpdate */
+    AdminUserUpdate: {
+      /** Branch Id */
+      branch_id?: string | null;
+      /** Is Active */
+      is_active?: boolean | null;
+      /** Name */
+      name?: string | null;
+      /** Role */
+      role?: ('owner' | 'manager' | 'attendant') | null;
     };
     /** AvailableCouponResponse */
     AvailableCouponResponse: {
@@ -4612,7 +4791,21 @@ export interface components {
        */
       start_date: string;
     };
-    /** CouponAdminResponse */
+    /**
+     * CouponAdminResponse
+     * @description O cupom como o painel do lojista o le.
+     *
+     *     `total_usage_count` e o par de `total_usage_limit`, e conta a mesma coisa
+     *     que `evaluate` conta para decidir se o cupom ainda vale: redencoes em
+     *     `applied`, so. Redencao estornada (o pedido foi cancelado) devolve a vaga e
+     *     sai da conta — a tela mostra o numero que barra o proximo cliente, nao um
+     *     historico de tentativas. Sem ele o painel exibia "limite: 100" e nao sabia
+     *     quantos ja tinham usado.
+     *
+     *     OPCIONAL com default, e nao obrigatorio: o numero e preenchido pelo
+     *     service, nao sai de coluna nenhuma, entao um `model_validate(coupon)` novo
+     *     que esqueca de passa-lo devolve `null` em vez de estourar na serializacao.
+     */
     CouponAdminResponse: {
       /** Code */
       code: string;
@@ -4656,6 +4849,8 @@ export interface components {
       restaurant_id: string;
       /** Title */
       title: string;
+      /** Total Usage Count */
+      total_usage_count?: number | null;
       /** Total Usage Limit */
       total_usage_limit?: number | null;
       /** Updated At */
@@ -9478,6 +9673,125 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['AdminRestaurantSettingsResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  list_admin_users_admin_users_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminUserDetailResponse'][];
+        };
+      };
+    };
+  };
+  create_admin_user_admin_users_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AdminUserCreate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminUserCreatedResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  update_admin_user_admin_users__admin_user_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        admin_user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AdminUserUpdate'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminUserDetailResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  reset_admin_user_password_admin_users__admin_user_id__reset_password_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        admin_user_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminUserCreatedResponse'];
         };
       };
       /** @description Validation Error */

@@ -61,6 +61,13 @@ export const FAKE_USER: AdminUser = {
   email: LOGIN_EMAIL,
   role: 'owner',
   is_active: true,
+  /*
+   * Campo novo de `AdminUserResponse` (as rotas `/admin/users` entraram no
+   * contrato). O painel ainda não lê a marca de senha temporária — a tela de
+   * Usuários não existe —, mas o tipo é gerado e o falso backend precisa
+   * responder o contrato inteiro.
+   */
+  must_change_password: false,
 };
 
 export const FAKE_BRANCH: Branch = {
