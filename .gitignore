@@ -7,9 +7,15 @@ test-results
 .vercel
 
 # .env.example fica versionado; o .env local não.
+#
+# `.env.*` e não a lista `.env.local` + `.env.*.local`: aquela cobria as duas
+# formas que o Vite documenta e deixava `.env.production` de fora — o arquivo
+# com a credencial de produção era o único que o git aceitaria. A exceção
+# explícita no fim é o que devolve o exemplo, e é o mesmo padrão dos outros
+# dois repositórios.
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 .DS_Store
 *.log
