@@ -73,15 +73,27 @@ test('a lateral diz qual estabelecimento está sendo operado, embaixo da marca',
   const identificacao = page.getByTestId('estab-lateral');
 
   /*
-   * A MARCA, e não o `display_name` inteiro da matriz ("Pizzaria do Zé —
-   * Aldeota"): o bloco identifica o RESTAURANTE, então não pode carregar um
-   * nome de filial dentro. O nome inteiro fica no `title`.
+   * A MARCA, e não o `display_name` da matriz ("Pizzaria do Zé — Aldeota"): o
+   * bloco identifica o RESTAURANTE, então não pode carregar um nome de filial
+   * dentro.
+   *
+   * A ASSERÇÃO DO `title` MUDOU DE FORMA em 2026-08-23, e o requisito é o
+   * mesmo. Enquanto o nome era DERIVADO da filial principal, o bloco mostrava
+   * o texto cortado no travessão e guardava o inteiro no `title` — era o
+   * `title` que carregava o "— Aldeota". `ea1c9e3` trouxe
+   * `GET /admin/restaurant` e apagou a derivação: hoje o nome vem inteiro de
+   * `restaurants.name`, não há corte, e o `title` existe só porque a lateral
+   * tem 160px e o CSS corta com reticências (ver `EstablishmentBadge`).
+   *
+   * Então o que se cobra agora é o mesmo de antes, e mais forte: nenhum nome de
+   * filial entra aqui — nem no texto, nem no atributo.
    */
   await expect(identificacao.locator('.estab__nome')).toHaveText('Pizzaria do Zé');
   await expect(identificacao.locator('.estab__nome')).toHaveAttribute(
     'title',
-    'Pizzaria do Zé — Aldeota',
+    'Pizzaria do Zé',
   );
+  await expect(identificacao).not.toContainText('Aldeota');
 
   // A cidade e quantas lojas o lojista enxerga — é isso que faz o bloco ler
   // como o CONJUNTO, e não como uma das lojas.

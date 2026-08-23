@@ -614,7 +614,21 @@ function initialSettings(): RestaurantSettings {
 function initialProfile(): RestaurantProfile {
   return {
     id: RESTAURANT_ID,
-    name: 'Pizzaria Doze',
+    /*
+     * "Pizzaria do Zé", e não "Pizzaria Doze".
+     *
+     * O nome tinha virado "Doze" ao ser digitado, e a identificação do shell
+     * passou a mostrar isso — com as INICIAIS "PD" no ladrilho. As duas filiais
+     * do mesmo falso sempre disseram "Pizzaria do Zé — Aldeota" e "— Zona
+     * Norte", então o falso afirmava dois nomes para o mesmo restaurante e o
+     * `identificacao.spec.ts` cobrava o certo contra o errado.
+     *
+     * O `slug` FICA como está de propósito: ele é a URL pública do cardápio,
+     * não é gravável por PATCH nenhum, e um slug que não deriva do nome é
+     * justamente o caso realista — o lojista renomeia a casa e o endereço
+     * salvo pelo cliente continua valendo.
+     */
+    name: 'Pizzaria do Zé',
     slug: 'pizzaria-doze',
     description: 'Pizza de forno a lenha desde 2011, no Centro.',
     assistant_notes: 'Pizzaria. Forno a lenha, massa fina e rodízio às quintas.',
