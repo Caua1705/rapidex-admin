@@ -12,12 +12,12 @@ import { advanceActionFor, exitActionFor, type ConfirmKind } from './order-actio
 import {
   ORDER_TYPE_LABELS,
   PAYMENT_METHOD_LABELS,
-  PAYMENT_STATUS_LABELS,
   formatCurrency,
   formatDateTime,
   labelFor,
 } from './format';
 import { readOptionGroups } from './order-options';
+import { paymentOutcome, type PaymentOutcome } from './payment-outcome';
 import { useCustomerHistory } from './useCustomerHistory';
 import { stageOf } from './order-status';
 import { STATUS_LABELS, checkTransition, isAwaitingOnlinePayment } from './order-status';
@@ -350,15 +350,17 @@ function DetailBody({ detail, branchId }: { detail: OrderDetail; branchId: strin
    */
   const historico = useCustomerHistory(detail.customer_phone_snapshot, branchId);
 
+  /*
+   * O DESFECHO DO PAGAMENTO, e não só o `payment_status`.
+   *
+   * `refunded` é o mesmo valor para o estorno e para a contestação do cliente;
+   * quem separa os dois é o histórico do próprio pedido. Ver `paymentOutcome`.
+   */
+  const pagamento = paymentOutcome(detail);
+
   return (
     <div className="detail">
-      {isAwaitingOnlinePayment(detail.payment_status) ? (
-        <p className="alert alert--warn">
-          Pagamento online ainda não confirmado (
-          {labelFor(PAYMENT_STATUS_LABELS, detail.payment_status)}). A cozinha não pode preparar
-          este pedido.
-        </p>
-      ) : null}
+      <PagamentoAviso detail={detail} outcome={pagamento} />
 
       <section className="detail__block">
         <h3 className="detail__heading">Cliente</h3>
@@ -442,7 +444,7 @@ function DetailBody({ detail, branchId }: { detail: OrderDetail; branchId: strin
         </div>
         <div className="detail__row">
           <span>Situação</span>
-          <span>{labelFor(PAYMENT_STATUS_LABELS, detail.payment_status)}</span>
+          <span>{pagamento.label}</span>
         </div>
         {detail.paid_at ? (
           <div className="detail__row">
@@ -488,6 +490,36 @@ function DetailBody({ detail, branchId }: { detail: OrderDetail; branchId: strin
         </ul>
       </section>
     </div>
+  );
+}
+
+/**
+ * O AVISO DE PAGAMENTO NO TOPO DO PAINEL — e são DUAS conversas, não uma.
+ *
+ * A primeira é a espera: pagamento online que ainda não chegou trava a cozinha,
+ * e a frase é sobre o que NÃO dá para fazer.
+ *
+ * A segunda é o dinheiro que já voltou. Ela não cabe na primeira: dizer
+ * "pagamento ainda não confirmado" de um pedido que foi pago, entregue e depois
+ * contestado é falso nas três metades. Por isso o desfecho tem precedência —
+ * quando `paymentOutcome` tem aviso, é ele que aparece, e a frase da espera não
+ * é dita.
+ *
+ * O tom vem do desfecho e não daqui: este componente só transforma
+ * `'error' | 'info'` na classe do primitivo.
+ */
+function PagamentoAviso({ detail, outcome }: { detail: OrderDetail; outcome: PaymentOutcome }) {
+  if (outcome.notice) {
+    return <p className={`alert alert--${outcome.notice.tone}`}>{outcome.notice.text}</p>;
+  }
+
+  if (!isAwaitingOnlinePayment(detail.payment_status)) return null;
+
+  return (
+    <p className="alert alert--warn">
+      Pagamento online ainda não confirmado ({outcome.label}). A cozinha não pode preparar este
+      pedido.
+    </p>
   );
 }
 
