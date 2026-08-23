@@ -1,6 +1,13 @@
 import { useMemo } from 'react';
 
-import { pode, podeDefinirPreco, podeLerDinheiro, type Acao, type Papel } from './permissions';
+import {
+  pode,
+  podeDefinirCashback,
+  podeDefinirPreco,
+  podeLerDinheiro,
+  type Acao,
+  type Papel,
+} from './permissions';
 import { useSession } from './session-context';
 
 export type Permissoes = {
@@ -9,6 +16,8 @@ export type Permissoes = {
   pode: (acao: Acao) => boolean;
   /** O campo de preço do cardápio. Regra de CORPO, não de rota. */
   podeDefinirPreco: boolean;
+  /** `earns_cashback` na forma de pagamento. Regra de CORPO, como o preço. */
+  podeCashback: boolean;
   /** Faturamento: o dono sempre; a gerência só com uma filial escolhida. */
   podeLerDinheiro: (branchId: string) => boolean;
 };
@@ -35,6 +44,7 @@ export function usePermissoes(): Permissoes {
       papel,
       pode: (acao: Acao) => pode(papel, acao),
       podeDefinirPreco: podeDefinirPreco(papel),
+      podeCashback: podeDefinirCashback(papel),
       podeLerDinheiro: (branchId: string) => podeLerDinheiro(papel, branchId),
     }),
     [papel],

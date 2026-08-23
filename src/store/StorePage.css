@@ -560,47 +560,6 @@
   max-width: 220px;
 }
 
-/*
- * A BARRA DE SALVAR flutua no fim da coluna. Ela é uma das duas coisas da tela
- * que justificam sombra — cartão parado na página não tem sombra em tema nenhum.
- */
-/*
- * A BARRA DE SALVAR flutua no fim da coluna, e é uma das poucas coisas da tela
- * que justificam sombra: ela SAI do plano de verdade, passando por cima do
- * formulário enquanto ele rola por baixo. Cartão parado na página não tem
- * sombra em tema nenhum (tokens §9).
- */
-.store-form__actions {
-  position: sticky;
-  bottom: 0;
-  z-index: var(--z-sticky);
-  display: flex;
-  align-items: center;
-  gap: var(--sp-12);
-  margin-top: var(--sp-8);
-  padding: var(--sp-8) var(--sp-12);
-  background: var(--surface-raised);
-  border: 1px solid var(--line);
-  border-radius: var(--r-card);
-  box-shadow: var(--shadow-raised);
-}
-
-.store-form__buttons {
-  margin-left: auto;
-  display: flex;
-  gap: var(--sp-8);
-}
-
-.store-form__saved {
-  font-size: var(--ta-size);
-  color: var(--ok);
-}
-
-.store-form__error {
-  font-size: var(--ta-size);
-  color: var(--danger);
-}
-
 .store-form__warn {
   font-size: var(--ta-size);
   color: var(--alert);
@@ -695,9 +654,25 @@
   border-bottom: 1px solid var(--line);
 }
 
-/* rótulo · tipo · gateway · interruptor · excluir */
+/* rótulo · tipo · gateway · cashback · interruptor · excluir */
 .methods__row {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 132px) minmax(0, 104px) 34px auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 132px) minmax(0, 104px) minmax(0, 132px) 34px auto;
+}
+
+/*
+ * A CÉLULA DO CASHBACK, e ela tem DUAS FORMAS pelo mesmo motivo que a coluna da
+ * impressora tem em Impressão: quem não pode escrever continua LENDO o dado.
+ *
+ * `earns_cashback` é campo do DONO dentro de uma rota da gerência (ver
+ * `podeDefinirCashback`). Para o dono ela é uma caixa de marcar; para o gerente
+ * ela é texto — e texto SÓ QUANDO A RESPOSTA É NÃO, porque `true` é o default
+ * da coluna e escrever "gera cashback" em nove linhas de dez é a mesma regra do
+ * "DISPONÍVEL" ao lado de um interruptor ligado.
+ */
+.methods__cashback {
+  min-width: 0;
+  font-size: var(--ta-size);
+  color: var(--ink-3);
 }
 
 /*
@@ -1340,21 +1315,6 @@
     padding-bottom: calc(var(--bottombar-h) + var(--control-h-touch) + var(--sp-24));
   }
 
-  /*
-   * ELA PARA ACIMA DA BARRA DE BAIXO, não na borda da tela. `bottom: 0` a
-   * colaria no rodapé do viewport — e ali mora a navegação do celular, que é
-   * `position: fixed` e ganharia por camada. O botão de salvar existiria e
-   * estaria embaixo de "Pedidos / Cardápio / Loja / Mais".
-   *
-   * `env(safe-area-inset-bottom)` entra porque a barra de baixo já cresce com
-   * ele (ver `AppShell.css`) — e desde `viewport-fit=cover` no index.html esse
-   * valor deixou de ser zero no iPhone.
-   */
-  .store-form__actions {
-    bottom: calc(var(--bottombar-h) + env(safe-area-inset-bottom));
-    margin-inline: calc(var(--sp-4) * -1);
-  }
-
   .store__anchor {
     flex: 0 0 auto;
     margin-left: 0;
@@ -1432,9 +1392,38 @@
   /*
    * No celular saem os qualificadores do pagamento — o rótulo é o que o
    * lojista procura. Sobram rótulo · interruptor · excluir.
+   *
+   * O CASHBACK NÃO SAI JUNTO, e a diferença é que ele é CONTROLE, não
+   * qualificador: esconder "Exige gateway" tira uma informação de apoio;
+   * esconder a caixa do cashback tiraria do dono, no telefone, a única forma de
+   * dizer em quais pagamentos a campanha sai. Ele DESCE para uma segunda
+   * fileira, como a impressora do setor logo abaixo — e pelo mesmo motivo: uma
+   * quinta coluna de 34px em 390px não é uma coluna estreita, é um rótulo
+   * cortado ao lado de um alvo espremido.
+   *
+   * A colocação é EXPLÍCITA porque a ordem do DOM põe o cashback ANTES do
+   * interruptor: no preenchimento automático ele levaria o interruptor e o
+   * excluir para a segunda fileira junto.
    */
   .methods__row {
     grid-template-columns: minmax(0, 1fr) 34px auto;
+  }
+
+  .methods__label {
+    grid-area: 1 / 1;
+  }
+
+  .methods__row > .ds-switch,
+  .methods__row > .ds-switch-busy {
+    grid-area: 1 / 2;
+  }
+
+  .methods__remove {
+    grid-area: 1 / 3;
+  }
+
+  .methods__cashback {
+    grid-area: 2 / 1 / 2 / -1;
   }
 
   .methods__type,

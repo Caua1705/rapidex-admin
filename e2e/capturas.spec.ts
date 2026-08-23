@@ -143,6 +143,16 @@ for (const tamanho of TAMANHOS) {
       await expect(page.getByRole('heading', { name: 'Avaliações', level: 1 })).toBeVisible();
       await fotografar(page, 'avaliacoes', tamanho.nome, tema);
 
+      /*
+       * CASHBACK — a foto a olhar com cuidado é a de 390px: são onze campos e
+       * uma grade de SETE dias, que no telefone vira duas colunas. É também
+       * onde se confere que o aviso de faturamento abre a tela sem virar tarja,
+       * e que o bloco da origem lê como qualificador e não como cartão.
+       */
+      await page.goto('/cashback');
+      await expect(page.getByTestId('cashback-aviso')).toBeVisible();
+      await fotografar(page, 'cashback', tamanho.nome, tema);
+
       await page.goto('/minha-loja/operacao');
       await expect(page.getByRole('heading', { name: 'Minha loja' })).toBeVisible();
       await fotografar(page, 'minha-loja', tamanho.nome, tema);

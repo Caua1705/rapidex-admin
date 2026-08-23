@@ -4,6 +4,7 @@ import {
   papeisDaAcao,
   papelDe,
   pode,
+  podeDefinirCashback,
   podeDefinirPreco,
   podeEntrarNoPainel,
   podeLerDinheiro,
@@ -171,6 +172,45 @@ describe('podeDefinirPreco', () => {
   it('convive com a permissão de editar o produto', () => {
     expect(pode('manager', 'cardapio.editarProduto')).toBe(true);
     expect(podeDefinirPreco('manager')).toBe(false);
+  });
+});
+
+describe('podeDefinirCashback', () => {
+  it('é do dono, e a rota de forma de pagamento é da gerência', () => {
+    expect(podeDefinirCashback('owner')).toBe(true);
+    expect(podeDefinirCashback('manager')).toBe(false);
+    expect(podeDefinirCashback('attendant')).toBe(false);
+  });
+
+  /*
+   * A MESMA ASSIMETRIA DO PREÇO, e é o que impede meia decisão de cada lado da
+   * mesma campanha: o gerente CADASTRA forma de pagamento (bandeira, rótulo,
+   * ícone, ordem) e não escolhe se ela gasta o dinheiro do lojista.
+   */
+  it('convive com a permissão de cadastrar forma de pagamento', () => {
+    expect(pode('manager', 'loja.editarPagamento')).toBe(true);
+    expect(podeDefinirCashback('manager')).toBe(false);
+  });
+});
+
+describe('as cinco rotas de cashback', () => {
+  it('a gerência LÊ a regra e não escreve nenhuma das três', () => {
+    expect(pode('manager', 'cashback.ver')).toBe(true);
+    expect(pode('manager', 'cashback.editarRede')).toBe(false);
+    expect(pode('manager', 'cashback.editarFilial')).toBe(false);
+    expect(pode('manager', 'cashback.apagarSobrescrita')).toBe(false);
+  });
+
+  it('o dono escreve as três', () => {
+    expect(pode('owner', 'cashback.editarRede')).toBe(true);
+    expect(pode('owner', 'cashback.editarFilial')).toBe(true);
+    expect(pode('owner', 'cashback.apagarSobrescrita')).toBe(true);
+  });
+
+  /* O percentual é termo comercial, não alavanca de balcão — e a senha do
+     balcão é a que mais circula. */
+  it('o balcão não alcança nem a leitura', () => {
+    expect(pode('attendant', 'cashback.ver')).toBe(false);
   });
 });
 

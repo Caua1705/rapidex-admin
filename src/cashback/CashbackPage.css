@@ -1,0 +1,161 @@
+/* ==========================================================================
+ * CASHBACK — uma folha, não um cartão
+ *
+ * A tela segue a regra da direção: o plano é `--surface` do começo ao fim, e
+ * quem separa um bloco do vizinho é o respiro, não uma moldura. Ela é estreita
+ * de propósito — `--form-max`, a mesma medida dos formulários de Minha loja:
+ * onze campos numa folha de 1600px viram uma linha de texto de 1600px, e o olho
+ * perde o par rótulo/campo no caminho.
+ * ======================================================================= */
+
+/*
+ * A FOLHA VAI ATÉ A MARGEM, e o TETO é do CONTEÚDO.
+ *
+ * `.shell` é `--bg`; quem pinta `--surface` é cada tela, e sem isso a folha
+ * ficaria cinza sob uma faixa de título branca — dois planos para uma tela só.
+ *
+ * E ela NÃO declara `overflow-y`. Quem rola aqui é a PÁGINA, e é isso que faz a
+ * barra de salvar grudar no viewport: um contêiner de rolagem que no telefone
+ * não rola deixa o `sticky` sem nada contra o que grudar. Ver `SaveBar.css`.
+ */
+.cashback {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-24);
+  background: var(--surface);
+  padding: var(--sp-24) var(--page-pad) var(--sp-32);
+}
+
+/* O teto é do conteúdo: onze campos numa folha de 1600px viram uma linha de
+   texto de 1600px, e o olho perde o par rótulo/campo no caminho. */
+.cashback > * {
+  max-width: var(--form-max);
+  width: 100%;
+}
+
+/*
+ * O AVISO NÃO GANHA MARGEM EXTRA E NÃO É MAIOR QUE O RESTO. Ele já é a primeira
+ * coisa da folha e já tem o fundo de alerta — engordá-lo o transformaria numa
+ * tarja que o olho aprende a pular, que é o oposto do que ele existe para
+ * fazer.
+ */
+.cashback__aviso {
+  margin: 0;
+}
+
+.cashback__filial {
+  margin: 0;
+}
+
+/*
+ * A ORIGEM. Bloco de texto com um fio à esquerda — o mesmo recurso do fio de
+ * estágio da linha de pedido: ele diz "isto qualifica o que vem abaixo" sem
+ * gastar uma caixa inteira.
+ */
+.cashback__origem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-8);
+  padding-left: var(--sp-16);
+  border-left: 2px solid var(--line-strong);
+}
+
+.cashback__origem p {
+  margin: 0;
+}
+
+/* `fieldset` só existe aqui para o `disabled` alcançar todos os campos de uma
+   vez quando o papel não escreve. Ele não desenha nada. */
+.cashback__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-24);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/*
+ * OS TRÊS TERMOS DA CAMPANHA lado a lado. Eles se leem juntos — "5% de volta,
+ * resgatável a partir de R$ 10, válido por 60 dias" é UMA frase —, e empilhados
+ * em coluna cada um viraria uma decisão isolada.
+ */
+.cashback__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--sp-16);
+}
+
+.cashback__semana {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+}
+
+.cashback__semana-head p,
+.cashback__semana-head h2 {
+  margin: 0;
+}
+
+.cashback__semana-head p {
+  margin-top: var(--sp-4);
+}
+
+/*
+ * A SEMANA EM SETE COLUNAS, na ordem segunda→domingo — a MESMA da grade de
+ * horários, e a mesma do backend (`weekday` 0 = segunda). Duas telas que
+ * mostram a semana em ordens diferentes é como alguém digita a terça no campo
+ * da segunda.
+ *
+ * `auto-fit` com piso de 108px: em 1440 elas cabem nas sete colunas, e a partir
+ * de ~900 vão quebrando de quatro em quatro sem nunca espremer o campo abaixo
+ * do que um "12,5" ocupa.
+ */
+.cashback__dias {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+  gap: var(--sp-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cashback__dia {
+  min-width: 0;
+}
+
+/* ==========================================================================
+ * CELULAR
+ *
+ * A grade de sete colunas vira DUAS, e não uma: sete campos empilhados numa
+ * coluna são sete dobras de tela para uma informação que o lojista lê como
+ * bloco ("a terça é a diferente"). Em 390px duas colunas dão 163px por campo,
+ * que é mais que o suficiente para "12,5 %".
+ * ======================================================================= */
+
+/*
+ * ESPAÇO PARA AS DUAS BARRAS DE BAIXO — a navegação do celular e a barra de
+ * salvar flutuando acima dela. O ponto de quebra é o MESMO da barra
+ * (`SaveBar.css`, 900px), e não o do resto desta folha: casá-lo com 720
+ * deixaria uma faixa de 180px em que a barra já flutua e o último campo fica
+ * coberto, que é o defeito que este bloco existe para impedir.
+ */
+@media (max-width: 900px) {
+  .cashback {
+    padding-bottom: calc(var(--bottombar-h) + var(--control-h-touch) + var(--sp-24));
+  }
+}
+
+@media (max-width: 720px) {
+  .cashback {
+    padding-inline: var(--page-pad-mobile);
+    padding-top: var(--sp-16);
+    gap: var(--sp-16);
+  }
+
+  .cashback__dias {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -26,12 +26,12 @@
  * aquela rota declara. Apontar uma ação para `PUT /admin/products` não compila.
  *
  * ----------------------------------------------------------------------------
- * AS DUAS REGRAS QUE NÃO SÃO DE ROTA — e por isso são escritas, não geradas
+ * AS TRÊS REGRAS QUE NÃO SÃO DE ROTA — e por isso são escritas, não geradas
  * ----------------------------------------------------------------------------
  *
- * O backend tem duas decisões que uma tabela de rotas não expressa, porque quem
- * decide não é a rota. Elas estão no fim deste arquivo, com o motivo, e têm
- * teste próprio. Não são lacuna: são exceção nomeada.
+ * O backend tem três decisões que uma tabela de rotas não expressa, porque quem
+ * decide não é a rota, é o CORPO ou a QUERY. Elas estão no fim deste arquivo,
+ * com o motivo, e têm teste próprio. Não são lacuna: são exceção nomeada.
  *
  * ----------------------------------------------------------------------------
  * A REGRA DE TELA: SOME, NÃO DESABILITA
@@ -98,6 +98,16 @@ export type Acao =
   | 'desempenho.ver'
   | 'desempenho.verComissao'
   | 'avaliacoes.ver'
+  /*
+   * CASHBACK LÊ COMO GERÊNCIA E ESCREVE COMO DONO, e são quatro ações porque
+   * são quatro rotas — a da rede e as três da filial. Os papéis coincidem
+   * (GERENCIA para ler, SOMENTE_DONO para as três escritas), mas apontar as
+   * quatro para uma rota só faria o compilador parar de conferir três delas.
+   */
+  | 'cashback.ver'
+  | 'cashback.editarRede'
+  | 'cashback.editarFilial'
+  | 'cashback.apagarSobrescrita'
   // --- minha loja
   | 'loja.abrirFechar'
   | 'loja.editarTiposDePedido'
@@ -210,6 +220,21 @@ const ROTA_DA_ACAO = {
    */
   'avaliacoes.ver': 'GET /admin/reviews',
 
+  /*
+   * LER CASHBACK É GERÊNCIA, igual a `GET /admin/coupons`: o percentual é termo
+   * comercial, não alavanca de balcão — o atendente não aplica cashback à mão,
+   * quem resolve é o checkout — e a senha do balcão é a que mais circula.
+   *
+   * ESCREVER É SOMENTE DO DONO, igual ao cupom, e com um agravante que o cupom
+   * não tem: `enabled` liga o crédito E o resgate juntos, o resgate entra como
+   * subtração na base da comissão, e o primeiro pedido depois de salvar já
+   * fecha com outro número. Não existe o "cashback que ninguém usou".
+   */
+  'cashback.ver': 'GET /admin/cashback-rules',
+  'cashback.editarRede': 'PUT /admin/cashback-rules',
+  'cashback.editarFilial': 'PUT /admin/branches/{branch_id}/cashback-rules',
+  'cashback.apagarSobrescrita': 'DELETE /admin/branches/{branch_id}/cashback-rules',
+
   // --- minha loja -----------------------------------------------------------
   /* Fechar a loja no sábado à noite é de quem está lá. */
   'loja.abrirFechar': 'PATCH /admin/branches/{branch_id}/store-status',
@@ -272,16 +297,21 @@ export function pode(papel: Papel | null | undefined, acao: Acao): boolean {
 }
 
 /* ==========================================================================
- * AS DUAS REGRAS QUE A TABELA DE ROTAS NÃO EXPRESSA
+ * AS TRÊS REGRAS QUE A TABELA DE ROTAS NÃO EXPRESSA
  *
- * As duas estão escritas à mão de propósito, e não é preguiça de gerar: no
+ * As três estão escritas à mão de propósito, e não é preguiça de gerar: no
  * backend elas TAMBÉM não estão na tabela, porque quem decide não é a rota. Ver
- * `ensure_pode_definir_preco` e `ensure_pode_ler_dinheiro` em
- * `api/dependencies/admin_scope.py`.
+ * `ensure_pode_definir_preco`, `ensure_pode_definir_cashback` e
+ * `ensure_pode_ler_dinheiro` em `api/dependencies/admin_scope.py`.
  *
- * O risco de as duas envelhecerem é real e assumido — em troca, sem elas a tela
- * promete duas coisas que o backend recusa. Cada uma tem teste próprio, e o
- * teste é o lugar onde a divergência aparece.
+ * DUAS DELAS SÃO A MESMA FORMA: um CAMPO do dono dentro de uma rota da
+ * gerência (`price` no PATCH de produto, `earns_cashback` no de forma de
+ * pagamento). Nas duas, esconder o controle não basta — o campo tem de sair do
+ * CORPO, porque a checagem do backend só olha o que chegou.
+ *
+ * O risco de as três envelhecerem é real e assumido — em troca, sem elas a tela
+ * promete coisas que o backend recusa. Cada uma tem teste próprio, e o teste é
+ * o lugar onde a divergência aparece.
  * ======================================================================= */
 
 /**
@@ -296,6 +326,29 @@ export function pode(papel: Papel | null | undefined, acao: Acao): boolean {
  * regra, "editar produto" e "dar 99% em tudo" são a mesma permissão.
  */
 export function podeDefinirPreco(papel: Papel | null | undefined): boolean {
+  return papel === 'owner';
+}
+
+/**
+ * QUEM ESCOLHE SE UMA FORMA DE PAGAMENTO GASTA O DINHEIRO DO LOJISTA É O DONO.
+ *
+ * `earns_cashback` mora em `AdminPaymentMethodCreate` e `...Update`, e as rotas
+ * de forma de pagamento são GERENCIA. Quem decide aqui é o CORPO, não o
+ * caminho — a mesma forma de `podeDefinirPreco` logo acima, e a mesma no
+ * backend (`ensure_pode_definir_cashback`).
+ *
+ * POR QUE A LINHA CAI AQUI E NÃO NA ROTA: cadastrar bandeira, rótulo, ícone e
+ * ordem é trabalho de quem toca a loja. Escolher se aquela forma **gasta o
+ * dinheiro do lojista** não é. Sem a regra, o dono definiria o percentual e o
+ * gerente escolheria em quais formas ele sai — meia decisão de cada lado da
+ * mesma campanha.
+ *
+ * A CHECAGEM DO BACKEND SÓ MORDE QUANDO O CAMPO VEM NO CORPO: quem omite passa
+ * e cai no default `True` da coluna. É a mesma mecânica do preço, e a mesma
+ * consequência para a tela — não basta esconder o controle, o campo tem de sair
+ * do CORPO. Ver `store/payment-methods` e o e2e que confere isso no corpo.
+ */
+export function podeDefinirCashback(papel: Papel | null | undefined): boolean {
   return papel === 'owner';
 }
 

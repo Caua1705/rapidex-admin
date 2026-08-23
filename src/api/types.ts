@@ -306,3 +306,40 @@ export type PrintTestRequest = Schemas['PrintTestRequest'];
  * vê sucesso e fica olhando uma impressora que não vai receber nada.
  */
 export type PrintTestResult = Schemas['PrintTestResponse'];
+
+// --- cashback -----------------------------------------------------------
+
+/**
+ * A REGRA QUE VALE, E DE ONDE ELA VEIO.
+ *
+ * `source` é o campo que torna a herança visível, e ele existe porque sem ele a
+ * filial que HERDA e a que tem regra PRÓPRIA respondem exatamente a mesma
+ * coisa. São três valores, e a tela precisa dos três separados:
+ *
+ *   `branch`      regra própria desta loja
+ *   `restaurant`  herdada inteira da rede — salvar aqui CRIA uma sobrescrita
+ *   `none`        ninguém configurou, e `rule` vem nulo
+ *
+ * `none` NÃO é `enabled: false`. Um é "ninguém configurou", o outro é
+ * "configurado e desligado". Os dois caem em SEM_CASHBACK no checkout, mas só o
+ * segundo tem números para a tela mostrar.
+ */
+export type CashbackRuleView = Schemas['AdminCashbackRuleView'];
+export type CashbackRule = Schemas['AdminCashbackRuleResponse'];
+
+/**
+ * A regra INTEIRA — é `PUT`, não `PATCH`, e a herança é o motivo.
+ *
+ * A herança do cashback é por LINHA, não por coluna: a filial tem a regra toda
+ * ou herda a toda. Um PATCH sobre filial sem regra própria teria de responder
+ * "patch sobre o quê?" — sobre os valores herdados, criando uma sobrescrita
+ * inteira a partir de um campo só.
+ */
+export type CashbackRuleWrite = Schemas['AdminCashbackRuleWrite'];
+
+/**
+ * O percentual de UM dia. `weekday` é 0 = SEGUNDA (o `datetime.weekday()` do
+ * Python), como em `BusinessHourInput` — ver `store/business-hours.ts`.
+ */
+export type CashbackWeekdayInput = Schemas['CashbackWeekdayInput'];
+export type CashbackWeekday = Schemas['CashbackWeekdayResponse'];

@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { RequireAuth } from './auth/RequireAuth';
 import { SessionProvider } from './auth/SessionProvider';
+import { CashbackPage } from './cashback/CashbackPage';
 import { CustomersPage } from './customers/CustomersPage';
 import { KitchenPage } from './kitchen/KitchenPage';
 import { AppShell } from './layout/AppShell';
@@ -73,6 +74,23 @@ export function App() {
               <RequireAuth acao="desempenho.ver">
                 <AppShell>
                   <PerformancePage />
+                </AppShell>
+              </RequireAuth>
+            }
+          />
+          {/*
+            CASHBACK exige o papel da LEITURA (`GET /admin/cashback-rules`,
+            GERENCIA). Escrever é do dono, e isso é decidido DENTRO da tela: o
+            gerente entra, lê os números e não vê a barra de salvar. Pôr a
+            guarda de escrita aqui trancaria a porta para quem o backend deixa
+            entrar.
+          */}
+          <Route
+            path="/cashback"
+            element={
+              <RequireAuth acao="cashback.ver">
+                <AppShell>
+                  <CashbackPage />
                 </AppShell>
               </RequireAuth>
             }

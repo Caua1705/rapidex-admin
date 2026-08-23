@@ -32,6 +32,8 @@ type BranchOverrides = Schemas['AdminBranchOperationOverrides'];
 type BusinessHour = Schemas['BusinessHourResponse'];
 type BusinessHourInput = Schemas['BusinessHourInput'];
 type PaymentMethod = Schemas['AdminPaymentMethodResponse'];
+type CashbackRule = Schemas['AdminCashbackRuleResponse'];
+type CashbackWeekday = Schemas['CashbackWeekdayResponse'];
 type CustomerListItem = Schemas['AdminCustomerListItem'];
 type ReviewItem = Schemas['AdminOrderReviewItem'];
 type SalesSummary = Schemas['SalesSummaryResponse'];
@@ -655,6 +657,7 @@ function initialPaymentMethods(branchId: string): PaymentMethod[] {
       label: 'Pix',
       enabled: true,
       requires_gateway: true,
+      earns_cashback: true,
       sort_order: 0,
     },
     {
@@ -664,6 +667,9 @@ function initialPaymentMethods(branchId: string): PaymentMethod[] {
       method_type: 'cash',
       label: 'Dinheiro',
       enabled: true,
+      /* A do dinheiro nasce SEM cashback: é a linha que prova que o gerente LÊ
+         o estado sem poder mudá-lo, e que o dono vê a caixa desmarcada. */
+      earns_cashback: false,
       requires_gateway: false,
       sort_order: 1,
     },
@@ -1565,6 +1571,18 @@ export type FakeApi = {
   hoursPuts: () => { branchId: string; periods: BusinessHourInput[] }[];
   /** Formas de pagamento que o "banco" tem agora. */
   paymentMethods: () => PaymentMethod[];
+  /**
+   * O corpo de cada PUT de cashback.
+   *
+   * É AQUI que se confere a armadilha do dia ausente: `weekdays` tem de sair
+   * com SÓ os dias preenchidos, e nunca com sete linhas — sete linhas
+   * congelariam o percentual de todos eles e matariam a herança.
+   */
+  cashbackPuts: () => { escopo: 'rede' | 'filial'; body: Record<string, unknown> }[];
+  /** Planta a regra da rede antes do login, para a tela abrir com ela. */
+  setCashbackRestaurantRule: (rule: CashbackRule | null) => void;
+  /** Planta (ou apaga) a sobrescrita de uma filial. */
+  setCashbackBranchRule: (branchId: string, rule: CashbackRule | null) => void;
   /** Setores de impressão que o "banco" tem agora. */
   printSectors: () => PrintSector[];
   /**
@@ -1745,6 +1763,16 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     } as Record<string, BusinessHour[]>,
     hoursPuts: [] as { branchId: string; periods: BusinessHourInput[] }[],
     paymentMethods: initialPaymentMethods(BRANCH_ID),
+    /*
+     * AS DUAS LINHAS DE CASHBACK, e o falso as guarda separadas porque a
+     * herança é POR LINHA: a filial tem a regra inteira ou herda a inteira.
+     * Um mapa por filial com `undefined` significando "herda" é exatamente a
+     * forma que o backend tem no banco.
+     */
+    cashbackRestaurantRule: null as CashbackRule | null,
+    cashbackBranchRules: {} as Record<string, CashbackRule | undefined>,
+    /** Cada PUT de cashback, para conferir o corpo — é onde mora a armadilha. */
+    cashbackPuts: [] as { escopo: 'rede' | 'filial'; body: Record<string, unknown> }[],
     /*
      * O PAPEL DE QUEM ESTÁ LOGADO.
      *
@@ -2551,6 +2579,82 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       });
     }
 
+
+    // --- cashback ----------------------------------------------------------
+
+    /*
+     * AS CINCO ROTAS, e o falso reproduz a regra que a tela precisa acertar: a
+     * leitura devolve `source`, e `source` é o que diz se salvar EDITA ou CRIA.
+     *
+     * O `PUT` é gravação inteira — não há merge com o que estava lá. É o que
+     * torna este falso capaz de acusar um corpo montado errado: se a tela
+     * mandasse os sete dias, o `weekdays` gravado teria sete linhas e o teste
+     * veria isso.
+     */
+    function regraDaFilial(branchId: string): { source: string; rule: CashbackRule | null } {
+      const propria = state.cashbackBranchRules[branchId];
+      if (propria) return { source: 'branch', rule: propria };
+      if (state.cashbackRestaurantRule) {
+        return { source: 'restaurant', rule: state.cashbackRestaurantRule };
+      }
+      return { source: 'none', rule: null };
+    }
+
+    function regraGravada(
+      body: Record<string, unknown>,
+      branchId: string | null,
+    ): CashbackRule {
+      return {
+        id: branchId ? `cb-${branchId}` : 'cb-rede',
+        restaurant_id: 'rest-1',
+        branch_id: branchId,
+        enabled: Boolean(body.enabled),
+        default_percent: String(body.default_percent ?? '0.00'),
+        min_redeem_balance: String(body.min_redeem_balance ?? '0.00'),
+        expiry_days: Number(body.expiry_days ?? 60),
+        weekdays: (body.weekdays as CashbackWeekday[] | undefined) ?? [],
+      };
+    }
+
+    if (path === '/admin/cashback-rules') {
+      if (method === 'GET') {
+        return json(
+          route,
+          200,
+          state.cashbackRestaurantRule
+            ? { source: 'restaurant', rule: state.cashbackRestaurantRule }
+            : { source: 'none', rule: null },
+        );
+      }
+      if (method === 'PUT') {
+        const body = request.postDataJSON() as Record<string, unknown>;
+        state.cashbackPuts.push({ escopo: 'rede', body });
+        state.cashbackRestaurantRule = regraGravada(body, null);
+        return json(route, 200, state.cashbackRestaurantRule);
+      }
+    }
+
+    const cashbackMatch = /^\/admin\/branches\/([^/]+)\/cashback-rules$/.exec(path);
+    if (cashbackMatch?.[1]) {
+      const branchId = cashbackMatch[1];
+      if (method === 'GET') return json(route, 200, regraDaFilial(branchId));
+      if (method === 'PUT') {
+        const body = request.postDataJSON() as Record<string, unknown>;
+        state.cashbackPuts.push({ escopo: 'filial', body });
+        state.cashbackBranchRules[branchId] = regraGravada(body, branchId);
+        return json(route, 200, state.cashbackBranchRules[branchId]);
+      }
+      if (method === 'DELETE') {
+        // 404 quando não havia sobrescrita: "voltou a herdar agora" e "já
+        // herdava" são estados diferentes na tela.
+        if (!state.cashbackBranchRules[branchId]) {
+          return json(route, 404, { detail: 'Esta filial nao tem regra propria' });
+        }
+        delete state.cashbackBranchRules[branchId];
+        return route.fulfill({ status: 204, body: '' });
+      }
+    }
+
     // --- minha loja: configurações do restaurante --------------------------
 
     if (path === '/admin/settings') {
@@ -3180,6 +3284,14 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     cancelReasons: () => state.cancelReasons,
     settings: () => state.settings,
     settingsPatches: () => state.settingsPatches,
+    cashbackPuts: () => state.cashbackPuts,
+    setCashbackRestaurantRule(rule) {
+      state.cashbackRestaurantRule = rule;
+    },
+    setCashbackBranchRule(branchId, rule) {
+      if (rule === null) delete state.cashbackBranchRules[branchId];
+      else state.cashbackBranchRules[branchId] = rule;
+    },
     branchPatches: () => state.branchPatches,
     hoursPuts: () => state.hoursPuts,
     paymentMethods: () => state.paymentMethods,

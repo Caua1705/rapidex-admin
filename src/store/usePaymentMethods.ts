@@ -6,8 +6,9 @@ import {
   deletePaymentMethod,
   listPaymentMethods,
   updatePaymentMethod,
+  type PaymentMethodCreateBody,
 } from '../api/store';
-import type { PaymentMethod, PaymentMethodCreate, PaymentMethodUpdate } from '../api/types';
+import type { PaymentMethod, PaymentMethodUpdate } from '../api/types';
 
 /** As formas de pagamento da filial, na ordem em que o cliente as vê. */
 function sortMethods(methods: readonly PaymentMethod[]): PaymentMethod[] {
@@ -59,7 +60,16 @@ export function usePaymentMethods(branchId: string) {
   }, []);
 
   const create = useCallback(
-    async (body: PaymentMethodCreate): Promise<boolean> => {
+    /*
+     * O CORPO NÃO LEVA `earns_cashback`, e isso é a decisão, não um esquecimento.
+     *
+     * A forma nova nasce com o default `true` da coluna, e quem quiser desligar
+     * desmarca a caixa na linha depois — um PATCH, que é onde o campo é
+     * opcional de verdade. Mandá-lo aqui daria 403 no gerente pelo simples fato
+     * de a chave existir no JSON (ver `PaymentMethodCreateBody`), e o gerente
+     * PODE cadastrar forma de pagamento.
+     */
+    async (body: PaymentMethodCreateBody): Promise<boolean> => {
       if (!branchId) return false;
       setIsCreating(true);
       setErrorMessage(null);

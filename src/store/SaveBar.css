@@ -1,0 +1,72 @@
+/* ==========================================================================
+ * A BARRA DE SALVAR
+ *
+ * ELA SAIU DE `StorePage.css` E VEIO PARA CÁ quando a tela de Cashback passou a
+ * usá-la. Enquanto Minha loja era a única dona, morar na folha de estilo da
+ * tela era razoável; com duas telas, o componente que se importa sem estilo é a
+ * forma conhecida de a barra aparecer sem sombra e sem grude numa delas.
+ *
+ * `.store-form__buttons` veio junto de propósito, mesmo sendo usado também pelo
+ * formulário de nova forma de pagamento: separar as duas metades da barra em
+ * dois arquivos é como uma delas envelhece sozinha.
+ * ======================================================================= */
+
+/*
+ * ELA FLUTUA NO FIM DA COLUNA, e é uma das poucas coisas do painel que
+ * justificam sombra: ela SAI do plano de verdade, passando por cima do
+ * formulário enquanto ele rola por baixo. Cartão parado na página não tem
+ * sombra em tema nenhum (tokens §9).
+ *
+ * `position: sticky` gruda dentro do ANCESTRAL QUE ROLA — e é por isso que a
+ * tela que a usa NÃO pode declarar `overflow-y: auto` num contêiner que no
+ * telefone não rola. Foi exatamente esse o defeito de `.store__col`: a barra
+ * ficava em y=1204 num viewport de 844, ou seja, no fim do documento, que é
+ * onde o botão morava antes de existir uma barra grudenta.
+ */
+.store-form__actions {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-12);
+  margin-top: var(--sp-8);
+  padding: var(--sp-8) var(--sp-12);
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-raised);
+}
+
+.store-form__buttons {
+  margin-left: auto;
+  display: flex;
+  gap: var(--sp-8);
+}
+
+.store-form__saved {
+  font-size: var(--ta-size);
+  color: var(--ok);
+}
+
+.store-form__error {
+  font-size: var(--ta-size);
+  color: var(--danger);
+}
+
+@media (max-width: 900px) {
+  /*
+   * ELA PARA ACIMA DA BARRA DE BAIXO, não na borda da tela. `bottom: 0` a
+   * colaria no rodapé do viewport — e ali mora a navegação do celular, que é
+   * `position: fixed` e ganharia por camada. O botão de salvar existiria e
+   * estaria embaixo de "Pedidos / Cardápio / Loja / Mais".
+   *
+   * `env(safe-area-inset-bottom)` entra porque a barra de baixo já cresce com
+   * ele (ver `AppShell.css`) — e desde `viewport-fit=cover` no index.html esse
+   * valor deixou de ser zero no iPhone.
+   */
+  .store-form__actions {
+    bottom: calc(var(--bottombar-h) + env(safe-area-inset-bottom));
+    margin-inline: calc(var(--sp-4) * -1);
+  }
+}

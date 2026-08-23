@@ -96,12 +96,16 @@ export const NAV_GROUPS: readonly NavGroup[] = [
         Icon: CouponIcon,
         soon: 'Criar códigos de desconto com validade, valor mínimo e limite de uso.',
       },
-      {
-        to: '/cashback',
-        label: 'Cashback',
-        Icon: CashbackIcon,
-        soon: 'Devolver parte do pedido em crédito e acompanhar quanto disso volta em compra.',
-      },
+      /*
+       * O `soon` SAIU e a tela existe. O campo é o mecanismo, não um texto de
+       * apoio: enquanto ele estava aqui, a rota caía na página "em breve" e a
+       * tela construída ficava inalcançável.
+       *
+       * `acao` entrou junto porque as cinco rotas de cashback são GERENCIA para
+       * ler — o atendente que clicasse aqui cairia numa tela que responde 403 e
+       * leria isso como defeito do painel.
+       */
+      { to: '/cashback', label: 'Cashback', Icon: CashbackIcon, acao: 'cashback.ver' },
       /*
        * A FRASE DESTE ITEM SAIU DAQUI, e não porque virou obsoleta: `soon` é o
        * mecanismo, não um texto de apoio. Enquanto ele existe, a rota cai na

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+import './SaveBar.css';
+
 /** Quanto tempo a confirmação "Alterações salvas" fica na tela. */
 const SAVED_NOTICE_MS = 4000;
 

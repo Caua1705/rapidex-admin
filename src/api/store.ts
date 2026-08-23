@@ -272,14 +272,43 @@ export async function listPaymentMethods(branchId: string): Promise<PaymentMetho
   );
 }
 
+/**
+ * O CORPO DE CRIAÇÃO SEM `earns_cashback` — e este tipo existe por uma
+ * diferença real entre o que o OpenAPI sabe dizer e o que o backend faz.
+ *
+ * `earns_cashback` tem `@default true` no schema, e o `openapi-typescript`
+ * traduz "campo com default" para CAMPO OBRIGATÓRIO. Do lado do backend a
+ * semântica é outra: `create_payment_method` pergunta
+ * `if "earns_cashback" in payload.model_fields_set` — ou seja, quem decide é a
+ * PRESENÇA DA CHAVE no JSON, não o valor dela. Mandar `true` (o mesmo valor do
+ * default) já dispara `ensure_pode_definir_cashback` e devolve 403 ao gerente.
+ *
+ * É a MESMA armadilha do preço no PATCH de produto, e a mesma conclusão:
+ * esconder o controle não basta, o campo tem de sair do CORPO. A diferença é
+ * que lá o contrato deixa o campo opcional e o corpo se monta com um spread
+ * condicional; aqui ele não deixa, e não há como escrever a ausência dentro do
+ * tipo gerado.
+ *
+ * Por isso o tipo abaixo é DERIVADO do gerado (`Omit` + `Partial<Pick>`), e não
+ * escrito à mão: renomear o campo no backend continua quebrando a compilação
+ * aqui, que é a garantia que a §2 da skill de API existe para preservar.
+ */
+export type PaymentMethodCreateBody = Omit<PaymentMethodCreate, 'earns_cashback'> &
+  Partial<Pick<PaymentMethodCreate, 'earns_cashback'>>;
+
 export async function createPaymentMethod(
   branchId: string,
-  body: PaymentMethodCreate,
+  body: PaymentMethodCreateBody,
 ): Promise<PaymentMethod> {
   return unwrap(
     await apiClient.POST('/admin/branches/{branch_id}/payment-methods', {
       params: { path: { branch_id: branchId } },
-      body,
+      /*
+       * O ÚNICO `as` DE CORPO DO PAINEL, e ele afirma MENOS que o tipo gerado,
+       * não mais: um corpo sem a chave é exatamente o que o backend espera de
+       * quem não pode escrevê-la. Ver o comentário acima.
+       */
+      body: body as PaymentMethodCreate,
     }),
   );
 }

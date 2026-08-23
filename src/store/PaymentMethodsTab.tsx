@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import type { PaymentFlow, PaymentMethod, PaymentMethodType } from '../api/types';
+import { usePermissoes } from '../auth/use-permissions';
 import { Checkbox } from '../ds/Checkbox';
 import { Select } from '../ds/Select';
 import { PAYMENT_METHOD_LABELS } from '../orders/format';
@@ -40,6 +41,11 @@ const METHOD_TYPES: readonly PaymentMethodType[] = [
 export function PaymentMethodsTab({ branchId }: { branchId: string }) {
   const payment = usePaymentMethods(branchId);
   const [isAdding, setIsAdding] = useState(false);
+  /*
+   * `earns_cashback` é do DONO mesmo aqui, onde a rota é da GERÊNCIA — quem
+   * decide é o CORPO, não o caminho. Ver `podeDefinirCashback`.
+   */
+  const { podeCashback } = usePermissoes();
 
   if (payment.isLoading) {
     return <p className="muted store__loading">Carregando as formas de pagamento…</p>;
@@ -64,7 +70,11 @@ export function PaymentMethodsTab({ branchId }: { branchId: string }) {
         <MethodList
           methods={online}
           pendingIds={payment.pendingIds}
+          podeCashback={podeCashback}
           onToggle={(method, enabled) => void payment.update(method.id, { enabled })}
+          onToggleCashback={(method, earns) =>
+            void payment.update(method.id, { earns_cashback: earns })
+          }
           onRemove={(method) => void payment.remove(method.id)}
         />
       </section>
@@ -77,7 +87,11 @@ export function PaymentMethodsTab({ branchId }: { branchId: string }) {
         <MethodList
           methods={onDelivery}
           pendingIds={payment.pendingIds}
+          podeCashback={podeCashback}
           onToggle={(method, enabled) => void payment.update(method.id, { enabled })}
+          onToggleCashback={(method, earns) =>
+            void payment.update(method.id, { earns_cashback: earns })
+          }
           onRemove={(method) => void payment.remove(method.id)}
         />
       </section>
@@ -109,11 +123,16 @@ function MethodList({
   methods,
   pendingIds,
   onToggle,
+  onToggleCashback,
+  podeCashback,
   onRemove,
 }: {
   methods: readonly PaymentMethod[];
   pendingIds: readonly string[];
   onToggle: (method: PaymentMethod, enabled: boolean) => void;
+  onToggleCashback: (method: PaymentMethod, earns: boolean) => void;
+  /** O papel escreve `earns_cashback`? Falso deixa o DADO e tira o CONTROLE. */
+  podeCashback: boolean;
   onRemove: (method: PaymentMethod) => void;
 }) {
   /**
@@ -157,6 +176,34 @@ function MethodList({
 
           <span className="methods__gateway faint">
             {method.requires_gateway ? 'Exige gateway' : ''}
+          </span>
+
+          {/*
+            GERA CASHBACK — o campo do DONO dentro de uma rota da gerência.
+
+            Para o gerente ele é TEXTO, e texto só quando a resposta é NÃO:
+            `earns_cashback` nasce `true` na coluna, e escrever "gera cashback"
+            em nove linhas de dez seria rotular o normal. Some o CONTROLE, fica
+            o DADO — a mesma regra do nome da impressora do setor para o balcão.
+          */}
+          <span className="methods__cashback">
+            {podeCashback ? (
+              /*
+                O RÓTULO É VISÍVEL, ao contrário do interruptor ao lado. Esta
+                lista não tem cabeçalho de coluna: um quadrado nu ali seria um
+                controle sem nome para quem enxerga, e "Cashback" é a única
+                palavra que diz o que marcar ou desmarcar faz.
+              */
+              <Checkbox
+                checked={method.earns_cashback}
+                disabled={pendingIds.includes(method.id)}
+                label="Cashback"
+                onChange={(next) => onToggleCashback(method, next)}
+                data-testid={`payment-cashback-${method.id}`}
+              />
+            ) : method.earns_cashback ? null : (
+              'Sem cashback'
+            )}
           </span>
 
           <Switch
