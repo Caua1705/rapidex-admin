@@ -11,7 +11,7 @@ import type { RestaurantProfile, RestaurantProfileUpdate } from '../api/types';
  * `useBranchDetail`. Aqueles moram lá porque DUAS seções os dividem (Geral e
  * Valores; Filial e Entrega), e duas cópias divergiriam assim que uma das
  * páginas gravasse. Este recurso tem uma consumidora só, e um hook no layout é
- * uma leitura de API em toda seção de Minha loja para alimentar uma delas.
+ * uma leitura de API em toda seção de Loja para alimentar uma delas.
  *
  * A leitura é `PESSOAS` e a gravação é `SOMENTE_DONO` — mas a seção inteira já
  * exige `loja.editarMarca`, então quem chega aqui pode as duas.

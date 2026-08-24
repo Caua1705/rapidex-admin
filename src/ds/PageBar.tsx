@@ -31,7 +31,7 @@ import './PageBar.css';
  * NÃO HÁ SUBTÍTULO EXPLICANDO A TELA. Quem abre "Clientes" sabe o que é a tela,
  * e a frase custava uma dobra por turno para explicar o óbvio uma vez. O que
  * existe é `crumb`, que é OUTRA coisa: o nome da seção aberta dentro da tela
- * ("Minha loja › Geral"), que é a continuação do título e não um segundo.
+ * ("Loja › Geral"), que é a continuação do título e não um segundo.
  *
  * ELA ENVOLVE quando aperta: com o painel de detalhe aberto, ou em qualquer
  * janela estreita, as ferramentas descem para uma segunda fileira alinhada à

@@ -56,7 +56,7 @@ export function emptyBoardState(input: {
     return {
       title: 'A loja está fechada.',
       hint: 'Nenhum pedido novo entra enquanto ela estiver fechada. Os pedidos já em andamento continuam aparecendo aqui.',
-      action: { label: 'Abrir a loja', to: '/minha-loja/geral' },
+      action: { label: 'Abrir a loja', to: '/loja/geral' },
     };
   }
 

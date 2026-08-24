@@ -12,7 +12,7 @@
  *
  *   Pedidos       → "Pedidos"; o dado é o ticket, e dentro dele o cronômetro
  *   Cardápio      → nome da categoria aberta
- *   Minha loja    → "Minha loja", e o valor do campo é corpo
+ *   Loja    → "Loja", e o valor do campo é corpo
  *   Cozinha       → exceção documentada (ver a escala --k-* em tokens.css)
  *
  * Cada classe declara CORPO, ENTRELINHA, PESO, ESPACEJAMENTO E TINTA juntos.
@@ -77,7 +77,7 @@
 /*
  * O SUBTÍTULO DE ROTA — o nome da seção aberta, embaixo do título da página.
  *
- * Ele existe porque "Minha loja" e "Geral" eram DOIS títulos, um de 26px e
+ * Ele existe porque "Loja" e "Geral" eram DOIS títulos, um de 26px e
  * outro de 16px, a dois blocos de distância, com o nome do primeiro cartão
  * ("Pedido") também em 16px logo abaixo. Três níveis dentro de três pixels.
  * Aqui a seção volta a ser o que ela é — a continuação do título, não um

@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
 import { RequireAuth, ROTA_DA_TROCA_DE_SENHA } from './auth/RequireAuth';
 import { SessionProvider } from './auth/SessionProvider';
@@ -15,6 +15,7 @@ import { ReviewsPage } from './reviews/ReviewsPage';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { LoginPage } from './pages/LoginPage';
+import { StoreIndexPage } from './store/StoreIndexPage';
 import { StoreLayout } from './store/StoreLayout';
 import { StoreSectionPage } from './store/StoreSectionPage';
 import { STORE_SECTIONS } from './store/store-sections';
@@ -153,20 +154,23 @@ export function App() {
             }
           />
           {/*
-            MINHA LOJA É UM GRUPO DE ROTAS, uma por seção. A lista da esquerda
-            é navegação de verdade — o endereço identifica a tela, o F5 volta
+            LOJA É UM GRUPO DE ROTAS, uma por seção. A lista da esquerda é
+            navegação de verdade — o endereço identifica a tela, o F5 volta
             onde estava e o botão voltar do navegador funciona entre seções.
 
-            `index` redireciona para Operação: /minha-loja sozinha não é uma
-            tela, é o nome do grupo. Deixá-la renderizar um estado vazio
-            "escolha uma seção" seria uma tela a mais para atravessar toda vez.
+            O QUE `index` RENDERIZA DEPENDE DA LARGURA, e é a única rota do
+            painel assim. No desktop, /loja sozinha não é uma tela: é o nome do
+            grupo, e a coluna de seções já está aberta ao lado — ela
+            redireciona para Operação, que é o estado do dia. No telefone a
+            coluna não cabe, /loja É a tela, e ela lista as nove seções. Ver
+            `StoreIndexPage`, que é onde a decisão mora.
 
-            É Operação, e não mais Geral, porque é o estado do dia: quem abre
-            Minha loja no meio do turno vem ver quais lojas estão no ar, não os
+            É Operação, e não Geral, porque é o que se abre com pressa: quem
+            abre Loja no meio do turno vem ver quais lojas estão no ar, não os
             padrões que encosta uma vez por mês.
           */}
           <Route
-            path="/minha-loja"
+            path="/loja"
             element={
               <RequireAuth>
                 <AppShell>
@@ -175,11 +179,25 @@ export function App() {
               </RequireAuth>
             }
           >
-            <Route index element={<Navigate to="operacao" replace />} />
+            <Route index element={<StoreIndexPage />} />
             {STORE_SECTIONS.map((secao) => (
               <Route key={secao.id} path={secao.id} element={<StoreSectionPage id={secao.id} />} />
             ))}
           </Route>
+          {/*
+            O ENDEREÇO ANTIGO CONTINUA ABRINDO.
+
+            `/minha-loja/horarios` é o link que o suporte manda por WhatsApp e
+            que o lojista deixou nos favoritos — a própria `StoreLayout` cita
+            isso como um dos ganhos de cada seção ser uma rota. Uma renomeação
+            que quebra esses links troca um rótulo melhor por um beco, e o beco
+            dura para sempre.
+
+            O splat cobre as nove seções e a raiz de uma vez, e `replace` faz o
+            endereço velho não ficar no histórico: quem voltar do navegador não
+            cai num redirecionamento em laço.
+          */}
+          <Route path="/minha-loja/*" element={<LojaRenomeada />} />
           {/*
             USUÁRIOS exige o papel da LEITURA (`GET /admin/users`,
             SOMENTE_DONO) — e aqui, ao contrário de Cupons e Cashback, não há
@@ -234,4 +252,20 @@ export function App() {
       </SessionProvider>
     </BrowserRouter>
   );
+}
+
+/**
+ * `/minha-loja/<seção>` → `/loja/<seção>`, preservando o resto do endereço.
+ *
+ * A troca é do PREFIXO e não do caminho inteiro porque as nove seções não
+ * mudaram de nome — só o grupo mudou. Assim o redirecionamento não precisa
+ * conhecer a lista de seções, e não envelhece quando uma nova entrar.
+ *
+ * `search` e `hash` vêm junto: um dia haverá link com âncora, e um
+ * redirecionamento que come a query é a forma silenciosa de perder o filtro
+ * que alguém mandou por mensagem.
+ */
+function LojaRenomeada() {
+  const { pathname, search, hash } = useLocation();
+  return <Navigate to={`${pathname.replace('/minha-loja', '/loja')}${search}${hash}`} replace />;
 }

@@ -1,5 +1,5 @@
 /**
- * Chamadas da tela "Minha loja".
+ * Chamadas da tela "Loja".
  *
  * Duas escalas convivem aqui e é importante não confundi-las:
  *

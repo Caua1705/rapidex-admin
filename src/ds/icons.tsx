@@ -246,7 +246,7 @@ export function KitchenIcon(props: IconProps) {
   );
 }
 
-/** Minha loja: o toldo. */
+/** Loja: o toldo. */
 export function StoreIcon(props: IconProps) {
   return (
     <Icon {...props}>

@@ -5,7 +5,7 @@ import { estaNoAr, situacaoDaFilial } from './operation-state';
 /**
  * Abrir e fechar a loja — DESTA FILIAL.
  *
- * Fica no topo de Minha loja, fora das seções: é a única configuração com
+ * Fica no topo de Loja, fora das seções: é a única configuração com
  * efeito imediato no que o cliente vê — loja fechada some do app — e a que o
  * lojista procura com pressa, no fim do expediente ou quando a cozinha não dá
  * conta. Em Operação ele não aparece: lá a mesma filial já tem a própria chave

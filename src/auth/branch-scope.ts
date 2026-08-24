@@ -155,14 +155,14 @@ export const ROUTE_BRANCH_SCOPE = {
  * diz isso, e duas listas divergiriam na primeira seção nova. Cada uma destas
  * rotas consome pelo menos uma das rotas `single` da tabela acima.
  *
- * O CARDÁPIO ENTRA À MÃO porque não é uma seção de Minha loja — é rota própria,
+ * O CARDÁPIO ENTRA À MÃO porque não é uma seção de Loja — é rota própria,
  * e a lista derivada não tem como alcançá-la. Ele está aqui pelo mesmo motivo
  * que as outras: o cardápio é de uma loja, e "Todas as filiais" nesta tela não
  * é um recorte mais largo, é o cardápio das duas somado.
  */
 export const SINGLE_BRANCH_PATHS: readonly string[] = [
   ...STORE_SECTIONS.filter((secao) => secao.scope === 'branch').map(
-    (secao) => `/minha-loja/${secao.id}`,
+    (secao) => `/loja/${secao.id}`,
   ),
   '/cardapio',
 ];

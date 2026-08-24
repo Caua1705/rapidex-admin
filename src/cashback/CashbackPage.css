@@ -3,7 +3,7 @@
  *
  * A tela segue a regra da direção: o plano é `--surface` do começo ao fim, e
  * quem separa um bloco do vizinho é o respiro, não uma moldura. Ela é estreita
- * de propósito — `--form-max`, a mesma medida dos formulários de Minha loja:
+ * de propósito — `--form-max`, a mesma medida dos formulários de Loja:
  * onze campos numa folha de 1600px viram uma linha de texto de 1600px, e o olho
  * perde o par rótulo/campo no caminho.
  * ======================================================================= */

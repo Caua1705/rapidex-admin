@@ -302,7 +302,7 @@ export function CustomersPage() {
           <span className="customers__escopo-grupo">
             {/*
               O RECORTE, GRUDADO NO TÍTULO. `aside` é o slot onde o sistema põe
-              ressalva de escopo — é o mesmo que Minha loja usa —, e a faixa é
+              ressalva de escopo — é o mesmo que Loja usa —, e a faixa é
               grudenta: na quadragésima linha da lista ele continua na tela, que
               é exatamente onde a dúvida aparece.
 

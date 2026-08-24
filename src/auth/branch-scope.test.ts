@@ -69,24 +69,24 @@ describe('branchScopeForPath', () => {
    * ali "todas" não é um recorte mais largo, é o cardápio das lojas somado,
    * que é o defeito com que esta rodada começou.
    */
-  it('marca o Cardápio e as seções de filial de Minha loja como tela de uma filial', () => {
+  it('marca o Cardápio e as seções de filial de Loja como tela de uma filial', () => {
     expect(branchScopeForPath('/cardapio')).toBe('single');
-    expect(branchScopeForPath('/minha-loja/horarios')).toBe('single');
-    expect(branchScopeForPath('/minha-loja/entrega')).toBe('single');
-    expect(branchScopeForPath('/minha-loja/pagamento')).toBe('single');
-    expect(branchScopeForPath('/minha-loja/filial')).toBe('single');
-    expect(branchScopeForPath('/minha-loja/impressao')).toBe('single');
+    expect(branchScopeForPath('/loja/horarios')).toBe('single');
+    expect(branchScopeForPath('/loja/entrega')).toBe('single');
+    expect(branchScopeForPath('/loja/pagamento')).toBe('single');
+    expect(branchScopeForPath('/loja/filial')).toBe('single');
+    expect(branchScopeForPath('/loja/impressao')).toBe('single');
   });
 
   it('deixa Geral e o resto do painel em leitura multi-filial', () => {
     // Geral é do restaurante inteiro: "todas as filiais" continua válido lá.
-    expect(branchScopeForPath('/minha-loja/geral')).toBe('multi');
+    expect(branchScopeForPath('/loja/geral')).toBe('multi');
     expect(branchScopeForPath('/pedidos')).toBe('multi');
     expect(branchScopeForPath('/clientes')).toBe('multi');
   });
 
   it('ignora a barra final', () => {
-    expect(branchScopeForPath('/minha-loja/horarios/')).toBe('single');
+    expect(branchScopeForPath('/loja/horarios/')).toBe('single');
   });
 });
 

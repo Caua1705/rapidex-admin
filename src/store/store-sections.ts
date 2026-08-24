@@ -1,5 +1,5 @@
 /**
- * As nove seções de Minha loja — e cada uma é uma ROTA.
+ * As nove seções de Loja — e cada uma é uma ROTA.
  *
  * Esta lista é a fonte única: as rotas (`App.tsx`) e a navegação da esquerda
  * (`StoreLayout`) leem daqui. Duas listas divergiriam no dia em que alguém
@@ -53,7 +53,7 @@ export type StoreSection = {
   /**
    * A ação que esta seção EXISTE para fazer. Ausente = todo papel a alcança.
    *
-   * Uma seção de Minha loja é um formulário e uma barra de salvar: sem a
+   * Uma seção de Loja é um formulário e uma barra de salvar: sem a
    * escrita, o que sobra é um formulário que aceita digitação e nunca grava.
    * Por isso a seção inteira some da lista, em vez de virar leitura — é a
    * mesma regra do botão que não fica desabilitado.
@@ -69,7 +69,7 @@ export type StoreSection = {
 
 export const STORE_SECTIONS: readonly StoreSection[] = [
   /*
-   * OPERAÇÃO É A PRIMEIRA, e é onde /minha-loja abre. É o estado do dia — o
+   * OPERAÇÃO É A PRIMEIRA, e é onde /loja abre. É o estado do dia — o
    * que o lojista vem conferir com pressa no sábado à noite —, enquanto Geral
    * são os padrões que ele encosta uma vez por mês.
    */

@@ -176,13 +176,13 @@ for (const tamanho of TAMANHOS) {
       await fotografar(page, 'cupons-dialogo', tamanho.nome, tema);
       await page.keyboard.press('Escape');
 
-      await page.goto('/minha-loja/operacao');
-      await expect(page.getByRole('heading', { name: 'Minha loja' })).toBeVisible();
-      await fotografar(page, 'minha-loja', tamanho.nome, tema);
+      await page.goto('/loja/operacao');
+      await expect(page.getByRole('heading', { name: 'Loja' })).toBeVisible();
+      await fotografar(page, 'loja', tamanho.nome, tema);
 
-      await page.goto('/minha-loja/geral');
-      await expect(page.getByRole('heading', { name: 'Minha loja' })).toBeVisible();
-      await fotografar(page, 'minha-loja-geral', tamanho.nome, tema);
+      await page.goto('/loja/geral');
+      await expect(page.getByRole('heading', { name: 'Loja' })).toBeVisible();
+      await fotografar(page, 'loja-geral', tamanho.nome, tema);
 
       /*
        * MARCA ENTRA NO ARNÊS porque ela existe para uma coisa VISUAL: fazer o
@@ -190,9 +190,9 @@ for (const tamanho of TAMANHOS) {
        * anotações do assistente não são. Se a foto não mostra a distinção, a
        * seção não cumpriu a razão de ter sido criada.
        */
-      await page.goto('/minha-loja/marca');
+      await page.goto('/loja/marca');
       await expect(page.getByTestId('marca-identidade')).toBeVisible();
-      await fotografar(page, 'minha-loja-marca', tamanho.nome, tema);
+      await fotografar(page, 'loja-marca', tamanho.nome, tema);
 
       /*
        * IMPRESSÃO ENTROU NO ARNÊS nesta rodada, e não por ser mais uma seção: é
@@ -201,9 +201,21 @@ for (const tamanho of TAMANHOS) {
        * setor e a resposta do teste. Ela é usada EM PÉ, no balcão, e é onde o
        * aperto do celular aparece primeiro.
        */
-      await page.goto('/minha-loja/impressao');
+      await page.goto('/loja/impressao');
       await expect(page.getByTestId('print-agent-status')).toBeVisible();
-      await fotografar(page, 'minha-loja-impressao', tamanho.nome, tema);
+      await fotografar(page, 'loja-impressao', tamanho.nome, tema);
+
+      /*
+       * O ÍNDICE COMO PÁGINA, e SÓ em 390: é a peça nova desta rodada — a lista
+       * de nove linhas de 44px que substituiu a fita rolável que transbordava
+       * 271px numa tela de 390. Em 1440 `/loja` redireciona para Operação, e a
+       * foto seria a mesma de `loja` logo acima.
+       */
+      if (tamanho.nome === '390') {
+        await page.goto('/loja');
+        await expect(page.getByTestId('store-lista-geral')).toBeVisible();
+        await fotografar(page, 'loja-lista', tamanho.nome, tema);
+      }
 
       // A Cozinha tem PALETA própria (saturada, para leitura a dois metros) mas
       // segue o tema como todas as outras: acesa sobre carvão no escuro, funda

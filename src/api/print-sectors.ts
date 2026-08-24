@@ -2,7 +2,7 @@
  * Chamadas dos setores de impressão.
  *
  * Arquivo próprio, e não um pedaço de `store.ts` ou de `menu.ts`, porque os
- * setores são usados pelas DUAS telas: a aba Impressão de Minha loja os
+ * setores são usados pelas DUAS telas: a aba Impressão de Loja os
  * administra, e o Cardápio os lê para dizer em qual setor cada produto imprime.
  *
  * A rota é `printing-sectors` (e o campo, `printing_sector_id`) — é o nome que

@@ -1994,7 +1994,7 @@ function initialCoupons(restaurantId: string): Coupon[] {
  *
  * O `print_agent` NÃO ESTÁ AQUI, e a ausência é o contrato:
  * `list_people_by_restaurant` filtra a conta de máquina, e o PATCH responde 404
- * nela. Ele tem tela própria em Minha loja › Impressão.
+ * nela. Ele tem tela própria em Loja › Impressão.
  * ======================================================================= */
 
 function initialAdminUsers(): AdminUserDetail[] {
@@ -2112,7 +2112,7 @@ function senhaTemporariaFalsa(indice: number): string {
     closedBranches: new Set<string>(),
     /** Ligado por `emptyReports()`: os relatórios passam a responder zerados. */
     reportsEmpty: false,
-    // Minha loja. As filiais são cópias, e não as constantes exportadas: os
+    // Loja. As filiais são cópias, e não as constantes exportadas: os
     // PATCH da tela gravam nelas, e mutar a constante vazaria de um teste para
     // o outro.
     branches: [{ ...FAKE_BRANCH }, { ...FAKE_BRANCH_2 }] as Branch[],

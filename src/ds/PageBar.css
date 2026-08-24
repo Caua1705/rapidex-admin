@@ -62,7 +62,7 @@
 /*
  * O NOME DA SEÇÃO. Ele é a continuação do título, então vive na mesma linha e
  * um degrau abaixo em corpo e tinta — não embaixo dele, em 16px, a dois blocos
- * de distância, que era como "Minha loja" e "Geral" viravam dois títulos.
+ * de distância, que era como "Loja" e "Geral" viravam dois títulos.
  */
 .ds-pagebar__crumb {
   flex: 0 1 auto;

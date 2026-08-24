@@ -6,14 +6,14 @@ import { useKeepActiveInView } from '../ds/useKeepActiveInView';
 import { useAdoptedBranch } from '../auth/use-branch-scope';
 import { usePermissoes } from '../auth/use-permissions';
 import { StoreStatusCard } from './StoreStatusCard';
-import { STORE_SECTIONS } from './store-sections';
+import { STORE_SECTIONS, type StoreSection } from './store-sections';
 import { useBranchDetail } from './useBranchDetail';
 import { useBranchOperation } from './useBranchOperation';
 import { useStoreSettings } from './useStoreSettings';
 import './StorePage.css';
 
 /**
- * MINHA LOJA — UMA SEÇÃO, UMA PÁGINA.
+ * LOJA — UMA SEÇÃO, UMA PÁGINA.
  *
  * A coluna única com âncoras resolveu o problema das seis abas (tudo buscável,
  * o índice dizendo o que existe) e criou o próprio: seis formulários numa
@@ -22,10 +22,10 @@ import './StorePage.css';
  * O recolhimento foi um remendo — ele escondia o problema em vez de resolvê-lo,
  * e cobrava um clique para ver o que já estava carregado.
  *
- * Agora cada seção é uma ROTA (`/minha-loja/entrega`), e a lista da esquerda é
+ * Agora cada seção é uma ROTA (`/loja/entrega`), e a lista da esquerda é
  * navegação de verdade. O que se ganha, além da altura:
  *
- *   - o endereço identifica a tela: dá para mandar "abre /minha-loja/horarios"
+ *   - o endereço identifica a tela: dá para mandar "abre /loja/horarios"
  *     para o suporte, e o F5 volta onde estava;
  *   - o botão voltar do navegador funciona entre seções;
  *   - cada página monta só o SEU formulário — a coluna única montava seis, com
@@ -62,6 +62,14 @@ export type StoreOutletContext = {
   branchId: string;
   /** Nome dela, para a linha auxiliar. Vazio quando não há escolha a fazer. */
   branchLabel: string;
+  /**
+   * As seções que ESTE papel alcança — a mesma lista que desenha a coluna.
+   *
+   * Ela desce pelo contexto porque `StoreIndexPage` a renderiza de novo, em
+   * outro desenho, no telefone. Refiltrar lá dentro seria a segunda expressão
+   * da mesma regra, e as duas divergiriam na primeira seção nova.
+   */
+  secoes: readonly StoreSection[];
 };
 
 export function StoreLayout() {
@@ -77,8 +85,8 @@ export function StoreLayout() {
    * O NOME DA SEÇÃO ABERTA SOBE PARA A FAIXA, como continuação do título.
    *
    * Ele morava dentro da página, em `StoreSectionPage`, a um bloco de distância
-   * de "Minha loja" — dois títulos empilhados para dizer um lugar só. Na faixa
-   * ele lê como o que é: "Minha loja › Horários de funcionamento".
+   * de "Loja" — dois títulos empilhados para dizer um lugar só. Na faixa
+   * ele lê como o que é: "Loja › Horários de funcionamento".
    */
   const secaoAberta = STORE_SECTIONS.find((secao) => rota.endsWith(`/${secao.id}`));
   /*
@@ -92,14 +100,22 @@ export function StoreLayout() {
   /*
    * AS SEÇÕES QUE ESTE PAPEL ALCANÇA.
    *
-   * Seção de Minha loja é formulário mais barra de salvar: sem a escrita, o que
+   * Seção de Loja é formulário mais barra de salvar: sem a escrita, o que
    * sobraria é um formulário que aceita digitação e nunca grava — pior do que
    * não estar lá. Operação e Impressão continuam para todo mundo; o que é da
    * gerência dentro delas é escondido controle a controle.
    */
   const secoes = STORE_SECTIONS.filter((secao) => !secao.acao || pode(secao.acao));
-  const { branch, branchId, hasChoice } = useAdoptedBranch(!emOperacao);
-  const mostrarInterruptor = !emOperacao;
+  /*
+   * NO ÍNDICE NÃO SE ADOTA FILIAL, e o motivo é o mesmo de Operação: `/loja`
+   * sem seção aberta é a LISTA das nove (no telefone) ou um redirecionamento
+   * (no desktop). Adotar ali faria o cabeçalho passar a dizer "Matriz Aldeota"
+   * em cima de uma lista que não é de filial nenhuma — e faria isso no instante
+   * em que o lojista tocasse "Mais › Loja", sem ele ter pedido nada.
+   */
+  const emSecao = secaoAberta !== undefined;
+  const { branch, branchId, hasChoice } = useAdoptedBranch(emSecao && !emOperacao);
+  const mostrarInterruptor = emSecao && !emOperacao;
 
   const settings = useStoreSettings();
   const branchDetail = useBranchDetail(branchId);
@@ -142,6 +158,7 @@ export function StoreLayout() {
     operation,
     branchId,
     branchLabel,
+    secoes,
   };
 
   return (
@@ -160,7 +177,13 @@ export function StoreLayout() {
         o mesmo.
       */}
       <PageBar
-        title="Minha loja"
+        /*
+          "LOJA", E NÃO MAIS "MINHA LOJA". O possessivo singular é o que mente
+          num restaurante com duas filiais: "minha loja" promete uma. Quem diz
+          de qual filial é o formulário continua sendo a ressalva de escopo ao
+          lado, que é onde essa informação sempre esteve certa. Ver `nav.ts`.
+        */
+        title="Loja"
         crumb={secaoAberta?.titulo}
         aside={
           escopo ? (
@@ -188,7 +211,7 @@ export function StoreLayout() {
           sem plano próprio: a lateral do painel diz em que parte do PRODUTO
           você está; isto diz em que parte de UMA tela.
         */}
-        <nav className="store__index" aria-label="Seções de Minha loja" ref={fitaRef}>
+        <nav className="store__index" aria-label="Seções da loja" ref={fitaRef}>
           {/*
             NENHUMA SEÇÃO FICA ATENUADA. As de filial já ficaram, quando abri-las
             sem filial escolhida levava a um bloco que pedia uma — a atenuação era
@@ -216,6 +239,26 @@ export function StoreLayout() {
         </nav>
 
         <div className="store__col">
+          {/*
+            A VOLTA PARA A LISTA, e ela só existe onde a lista é uma PÁGINA.
+
+            Abaixo de 720px a coluna de seções sai da tela (ver `StorePage.css`)
+            e o índice vira a tela `/loja`. Uma seção aberta sem caminho de
+            volta visível é a definição de beco: o gesto de voltar do aparelho
+            existe, mas ele não é uma AFIRMAÇÃO de que há para onde voltar.
+
+            Acima de 720px ela não aparece, e não porque estorve: a coluna à
+            esquerda já está aberta com as nove seções, e um "todas as seções"
+            ao lado de uma lista de todas as seções é a mesma informação duas
+            vezes. É a regra do shell — a informação não some, ela troca de
+            lugar.
+          */}
+          {emSecao ? (
+            <NavLink to="/loja" end className="store__voltar" data-testid="store-voltar">
+              <span aria-hidden="true">‹</span> Todas as seções
+            </NavLink>
+          ) : null}
+
           <Outlet context={context} />
         </div>
       </div>

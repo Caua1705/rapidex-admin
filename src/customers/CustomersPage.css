@@ -37,7 +37,7 @@
 /*
  * O RECORTE DA CLASSIFICAÇÃO, ao lado do título.
  *
- * Ele vive no `aside` da faixa — o slot em que Minha loja põe a mesma coisa —,
+ * Ele vive no `aside` da faixa — o slot em que Loja põe a mesma coisa —,
  * e a faixa GRUDA no topo enquanto a lista rola. É essa permanência que faz o
  * trabalho: a dúvida ("por que a Maria virou Perdida?") aparece na linha 40, e
  * uma frase que já rolou para fora não responde nada.

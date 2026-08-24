@@ -39,7 +39,7 @@ async function fazerLogin(page: Page) {
 }
 
 async function abrirAbaImpressao(page: Page) {
-  await page.getByRole('link', { name: 'Minha loja' }).click();
+  await page.getByRole('link', { name: 'Loja' }).click();
   await page.getByTestId('store-anchor-impressao').click();
 }
 
@@ -52,7 +52,7 @@ async function abrirMenuDaCategoria(page: Page) {
   await page.getByTestId('category-actions-open').click();
 }
 
-// --- a aba em Minha loja --------------------------------------------------
+// --- a aba em Loja --------------------------------------------------
 
 test('a tela Impressão lista os setores da filial resolvida', async ({ page }) => {
   await fazerLogin(page);

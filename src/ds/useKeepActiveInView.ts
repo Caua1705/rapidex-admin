@@ -7,9 +7,9 @@ import { useEffect, useRef } from 'react';
  *
  * O DIAGNÓSTICO, medido em 390px. As listas que no desktop são uma COLUNA
  * viram uma FITA horizontal no telefone — as categorias do Cardápio e as oito
- * seções de Minha loja. A fita transborda (271px em Minha loja, 418px no
+ * seções de Loja. A fita transborda (271px em Loja, 418px no
  * Cardápio com três categorias) e nasce em `scrollLeft: 0`. Resultado: quem
- * abre /minha-loja/impressao vê uma fita com cinco OUTRAS seções e nenhuma
+ * abre /loja/impressao vê uma fita com cinco OUTRAS seções e nenhuma
  * marcada — a seção aberta está fora da tela, à direita. O painel deixa de
  * responder "onde eu estou".
  *

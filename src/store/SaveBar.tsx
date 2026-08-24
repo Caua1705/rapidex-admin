@@ -6,7 +6,7 @@ import './SaveBar.css';
 const SAVED_NOTICE_MS = 4000;
 
 /**
- * A barra de salvar de Minha loja.
+ * A barra de salvar de Loja.
  *
  * POR QUE ELA GRUDA NO RODAPÉ: as abas desta tela são formulários longos —
  * Filial tem endereço, coordenada e contato; Horários tem sete linhas. O botão

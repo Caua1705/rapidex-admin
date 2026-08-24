@@ -1,5 +1,5 @@
 /**
- * E2E de Minha loja.
+ * E2E de Loja.
  *
  * Os testes daqui cobrem as quatro formas de esta tela dar prejuízo em
  * silêncio: fechar a semana sem querer no PUT de horários, deixar a entrega
@@ -29,24 +29,24 @@ test.afterEach(() => {
   api.stop();
 });
 
-async function abrirMinhaLoja(page: Page) {
-  await page.goto('/minha-loja');
+async function abrirLoja(page: Page) {
+  await page.goto('/loja');
   await expect(page).toHaveURL(/\/login$/);
 
   await page.getByLabel('E-mail').fill(LOGIN_EMAIL);
   await page.getByLabel('Senha').fill(LOGIN_PASSWORD);
   await page.getByRole('button', { name: 'Entrar' }).click();
 
-  await page.getByRole('link', { name: 'Minha loja' }).click();
-  // /minha-loja é o nome do GRUPO de rotas, não uma tela: ela redireciona para
+  await page.getByRole('link', { name: 'Loja' }).click();
+  // /loja é o nome do GRUPO de rotas, não uma tela: ela redireciona para
   // a primeira seção, que é o estado do dia.
-  await expect(page).toHaveURL(/\/minha-loja\/operacao$/);
+  await expect(page).toHaveURL(/\/loja\/operacao$/);
 }
 
 /** As outras seções saem da navegação da esquerda, como o lojista faz. */
 async function abrirSecao(page: Page, id: string) {
   await page.getByTestId(`store-anchor-${id}`).click();
-  await expect(page).toHaveURL(new RegExp(`/minha-loja/${id}$`));
+  await expect(page).toHaveURL(new RegExp(`/loja/${id}$`));
 }
 
 /**
@@ -62,7 +62,7 @@ async function escolherFilial(page: Page) {
 }
 
 test('Operação mostra uma linha por filial e fecha só a que foi clicada', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
 
   /*
    * AS DUAS LOJAS NA MESMA TELA. É a conferência que não existia enquanto o
@@ -93,7 +93,7 @@ test('aberta fora do horário de hoje, a linha diz isso em vez de prometer pedid
   page,
 }) => {
   api.putOutsideHours(FAKE_BRANCH.id);
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
 
   const aldeota = page.getByTestId(`operation-row-${FAKE_BRANCH.id}`);
   await expect(aldeota).toHaveAttribute('data-open', 'true');
@@ -116,7 +116,7 @@ test('aberta fora do horário de hoje, a linha diz isso em vez de prometer pedid
  * ponto apagar e a linha ler o estado de verdade.
  */
 test('sem entrega e sem retirada, a linha para de dizer que está no ar', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
 
   const aldeota = page.getByTestId(`operation-row-${FAKE_BRANCH.id}`);
   await expect(aldeota).toHaveAttribute('data-no-ar', 'true');
@@ -146,7 +146,7 @@ test('sem entrega e sem retirada, a linha para de dizer que está no ar', async 
  * que outra aba acabou de gravar. Cada clique manda UM campo.
  */
 test('cada clique em entrega ou retirada manda só o campo que mudou', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
 
   await page.getByTestId(`operation-accepts_pickup-${FAKE_BRANCH.id}`).click();
 
@@ -164,7 +164,7 @@ test('cada clique em entrega ou retirada manda só o campo que mudou', async ({ 
  * informação repetida que a §8 do design proíbe.
  */
 test('o interruptor do cabeçalho vale nas outras seções, e some em Operação', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await expect(page.getByTestId('store-status')).toHaveCount(0);
 
   await abrirSecao(page, 'horarios');
@@ -190,7 +190,7 @@ test('o interruptor do cabeçalho vale nas outras seções, e some em Operação
  * aparece semanas depois, com o cliente pagando outro número.
  */
 test('salvar um campo não devolve os outros ao padrão do restaurante', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await abrirSecao(page, 'valores');
 
   // Herdando: campo vazio, e a ajuda diz o padrão por extenso — nunca zero.
@@ -216,7 +216,7 @@ test('salvar um campo não devolve os outros ao padrão do restaurante', async (
 test('apagar uma sobrescrita devolve a filial ao padrão, e a tela diz de novo qual é', async ({
   page,
 }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await abrirSecao(page, 'valores');
 
   await page.getByTestId('branch-min-order').fill('45,00');
@@ -243,7 +243,7 @@ test('apagar uma sobrescrita devolve a filial ao padrão, e a tela diz de novo q
  * haveria como voltar atrás.
  */
 test('a taxa de serviço da filial tem três estados, e desligar não é herdar', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await abrirSecao(page, 'valores');
 
   await expect(page.getByTestId('branch-service-fee-herda')).toHaveAttribute(
@@ -266,7 +266,7 @@ test('a taxa de serviço da filial tem três estados, e desligar não é herdar'
 });
 
 test('Geral salva as configurações do restaurante e não expõe a taxa padrão', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await abrirSecao(page, 'geral');
 
   await expect(page.getByTestId('settings-min-order')).toHaveValue('20,00');
@@ -299,7 +299,7 @@ test('Geral salva as configurações do restaurante e não expõe a taxa padrão
  * que o olho aprende a pular.
  */
 test('a barra de salvar só existe quando há alteração pendente', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await abrirSecao(page, 'geral');
 
   const barra = page.getByTestId('store-save-bar');
@@ -317,7 +317,7 @@ test('a barra de salvar só existe quando há alteração pendente', async ({ pa
 });
 
 test('faixa de tempo estimado pela metade é recusada antes de sair da tela', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await abrirSecao(page, 'geral');
 
   await page.getByTestId('settings-eta-max').fill('');
@@ -340,7 +340,7 @@ test('faixa de tempo estimado pela metade é recusada antes de sair da tela', as
  * que sobra é uma linha auxiliar dizendo de qual filial é o formulário.
  */
 test('as seções de filial resolvem a filial em vez de pedir uma', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
 
   // Geral é do restaurante inteiro: a linha auxiliar dela diz outra coisa.
   await abrirSecao(page, 'geral');
@@ -368,7 +368,7 @@ test('as seções de filial resolvem a filial em vez de pedir uma', async ({ pag
 });
 
 test('Filial salva cadastro e avisa quando falta a coordenada', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await page.getByTestId('store-anchor-filial').click();
   await escolherFilial(page);
 
@@ -389,7 +389,7 @@ test('Filial salva cadastro e avisa quando falta a coordenada', async ({ page })
 });
 
 test('latitude fora da faixa do planeta não chega ao backend', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await page.getByTestId('store-anchor-filial').click();
   await escolherFilial(page);
 
@@ -401,7 +401,7 @@ test('latitude fora da faixa do planeta não chega ao backend', async ({ page })
 });
 
 test('Horários manda os sete dias, e não só os que foram mexidos', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await escolherFilial(page);
   await page.getByTestId('store-anchor-horarios').click();
 
@@ -427,7 +427,7 @@ test('Horários manda os sete dias, e não só os que foram mexidos', async ({ p
 });
 
 test('dia aberto sem horário completo trava o salvamento', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await escolherFilial(page);
   await page.getByTestId('store-anchor-horarios').click();
 
@@ -440,7 +440,7 @@ test('dia aberto sem horário completo trava o salvamento', async ({ page }) => 
 });
 
 test('Entrega mostra base e por-km faltando como erro de configuração', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await page.getByTestId('store-anchor-entrega').click();
   await escolherFilial(page);
 
@@ -476,7 +476,7 @@ test('Entrega mostra base e por-km faltando como erro de configuração', async 
 test('formas de pagamento: cria, desativa e exclui — sem trocar fluxo nem tipo', async ({
   page,
 }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await escolherFilial(page);
   await page.getByTestId('store-anchor-pagamento').click();
 
@@ -529,7 +529,7 @@ test('formas de pagamento: cria, desativa e exclui — sem trocar fluxo nem tipo
 test('frete grátis: recusar é diferente de herdar, e o corpo prova a diferença', async ({
   page,
 }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await escolherFilial(page);
   await abrirSecao(page, 'valores');
 
@@ -555,7 +555,7 @@ test('frete grátis: recusar é diferente de herdar, e o corpo prova a diferenç
 test('dar frete grátis sem dizer acima de quanto é recusado antes de sair da tela', async ({
   page,
 }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await escolherFilial(page);
   await abrirSecao(page, 'valores');
 
@@ -572,7 +572,7 @@ test('dar frete grátis sem dizer acima de quanto é recusado antes de sair da t
  * 19h) é exatamente o dia em que ninguém lembra de desligá-la.
  */
 test('pausar a entrega manda minutos e motivo, e a linha diz até quando', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
 
   const linha = page.getByTestId(`operation-row-${FAKE_BRANCH.id}`);
   await expect(linha).toHaveAttribute('data-no-ar', 'true');
@@ -607,7 +607,7 @@ test('pausar a entrega manda minutos e motivo, e a linha diz até quando', async
 test('com a entrega pausada e sem retirada, a loja para de dizer que está no ar', async ({
   page,
 }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
 
   // Só entrega: a retirada desligada deixa a pausa sozinha respondendo.
   await page.getByTestId(`operation-accepts_pickup-${FAKE_BRANCH.id}`).click();
@@ -622,7 +622,7 @@ test('com a entrega pausada e sem retirada, a loja para de dizer que está no ar
 });
 
 test('a pausa que passa de 24 horas trava antes de chegar ao backend', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await page.getByTestId(`operation-pause-${FAKE_BRANCH.id}`).click();
 
   const dialogo = page.getByRole('dialog');
@@ -639,7 +639,7 @@ test('a pausa que passa de 24 horas trava antes de chegar ao backend', async ({ 
  * o endereço de 5,4 km sem faixa nenhuma.
  */
 test('cadastrar faixas de prazo, e elas saem ordenadas por teto', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await escolherFilial(page);
   await abrirSecao(page, 'entrega');
 
@@ -676,7 +676,7 @@ test('cadastrar faixas de prazo, e elas saem ordenadas por teto', async ({ page 
 test('duas faixas com o mesmo teto são recusadas antes de virar duas respostas', async ({
   page,
 }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await escolherFilial(page);
   await abrirSecao(page, 'entrega');
 
@@ -700,7 +700,7 @@ test('duas faixas com o mesmo teto são recusadas antes de virar duas respostas'
 
 /* Lista vazia NÃO é "sem entrega": é o prazo voltando a sair do Google. */
 test('apagar as faixas é uma ação nomeada, e diz o que passa a valer', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await escolherFilial(page);
   await abrirSecao(page, 'entrega');
 
@@ -730,7 +730,7 @@ test('apagar as faixas é uma ação nomeada, e diz o que passa a valer', async 
  * ======================================================================= */
 
 test('Marca grava no perfil do restaurante, e só o campo mexido vai no corpo', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await abrirSecao(page, 'marca');
 
   await expect(page.getByTestId('store-branch-note')).toHaveText('vale para o restaurante inteiro');
@@ -758,7 +758,7 @@ test('Marca grava no perfil do restaurante, e só o campo mexido vai no corpo', 
  * número que falta cortar, antes de o backend recusar com 422.
  */
 test('passar do teto acende o contador e a gravação para antes do 422', async ({ page }) => {
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await abrirSecao(page, 'marca');
 
   await page.getByTestId('marca-notas').fill('a'.repeat(312));
@@ -783,7 +783,7 @@ test('passar do teto acende o contador e a gravação para antes do 422', async 
 test('texto legado acima do teto é dito na tela e não trava o outro campo', async ({ page }) => {
   api.setProfileTexts({ assistant_notes: 'b'.repeat(400) });
 
-  await abrirMinhaLoja(page);
+  await abrirLoja(page);
   await abrirSecao(page, 'marca');
 
   // Aberto assim, ele é DITO — e o formulário não abre sujo nem inválido.
@@ -799,4 +799,64 @@ test('texto legado acima do teto é dito na tela e não trava o outro campo', as
   await expect(page.getByTestId('store-saved')).toBeVisible();
   expect(api.profilePatches()).toEqual([{ description: 'Vitrine nova.' }]);
   expect(api.profile().assistant_notes).toHaveLength(400);
+});
+
+/* ==========================================================================
+ * O ENDEREÇO ANTIGO, E O TELEFONE
+ * ======================================================================= */
+
+test('o endereço antigo /minha-loja continua abrindo a seção certa', async ({ page }) => {
+  await abrirLoja(page);
+
+  /*
+   * É o link que o suporte manda por WhatsApp e que o lojista deixou nos
+   * favoritos. Uma renomeação que o quebra troca um rótulo melhor por um beco.
+   */
+  await page.goto('/minha-loja/horarios');
+  await expect(page).toHaveURL(/\/loja\/horarios$/);
+  await expect(page.getByRole('heading', { name: 'Loja' })).toBeVisible();
+
+  // A raiz antiga também: sem seção, ela cai onde /loja cai.
+  await page.goto('/minha-loja');
+  await expect(page).toHaveURL(/\/loja\/operacao$/);
+});
+
+test('no telefone, /loja é a LISTA das nove seções — e Operação está na barra de baixo', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  await page.goto('/loja');
+  await expect(page).toHaveURL(/\/login$/);
+  await page.getByLabel('E-mail').fill(LOGIN_EMAIL);
+  await page.getByLabel('Senha').fill(LOGIN_PASSWORD);
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  /*
+   * A ABA DA BARRA DE BAIXO APONTA PARA DENTRO DE LOJA, e é a decisão que faz o
+   * resto caber: abrir e fechar a loja é a ação de sábado à noite, e ela não
+   * pode custar dois toques dentro de uma tela de configuração.
+   */
+  await page.getByTestId('bottom-operacao').click();
+  await expect(page).toHaveURL(/\/loja\/operacao$/);
+  await expect(page.getByTestId(`operation-row-${FAKE_BRANCH.id}`)).toBeVisible();
+
+  /*
+   * A FITA DE NOVE PASTILHAS NÃO EXISTE NO TELEFONE. No lugar dela, `/loja` é a
+   * lista — e a volta para ela é uma afirmação na tela, não o gesto do
+   * aparelho.
+   */
+  await expect(page.getByTestId('store-anchor-horarios')).toBeHidden();
+  await page.getByTestId('store-voltar').click();
+  await expect(page).toHaveURL(/\/loja$/);
+
+  const lista = page.getByRole('navigation', { name: 'Todas as seções da loja' });
+  await expect(lista.getByRole('link')).toHaveCount(9);
+  await expect(page.getByTestId('store-lista-geral')).toContainText(
+    'vale para o restaurante inteiro',
+  );
+
+  // E a lista navega: cada linha é a rota da seção.
+  await page.getByTestId('store-lista-impressao').click();
+  await expect(page).toHaveURL(/\/loja\/impressao$/);
 });

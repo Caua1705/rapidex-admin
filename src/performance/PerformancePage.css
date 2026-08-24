@@ -118,7 +118,7 @@
  *
  * O PESO É `--w-medium` E NÃO O 600 DO NÍVEL 1, e esta é a única divergência:
  * o nível 1 é calibrado para duas ou três palavras no alto da tela ("Cardápio",
- * "Minha loja"). Uma frase de vinte palavras em semibold no corpo 22 lê como
+ * "Loja"). Uma frase de vinte palavras em semibold no corpo 22 lê como
  * grito, não como resposta — e a hierarquia aqui não precisa do peso, porque
  * nada em volta dela disputa esse corpo.
  */

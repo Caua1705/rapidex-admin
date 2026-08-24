@@ -158,8 +158,8 @@ test('o balcão marca esgotado, mas não cria nem edita item', async ({ page }) 
 
 test('o balcão abre e fecha a loja, mas não muda como ela vende', async ({ page }) => {
   api.entrarComoPapel('attendant');
-  await entrar(page, '/minha-loja/operacao');
-  await page.goto('/minha-loja/operacao');
+  await entrar(page, '/loja/operacao');
+  await page.goto('/loja/operacao');
 
   await expect(page.getByTestId(`operation-is_open-${FAKE_BRANCH.id}`)).toBeVisible();
   // Entrega e retirada são `order-types`, da gerência: some o controle e fica
@@ -170,10 +170,10 @@ test('o balcão abre e fecha a loja, mas não muda como ela vende', async ({ pag
   ).toBeVisible();
 });
 
-test('o balcão só enxerga as seções de Minha loja que ele opera', async ({ page }) => {
+test('o balcão só enxerga as seções de Loja que ele opera', async ({ page }) => {
   api.entrarComoPapel('attendant');
-  await entrar(page, '/minha-loja/operacao');
-  await page.goto('/minha-loja/operacao');
+  await entrar(page, '/loja/operacao');
+  await page.goto('/loja/operacao');
 
   await expect(page.getByTestId('store-anchor-operacao')).toBeVisible();
   await expect(page.getByTestId('store-anchor-impressao')).toBeVisible();
@@ -189,8 +189,8 @@ test('o balcão só enxerga as seções de Minha loja que ele opera', async ({ p
   await expect(page.getByTestId('store-anchor-marca')).toHaveCount(0);
 
   // E o endereço direto volta para Operação.
-  await page.goto('/minha-loja/geral');
-  await expect(page).toHaveURL(/\/minha-loja\/operacao$/);
+  await page.goto('/loja/geral');
+  await expect(page).toHaveURL(/\/loja\/operacao$/);
 });
 
 /*
@@ -199,8 +199,8 @@ test('o balcão só enxerga as seções de Minha loja que ele opera', async ({ p
  */
 test('o balcão vê o programa e manda teste, e não mexe nos setores', async ({ page }) => {
   api.entrarComoPapel('attendant');
-  await entrar(page, '/minha-loja/impressao');
-  await page.goto('/minha-loja/impressao');
+  await entrar(page, '/loja/impressao');
+  await page.goto('/loja/impressao');
 
   await expect(page.getByTestId('print-agent-status')).toBeVisible();
   await expect(page.getByTestId('print-test-destino')).toBeVisible();
@@ -320,8 +320,62 @@ test('o dono continua vendo tudo', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Novo item' })).toBeVisible();
   await expect(page.getByTestId('category-actions-open')).toBeVisible();
 
-  await page.goto('/minha-loja/operacao');
+  await page.goto('/loja/operacao');
   await expect(page.getByTestId('store-anchor-geral')).toBeVisible();
   await expect(page.getByTestId('store-anchor-valores')).toBeVisible();
   await expect(page.getByTestId('store-anchor-marca')).toBeVisible();
+});
+
+/* ==========================================================================
+ * A NAVEGAÇÃO ENCOLHE SEM SE DESMANCHAR
+ * ======================================================================= */
+
+test('o atendente vê dois blocos inteiros, e nenhum grupo com um item só', async ({ page }) => {
+  api.entrarComoPapel('attendant');
+  await entrar(page);
+
+  /*
+   * "Vender mais" e "Acompanhar" somem INTEIROS — as cinco telas deles são
+   * GERENCIA. O que sobra é o turno e a loja, e é a forma que a lateral tem de
+   * ser para quem está no balcão.
+   */
+  await expect(page.getByRole('list', { name: 'Hoje' })).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Configuração e conta' })).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Vender mais' })).toHaveCount(0);
+  await expect(page.getByRole('list', { name: 'Acompanhar' })).toHaveCount(0);
+
+  /*
+   * A INVARIANTE, medida na tela e não só em `nav.test.ts`: grupo homogêneo de
+   * papel é 0 ou cheio, nunca 1. Um rótulo em cima de um item só custa uma
+   * linha inteira para dizer o que o próprio item já diz.
+   */
+  await expect(page.getByRole('list', { name: 'Hoje' }).getByRole('listitem')).toHaveCount(3);
+  await expect(
+    page.getByRole('list', { name: 'Configuração e conta' }).getByRole('listitem'),
+  ).toHaveCount(3);
+  await expect(page.getByRole('link', { name: 'Usuários' })).toHaveCount(0);
+});
+
+test('no telefone, "Todas as seções" mostra TODAS — e nenhuma que dê 403', async ({ page }) => {
+  api.entrarComoPapel('attendant');
+  await entrar(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  await page.getByTestId('bottom-mais').click();
+  const folha = page.getByTestId('sheet-mais');
+  await expect(folha).toBeVisible();
+
+  /*
+   * AS TRÊS DA BARRA SE REPETEM AQUI, de propósito: a folha se chama "Todas as
+   * seções" e é o MESMO mapa da lateral. Tirando-as, "Hoje" ficaria com um item
+   * só — o defeito que esta rodada desmanchou do outro lado.
+   */
+  await expect(folha.getByRole('link', { name: 'Pedidos' })).toBeVisible();
+  await expect(folha.getByRole('link', { name: 'Cardápio' })).toBeVisible();
+  await expect(folha.getByRole('link', { name: 'Loja' })).toBeVisible();
+
+  // E o recorte por papel vale aqui igual: nada que responda 403.
+  await expect(folha.getByRole('link', { name: 'Clientes' })).toHaveCount(0);
+  await expect(folha.getByRole('link', { name: 'Cupons' })).toHaveCount(0);
+  await expect(folha.getByRole('link', { name: 'Usuários' })).toHaveCount(0);
 });

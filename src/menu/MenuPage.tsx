@@ -51,7 +51,7 @@ import './MenuPage.css';
  * lojas isso é o cardápio duas vezes, com 200 e sem log.
  *
  * Por isso ela ADOTA a filial (`useAdoptedBranch`) em vez de só resolvê-la, e é
- * a mesma decisão das seções de Minha loja: a tela inteira fala de uma loja,
+ * a mesma decisão das seções de Loja: a tela inteira fala de uma loja,
  * então o cabeçalho tem que dizer a mesma coisa. O seletor do topo deixa de
  * oferecer "Todas as filiais" enquanto ela está aberta — não porque escolher
  * seja proibido, mas porque ali "todas" não é um recorte mais largo: é o

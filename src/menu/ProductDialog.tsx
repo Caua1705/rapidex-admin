@@ -420,7 +420,7 @@ export function ProductDialog({
             {!branchChosen
               ? 'Setor é por filial: escolha uma no topo para poder definir onde este item imprime.'
               : sectors.length === 0
-                ? 'Esta filial ainda não tem setor cadastrado. Crie em Minha loja › Impressão.'
+                ? 'Esta filial ainda não tem setor cadastrado. Crie em Loja › Impressão.'
                 : 'Onde o pedido com este item sai impresso.'}
           </span>
         </div>

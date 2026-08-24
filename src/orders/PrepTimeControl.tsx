@@ -11,7 +11,7 @@ import type { usePrepTime } from './usePrepTime';
  * um campo — no meio do almoço ninguém digita número.
  *
  * O AJUSTE É POR FILIAL DENTRO DE UMA TELA QUE LÊ VÁRIAS, e é isso que o
- * separa das seções de Minha loja. Ele já respondeu "escolha uma filial" no
+ * separa das seções de Loja. Ele já respondeu "escolha uma filial" no
  * lugar do valor, com os botões travados: uma frase que nem fecha em português
  * ao lado do rótulo ("Preparo escolha uma filial") e um controle que o lojista
  * não tinha como usar sem antes ir mexer no cabeçalho — e mexer no cabeçalho

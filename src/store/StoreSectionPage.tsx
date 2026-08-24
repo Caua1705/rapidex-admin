@@ -15,14 +15,14 @@ import { STORE_SECTIONS, type StoreSectionId } from './store-sections';
 import type { StoreOutletContext } from './StoreLayout';
 
 /**
- * Uma página de Minha loja: o título da seção e o formulário dela.
+ * Uma página de Loja: o título da seção e o formulário dela.
  *
  * O corpo é montado SÓ para a seção aberta. A coluna única montava os seis ao
  * mesmo tempo — seis formulários com estado sujo próprio e seis leituras de
  * API para mostrar um.
  *
  * O NOME DA SEÇÃO NÃO MORA MAIS AQUI: ele subiu para a faixa de 52px da tela,
- * como continuação do título ("Minha loja › Horários de funcionamento"). Ver
+ * como continuação do título ("Loja › Horários de funcionamento"). Ver
  * `StoreLayout`. O que restou nesta página é o FORMULÁRIO e a ressalva de
  * escopo — e a seção passa a se nomear por `aria-label`, que diz a mesma coisa
  * sem escrever a palavra duas vezes na mesma tela.
@@ -44,10 +44,10 @@ export function StoreSectionPage({ id }: { id: StoreSectionId }) {
    * salvar responde 403.
    *
    * O destino é Operação — a seção que todo papel do painel alcança, e para
-   * onde /minha-loja já redireciona sozinha.
+   * onde /loja já redireciona sozinha.
    */
   if (secao.acao && !pode(secao.acao)) {
-    return <Navigate to="/minha-loja/operacao" replace />;
+    return <Navigate to="/loja/operacao" replace />;
   }
 
   return (

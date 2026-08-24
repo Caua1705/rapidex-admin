@@ -25,8 +25,8 @@ import './CashbackPage.css';
  * CASHBACK — a tela que devolve parte do pedido em crédito
  * ============================================================================
  *
- * ELA NÃO É UMA SEÇÃO DE MINHA LOJA, e a razão é a mesma que tirou o Funil de
- * dentro de Desempenho: o REGIME é outro. Minha loja é o cadastro da operação —
+ * ELA NÃO É UMA SEÇÃO DE LOJA, e a razão é a mesma que tirou o Funil de
+ * dentro de Desempenho: o REGIME é outro. Loja é o cadastro da operação —
  * endereço, horário, formas de pagamento —, coisas que se encostam uma vez e
  * ficam. Isto é uma CAMPANHA: liga, mede, desliga. Ela mora em Crescimento, ao
  * lado de Cupons, que é a outra forma de dar desconto.

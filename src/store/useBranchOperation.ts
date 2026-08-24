@@ -24,7 +24,7 @@ import type { BranchOperation, BranchSettingsUpdate } from '../api/types';
  * fechá-la num id resolvido lá em cima.
  *
  * `branchId` só RESTRINGE a leitura: vazio traz todas as filiais que o token
- * alcança, que é uma só para quem está preso a uma filial. Minha loja lê tudo;
+ * alcança, que é uma só para quem está preso a uma filial. Loja lê tudo;
  * o quadro de Pedidos passa o filtro do cabeçalho.
  *
  * O QUE ESTÁ SALVANDO É POR CONTROLE, e o que falhou é por FILIAL. Com um

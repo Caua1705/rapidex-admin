@@ -61,25 +61,51 @@ export function AppShell({ children }: { children: ReactNode }) {
         */}
         <EstablishmentBadge />
 
-        {navGroups.map((group) => (
-          <div className="shell__group" key={group.title}>
-            {/*
-              O rótulo do grupo é `aria-hidden` porque ele já é o nome
-              acessível da lista logo abaixo: sem isso, o leitor de tela diz
-              "Operação" duas vezes seguidas ao entrar no grupo.
-            */}
-            <p className="t-label shell__group-title" aria-hidden="true">
-              {group.title}
-            </p>
-            <ul aria-label={group.title}>
-              {group.entries.map((entry) => (
-                <li key={entry.to}>
-                  <NavItem entry={entry} />
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        {navGroups.map((group) => {
+          /*
+            O VÃO ANTES DO PRIMEIRO "EM BREVE".
+
+            `nav.ts` já garante que o que não existe afunda para o fim do
+            grupo; aqui o vão diz isso com os olhos. É um índice e não um
+            seletor CSS porque o alvo é o PRIMEIRO pendente e mais nenhum — e
+            marcar "o primeiro de uma classe" em CSS custaria um `:has` para
+            economizar duas linhas de leitura.
+          */
+          const primeiroPendente = group.entries.findIndex((entry) => entry.soon !== undefined);
+
+          return (
+            <div
+              className={`shell__group${group.rodape ? ' shell__group--rodape' : ''}`}
+              key={group.title}
+            >
+              {/*
+                O rótulo do grupo é `aria-hidden` porque ele já é o nome
+                acessível da lista logo abaixo: sem isso, o leitor de tela diz
+                "Hoje" duas vezes seguidas ao entrar no grupo.
+
+                NO PÉ ELE NÃO É PINTADO — quem separa ali é o fio e a posição
+                (ver `NavGroup.rodape`) —, mas ele CONTINUA no `aria-label` da
+                lista logo abaixo. Um bloco de quatro links sem nome nenhum é
+                um bloco mudo para quem não vê o fio.
+              */}
+              {group.rodape ? null : (
+                <p className="t-label shell__group-title" aria-hidden="true">
+                  {group.title}
+                </p>
+              )}
+              <ul aria-label={group.title}>
+                {group.entries.map((entry, i) => (
+                  <li
+                    key={entry.to}
+                    className={i === primeiroPendente ? 'shell__item--em-breve' : undefined}
+                  >
+                    <NavItem entry={entry} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
       </nav>
 
       <div className="shell__main">

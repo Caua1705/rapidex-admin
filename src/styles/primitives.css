@@ -80,7 +80,7 @@
  * esta tela é aberta no celular no meio do serviço.
  *
  * POR QUE É UM MODIFICADOR E NÃO `.btn--primary:disabled`. Os outros primários
- * do painel ficam desabilitados enquanto SALVAM (a barra de Minha loja, o envio
+ * do painel ficam desabilitados enquanto SALVAM (a barra de Loja, o envio
  * do login, os diálogos do Cardápio). Ali o botão está trabalhando, e apagá-lo
  * no instante em que a pessoa espera a resposta o faria parecer quebrado. Quem
  * põe esta classe é quem sabe que a razão é uma CONDIÇÃO, não uma requisição em

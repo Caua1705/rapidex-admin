@@ -4,23 +4,68 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { ROTA_DA_TROCA_DE_SENHA } from '../auth/RequireAuth';
 import { Sheet } from '../ds/Sheet';
 import { MoreIcon } from '../ds/icons';
-import { type NavEntry } from './nav';
 import { useNavGroups } from './use-nav';
 
 /**
  * A navegação do celular: quatro alvos no rodapé, do lado do polegar.
  *
- * POR QUE QUATRO E NÃO ONZE: o rodapé tem a largura da mão, não a do produto.
- * Três seções cobrem o que se faz com o celular na rua (ver pedido, mexer no
- * cardápio, abrir e fechar a loja) e a quarta — "Mais" — abre uma folha com o
- * resto INTEIRO. Nada é escondido; o que muda é quantos toques custa.
+ * POR QUE QUATRO E NÃO DOZE: o rodapé tem a largura da mão, não a do produto.
+ * Três destinos cobrem o que se faz com o celular na rua e o quarto — "Mais" —
+ * abre uma folha com o resto INTEIRO. Nada é escondido; o que muda é quantos
+ * toques custa.
  *
  * POR QUE NÃO UM MENU-SANDUÍCHE NO TOPO: no celular, o topo é onde o polegar
  * não chega, e um menu que precisa ser aberto para trocar de tela é um toque a
  * mais em cada troca — no meio do turno, isso é a diferença entre olhar o
  * pedido e não olhar.
  */
-const PRINCIPAIS = ['/pedidos', '/cardapio', '/minha-loja'];
+type Principal = {
+  /**
+   * O item de `nav.ts` que empresta o ícone e, principalmente, o RECORTE POR
+   * PAPEL: se o item não chega até este lojista, a aba não nasce.
+   */
+  deNav: string;
+  /**
+   * Onde o toque cai — e nem sempre é a tela inteira do item.
+   *
+   * A barra de baixo carrega AÇÃO, não seção. É a diferença entre ela e a
+   * lateral, e é o que autoriza a terceira aba a apontar para dentro de Loja.
+   */
+  to: string;
+  /** O rótulo, quando o destino não é a tela inteira e o nome dela não serve. */
+  label?: string;
+  testid: string;
+};
+
+/**
+ * ============================================================================
+ * OS TRÊS DO RODAPÉ
+ * ============================================================================
+ *
+ * A TERCEIRA ABA É "OPERAÇÃO", E NÃO "LOJA" — e esta é a decisão que mais muda
+ * o telefone nesta rodada.
+ *
+ * Abrir e fechar a loja, ligar e desligar entrega e retirada: é a coisa que o
+ * dono faz com o celular na mão às sete da noite de sábado, e ela morava a dois
+ * toques dentro de uma tela de CONFIGURAÇÃO. Apontar a aba direto para
+ * `/loja/operacao` é Fitts aplicado ao que importa: o alvo mais barato da tela
+ * — 44px, na altura do polegar — passa a carregar a ação mais urgente, em vez
+ * do nome do grupo que a contém.
+ *
+ * ISSO É O QUE PAGA A LISTA DE NOVE SEÇÕES no telefone (ver `StoreIndexPage`).
+ * Trocar a fita rolável pela lista custava um toque a mais para chegar em
+ * Operação; com Operação no rodapé, não custa nenhum — e as outras oito seções
+ * ganharam linhas de 44px no lugar de nove pastilhas numa fita que
+ * transbordava.
+ *
+ * A COZINHA NÃO ENTRA aqui, apesar de estar em "Hoje": ela é um monitor
+ * pendurado na parede, lido a dois metros. Ninguém a abre no telefone.
+ */
+const PRINCIPAIS: readonly Principal[] = [
+  { deNav: '/pedidos', to: '/pedidos', testid: 'bottom-pedidos' },
+  { deNav: '/cardapio', to: '/cardapio', testid: 'bottom-cardapio' },
+  { deNav: '/loja', to: '/loja/operacao', label: 'Operação', testid: 'bottom-operacao' },
+];
 
 export function BottomBar() {
   const [maisAberto, setMaisAberto] = useState(false);
@@ -33,29 +78,39 @@ export function BottomBar() {
    */
   const navGroups = useNavGroups();
   const todos = navGroups.flatMap((group) => group.entries);
-  const principais = PRINCIPAIS.flatMap((to) => {
-    const found = todos.find((entry) => entry.to === to);
-    return found ? [found] : [];
+  const principais = PRINCIPAIS.flatMap((principal) => {
+    const entry = todos.find((candidate) => candidate.to === principal.deNav);
+    return entry ? [{ ...principal, entry }] : [];
   });
-  const restantes = todos.filter((entry) => !PRINCIPAIS.includes(entry.to));
-
-  /* "Mais" fica marcado quando a tela aberta é uma das que moram dentro dele. */
-  const emMais = restantes.some((entry) => entry.to === pathname);
+  /*
+   * QUAL ABA FICA MARCADA.
+   *
+   * O casamento é por PREFIXO porque as seções de Loja são rotas de verdade:
+   * em `/loja/horarios` nada casaria por igualdade, e a barra ficaria sem
+   * nenhuma aba marcada — o telefone perderia a única pista de onde está.
+   *
+   * A exclusão dos destinos das abas é o que impede DUAS marcadas ao mesmo
+   * tempo: `/loja/operacao` casa com a aba Operação e casaria também com o
+   * prefixo `/loja` da lista.
+   */
+  const emAba = principais.some((principal) => principal.to === pathname);
+  const emMais =
+    !emAba && todos.some((entry) => pathname === entry.to || pathname.startsWith(`${entry.to}/`));
 
   return (
     <>
       <nav className="shell__bottom" aria-label="Seções do painel">
-        {principais.map((entry) => (
+        {principais.map((principal) => (
           <NavLink
-            key={entry.to}
-            to={entry.to}
+            key={principal.to}
+            to={principal.to}
             className={({ isActive }) => `shell__tab${isActive ? ' shell__tab--ativa' : ''}`}
-            data-testid={`bottom-${entry.to.replace('/', '')}`}
+            data-testid={principal.testid}
           >
             <span className="shell__tab-icone" aria-hidden="true">
-              <entry.Icon size={20} />
+              <principal.entry.Icon size={20} />
             </span>
-            <span className="shell__tab-nome">{rotuloCurto(entry)}</span>
+            <span className="shell__tab-nome">{principal.label ?? principal.entry.label}</span>
           </NavLink>
         ))}
 
@@ -80,14 +135,34 @@ export function BottomBar() {
         onClose={() => setMaisAberto(false)}
         data-testid="sheet-mais"
       >
-        {navGroups.map((group) => {
-          const entradas = group.entries.filter((entry) => !PRINCIPAIS.includes(entry.to));
-          if (entradas.length === 0) return null;
+        {/*
+          A FOLHA MOSTRA TUDO — inclusive as três telas que já estão na barra.
 
+          Ela mostrava só o RESTO, e isso tinha dois defeitos. O primeiro é que
+          o título mentia: "Todas as seções" em cima de um subconjunto. O
+          segundo é o que a segunda passagem das capturas pegou — tirando
+          Pedidos e Cardápio, o grupo "Hoje" ficava com UM item embaixo de um
+          rótulo, que é exatamente o "Cardápio" de um item só que esta rodada
+          desmanchou na lateral. A regra não pode valer numa navegação e não
+          valer na outra.
+
+          O preço são três linhas repetidas numa folha que rola. O que se ganha
+          é a folha ser o MESMO mapa da lateral — mesmos grupos, mesma ordem —,
+          e um mapa só é o que se aprende uma vez.
+        */}
+        {navGroups.map((group) => {
+          /*
+            O PÉ TEM RÓTULO AQUI, E NÃO TEM NA LATERAL. Não é incoerência: na
+            lateral o que diz "isto é outra natureza" é o FIO e a POSIÇÃO — o
+            bloco é o último, encostado no fim da lista. Na folha não há pé:
+            ela é uma pilha de blocos rolando, todos igualmente longe do
+            polegar, e um bloco sem nome no meio dela seria um bloco mudo.
+            A informação não some, ela troca de forma.
+          */
           return (
             <div className="shell__mais-grupo" key={group.title}>
               <p className="t-label">{group.title}</p>
-              {entradas.map((entry) => (
+              {group.entries.map((entry) => (
                 <NavLink
                   key={entry.to}
                   to={entry.to}
@@ -132,9 +207,4 @@ export function BottomBar() {
       </Sheet>
     </>
   );
-}
-
-/** "Minha loja" não cabe embaixo de um ícone de 20px numa tela de 390. */
-function rotuloCurto(entry: NavEntry): string {
-  return entry.to === '/minha-loja' ? 'Loja' : entry.label;
 }

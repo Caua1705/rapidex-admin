@@ -1,5 +1,5 @@
 /**
- * Leitura e escrita dos números dos formulários de Minha loja.
+ * Leitura e escrita dos números dos formulários de Loja.
  *
  * POR QUE NÃO REUSA `parsePriceInput` DO CARDÁPIO: lá, campo vazio e texto
  * inválido dão o mesmo `null`, e isso basta — preço de produto é obrigatório.

@@ -509,6 +509,45 @@
     gap: 2px;
   }
 
+  /*
+   * ==========================================================================
+   * O PÉ — o que se CONFIGURA, abaixo de um fio
+   * ==========================================================================
+   *
+   * O SEGUNDO E ÚLTIMO FIO DA LATERAL. O primeiro (debaixo da marca) separa de
+   * quem é o PAINEL de quem é a OPERAÇÃO; este separa o que se FAZ do que se
+   * CONFIGURA. São as duas únicas divisões que a lateral tem, e nenhuma delas
+   * precisa de palavra: o fio e a posição bastam (proximidade).
+   *
+   * ELE NÃO É EMPURRADO PARA O FUNDO DA JANELA com `margin-top: auto`. Ver o
+   * porquê em `NavGroup.rodape`: com oito itens acima, sobrariam ~400px de vão
+   * morto numa janela de 900px, e espaço morto é o defeito que a segunda
+   * passagem das capturas existe para caçar.
+   *
+   * NA TRILHA DE ÍCONES (768–1179) ELE CONTINUA VALENDO, e é onde mais rende:
+   * ali os rótulos de grupo já são invisíveis, então o fio é a ÚNICA coisa que
+   * separa os quatro ícones de configuração dos oito de trabalho.
+   */
+  .shell__group--rodape {
+    padding-top: var(--sp-16);
+    border-top: 1px solid var(--nav-line);
+  }
+
+  /*
+   * O VÃO ANTES DO PRIMEIRO "EM BREVE".
+   *
+   * `nav.ts` afunda o que não existe para o fim do grupo; este vão é o que faz
+   * a separação ser LIDA. Sem ele, "WhatsApp em breve" encosta em "Usuários" e
+   * os dois leem como a mesma lista — que é como o olho aprende a pular a
+   * região inteira, itens vivos incluídos.
+   *
+   * Ele é um degrau do sistema (`--sp-12`) menos os 2px de vão que a lista já
+   * tem, para o total continuar caindo na escala.
+   */
+  .shell__item--em-breve {
+    margin-top: calc(var(--sp-12) - 2px);
+  }
+
   .shell__link {
     position: relative;
     width: var(--tap-mobile);

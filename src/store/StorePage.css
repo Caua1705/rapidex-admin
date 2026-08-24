@@ -1,6 +1,6 @@
 /*
  * ============================================================================
- * MINHA LOJA — a faixa do sistema, a coluna das seções e um formulário
+ * LOJA — a faixa do sistema, a coluna das seções e um formulário
  * ============================================================================
  *
  * UMA SEÇÃO, UMA PÁGINA. Ver `StoreLayout.tsx` para o porquê.
@@ -108,8 +108,68 @@
  */
 
 /* ==========================================================================
- * A COLUNA
+ * O ÍNDICE COMO PÁGINA — o que existe no lugar da fita, no telefone
+ *
+ * Abaixo de 720px a coluna de seções sai da tela e `/loja` passa a ser a LISTA
+ * das nove (ver `StoreIndexPage`). Isto NÃO é a coluna com outra largura: é
+ * outro desenho, pelo mesmo motivo que a linha compacta de pedido não é a linha
+ * larga dobrada. Aqui não há seção aberta para marcar, então não há plano de
+ * realce nem fio de 2px na margem; o que a lista precisa é de RÉGUA entre as
+ * linhas e de alvo de dedo.
+ *
+ * A régua é `--line` e o alvo é `--tap-mobile` (44px), que é o mínimo do
+ * sistema no toque. A fita que ela substitui entregava pastilhas de 12px, parte
+ * delas fora da tela — o pior alvo do painel.
  * ======================================================================= */
+
+.store__lista {
+  display: flex;
+  flex-direction: column;
+}
+
+.store__lista-item {
+  display: flex;
+  min-height: var(--tap-mobile);
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--sp-8) 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+/*
+ * O ÚLTIMO NÃO LEVA RÉGUA: um fio no fim da lista não separa nada de nada, e
+ * lê como se houvesse uma décima seção que não carregou.
+ */
+.store__lista-item:last-child {
+  border-bottom: 0;
+}
+
+.store__lista-item:active {
+  background: var(--surface-selected);
+}
+
+.store__lista-nome {
+  font-weight: var(--w-strong);
+}
+
+.store__lista-nota {
+  color: var(--ink-3);
+}
+
+/* ==========================================================================
+ * A VOLTA PARA A LISTA
+ *
+ * Só existe abaixo de 720px, onde o índice é uma página. Acima, a coluna com as
+ * nove seções está aberta ao lado, e "todas as seções" ao lado de uma lista de
+ * todas as seções é a mesma informação duas vezes.
+ * ======================================================================= */
+
+.store__voltar {
+  display: none;
+}
 
 .store__col {
   min-width: 0;
@@ -498,7 +558,7 @@
 }
 
 /*
- * O BLOCO DE SEÇÃO, usado pelas outras abas de Minha loja.
+ * O BLOCO DE SEÇÃO, usado pelas outras abas de Loja.
  *
  * Ele também perdeu a moldura: o que o separa do bloco seguinte é o fio de cima
  * e o respiro, não um contorno. Com quatro ou cinco blocos numa página, quatro
@@ -1115,7 +1175,7 @@
  * o que sai à direita.
  */
 /*
- * O PAR NOME/VALOR SÓ DE LEITURA — a peça de Minha loja para o que a tela
+ * O PAR NOME/VALOR SÓ DE LEITURA — a peça de Loja para o que a tela
  * MOSTRA e não deixa editar.
  *
  * Ela nasceu nas vias da comanda (o número que quem opera lê sem poder mudar) e
@@ -1351,6 +1411,13 @@
    * em vez de à direita. É o mesmo movimento da coluna de categorias no
    * Cardápio, pelo mesmo motivo — e ela NÃO some: numa página desta altura, sem
    * índice o lojista rola às cegas procurando "Impressão".
+   *
+   * ESTA FITA VIVE NUMA FAIXA ESTREITA HOJE: 720–899px, e nada mais. Abaixo de
+   * 720 ela sai da tela e o índice vira PÁGINA (ver o bloco de 720px adiante e
+   * `StoreIndexPage`). Era ali, no telefone, que ela transbordava 271px numa
+   * tela de 390 — nove pastilhas de 12px numa rolagem lateral que ninguém
+   * procura. Entre 720 e 900 as nove cabem sem transbordar muito, e a fita
+   * continua sendo melhor que uma tela a mais para atravessar.
    */
   .store__body {
     grid-template-columns: minmax(0, 1fr);
@@ -1604,5 +1671,53 @@
   .printers__seen {
     grid-column: 1 / -1;
     text-align: left;
+  }
+}
+
+/* ==========================================================================
+ * 720px: O ÍNDICE DEIXA DE SER NAVEGAÇÃO E VIRA TELA
+ *
+ * Este número precisa ser o MESMO de `useSectionListPage.ts`, que decide o que
+ * `/loja` renderiza. Consulta de mídia não lê `var(--token)`, então os dois
+ * lados apontam um para o outro e é assim que a divergência aparece.
+ *
+ * 720 não é um ponto de quebra novo: é o do sistema em que "folhas, diálogos e
+ * listas viram bloco / tela cheia".
+ * ======================================================================= */
+
+@media (max-width: 720px) {
+  /*
+   * A FITA SAI. Ela era o pior alvo de toque do painel — nove pastilhas de
+   * 12px, parte delas fora da tela, atrás de um gesto de rolagem lateral que
+   * ninguém procura (Fitts). O índice não sumiu: ele virou a tela `/loja`, com
+   * linhas de 44px. A informação não desaparece, ela troca de lugar.
+   */
+  .store__index {
+    display: none;
+  }
+
+  /*
+   * E A VOLTA APARECE. Sem a fita, uma seção aberta no telefone não tinha na
+   * tela nenhuma afirmação de que existe uma lista atrás dela — o gesto de
+   * voltar do aparelho não é uma afirmação, é uma aposta.
+   *
+   * Ela é um link de texto, não um botão: o alvo de 44px vem da altura, e um
+   * botão desenhado aqui competiria com a barra de salvar que gruda no pé da
+   * mesma coluna.
+   */
+  .store__voltar {
+    display: flex;
+    min-height: var(--tap-mobile);
+    align-items: center;
+    gap: var(--sp-4);
+    margin-bottom: var(--sp-8);
+    color: var(--ink-2);
+    font-size: var(--tb-size);
+    line-height: var(--tb-line);
+    text-decoration: none;
+  }
+
+  .store__voltar:hover {
+    color: var(--ink);
   }
 }

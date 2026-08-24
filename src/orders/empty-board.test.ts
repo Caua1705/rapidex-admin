@@ -24,7 +24,7 @@ describe('emptyBoardState', () => {
     const estado = emptyBoardState({ ...ABERTA, isOpen: false });
 
     expect(estado.title).toBe('A loja está fechada.');
-    expect(estado.action).toEqual({ label: 'Abrir a loja', to: '/minha-loja/geral' });
+    expect(estado.action).toEqual({ label: 'Abrir a loja', to: '/loja/geral' });
   });
 
   it('a busca vence a loja fechada: é a causa mais fácil de desfazer', () => {

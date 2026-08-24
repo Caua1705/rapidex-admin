@@ -49,7 +49,7 @@ export function useResolvedBranch(): ResolvedBranch {
 }
 
 /**
- * A filial de uma TELA INTEIRA que grava por filial — as seções de Minha loja.
+ * A filial de uma TELA INTEIRA que grava por filial — as seções de Loja.
  *
  * Aqui a resolução é ADOTADA no seletor do topo, e é essa a diferença para o
  * hook acima: a tela inteira passou a falar de uma filial, então o cabeçalho
@@ -62,7 +62,7 @@ export function useResolvedBranch(): ResolvedBranch {
  * destas telas está aberta (ver `branchScopeForPath`).
  *
  * `adotar` existe para a tela que mostra TODAS as filiais dentro deste mesmo
- * layout — a Operação de Minha loja. Lá a adoção seria a contradição que este
+ * layout — a Operação de Loja. Lá a adoção seria a contradição que este
  * hook existe para evitar, ao contrário: o cabeçalho diria "Matriz Aldeota" em
  * cima de uma lista com as cinco lojas. A filial resolvida continua vindo (as
  * outras seções do layout dependem dela); o que não acontece é a escrita no

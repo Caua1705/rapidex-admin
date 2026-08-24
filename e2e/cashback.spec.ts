@@ -271,7 +271,7 @@ test('o atendente não alcança a tela nem pelo endereço', async ({ page }) => 
  */
 test('o dono marca quais formas de pagamento geram cashback', async ({ page }) => {
   await entrar(page);
-  await page.goto('/minha-loja/pagamento');
+  await page.goto('/loja/pagamento');
 
   const pix = page.getByTestId('payment-cashback-pay-pix');
   await expect(pix).toBeChecked();
@@ -290,7 +290,7 @@ test('o dono marca quais formas de pagamento geram cashback', async ({ page }) =
    da campanha — é metade do diagnóstico de "por que este pedido não creditou". */
 test('o gerente lê quais formas ficam fora da campanha, sem poder mudar', async ({ page }) => {
   api.entrarComoPapel('manager');
-  await page.goto('/minha-loja/pagamento');
+  await page.goto('/loja/pagamento');
   await page.getByLabel('E-mail').fill(LOGIN_EMAIL);
   await page.getByLabel('Senha').fill(LOGIN_PASSWORD);
   await page.getByRole('button', { name: 'Entrar' }).click();
