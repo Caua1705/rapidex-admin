@@ -71,6 +71,7 @@ export const PAPEL_POR_ROTA = {
   '/admin/coupons': { GET: 'GERENCIA', POST: 'SOMENTE_DONO' },
   '/admin/coupons/{coupon_id}': { PATCH: 'SOMENTE_DONO' },
   '/admin/customers': { GET: 'GERENCIA' },
+  '/admin/error-reports': { POST: 'PESSOAS' },
   '/admin/option-groups/{group_id}': { PATCH: 'GERENCIA' },
   '/admin/option-groups/{group_id}/options': { POST: 'GERENCIA' },
   '/admin/options/{option_id}': { PATCH: 'GERENCIA' },

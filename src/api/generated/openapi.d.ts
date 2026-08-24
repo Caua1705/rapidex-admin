@@ -786,6 +786,35 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/admin/error-reports': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create Error Report
+     * @description Registra o relato e devolve o numero dele.
+     *
+     *     O corpo leva so o que o lojista sabe: a historia, o log que a tela
+     *     capturou, a tela e opcionalmente o numero do pedido. Restaurante, filial e
+     *     usuario saem do token — mandar qualquer um deles no corpo e 422, por
+     *     `extra="forbid"`.
+     *
+     *     Credencial que venha no texto (`Authorization`, JWT, `Idempotency-Key`,
+     *     `tracking_token`, campo de senha) e mascarada antes de o registro existir.
+     *     O relato inteiro e apagado em 90 dias.
+     */
+    post: operations['create_error_report_admin_error_reports_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/admin/option-groups/{group_id}': {
     parameters: {
       query?: never;
@@ -4104,6 +4133,46 @@ export interface components {
       restaurant_slug: string;
     };
     /**
+     * BranchCashbackTermsResponse
+     * @description O que a FILIAL precisa dizer antes de o cliente tentar resgatar.
+     *
+     *     Ate aqui o app nao tinha como explicar por que o cashback nao descontou.
+     *     Saldo abaixo do minimo devolve zero **sem erro** (`amount_to_redeem`), e a
+     *     unica pista era `cashback_redeemed_amount: 0` na resposta do pedido —
+     *     depois de fechado. `docs/cashback.md` registrou isso como pendencia
+     *     quando o saldo passou a ser por restaurante, e apontou o lugar de
+     *     resolver: aqui, ao lado do cardapio, que e quem conhece a filial.
+     *
+     *     **Por que nao coube em `by_restaurant[]` de `/customers/me/cashback`.** O
+     *     saldo e do RESTAURANTE; o resgate acontece numa FILIAL, que pode ter regra
+     *     propria — inclusive `enabled = false` com a rede inteira ligada, que e como
+     *     uma loja sai da campanha. Publicar o piso sob uma chave por restaurante
+     *     mostraria um numero que nao vale na loja em que a pessoa esta pedindo.
+     *
+     *     **O app junta as duas pontas:** o saldo daquele restaurante sai de
+     *     `by_restaurant[].balance`, os termos saem daqui, e a frase da tela e a
+     *     comparacao dos dois. Nenhum dos dois lados sozinho responde a pergunta.
+     *
+     *     **`percent` NAO esta aqui, e a ausencia e deliberada.** Ele e termo de
+     *     quanto o pedido GERA, nao de resgate, e muda por dia da semana: quem o
+     *     resolve para valer e o checkout, com `order.created_at`
+     *     (`resolve_cashback_terms`). Publica-lo na abertura do cardapio criaria a
+     *     segunda resposta para "quanto gera" — e as duas discordariam sempre que a
+     *     meia-noite caisse entre abrir o cardapio e fechar o pedido.
+     */
+    BranchCashbackTermsResponse: {
+      /**
+       * Enabled
+       * @default false
+       */
+      enabled: boolean;
+      /**
+       * Min Redeem Balance
+       * @default 0
+       */
+      min_redeem_balance: number;
+    };
+    /**
      * BranchDeliveryResponse
      * @description A resposta de entrega para UMA filial. So existe com endereco no corpo.
      *
@@ -5069,6 +5138,25 @@ export interface components {
       /** Zipcode */
       zipcode?: string | null;
     };
+    /**
+     * CreateErrorReportRequest
+     * @description O relato como o painel o envia.
+     *
+     *     **So o que o lojista sabe.** Restaurante, filial e usuario NAO estao aqui
+     *     e nao podem estar: os tres saem do token. `extra="forbid"` fecha a porta
+     *     de propria — um corpo que mandasse `branch_id` seria recusado no schema,
+     *     antes de qualquer service ter a chance de obedece-lo.
+     */
+    CreateErrorReportRequest: {
+      /** Description */
+      description: string;
+      /** Error Log */
+      error_log?: string | null;
+      /** Order Number */
+      order_number?: number | null;
+      /** Screen */
+      screen?: string | null;
+    };
     /** CreateOrderRequest */
     CreateOrderRequest: {
       address?: components['schemas']['AddressInput'] | null;
@@ -5480,6 +5568,26 @@ export interface components {
     DeliveryTimeBandsReplaceRequest: {
       /** Bands */
       bands?: components['schemas']['DeliveryTimeBandInput'][];
+    };
+    /**
+     * ErrorReportResponse
+     * @description O comprovante. E o numero que o lojista repete no WhatsApp.
+     *
+     *     Devolve o id e a hora, e mais nada — nem o texto de volta. Ecoar o relato
+     *     ja redigido faria a tela mostrar `[redigido]` no lugar do que a pessoa
+     *     acabou de digitar, e ela reescreveria achando que perdeu.
+     */
+    ErrorReportResponse: {
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
     };
     /** ForgotPasswordRequest */
     ForgotPasswordRequest: {
@@ -6805,6 +6913,7 @@ export interface components {
        * @default true
        */
       accepts_pickup: boolean | null;
+      cashback?: components['schemas']['BranchCashbackTermsResponse'];
       /** Default Delivery Fee */
       default_delivery_fee: number;
       /** Delivery Pause Reason */
@@ -8429,6 +8538,39 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['AdminCustomerListResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  create_error_report_admin_error_reports_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateErrorReportRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorReportResponse'];
         };
       };
       /** @description Validation Error */
