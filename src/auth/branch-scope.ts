@@ -93,6 +93,18 @@ export const ROUTE_BRANCH_SCOPE = {
   // deixa do lado que funciona com "todas" escolhida.
   '/admin/settings': 'multi',
 
+  /*
+   * A EQUIPE É DO RESTAURANTE, e ela está deste lado da tabela por AUSÊNCIA de
+   * parâmetro, não por escolha de tela: `GET /admin/users` não aceita query
+   * nenhuma — nem `branch_id`, nem busca, nem situação.
+   *
+   * A filial aparece na tela mesmo assim, e como COLUNA: cada pessoa tem a
+   * dela, e nulo ali significa "todas as filiais do restaurante". Recortar a
+   * lista pelo seletor do topo esconderia justamente quem enxerga tudo, que é
+   * quem mais interessa numa tela sobre quem entra no painel.
+   */
+  '/admin/users': 'multi',
+
   // --- ESCRITA POR FILIAL ---------------------------------------------------
   // `{branch_id}` no path: é preciso escolher QUAL, dentro do que o token já
   // delimitou. É esta lista que faz uma tela resolver a filial em vez de pedi-la.

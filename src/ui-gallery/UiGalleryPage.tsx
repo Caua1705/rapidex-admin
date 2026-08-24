@@ -11,6 +11,7 @@ import {
   FieldRow,
   HelpPopover,
   Input,
+  OneTimeSecret,
   OrderRow,
   PageBar,
   RadioGroup,
@@ -372,6 +373,34 @@ export function UiGalleryPage() {
 
           <Amostra rotulo="Ocupado, com rótulo">
             <Switch checked onChange={() => {}} label="Aceita entrega" loading />
+          </Amostra>
+        </Secao>
+
+        <Secao
+          titulo="Segredo de uma vez só"
+          nota="A senha temporária que o cadastro de usuário devolve. Ela existe UMA vez — não há rota que a mostre de novo —, e é copiada à mão ou DITADA por telefone: daí os blocos de cinco, o corpo grande e o espacejamento aberto (o único positivo do sistema). O alfabeto vem do backend sem O/0 e sem I/l/1."
+        >
+          <Amostra rotulo="Como ela chega do backend" larga>
+            <OneTimeSecret value="K7MNP2QRST4UVWXY9ZAB" label="Senha temporária" />
+          </Amostra>
+
+          <Amostra rotulo="Copiado" larga>
+            {/*
+              O estado de confirmação dura 2,4s depois do clique e volta
+              sozinho. Ele está aqui como o componente vivo — apertar "Copiar"
+              acima mostra a troca de ícone e de palavra, e é assim que se
+              confere que a área de transferência responde neste navegador.
+            */}
+            <p className="t-aux">
+              Aperte "Copiar" na amostra acima: o botão troca para "Copiado" e volta em 2,4s. Onde
+              a área de transferência do navegador não existe (painel aberto por IP, sem HTTPS), o
+              componente cai no caminho antigo em vez de não fazer nada.
+            </p>
+          </Amostra>
+
+          <Amostra rotulo="Valor mais curto que os blocos" larga>
+            {/* O resto entra inteiro no último bloco: nunca sobra bloco vazio. */}
+            <OneTimeSecret value="ABCDEFG" label="Exemplo curto" />
           </Amostra>
         </Secao>
 

@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 
+import { ROTA_DA_TROCA_DE_SENHA } from '../auth/RequireAuth';
+import { roleLabel } from '../auth/role-labels';
 import { useSession } from '../auth/session-context';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { RapidexLogo } from '../ui/RapidexLogo';
@@ -10,12 +12,6 @@ import { EstablishmentBadge } from './EstablishmentBadge';
 import { type NavEntry } from './nav';
 import { useNavGroups } from './use-nav';
 import './AppShell.css';
-
-const ROLE_LABELS: Record<string, string> = {
-  owner: 'Proprietário',
-  manager: 'Gerente',
-  attendant: 'Atendente',
-};
 
 /**
  * A moldura de todas as telas autenticadas.
@@ -107,9 +103,30 @@ export function AppShell({ children }: { children: ReactNode }) {
             </span>
             <span className="shell__user">
               <strong>{user?.name}</strong>
-              <span>{ROLE_LABELS[user?.role ?? ''] ?? user?.role}</span>
+              <span>{roleLabel(user?.role)}</span>
             </span>
             <span className="shell__account-divider" aria-hidden="true" />
+
+            {/*
+              TROCAR A PRÓPRIA SENHA MORA NO GRUPO DA CONTA, ao lado de "Sair" —
+              e não numa seção do painel. Ela não é uma tela do restaurante: é
+              uma coisa que se faz com a própria credencial, como sair.
+
+              A tela de Usuários é do DONO e trata da senha dos OUTROS. Esta é de
+              todo mundo e trata da sua — e é o que fecha o buraco de quem
+              desconfia do próprio vazamento: sem ela, a única forma de trocar a
+              senha do dono seria alguém redefini-la para ele, e não há alguém.
+
+              ABAIXO DE 768px ELA SAI DAQUI e reaparece na folha do "Mais" (ver
+              `BottomBar`): a barra do telefone já carrega a identificação, o
+              tema e o "Sair", e um quarto controle de texto ali espremeria os
+              três. A regra do shell é a de sempre — a informação não some, ela
+              troca de lugar.
+            */}
+            <NavLink to={ROTA_DA_TROCA_DE_SENHA} className="shell__senha">
+              Trocar senha
+            </NavLink>
+
             <ThemeToggle />
             <button type="button" className="shell__sair" onClick={signOut}>
               Sair

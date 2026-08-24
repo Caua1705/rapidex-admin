@@ -67,6 +67,22 @@ export function CheckIcon(props: IconProps) {
   );
 }
 
+/**
+ * Duas folhas sobrepostas: copiar para a área de transferência.
+ *
+ * O desenho é o convencional de todo sistema operacional, e é isso que se quer
+ * dele — este ícone aparece ao lado de um valor que a pessoa precisa levar
+ * daqui, e um símbolo inventado obrigaria a ler o rótulo antes de entender.
+ */
+export function CopyIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M6 15H5a2 2 0 01-2-2V5a2 2 0 012-2h8a2 2 0 012 2v1" />
+    </Icon>
+  );
+}
+
 /** Três traços curtos: o menu de ações que não são a ação principal da tela. */
 export function MoreIcon(props: IconProps) {
   return (

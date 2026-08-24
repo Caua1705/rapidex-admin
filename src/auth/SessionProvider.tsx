@@ -60,6 +60,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   // lojista desativado devolve 401 e o efeito acima desloga.
   useEffect(() => {
     if (!user) return;
+    /*
+     * COM SENHA TEMPORÁRIA O PAINEL NEM PERGUNTA.
+     *
+     * `must_change_password` fecha tudo menos `GET /admin/auth/me` e o PATCH da
+     * senha: `listBranches()` e `fetchRestaurantProfile()` responderiam 403, o
+     * `Promise.all` rejeitaria e o `catch` abaixo engoliria os três — de graça,
+     * e com dois 403 no console a cada carga da tela de troca.
+     *
+     * É a mesma regra que `RequireAuth` aplica na navegação: quem decide é o
+     * CAMPO, não o 403. O painel só volta a perguntar depois da troca, e aí com
+     * um usuário novo (o relogin), que é o que faz este efeito rodar de novo.
+     */
+    if (user.must_change_password) return;
 
     let cancelled = false;
     void (async () => {
@@ -95,8 +108,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-    // Roda quando entra um usuário novo (login) ou na montagem com sessão salva.
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Roda quando entra um usuário novo (login) ou na montagem com sessão
+    // salva — e de novo quando a senha temporária é trocada, porque o relogin
+    // devolve um usuário com `must_change_password` falso.
+  }, [user?.id, user?.must_change_password]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * CONTA DE MÁQUINA NÃO ENTRA NO PAINEL, e a recusa é DAQUI — não do backend.

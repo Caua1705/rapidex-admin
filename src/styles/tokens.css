@@ -385,6 +385,29 @@
   --metric-size: 28px;
   --metric-line: 34px;
 
+  /*
+   * A SENHA TEMPORÁRIA, e ela é o único corpo do sistema dimensionado para ser
+   * DITADO — não lido.
+   *
+   * Ela aparece uma vez, é copiada à mão num papel do balcão ou soletrada por
+   * telefone, e não volta a existir: `POST /admin/users` a devolve em claro
+   * uma única vez, e o banco só tem o bcrypt. O alfabeto já foi escolhido pelo
+   * backend para isso (sem O/0 e sem I/l/1, tudo em maiúscula), e o que falta é
+   * a tela não desfazer o trabalho — 14px de corpo comum num bloco de 20
+   * caracteres é onde um S vira 5 na voz de quem lê.
+   *
+   * O ESPACEJAMENTO É POSITIVO, ao contrário de toda a escala (que é negativa,
+   * de −0.022em a −0.002em). Nos cinco níveis o trabalho é formar palavra; aqui
+   * é o oposto — separar caractere de caractere, porque nenhum deles forma
+   * palavra com o vizinho.
+   *
+   * E NÃO EXISTE MONOESPAÇADA para isto: `check-design-tokens.mjs` a barra no
+   * painel inteiro, e a Plex resolve com `tabular-nums` mais este espacejamento.
+   */
+  --senha-size: 26px;
+  --senha-line: 34px;
+  --senha-track: 0.14em;
+
   /* Os pesos que a interface usa. Fora destes cinco, não há. */
   --w-regular: 400;
   --w-medium: 500;

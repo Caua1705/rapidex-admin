@@ -138,6 +138,25 @@ describe('o que cada papel alcança', () => {
     expect(pode('attendant', 'loja.editarTiposDePedido')).toBe(false);
   });
 
+  it('a equipe é inteiramente do dono — as quatro rotas, sem meio-termo', () => {
+    /*
+     * É a única tela do painel sem assimetria de papel: em Cupons e Cashback a
+     * gerência lê e o dono escreve. Aqui não há o que dar ao gerente — a
+     * listagem devolve o e-mail de todo mundo da casa, que é metade da
+     * credencial de cada pessoa.
+     */
+    for (const acao of [
+      'usuarios.ver',
+      'usuarios.criar',
+      'usuarios.editar',
+      'usuarios.redefinirSenha',
+    ] as const) {
+      expect(pode('owner', acao)).toBe(true);
+      expect(pode('manager', acao)).toBe(false);
+      expect(pode('attendant', acao)).toBe(false);
+    }
+  });
+
   it('os padrões da rede e os valores da filial são do dono', () => {
     expect(pode('manager', 'loja.editarPadroes')).toBe(false);
     expect(pode('manager', 'loja.editarValoresDaFilial')).toBe(false);

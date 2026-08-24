@@ -1,0 +1,161 @@
+/*
+ * USUÁRIOS — a equipe do restaurante.
+ *
+ * A tela é uma FOLHA: `--surface` do começo ao fim, sem cartão flutuando sobre
+ * chão cinza. Quem dá começo e fim a um bloco é um fio e o respiro. Mesma
+ * estrutura de Cupons e Clientes — a faixa de 52px, e a tabela correndo até a
+ * margem.
+ */
+
+.usuarios {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* A ressalva e a ajuda andam juntas: o vão de 16px da faixa separaria o ícone
+   da frase que ele explica. */
+.usuarios__escopo-grupo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+}
+
+.usuarios__escopo {
+  color: var(--ink-3);
+}
+
+.usuarios__alerta {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-8);
+  margin: var(--sp-16) var(--page-pad) 0;
+}
+
+.usuarios__lista {
+  /* A tabela corre até a margem da tela, como em Clientes e Cupons. */
+  --tabela-pad: var(--page-pad);
+  padding-block: var(--sp-20) var(--sp-32);
+  max-width: var(--page-max);
+  width: 100%;
+}
+
+.usuarios__estado {
+  padding: var(--sp-32) var(--page-pad);
+  /* Medida de LEITURA: uma frase de estado que atravessa 1600px não se lê. */
+  max-width: 60ch;
+}
+
+/* --- a linha ------------------------------------------------------------ */
+
+.usuarios__pessoa {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/*
+ * O NOME EM 550, o mesmo peso do cliente na lista de pedidos e do produto no
+ * cardápio. Ele é o que identifica a linha.
+ */
+.usuarios__nome {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  font-weight: var(--w-strong);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.usuarios__email {
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+
+/*
+ * "VOCÊ" é etiqueta NEUTRA. Ela não é um estado da conta — é a única linha em
+ * que duas ações somem, e sem a marca o dono leria isso como defeito da tela.
+ */
+.usuarios__eu {
+  flex: none;
+}
+
+/*
+ * AS TRÊS SITUAÇÕES SÃO NEUTRAS, e nenhuma leva `.tag--alerta`.
+ *
+ * "Ativo" e "Desativado" são escolha de quem administra. "Senha temporária" é o
+ * estado normal de quem acabou de ser cadastrado e ainda não entrou — o alerta
+ * do sistema existe para o estado que NINGUÉM escolheu (o "Sem opção" do
+ * Cardápio), e este foi escolhido por quem clicou em "Novo usuário".
+ *
+ * A classe existe para o alinhamento; a cor continua sendo a de `.tag`.
+ */
+.usuarios__tag {
+  gap: var(--sp-4);
+  white-space: nowrap;
+}
+
+/*
+ * DESATIVADO PERDE A TINTA CHEIA na coluna de situação — e só ali. A linha
+ * inteira em cinza faria uma conta desativada parecer indisponível para
+ * edição, e ela não é: reativar é justamente o que se vem fazer nela.
+ */
+.usuarios__tag--inativo {
+  color: var(--ink-3);
+}
+
+.usuarios__acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  justify-content: flex-end;
+  /* Sem `wrap`: a coluna é medida para caber as três em uma fileira, e uma
+     segunda fileira desalinharia a linha inteira. */
+  flex-wrap: nowrap;
+}
+
+/*
+ * O MOTIVO NO LUGAR DO BOTÃO. Duas palavras, em corpo auxiliar — a frase
+ * inteira mora na ajuda do cabeçalho. Um motivo de duas linhas dentro da
+ * célula esticaria a linha e desalinharia a tabela, que é o ganho da direção.
+ */
+.usuarios__motivo {
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .usuarios__alerta {
+    margin-inline: var(--page-pad-mobile);
+  }
+
+  .usuarios__lista {
+    --tabela-pad: var(--page-pad-mobile);
+  }
+
+  .usuarios__estado {
+    padding-inline: var(--page-pad-mobile);
+  }
+
+  /*
+   * NO BLOCO DO CELULAR AS AÇÕES DEITAM E PODEM QUEBRAR. Aqui não há coluna a
+   * desalinhar — cada linha virou um bloco —, e três controles de 44px numa
+   * fileira só não cabem em 390px. Elas vão para a esquerda, junto do resto do
+   * bloco.
+   */
+  .usuarios__acoes {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  /*
+   * O NOME NÃO LEVA RÓTULO no bloco do celular: `DataTable` traz o cabeçalho da
+   * coluna de volta ao lado do valor, e escrever "Pessoa" ao lado do nome
+   * empurra para o canto justamente o que identifica o bloco. Mesma exceção que
+   * Cupons faz com a arte e Clientes com a classificação.
+   */
+  .usuarios__lista td:nth-child(1)::before {
+    content: none;
+  }
+}

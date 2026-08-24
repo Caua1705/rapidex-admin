@@ -213,10 +213,64 @@ for (const tamanho of TAMANHOS) {
       await expect(page.getByRole('heading', { name: 'Cozinha' })).toBeVisible();
       await fotografar(page, 'cozinha', tamanho.nome, tema);
 
-      // "Em breve": o estado honesto, que também precisa pertencer ao sistema.
-      await page.goto('/cupons');
-      await expect(page.getByRole('heading', { name: 'Cupons' })).toBeVisible();
+      /*
+       * USUÁRIOS — a semente do falso traz as três situações de uma vez (ativo,
+       * senha temporária e desativado), a etiqueta "você" na linha do dono e a
+       * coluna de ações com uma linha a menos que as outras: é onde se confere
+       * que a ausência de dois botões na própria linha se lê como regra e não
+       * como falha, e que a tabela de cinco colunas vira bloco em 390.
+       */
+      await page.goto('/usuarios');
+      await expect(page.getByTestId('usuarios-escopo')).toBeVisible();
+      await fotografar(page, 'usuarios', tamanho.nome, tema);
+
+      /*
+       * O DIÁLOGO DA SENHA, que é a peça de desenho desta tela — e o único
+       * diálogo do painel que não fecha sozinho. A foto existe por causa de uma
+       * coisa que só se confere no olho: se os blocos de cinco caracteres não
+       * estiverem legíveis a um braço de distância, a senha não se dita por
+       * telefone, e a tela não cumpriu a razão de existir.
+       */
+      await page.getByTestId('usuario-redefinir-carla@pizzaria.com').click();
+      await expect(page.getByTestId('senha-valor')).toBeVisible();
+      await fotografar(page, 'usuarios-senha', tamanho.nome, tema);
+      await page.getByTestId('senha-confirmou').check();
+      await page.getByTestId('senha-concluir').click();
+
+      /*
+       * "Em breve": o estado honesto, que também precisa pertencer ao sistema.
+       *
+       * ELE APONTAVA PARA /cupons, e Cupons tem tela desde `e835961` — a foto
+       * chamada "em-breve" era a de Cupons de novo, e a tela que ela deveria
+       * documentar não era fotografada por ninguém. WhatsApp continua pendente,
+       * e é ela que sobra para o papel.
+       */
+      await page.evaluate(() => window.localStorage.clear());
+      await page.goto('/whatsapp');
+      await page.getByLabel('E-mail').fill(LOGIN_EMAIL);
+      await page.getByLabel('Senha').fill(LOGIN_PASSWORD);
+      await page.getByRole('button', { name: 'Entrar' }).click();
+      await expect(page.getByRole('heading', { name: 'WhatsApp' })).toBeVisible();
       await fotografar(page, 'em-breve', tamanho.nome, tema);
+
+      /*
+       * A TROCA OBRIGATÓRIA — a tela que abre sozinha para quem entrou com uma
+       * senha temporária. Ela é a segunda (e última) janela do painel, ao lado
+       * do login: cartão centrado sobre `--bg`, sem lateral e sem barra. A foto
+       * é o que impede alguém de "consertar" isso pondo o shell de volta.
+       *
+       * VEM POR ÚLTIMO, e não por gosto: `entrarComSenhaTemporaria` é
+       * terminal. Depois dela toda rota `/admin` responde 403 e todo login cai
+       * nesta mesma tela — qualquer foto agendada depois seria a desta de novo.
+       */
+      await page.evaluate(() => window.localStorage.clear());
+      api.entrarComSenhaTemporaria();
+      await page.goto('/pedidos');
+      await page.getByLabel('E-mail').fill(LOGIN_EMAIL);
+      await page.getByLabel('Senha').fill(LOGIN_PASSWORD);
+      await page.getByRole('button', { name: 'Entrar' }).click();
+      await expect(page.getByTestId('troca-obrigatoria')).toBeVisible();
+      await fotografar(page, 'troca-de-senha', tamanho.nome, tema);
     });
   }
 }

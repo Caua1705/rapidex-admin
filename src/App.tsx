@@ -1,6 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
-import { RequireAuth } from './auth/RequireAuth';
+import { RequireAuth, ROTA_DA_TROCA_DE_SENHA } from './auth/RequireAuth';
 import { SessionProvider } from './auth/SessionProvider';
 import { CashbackPage } from './cashback/CashbackPage';
 import { CouponsPage } from './coupons/CouponsPage';
@@ -12,11 +12,13 @@ import { MenuPage } from './menu/MenuPage';
 import { OrdersPage } from './orders/OrdersPage';
 import { PerformancePage } from './performance/PerformancePage';
 import { ReviewsPage } from './reviews/ReviewsPage';
+import { ChangePasswordPage } from './pages/ChangePasswordPage';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { LoginPage } from './pages/LoginPage';
 import { StoreLayout } from './store/StoreLayout';
 import { StoreSectionPage } from './store/StoreSectionPage';
 import { STORE_SECTIONS } from './store/store-sections';
+import { UsersPage } from './users/UsersPage';
 import { UiGalleryPage } from './ui-gallery/UiGalleryPage';
 
 /**
@@ -39,6 +41,26 @@ export function App() {
       <SessionProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+
+          {/*
+            A TROCA DE SENHA FICA FORA DO <AppShell>, como a Cozinha — e por um
+            motivo mais forte que o dela: quem chega aqui por
+            `must_change_password` tem DUAS rotas respondendo no backend
+            inteiro. Uma lateral com nove destinos seria nove portas trancadas,
+            e cada clique devolveria a pessoa para esta mesma tela.
+
+            Ela continua dentro do <RequireAuth>: trocar a própria senha exige
+            saber quem é você. É a única rota autenticada que a guarda de senha
+            temporária NÃO redireciona — senão ela redirecionaria para si mesma.
+          */}
+          <Route
+            path={ROTA_DA_TROCA_DE_SENHA}
+            element={
+              <RequireAuth>
+                <ChangePasswordPage />
+              </RequireAuth>
+            }
+          />
           <Route
             path="/pedidos"
             element={
@@ -158,6 +180,23 @@ export function App() {
               <Route key={secao.id} path={secao.id} element={<StoreSectionPage id={secao.id} />} />
             ))}
           </Route>
+          {/*
+            USUÁRIOS exige o papel da LEITURA (`GET /admin/users`,
+            SOMENTE_DONO) — e aqui, ao contrário de Cupons e Cashback, não há
+            assimetria a respeitar dentro da tela: as quatro rotas são do dono.
+            A rota devolve o e-mail de todo mundo da casa, que é metade da
+            credencial de cada pessoa; não há meio-termo a dar ao gerente.
+          */}
+          <Route
+            path="/usuarios"
+            element={
+              <RequireAuth acao="usuarios.ver">
+                <AppShell>
+                  <UsersPage />
+                </AppShell>
+              </RequireAuth>
+            }
+          />
           <Route
             path="/cozinha"
             element={

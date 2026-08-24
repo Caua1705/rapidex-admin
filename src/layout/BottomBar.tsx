@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 
+import { ROTA_DA_TROCA_DE_SENHA } from '../auth/RequireAuth';
 import { Sheet } from '../ds/Sheet';
 import { MoreIcon } from '../ds/icons';
 import { type NavEntry } from './nav';
@@ -104,6 +105,30 @@ export function BottomBar() {
             </div>
           );
         })}
+
+        {/*
+          A CONTA ENTRA NA FOLHA, e não na lista de seções.
+          "Trocar senha" vive no grupo da conta da barra do topo — e ali ela
+          some abaixo de 768px, onde a barra já carrega a identificação, o tema
+          e o "Sair". A regra do shell é que a informação não desaparece: ela
+          troca de lugar, e este é o lugar dela no telefone.
+
+          "Sair" NÃO se repete aqui: ele continua na barra do topo em todos os
+          tamanhos, e um segundo caminho para encerrar a sessão seria o tipo de
+          duplicação que faz alguém encerrá-la sem querer.
+        */}
+        <div className="shell__mais-grupo">
+          <p className="t-label">Conta</p>
+          <NavLink
+            to={ROTA_DA_TROCA_DE_SENHA}
+            className="ds-sheet__opcao"
+            aria-current={ROTA_DA_TROCA_DE_SENHA === pathname ? 'page' : undefined}
+            onClick={() => setMaisAberto(false)}
+            data-testid="mais-trocar-senha"
+          >
+            Trocar minha senha
+          </NavLink>
+        </div>
       </Sheet>
     </>
   );

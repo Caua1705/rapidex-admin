@@ -435,3 +435,80 @@ export type CouponTemplate = Schemas['CouponTemplateResponse'];
 
 /** `percent`, `fixed` ou `free_delivery` — sempre lido da arte, nunca digitado. */
 export type CouponDiscountType = Coupon['discount_type'];
+
+// --- a equipe do restaurante (Usuários) -----------------------------------
+
+/**
+ * O usuário como a LISTA o traz — e ele é maior que o `AdminUser` de cima.
+ *
+ * São dois schemas de propósito, e confundi-los custaria caro nos dois
+ * sentidos: `AdminUserResponse` (o apelido `AdminUser`) é QUEM ENTROU, e sai no
+ * login e no `/me`; este é a ficha de OUTRA pessoa, e só existe na tela do
+ * dono sobre a própria equipe.
+ *
+ * O que só existe aqui: `password_changed_at` e `created_at`. O primeiro é
+ * NULO para quem nunca trocou a senha desde a revisão 0013 — o estado de todo
+ * usuário antigo — e isso NÃO significa pendência: quem responde "precisa
+ * trocar?" é `must_change_password`, que está nos dois schemas.
+ */
+export type AdminUserDetail = Schemas['AdminUserDetailResponse'];
+
+/**
+ * O corpo do cadastro. `extra="forbid"` do outro lado: campo desconhecido é
+ * 422, não uma chave ignorada em silêncio.
+ *
+ * `branch_id` é OPCIONAL PARA OS TRÊS PAPÉIS, e nulo significa "todas as
+ * filiais do restaurante" — não "sem filial". Para `owner` o campo não muda
+ * nada: `build_admin_scope` ignora a filial de quem é dono ("dono não se prende
+ * a filial"), e é por isso que o formulário não o oferece nesse papel.
+ */
+export type AdminUserCreate = Schemas['AdminUserCreate'];
+
+/**
+ * O corpo da edição — parcial de verdade, ao contrário do de cupom.
+ *
+ * O backend faz `model_dump(exclude_unset=True)` e aplica campo a campo, sem
+ * revalidar o objeto inteiro. Logo o corpo mínimo é o certo aqui: mandar o que
+ * não mudou é reenviar por cima do que outra aba gravou.
+ *
+ * `email` NÃO ESTÁ NELE, e a tela não o oferece — ver `api/users.ts`.
+ */
+export type AdminUserUpdate = Schemas['AdminUserUpdate'];
+
+/**
+ * A resposta de criar E de redefinir senha: a ficha mais a senha em claro.
+ *
+ * É A ÚNICA VEZ QUE A SENHA TEMPORÁRIA EXISTE FORA DO BCRYPT. Não há rota que a
+ * devolva de novo; segunda via é gerar OUTRA por `reset-password`, que revoga a
+ * anterior. Quem recebeu a primeira fica com uma senha morta — e é isso que o
+ * diálogo precisa dizer antes de deixar alguém fechá-lo.
+ */
+export type AdminUserCreated = Schemas['AdminUserCreatedResponse'];
+
+/**
+ * OS TRÊS PAPÉIS DE GENTE, tirados do enum GERADO — nunca de uma união escrita
+ * à mão com as três strings.
+ *
+ * É o que faz `Record<PapelDePessoa, string>` acender no `npm run typecheck` no
+ * dia em que o backend acrescentar um quarto papel de pessoa. Uma união copiada
+ * continuaria compilando e o papel novo apareceria sem rótulo no seletor.
+ *
+ * `print_agent` não está aqui porque não está no contrato: o Literal do backend
+ * é `owner | manager | attendant`, e a conta de máquina tem recusa própria com
+ * mensagem explicando que ela nasce por `scripts/create_admin_user.py`.
+ */
+export type PapelDePessoa = AdminUserCreate['role'];
+
+/**
+ * O corpo da troca da própria senha.
+ *
+ * Os três campos são obrigatórios, e o mínimo de 12 caracteres é cobrado só em
+ * `new_password` — o login aceita senha de qualquer tamanho de propósito, para
+ * que quem tem uma senha curta cadastrada consiga entrar e trocá-la.
+ *
+ * A RESPOSTA NÃO TRAZ TOKEN NOVO. Trocar a senha grava `password_changed_at`, e
+ * isso REVOGA o token que fez a chamada: a resposta chega, e a requisição
+ * seguinte é 401. Quem chama precisa refazer o login — ver
+ * `pages/ChangePasswordPage.tsx`.
+ */
+export type ChangePasswordBody = Schemas['ChangeAdminPasswordRequest'];

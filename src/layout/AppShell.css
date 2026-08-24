@@ -79,11 +79,24 @@
 
 .shell__avatar,
 .shell__user,
-.shell__account-divider {
+.shell__account-divider,
+/*
+ * "TROCAR SENHA" NASCE ESCONDIDO, como o avatar e o nome — e reaparece em
+ * 768px, junto com eles. No telefone ela vive na folha do "Mais"
+ * (`BottomBar`): a barra de 52px já carrega a identificação da loja, o tema e
+ * o "Sair", e um quarto controle de texto espremeria os três.
+ */
+.shell__senha {
   display: none;
 }
 
-.shell__sair {
+/*
+ * "Trocar senha" e "Sair" são o mesmo objeto: dois textos do grupo da conta,
+ * sem moldura. Uma classe própria para cada visual seria o começo de dois
+ * botões de texto diferentes na mesma barra.
+ */
+.shell__sair,
+.shell__senha {
   position: relative;
   min-height: var(--control-h-sm);
   padding-inline: var(--sp-8);
@@ -96,7 +109,8 @@
     background var(--motion-fast) var(--ease);
 }
 
-.shell__sair:hover {
+.shell__sair:hover,
+.shell__senha:hover {
   color: var(--ink);
   background: var(--hover);
 }
@@ -108,7 +122,8 @@
  * a barra do topo continua com os mesmos 52px.
  */
 @media (hover: none) {
-  .shell__sair::after {
+  .shell__sair::after,
+  .shell__senha::after {
     content: '';
     position: absolute;
     top: 50%;
@@ -550,6 +565,12 @@
     width: 1px;
     height: var(--sp-20);
     background: var(--line);
+  }
+
+  /* A partir daqui há barra de sobra: o link volta ao grupo da conta. */
+  .shell__senha {
+    display: inline-flex;
+    align-items: center;
   }
 }
 

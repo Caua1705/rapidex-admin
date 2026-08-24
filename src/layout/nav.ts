@@ -143,12 +143,22 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     title: 'Configurações',
     entries: [
       { to: '/minha-loja', label: 'Minha loja', Icon: StoreIcon },
-      {
-        to: '/usuarios',
-        label: 'Usuários',
-        Icon: TeamIcon,
-        soon: 'Quem entra no painel, com qual permissão e em qual filial.',
-      },
+      /*
+       * O `soon` SAIU e a tela existe — o mesmo mecanismo de Cupons e Cashback:
+       * enquanto o campo estava aqui, a rota caía na página "em breve" e a tela
+       * construída ficava inalcançável.
+       *
+       * A frase antiga prometia "quem entra no painel, com qual permissão e em
+       * qual filial", e ela estava certa nas três coisas. O que ela não dizia é
+       * o que faz a tela existir: enquanto criar usuário for script de linha de
+       * comando, o dono compartilha a própria senha com o balcão. Isso passou
+       * para a ressalva ao lado do título de `UsersPage`, que é onde continua
+       * sendo lido depois de a tela existir.
+       *
+       * `acao` entrou junto porque as QUATRO rotas são SOMENTE_DONO: o gerente
+       * que clicasse aqui cairia numa lista que responde 403.
+       */
+      { to: '/usuarios', label: 'Usuários', Icon: TeamIcon, acao: 'usuarios.ver' },
       {
         to: '/whatsapp',
         label: 'WhatsApp',

@@ -17,6 +17,12 @@ import type { components } from '../src/api/generated/openapi';
 
 type Schemas = components['schemas'];
 type AdminUser = Schemas['AdminUserResponse'];
+/*
+ * DOIS SCHEMAS DE USUÁRIO, e eles não são o mesmo: `AdminUserResponse` é QUEM
+ * ENTROU (login e `/me`); `AdminUserDetailResponse` é a ficha de OUTRA pessoa,
+ * na tela do dono — e traz `created_at` e `password_changed_at` a mais.
+ */
+type AdminUserDetail = Schemas['AdminUserDetailResponse'];
 type Branch = Schemas['AdminBranchResponse'];
 type OrderListItem = Schemas['AdminOrderListItem'];
 type OrderDetail = Schemas['OrderDetailResponse'];
@@ -64,10 +70,13 @@ export const FAKE_USER: AdminUser = {
   role: 'owner',
   is_active: true,
   /*
-   * Campo novo de `AdminUserResponse` (as rotas `/admin/users` entraram no
-   * contrato). O painel ainda não lê a marca de senha temporária — a tela de
-   * Usuários não existe —, mas o tipo é gerado e o falso backend precisa
-   * responder o contrato inteiro.
+   * O SINAL QUE O PAINEL OBEDECE. Com ele verdadeiro, o backend só deixa passar
+   * `GET /admin/auth/me` e `PATCH /admin/auth/password` — e o painel nem tenta o
+   * resto: `RequireAuth` manda para a troca de senha antes de qualquer chamada.
+   *
+   * O falso encena os dois lados (ver `entrarComSenhaTemporaria` e o 403 na
+   * porta do roteador), porque o teste que importa é justamente o de que a tela
+   * obedece o CAMPO e não o 403.
    */
   must_change_password: false,
 };
@@ -1759,6 +1768,34 @@ export type FakeApi = {
   stop: () => void;
   /** Cria um item de pedido pronto para o pushNewOrder. */
   makeOrder: typeof order;
+
+  // --- a equipe ------------------------------------------------------------
+
+  /** A equipe como o "banco" a tem agora — ativos e inativos, sem a máquina. */
+  adminUsers: () => AdminUserDetail[];
+  /** Troca a equipe do "banco". Chamar ANTES do login. */
+  setAdminUsers: (usuarios: AdminUserDetail[]) => void;
+  /**
+   * O corpo de cada escrita em `/admin/users`, na ordem.
+   *
+   * É AQUI que se prova o PATCH parcial: um corpo que carregasse nome, papel e
+   * filial para desativar alguém desfaria o que outra aba gravou, e nenhuma
+   * asserção de tela alcança isso — a tela mostraria o mesmo resultado.
+   */
+  adminUserBodies: () => { metodo: string; id: string | null; body: Record<string, unknown> }[];
+  /** As senhas temporárias que o falso gerou, na ordem em que saíram. */
+  senhasGeradas: () => string[];
+  /**
+   * Entra com a senha temporária ligada. Chamar ANTES do login.
+   *
+   * A partir daí o falso responde 403 em toda rota `/admin` que não seja o `me`
+   * e o PATCH da senha — como `_ensure_temporary_password_was_changed`. É o que
+   * permite conferir que o painel obedece o CAMPO: se ele dependesse do 403, a
+   * tela abriria e só depois se fecharia, piscando o painel inteiro.
+   */
+  entrarComSenhaTemporaria: () => void;
+  /** Cada PATCH /admin/auth/password que chegou, com o corpo. */
+  trocasDeSenha: () => Record<string, unknown>[];
 };
 
 function json(route: Route, status: number, body: unknown) {
@@ -1943,6 +1980,97 @@ function initialCoupons(restaurantId: string): Coupon[] {
   ];
 }
 
+/* ==========================================================================
+ * A EQUIPE
+ *
+ * A semente é o restaurante REAL de hoje: uma conta só, a do dono. É o estado
+ * que a tela existe para acabar — enquanto ele durar, a senha do dono circula
+ * no balcão.
+ *
+ * As outras três linhas cobrem o que a tela precisa mostrar de uma vez: um
+ * gerente preso a uma filial, um atendente que ainda não entrou (senha
+ * temporária) e alguém desativado. Não é excesso — é o que faz uma captura
+ * mostrar a coluna de situação inteira em vez da mesma etiqueta quatro vezes.
+ *
+ * O `print_agent` NÃO ESTÁ AQUI, e a ausência é o contrato:
+ * `list_people_by_restaurant` filtra a conta de máquina, e o PATCH responde 404
+ * nela. Ele tem tela própria em Minha loja › Impressão.
+ * ======================================================================= */
+
+function initialAdminUsers(): AdminUserDetail[] {
+  const base = {
+    restaurant_id: RESTAURANT_ID,
+    is_active: true,
+    must_change_password: false,
+    password_changed_at: '2026-07-02T12:00:00Z',
+    created_at: '2026-05-10T12:00:00Z',
+  };
+
+  return [
+    {
+      ...base,
+      id: FAKE_USER.id,
+      branch_id: null,
+      name: FAKE_USER.name,
+      email: FAKE_USER.email,
+      role: 'owner',
+    },
+    {
+      ...base,
+      id: 'user-gerente',
+      branch_id: BRANCH_ID_2,
+      name: 'Rafael Lima',
+      email: 'rafael@pizzaria.com',
+      role: 'manager',
+      created_at: '2026-06-01T12:00:00Z',
+    },
+    {
+      /* Cadastrado e ainda não entrou: `password_changed_at` nulo e a marca de
+         senha temporária ligada — os dois juntos são o estado real de quem
+         acabou de receber a senha pelo telefone. */
+      ...base,
+      id: 'user-balcao',
+      branch_id: BRANCH_ID,
+      name: 'Carla Nogueira',
+      email: 'carla@pizzaria.com',
+      role: 'attendant',
+      must_change_password: true,
+      password_changed_at: null,
+      created_at: '2026-08-20T12:00:00Z',
+    },
+    {
+      ...base,
+      id: 'user-saiu',
+      branch_id: BRANCH_ID,
+      name: 'Bruno Alves',
+      email: 'bruno@pizzaria.com',
+      role: 'attendant',
+      is_active: false,
+      created_at: '2026-05-30T12:00:00Z',
+    },
+  ];
+}
+
+/**
+ * A senha temporária, com o ALFABETO DO BACKEND.
+ *
+ * `ABCDEFGHJKMNPQRSTUVWXYZ23456789`, 20 caracteres: sem O/0 e sem I/l/1, e sem
+ * minúscula. O falso repete o alfabeto de propósito — uma senha de mentira com
+ * um "l" e um "0" dentro faria a captura de tela mentir sobre justamente a
+ * propriedade que o diálogo promete (que ela dá para ditar por telefone).
+ *
+ * DETERMINÍSTICA: o e2e não pode fotografar uma senha diferente a cada
+ * execução, e o teste precisa poder afirmar o que está na tela.
+ */
+function senhaTemporariaFalsa(indice: number): string {
+  const alfabeto = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let senha = '';
+  for (let i = 0; i < 20; i += 1) {
+    senha += alfabeto[(i * 7 + indice * 3) % alfabeto.length];
+  }
+  return senha;
+}
+
   const state = {
     orders: initialOrders(),
     // O histórico é guardado de verdade porque o painel recarrega o detalhe
@@ -2045,6 +2173,25 @@ function initialCoupons(restaurantId: string): Coupon[] {
      * entre um lojista e outro para o painel.
      */
     papel: FAKE_USER.role,
+    /*
+     * A SENHA TEMPORÁRIA DE QUEM ENTROU. Mora no estado pelo mesmo motivo do
+     * papel: o teste a liga ANTES do login, e ela sai no `admin_user` do login
+     * e do `/me` — que é de onde o painel a lê.
+     */
+    senhaTemporaria: false,
+    /* A senha que o login aceita AGORA. Ela muda quando a pessoa troca a
+       própria senha — sem isso, o relogin automático da tela de troca não teria
+       como passar, e o teste do primeiro acesso pararia no meio. */
+    senhaDeLogin: LOGIN_PASSWORD,
+    /** A equipe do restaurante, como o "banco" a tem. */
+    adminUsers: initialAdminUsers(),
+    adminUserBodies: [] as {
+      metodo: string;
+      id: string | null;
+      body: Record<string, unknown>;
+    }[],
+    senhasGeradas: [] as string[],
+    trocasDeSenha: [] as Record<string, unknown>[],
     printSectors: initialPrintSectors(BRANCH_ID),
     printAgents: initialPrintAgents(),
     printers: initialPrinters(),
@@ -2286,7 +2433,11 @@ function initialCoupons(restaurantId: string): Coupon[] {
 
     if (method === 'POST' && path === '/admin/auth/login') {
       const body = request.postDataJSON() as { email?: string; password?: string };
-      if (body.email !== LOGIN_EMAIL || body.password !== LOGIN_PASSWORD) {
+      /* A senha que vale é sempre `state.senhaDeLogin` — inclusive com a marca
+         de senha temporária ligada. A marca diz que a senha foi criada por
+         outra pessoa, não que ela seja outra: quem entra é sempre o mesmo
+         usuário do falso, e a senha dele muda quando ele a troca. */
+      if (body.email !== LOGIN_EMAIL || body.password !== state.senhaDeLogin) {
         return json(route, 401, { detail: 'E-mail ou senha inválidos.' });
       }
       /*
@@ -2299,14 +2450,77 @@ function initialCoupons(restaurantId: string): Coupon[] {
       return json(route, 200, {
         access_token: ACCESS_TOKEN,
         token_type: 'bearer',
-        admin_user: { ...FAKE_USER, role: state.papel },
+        admin_user: {
+          ...FAKE_USER,
+          role: state.papel,
+          must_change_password: state.senhaTemporaria,
+        },
       });
     }
 
     if (method === 'GET' && path === '/admin/auth/me') {
       // O papel sai do banco a cada requisição, como no backend: rebaixar
-      // alguém vale na hora, sem esperar o token de 12h expirar.
-      return json(route, 200, { ...FAKE_USER, role: state.papel });
+      // alguém vale na hora, sem esperar o token de 12h expirar. A marca de
+      // senha temporária vem junto, e pelo mesmo motivo.
+      return json(route, 200, {
+        ...FAKE_USER,
+        role: state.papel,
+        must_change_password: state.senhaTemporaria,
+      });
+    }
+
+    /*
+     * A TROCA DA PRÓPRIA SENHA — e as três recusas de `change_password`.
+     *
+     * Ela fica ACIMA da guarda de senha temporária logo abaixo porque é uma das
+     * duas rotas que atravessam essa guarda. A outra é o `/me`, que já
+     * respondeu.
+     */
+    if (method === 'PATCH' && path === '/admin/auth/password') {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      state.trocasDeSenha.push(body);
+
+      const atual = String(body.current_password ?? '');
+      const nova = String(body.new_password ?? '');
+      const confirmacao = String(body.confirm_password ?? '');
+
+      /* A senha atual é a que o login aceita agora — a mesma variável, para os
+         dois nunca discordarem. */
+      if (atual !== state.senhaDeLogin) {
+        return json(route, 400, { detail: 'Senha atual incorreta' });
+      }
+      if (nova !== confirmacao) {
+        return json(route, 400, { detail: 'As senhas nao conferem' });
+      }
+      if (nova === atual) {
+        return json(route, 400, { detail: 'A nova senha precisa ser diferente da atual' });
+      }
+
+      /*
+       * TROCAR A SENHA DESLIGA A MARCA e revoga os tokens antigos. O falso
+       * encena a primeira metade; a segunda é o painel refazer o login, e é por
+       * isso que `LOGIN_PASSWORD` continua sendo a senha aceita no login — o
+       * teste que fizer a troca precisa entrar de novo com a NOVA, então o
+       * falso passa a aceitá-la.
+       */
+      state.senhaTemporaria = false;
+      state.senhaDeLogin = nova;
+      return json(route, 200, { message: 'Senha alterada. Entre de novo em todos os dispositivos.' });
+    }
+
+    /*
+     * A REDE EMBAIXO — `_ensure_temporary_password_was_changed`.
+     *
+     * Com a senha temporária, TODA rota `/admin` que não seja o `me` e o PATCH
+     * da senha responde 403. Ela existe aqui para provar o contrário do que
+     * parece: o painel NÃO deve depender dela. Se a tela obedecesse o 403 em
+     * vez do campo, o teste veria a tela de Pedidos abrir e só depois se
+     * fechar — e é isso que a asserção do e2e recusa.
+     */
+    if (state.senhaTemporaria) {
+      return json(route, 403, {
+        detail: 'Troque a senha temporaria antes de usar o painel',
+      });
     }
 
     if (method === 'GET' && path === '/admin/branches') {
@@ -3044,6 +3258,138 @@ function initialCoupons(restaurantId: string): Coupon[] {
       return json(route, 200, gravado);
     }
 
+    /* ======================================================================
+     * A EQUIPE — e as guardas que a tela promete cumprir
+     * =================================================================== */
+
+    if (path === '/admin/users') {
+      /* Sem query nenhuma: a rota devolve a equipe inteira, ativos e inativos,
+         em ordem de cadastro. Quem recorta é a tela — e ela não recorta. */
+      if (method === 'GET') return json(route, 200, state.adminUsers);
+
+      if (method === 'POST') {
+        const body = request.postDataJSON() as Record<string, unknown>;
+        state.adminUserBodies.push({ metodo: 'POST', id: null, body });
+
+        const email = String(body.email ?? '').trim().toLowerCase();
+
+        /* `print_agent` tem recusa PRÓPRIA, antes do Literal: o 422 do enum
+           diria "Input should be 'owner', 'manager' or 'attendant'", que é
+           verdadeiro e inútil para quem tentou. */
+        if (body.role === 'print_agent') {
+          return json(route, 422, {
+            detail: [
+              {
+                loc: ['body', 'role'],
+                msg: 'print_agent e conta de maquina e nasce so pelo scripts/create_admin_user.py',
+                type: 'value_error',
+              },
+            ],
+          });
+        }
+
+        /* O UNIQUE é GLOBAL e sobre `lower(email)`. A mensagem não diz de qual
+           restaurante o e-mail é: qualquer resposta já revela que ele existe na
+           plataforma, e o que esta esconde é ONDE. */
+        if (state.adminUsers.some((item) => item.email.toLowerCase() === email)) {
+          return json(route, 409, { detail: 'Este e-mail ja esta em uso' });
+        }
+
+        const senha = senhaTemporariaFalsa(state.senhasGeradas.length);
+        state.senhasGeradas.push(senha);
+
+        const criado: AdminUserDetail = {
+          id: `user-novo-${state.adminUsers.length + 1}`,
+          restaurant_id: RESTAURANT_ID,
+          branch_id: (body.branch_id as string | null) ?? null,
+          name: String(body.name ?? ''),
+          email,
+          role: String(body.role ?? 'attendant'),
+          is_active: true,
+          /* Nasce com a marca ligada: é o que fecha o painel para essa pessoa
+             até ela escolher a própria senha. */
+          must_change_password: true,
+          password_changed_at: null,
+          created_at: new Date().toISOString(),
+        };
+
+        state.adminUsers = [...state.adminUsers, criado];
+        return json(route, 201, { admin_user: criado, temporary_password: senha });
+      }
+    }
+
+    const usuarioMatch = /^\/admin\/users\/([^/]+)$/.exec(path);
+    if (usuarioMatch?.[1] && method === 'PATCH') {
+      const usuarioId = usuarioMatch[1];
+      const body = request.postDataJSON() as Record<string, unknown>;
+      state.adminUserBodies.push({ metodo: 'PATCH', id: usuarioId, body });
+
+      const atual = state.adminUsers.find((item) => item.id === usuarioId);
+      /* 404 e não 403 para quem não é pessoa deste restaurante: um 403
+         confirmaria que aquele id existe. Vale também para a conta de máquina,
+         que estas rotas não alcançam nem para ler. */
+      if (!atual) return json(route, 404, { detail: 'Usuario nao encontrado' });
+
+      if (body.role === 'print_agent') {
+        return json(route, 422, {
+          detail: [{ loc: ['body', 'role'], msg: 'print_agent e conta de maquina', type: 'value_error' }],
+        });
+      }
+
+      /*
+       * AS TRÊS GUARDAS, e as três respondem 400. A tela impede antes — estas
+       * existem para o caso de a lista na mão estar velha, e para provar que a
+       * tela realmente não chega aqui.
+       */
+      const desativando = body.is_active === false;
+      if (desativando && atual.id === FAKE_USER.id) {
+        return json(route, 400, { detail: 'Voce nao pode desativar a propria conta' });
+      }
+
+      const rebaixando = body.role !== undefined && body.role !== 'owner';
+      const donosAtivos = state.adminUsers.filter(
+        (item) => item.role === 'owner' && item.is_active,
+      ).length;
+      if (atual.role === 'owner' && atual.is_active && (desativando || rebaixando) && donosAtivos <= 1) {
+        const acao = desativando ? 'desativar' : 'rebaixar';
+        return json(route, 400, {
+          detail: `Nao da para ${acao} o unico dono ativo do restaurante`,
+        });
+      }
+
+      const gravado: AdminUserDetail = {
+        ...atual,
+        ...(body as Partial<AdminUserDetail>),
+        /* Desativar grava `password_changed_at`: sem isso, reativar a pessoa
+           depois ressuscitaria os tokens de 12h ainda dentro do prazo. */
+        password_changed_at: desativando ? new Date().toISOString() : atual.password_changed_at,
+      };
+      state.adminUsers = state.adminUsers.map((item) => (item.id === usuarioId ? gravado : item));
+      return json(route, 200, gravado);
+    }
+
+    const resetMatch = /^\/admin\/users\/([^/]+)\/reset-password$/.exec(path);
+    if (resetMatch?.[1] && method === 'POST') {
+      const usuarioId = resetMatch[1];
+      state.adminUserBodies.push({ metodo: 'POST-reset', id: usuarioId, body: {} });
+
+      const atual = state.adminUsers.find((item) => item.id === usuarioId);
+      if (!atual) return json(route, 404, { detail: 'Usuario nao encontrado' });
+
+      const senha = senhaTemporariaFalsa(state.senhasGeradas.length);
+      state.senhasGeradas.push(senha);
+
+      /* A marca volta a ligar e `password_changed_at` é regravado — é a linha
+         que revoga todo token daquela pessoa, inclusive o ticket do stream. */
+      const gravado: AdminUserDetail = {
+        ...atual,
+        must_change_password: true,
+        password_changed_at: new Date().toISOString(),
+      };
+      state.adminUsers = state.adminUsers.map((item) => (item.id === usuarioId ? gravado : item));
+      return json(route, 200, { admin_user: gravado, temporary_password: senha });
+    }
+
     // --- minha loja: configurações do restaurante --------------------------
 
     if (path === '/admin/settings') {
@@ -3715,6 +4061,16 @@ function initialCoupons(restaurantId: string): Coupon[] {
       else state.cashbackBranchRules[branchId] = rule;
     },
     coupons: () => state.coupons,
+    adminUsers: () => state.adminUsers,
+    setAdminUsers(usuarios) {
+      state.adminUsers = usuarios;
+    },
+    adminUserBodies: () => state.adminUserBodies,
+    senhasGeradas: () => state.senhasGeradas,
+    entrarComSenhaTemporaria() {
+      state.senhaTemporaria = true;
+    },
+    trocasDeSenha: () => state.trocasDeSenha,
     couponBodies: () => state.couponBodies,
     setCouponTemplates(templates) {
       state.couponTemplates = templates;

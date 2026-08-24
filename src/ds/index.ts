@@ -29,6 +29,7 @@ export { useFocusTrap } from './use-focus-trap';
 export { StatusChip } from './StatusChip';
 export { Badge } from './Badge';
 export { MaturationBar } from './MaturationBar';
+export { OneTimeSecret } from './OneTimeSecret';
 export { faixaDe, razaoDeMaturacao, type Faixa } from './maturation';
 export { OrderRow } from './OrderRow';
 export { PageBar } from './PageBar';

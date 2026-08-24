@@ -164,7 +164,25 @@ export type Acao =
    * não precisa poder mudar para três.
    */
   | 'impressao.verConfiguracao'
-  | 'impressao.editarConfiguracao';
+  | 'impressao.editarConfiguracao'
+  /*
+   * A EQUIPE É INTEIRAMENTE DO DONO — as quatro rotas são `SOMENTE_DONO`, sem o
+   * meio-termo que Cupons e Cashback têm ("a gerência lê, o dono escreve").
+   *
+   * Não há o que dar ao gerente aqui: `GET /admin/users` devolve o e-mail de
+   * todo mundo da casa, que é metade da credencial de cada pessoa. Uma tela de
+   * gerente sobre a equipe da filial precisaria de outro schema, e o backend
+   * diz isso com todas as letras em `AdminUserDetailResponse`.
+   *
+   * São quatro ações e não uma porque são quatro rotas, e apontar as quatro
+   * para uma só faria o compilador parar de conferir três delas — o mesmo
+   * motivo das quatro de cashback. Os papéis coincidirem hoje não é garantia de
+   * coincidirem amanhã: `GET` foi de gerência em três telas deste painel.
+   */
+  | 'usuarios.ver'
+  | 'usuarios.criar'
+  | 'usuarios.editar'
+  | 'usuarios.redefinirSenha';
 
 /**
  * A ponte. Cada ação, a rota que ela chama.
@@ -295,6 +313,13 @@ const ROTA_DA_ACAO = {
   'impressao.editarSetores': 'POST /admin/branches/{branch_id}/printing-sectors',
   'impressao.verConfiguracao': 'GET /admin/branches/{branch_id}/print-settings',
   'impressao.editarConfiguracao': 'PATCH /admin/branches/{branch_id}/print-settings',
+
+  // --- a equipe -------------------------------------------------------------
+  'usuarios.ver': 'GET /admin/users',
+  'usuarios.criar': 'POST /admin/users',
+  /* Editar E desativar: não existe DELETE, tirar alguém é `is_active: false`. */
+  'usuarios.editar': 'PATCH /admin/users/{admin_user_id}',
+  'usuarios.redefinirSenha': 'POST /admin/users/{admin_user_id}/reset-password',
 } as const satisfies Record<Acao, RotaComPapel>;
 
 /**
