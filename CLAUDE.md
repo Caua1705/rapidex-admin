@@ -1,12 +1,9 @@
 ## Git
 
-- NUNCA commitar ou dar push na `main` sem eu pedir explicitamente.
-- Se a branch atual for `main`, PARE e me avise antes de qualquer alteração.
-- Trabalhar sempre em `dev`, criando-a a partir da `main` se não existir.
-- Ao terminar, me devolver o link do preview da Vercel da branch.
+- Commitar e empurrar direto na `main`. É a branch de trabalho do painel — não
+  abrir branch nem PR para mudança normal.
+- Ao terminar, me devolver o link do deploy da Vercel.
 
-Preview fixo da `dev` (link permanente, não muda a cada push):
-
-https://rapidex-admin-git-dev-cauas-projects-3c9f6aea.vercel.app
-
-Ao terminar qualquer alteração na `dev`, devolver esse link.
+O CI (`.github/workflows/ci.yml`) roda a cada push na `main`: typecheck, lint,
+testes e e2e. Push com o verde quebrado é o que esta regra tem de mais caro —
+não há branch intermediária para segurar nada.
