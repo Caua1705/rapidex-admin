@@ -1989,6 +1989,93 @@ export interface paths {
     patch: operations['set_default_address_customers_me_addresses__address_id__default_patch'];
     trace?: never;
   };
+  '/customers/me/cards': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Saved Cards
+     * @description Os cartoes que esta pessoa salvou NESTE restaurante.
+     *
+     *     ## Lista vazia nao quer dizer "nunca salvou"
+     *
+     *     Ela tambem e a resposta para quem salvou cartao em outra loja da
+     *     plataforma, e para quem salvou antes de o ambiente do gateway virar de
+     *     teste para producao. Nos tres casos a tela e a mesma: oferecer o cadastro
+     *     de um cartao novo.
+     *
+     *     ## Os DOIS ids, e para que serve cada um
+     *
+     *     `id` e o nosso UUID, e e ele que volta em `card.saved_card_id` na hora
+     *     de pagar. `provider_card_id` e o id do cartao na conta do Mercado Pago
+     *     do lojista, e o navegador precisa dele para gerar o token da cobranca
+     *     (`card_id` + CVV) — sem ele a tokenizacao volta `invalid card_id`.
+     */
+    get: operations['list_saved_cards_customers_me_cards_get'];
+    put?: never;
+    /**
+     * Save Card
+     * @description Salva um cartao tokenizado na conta do restaurante.
+     *
+     *     ## O numero do cartao nao passa por aqui
+     *
+     *     O corpo leva o `token` que o SDK do Mercado Pago gerou NO NAVEGADOR.
+     *     Nao ha campo de PAN, de CVV nem de validade — e nao deve haver.
+     *
+     *     ## Isto nao cobra nada, e o cartao nao e validado agora
+     *
+     *     Nao ha cobranca de R$ 1,00 seguida de estorno. O cartao e testado na
+     *     primeira cobranca de verdade, e um cartao sem limite entra na lista e so
+     *     falha no checkout. **Decisao tomada**, com o motivo em
+     *     `docs/cartao-salvo.md`.
+     *
+     *     ## 201 repetido para o mesmo cartao devolve a MESMA linha
+     *
+     *     Salvar duas vezes o mesmo cartao nao cria duas linhas: o gateway devolve
+     *     o mesmo id e o cadastro existente e reaproveitado.
+     */
+    post: operations['save_card_customers_me_cards_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/customers/me/cards/{card_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Delete Saved Card
+     * @description Remove o cartao NOS DOIS LADOS: no Mercado Pago e no nosso banco.
+     *
+     *     O gateway responde primeiro. Se ele estiver fora do ar a remocao falha
+     *     inteira (502) e o cartao continua na lista — o cliente tenta de novo. A
+     *     ordem inversa deixaria o cartao pendurado na conta do lojista **sem
+     *     referencia nenhuma nossa**, e ninguem mais conseguiria remove-lo.
+     *
+     *     ## Pedido em analise que usava este cartao continua em analise
+     *
+     *     A cobranca ja existe no gateway e nao depende do cadastro do cartao: ela
+     *     foi criada com um token, nao com o `card_id`. Remover o cartao nao
+     *     cancela, nao estorna e nao muda o resultado do antifraude — o `in_review`
+     *     segue e o webhook decide o pedido do mesmo jeito.
+     */
+    delete: operations['delete_saved_card_customers_me_cards__card_id__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/customers/me/cashback': {
     parameters: {
       query?: never;
@@ -2144,7 +2231,16 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Health Check */
+    /**
+     * Health Check
+     * @description Sinal de vida, com a versao da imagem junto.
+     *
+     *     A rota NAO ganhou checagem de banco nem de Redis, e isso e deliberado: ela
+     *     responde "o processo esta de pe e e este o codigo dele", nada mais. Uma
+     *     rota de health que consulta dependencias vira candidata natural a
+     *     `healthcheck` do compose — e ai o `start_period` passa a depender da soma
+     *     dos timeouts do warmup, que e a armadilha 40 da skill.
+     */
     get: operations['health_check_health_get'];
     put?: never;
     post?: never;
@@ -2264,17 +2360,70 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/restaurants/{restaurant_slug}/coupons/available': {
+  '/restaurants/{restaurant_slug}/coupons': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List Available Coupons */
-    get: operations['list_available_coupons_restaurants__restaurant_slug__coupons_available_get'];
+    /**
+     * List Customer Coupons
+     * @description Os cupons desta loja para QUEM ESTA OLHANDO, com o estado pronto.
+     *
+     *     Substituiu `GET .../coupons/available`. O front nao calcula nada: cada
+     *     card ja vem com a etiqueta, o estado do botao e o desconto que aquele
+     *     cupom daria NESTA sacola. O porque de a conta nao poder ser do outro lado
+     *     esta em `CustomerCouponResponse`.
+     *
+     *     **A sacola e opcional.** Sem `subtotal` a rota responde a tela do Clube —
+     *     os cupons que a pessoa tem, com o minimo inteiro faltando em quem tem
+     *     minimo. Com `subtotal` ela responde a tela do checkout.
+     *
+     *     **Sem token, so sai o que e publico.** Cupom de segmento e cupom privado
+     *     nao aparecem para convidado nem como "entre para usar": a existencia
+     *     deles, com titulo e codigo, e justamente o que eles nao publicam.
+     *
+     *     Cupom sem conserto nesta sacola nao vem na lista — nem vencido, nem de
+     *     outro segmento, nem primeira-compra para quem ja comprou. Cupom em que
+     *     falta valor VEM, com `state = "missing_amount"` e o quanto falta.
+     */
+    get: operations['list_customer_coupons_restaurants__restaurant_slug__coupons_get'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/restaurants/{restaurant_slug}/coupons/claim': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Claim Coupon
+     * @description Digitar um codigo SEM SACOLA — o cupom passa a ser do cliente.
+     *
+     *     A porta do Clube, e o par de `GET .../coupons`: resgatado aqui, o cupom
+     *     aparece na lista e aplica depois, no checkout.
+     *
+     *     RESGATE nao e USO. A linha vai para `coupon_claims`, que nao tem pedido
+     *     nem valor e concede visibilidade; `coupon_redemptions` continua sendo o
+     *     registro de uso, e e ela que conta no teto da campanha. Gravar resgate la
+     *     faria o cupom de 100 usos se esgotar com gente que so digitou o codigo.
+     *
+     *     **Idempotente**: resgatar de novo devolve o mesmo cupom, 201, sem erro.
+     *
+     *     O `request` na assinatura nao e decoracao — o `@limiter.limit` do slowapi
+     *     o exige por posicao, e sem ele a rota levanta no boot.
+     */
+    post: operations['claim_coupon_restaurants__restaurant_slug__coupons_claim_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -2392,6 +2541,54 @@ export interface paths {
     get: operations['track_order_restaurants__restaurant_slug__orders_track__tracking_token__get'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/restaurants/{restaurant_slug}/orders/track/{tracking_token}/cancel': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Cancel Order By Customer
+     * @description O cliente desistindo do proprio pedido, antes do preparo.
+     *
+     *     **Ate onde ela vai: `pending` e `accepted`.** Antes do preparo ninguem
+     *     gastou nada e desistir e barato para os dois lados. A partir de
+     *     `preparing` o insumo ja saiu do estoque, e quem decide quem come o
+     *     prejuizo passa a ser o lojista — a rota responde **409** e o app manda o
+     *     cliente falar com o restaurante.
+     *
+     *     **Sem login, de proposito.** Pedido de convidado e caso normal, e exigir
+     *     conta aqui deixaria justamente o convidado sem saida. Quem autoriza e o
+     *     `tracking_token` desta URL — o mesmo do acompanhamento e da avaliacao,
+     *     com 256 bits e sem rota de reemissao.
+     *
+     *     **O corpo e opcional, e o motivo dentro dele tambem.** Exigir
+     *     justificativa de quem desiste de um pedido que nem comecou produz um
+     *     campo preenchido com "a"; quem cancelou ja fica gravado no historico.
+     *
+     *     ## O que ela faz junto, e que o app nao precisa pedir
+     *
+     *     E a MESMA escrita do cancelamento pelo painel
+     *     (`OrderStatusChangeService`), entao o cupom volta a ficar disponivel, o
+     *     cashback resgatado volta para o saldo e **o pagamento online e
+     *     estornado** — um pix pago e cancelado em seguida volta sem ninguem ligar
+     *     para o restaurante. O estorno acontece depois do commit e nao pode
+     *     derrubar esta resposta: se o gateway estiver fora do ar, o cancelamento
+     *     vale e uma varredura devolve o dinheiro depois.
+     *
+     *     **Sem `Idempotency-Key`**, e ela nao faz falta: o segundo clique chega
+     *     com o pedido ja em `cancelled` e leva 409 da maquina de estados.
+     */
+    post: operations['cancel_order_by_customer_restaurants__restaurant_slug__orders_track__tracking_token__cancel_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -3490,6 +3687,8 @@ export interface components {
       name: string;
       /** Price */
       price: number | string;
+      /** Serves People */
+      serves_people?: number | null;
       /**
        * Sort Order
        * @default 0
@@ -3547,6 +3746,8 @@ export interface components {
       price: number;
       /** Printing Sector Id */
       printing_sector_id?: string | null;
+      /** Serves People */
+      serves_people?: number | null;
       /** Slug */
       slug?: string | null;
       /**
@@ -3620,6 +3821,8 @@ export interface components {
       price: number;
       /** Printing Sector Id */
       printing_sector_id?: string | null;
+      /** Serves People */
+      serves_people?: number | null;
       /** Slug */
       slug?: string | null;
       /**
@@ -3668,6 +3871,8 @@ export interface components {
       name?: string | null;
       /** Price */
       price?: number | string | null;
+      /** Serves People */
+      serves_people?: number | null;
       /** Sort Order */
       sort_order?: number | null;
     };
@@ -3963,58 +4168,6 @@ export interface components {
       /** Role */
       role?: ('owner' | 'manager' | 'attendant') | null;
     };
-    /** AvailableCouponResponse */
-    AvailableCouponResponse: {
-      /** Code */
-      code: string;
-      /** Cooldown Days */
-      cooldown_days?: number | null;
-      /** Description */
-      description?: string | null;
-      /**
-       * Discount Type
-       * @enum {string}
-       */
-      discount_type: 'fixed' | 'percent' | 'free_delivery';
-      /** Discount Value */
-      discount_value: string;
-      /** Eligible */
-      eligible: boolean;
-      /** Estimated Discount */
-      estimated_discount: string;
-      /**
-       * Id
-       * Format: uuid
-       */
-      id: string;
-      /** Ineligibility Reason */
-      ineligibility_reason?: string | null;
-      /** Max Discount Amount */
-      max_discount_amount?: string | null;
-      /** Min Order Value */
-      min_order_value: string;
-      /** Missing Amount */
-      missing_amount: string;
-      /** Next Available At */
-      next_available_at?: string | null;
-      /**
-       * Requires Login
-       * @default false
-       */
-      requires_login: boolean;
-      /** Title */
-      title: string;
-      /**
-       * Valid Until
-       * Format: date-time
-       */
-      valid_until: string;
-    };
-    /** AvailableCouponsResponse */
-    AvailableCouponsResponse: {
-      /** Coupons */
-      coupons: components['schemas']['AvailableCouponResponse'][];
-    };
     /** BannerResponse */
     BannerResponse: {
       /**
@@ -4051,7 +4204,6 @@ export interface components {
     Body_upload_product_image_admin_products__product_id__image_post: {
       /**
        * File
-       * Format: binary
        * @description JPEG, PNG ou WEBP
        */
       file: string;
@@ -4488,6 +4640,43 @@ export interface components {
       periods?: components['schemas']['BusinessHourInput'][];
     };
     /**
+     * CancelOrderErrorCode
+     * @description Os desfechos do cancelamento que o painel trata de forma propria.
+     *
+     *     Enum e nao `str` solto para a LISTA sair no /openapi.json (armadilha 16):
+     *     o painel precisa dela para escrever a tela, e nao so o status HTTP.
+     * @enum {string}
+     */
+    CancelOrderErrorCode: 'confirmation_required';
+    /**
+     * CancelOrderErrorDetail
+     * @description O `detail` de um cancelamento que precisa de confirmacao.
+     */
+    CancelOrderErrorDetail: {
+      code: components['schemas']['CancelOrderErrorCode'];
+      /**
+       * Message
+       * @description Pronta para ser mostrada no dialogo de confirmacao do painel.
+       */
+      message: string;
+      /**
+       * Order Status
+       * @description O status em que o pedido estava. E o que permite ao painel dizer 'ja saiu para entrega' em vez de 'ja esta em preparo'.
+       */
+      order_status: string;
+    };
+    /**
+     * CancelOrderErrorResponse
+     * @description O CORPO INTEIRO, com o envelope `detail` do FastAPI.
+     *
+     *     Existe pelo mesmo motivo de `PaymentErrorResponse`: `HTTPException`
+     *     entrega `{"detail": {...}}`, e anunciar o detail na raiz faria o painel
+     *     escrever o parser contra um formato que a rota nunca devolve.
+     */
+    CancelOrderErrorResponse: {
+      detail: components['schemas']['CancelOrderErrorDetail'];
+    };
+    /**
      * CancelOrderRequest
      * @description Corpo do cancelamento pelo painel.
      *
@@ -4502,6 +4691,12 @@ export interface components {
      *     viraria um `if` por status.
      */
     CancelOrderRequest: {
+      /**
+       * Confirm Prepared Order
+       * @description Confirmacao explicita de que o lojista sabe que a comida ja foi feita. Obrigatoria a partir de `preparing`; sem ela a rota responde 428 com `confirmation_required`. Antes disso e ignorada.
+       * @default false
+       */
+      confirm_prepared_order: boolean;
       /** Reason */
       reason: string;
     };
@@ -4566,10 +4761,15 @@ export interface components {
       payer_document_type?: string | null;
       /**
        * Payment Method Id
-       * @description Bandeira que o SDK resolveu ('visa', 'master', 'elo'). NAO e o `payment_method` do pedido ('credit_card') — sao vocabularios diferentes, e o gateway quer o dele.
+       * @description Bandeira que o SDK resolveu ('visa', 'master', 'elo'). NAO e o `payment_method` do pedido ('credit_card') — sao vocabularios diferentes, e o gateway quer o dele. Opcional QUANDO ha `saved_card_id`: nesse caso vale a bandeira gravada no cadastro do cartao, que e mais confiavel que a que o cliente mandaria.
        * @example master
        */
-      payment_method_id: string;
+      payment_method_id?: string | null;
+      /**
+       * Saved Card Id
+       * @description Id do cartao SALVO (o `id` de /customers/me/cards), quando a cobranca usa um cartao que a pessoa ja cadastrou. **O `token` continua obrigatorio**: para cobrar um cartao salvo o SDK gera um token novo a partir do `card_id` mais o CVV, no navegador. Cartao salvo poupa redigitar o NUMERO, nao o codigo de seguranca.
+       */
+      saved_card_id?: string | null;
       /**
        * Token
        * @description Token de uso unico gerado pelo SDK no navegador.
@@ -4877,7 +5077,7 @@ export interface components {
      */
     CouponAdminResponse: {
       /** Code */
-      code: string;
+      code?: string | null;
       /** Cooldown Days */
       cooldown_days?: number | null;
       /**
@@ -4905,8 +5105,6 @@ export interface components {
       id: string;
       /** Is Active */
       is_active: boolean;
-      /** Is Public */
-      is_public: boolean;
       /** Max Discount Amount */
       max_discount_amount?: string | null;
       /** Min Order Value */
@@ -4916,6 +5114,7 @@ export interface components {
        * Format: uuid
        */
       restaurant_id: string;
+      target_segment?: components['schemas']['CustomerSegment'] | null;
       /** Title */
       title: string;
       /** Total Usage Count */
@@ -4936,11 +5135,33 @@ export interface components {
        * Format: date-time
        */
       valid_until: string;
+      visibility: components['schemas']['CouponVisibility'];
+    };
+    /** CouponClaimRequest */
+    CouponClaimRequest: {
+      /** Code */
+      code: string;
+    };
+    /**
+     * CouponClaimResponse
+     * @description O cupom que acabou de virar do cliente.
+     *
+     *     Vem no MESMO formato da lista, e nao numa resposta propria, para o app
+     *     poder inserir o card resgatado direto na tela sem uma segunda chamada —
+     *     e para nao existirem duas descricoes de cupom que precisem concordar.
+     *
+     *     O `state` aqui e calculado sobre uma sacola VAZIA (o resgate acontece no
+     *     Clube, sem carrinho), entao um cupom com pedido minimo volta como
+     *     `missing_amount` com o minimo inteiro faltando. Isso e o certo: ele foi
+     *     resgatado, ele e do cliente, e ainda nao cabe.
+     */
+    CouponClaimResponse: {
+      coupon: components['schemas']['CustomerCouponResponse'];
     };
     /** CouponCreate */
     CouponCreate: {
       /** Code */
-      code: string;
+      code?: string | null;
       /** Cooldown Days */
       cooldown_days?: number | null;
       /**
@@ -4967,11 +5188,6 @@ export interface components {
        * @default true
        */
       is_active: boolean;
-      /**
-       * Is Public
-       * @default true
-       */
-      is_public: boolean;
       /** Max Discount Amount */
       max_discount_amount?: number | string | null;
       /**
@@ -4979,6 +5195,7 @@ export interface components {
        * @default 0.00
        */
       min_order_value: number | string;
+      target_segment?: components['schemas']['CustomerSegment'] | null;
       /** Title */
       title: string;
       /** Total Usage Limit */
@@ -4995,6 +5212,8 @@ export interface components {
        * Format: date-time
        */
       valid_until: string;
+      /** @default public */
+      visibility: components['schemas']['CouponVisibility'];
     };
     /** CouponPreviewRequest */
     CouponPreviewRequest: {
@@ -5015,7 +5234,7 @@ export interface components {
     /** CouponPreviewResponse */
     CouponPreviewResponse: {
       /** Coupon Code */
-      coupon_code: string;
+      coupon_code?: string | null;
       /**
        * Coupon Id
        * Format: uuid
@@ -5091,12 +5310,11 @@ export interface components {
       first_order_only?: boolean | null;
       /** Is Active */
       is_active?: boolean | null;
-      /** Is Public */
-      is_public?: boolean | null;
       /** Max Discount Amount */
       max_discount_amount?: number | string | null;
       /** Min Order Value */
       min_order_value?: number | string | null;
+      target_segment?: components['schemas']['CustomerSegment'] | null;
       /** Title */
       title?: string | null;
       /** Total Usage Limit */
@@ -5107,7 +5325,21 @@ export interface components {
       valid_from?: string | null;
       /** Valid Until */
       valid_until?: string | null;
+      visibility?: components['schemas']['CouponVisibility'] | null;
     };
+    /**
+     * CouponVisibility
+     * @description Quem enxerga o cupom. Substituiu o `is_public` na revisao 20260828_0043.
+     *
+     *     `str, Enum` e nao `Literal` pelo mesmo motivo de `PaymentErrorCode` e de
+     *     `CustomerSegment`: so assim a LISTA de valores sai nomeada no
+     *     `/openapi.json`, e o painel gera o seletor a partir do documento em vez
+     *     de decorar tres strings.
+     *
+     *     Os valores espelham o CHECK `ck_restaurant_coupons_visibility`.
+     * @enum {string}
+     */
+    CouponVisibility: 'public' | 'segment' | 'private';
     /** CreateCustomerAddressRequest */
     CreateCustomerAddressRequest: {
       /** City */
@@ -5317,6 +5549,126 @@ export interface components {
       updated_at?: string | null;
       /** Zipcode */
       zipcode?: string | null;
+    };
+    /**
+     * CustomerCancelOrderRequest
+     * @description Corpo do cancelamento pelo cliente. Tudo opcional, inclusive ele.
+     *
+     *     **O motivo e OPCIONAL aqui e obrigatorio no painel**, e a assimetria e
+     *     proposital: exigir justificativa de quem desiste de um pedido que nem
+     *     comecou vira um campo que todo mundo preenche com "a", e o historico
+     *     ganha ruido em vez de informacao. Quem cancelou ja fica em
+     *     `order_status_history.changed_by`, que e a pergunta que o suporte faz.
+     *
+     *     Nao ha campo de status, e nao havera: esta rota so cancela, e so ate
+     *     `accepted`. Ver CustomerOrderCancelService.
+     */
+    CustomerCancelOrderRequest: {
+      /**
+       * Reason
+       * @description Opcional. Entra no historico do pedido, precedido de 'Cancelado pelo cliente'.
+       */
+      reason?: string | null;
+    };
+    /**
+     * CustomerCouponLabel
+     * @description A etiqueta que o app pinta no card do cupom.
+     *
+     *     **So existe UMA etiqueta, e cupom publico vem sem nenhuma.** Se todo
+     *     mundo ve, "para todos" e ruido no card — o espaco e caro e a frase nao
+     *     informa nada que a presenca do cupom na lista ja nao diga.
+     *
+     *     E ela **nunca fala de disponibilidade**. "Selecionado para voce" diz de
+     *     quem e a campanha, e nao se da para usar agora; quem responde isso e o
+     *     `state`. Sem essa separacao a etiqueta e o botao se contradizem na mesma
+     *     tela — "selecionado para voce" ao lado de "faltam R$ 12".
+     *
+     *     Nao ha `exclusivo`: o alvo e um SEGMENTO, nao uma pessoa, e prometer
+     *     exclusividade para um recorte de milhares de clientes e propaganda que
+     *     nao se sustenta.
+     * @enum {string}
+     */
+    CustomerCouponLabel: 'selected_for_you';
+    /**
+     * CustomerCouponResponse
+     * @description Um cupom no app do cliente, com o estado JA DECIDIDO pelo backend.
+     *
+     *     O front nao calcula nada aqui — nem o desconto, nem se cabe, nem quanto
+     *     falta. Ele pinta `label`, pinta `state` e mostra `discount_amount`.
+     *
+     *     **Por que a conta nao pode ser do lado de la.** Ela depende de
+     *     `max_discount_amount`, do teto por cliente, do cooldown, do
+     *     primeira-compra e de qual parte da sacola o desconto morde
+     *     (`free_delivery` desconta a taxa, os outros dois descontam o subtotal).
+     *     Reproduzir isso no app seria a segunda implementacao da regra de cupom, e
+     *     a divergencia apareceria onde mais custa: o card promete R$ 15, o
+     *     checkout tira R$ 10, e o cliente ve o desconto encolher entre uma tela e
+     *     a outra.
+     *
+     *     ## O que NAO vem aqui, e nao e esquecimento
+     *
+     *     `discount_value`, `max_discount_amount`, `total_usage_limit`,
+     *     `usage_limit_per_customer` e `cooldown_days` sao PARAMETROS da conta e
+     *     limites internos da campanha. Quem precisa deles e quem calcula, e quem
+     *     calcula e o backend. Publicados, so serviriam para alguem refazer a
+     *     conta errado — ou para mapear os limites da campanha de fora.
+     *
+     *     `min_order_value` fica, porque ele nao e parametro: e a frase "pedido
+     *     minimo R$ 30" que o card precisa escrever. E `valid_until` fica pelo
+     *     mesmo motivo — "valido ate" e texto de card.
+     */
+    CustomerCouponResponse: {
+      /** Code */
+      code?: string | null;
+      /** Description */
+      description?: string | null;
+      /** Discount Amount */
+      discount_amount: string;
+      /**
+       * Discount Type
+       * @enum {string}
+       */
+      discount_type: 'fixed' | 'percent' | 'free_delivery';
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /** Image Url */
+      image_url?: string | null;
+      label?: components['schemas']['CustomerCouponLabel'] | null;
+      /** Min Order Value */
+      min_order_value: string;
+      /** Missing Amount */
+      missing_amount: string;
+      state: components['schemas']['CustomerCouponState'];
+      /** Title */
+      title: string;
+      /**
+       * Valid Until
+       * Format: date-time
+       */
+      valid_until: string;
+    };
+    /**
+     * CustomerCouponState
+     * @description O que o botao do card pode fazer com ESTA sacola.
+     *
+     *     Nao ha valor para "nao aparece": cupom sem conserto nesta sacola —
+     *     vencido, primeira-compra para quem ja comprou, de outro segmento, teto
+     *     estourado, cooldown correndo — simplesmente nao entra na lista. Um card
+     *     cinza com "voce nao pode usar" so ocupa a tela com uma negativa que a
+     *     pessoa nao tem como resolver.
+     *
+     *     O que ENTRA e o que ela consegue mudar agora: colocar mais coisa na
+     *     sacola (`missing_amount`) ou entrar na conta (`login_required`).
+     * @enum {string}
+     */
+    CustomerCouponState: 'applicable' | 'missing_amount' | 'login_required';
+    /** CustomerCouponsResponse */
+    CustomerCouponsResponse: {
+      /** Coupons */
+      coupons: components['schemas']['CustomerCouponResponse'][];
     };
     /**
      * CustomerDataExportResponse
@@ -5599,10 +5951,24 @@ export interface components {
       /** Detail */
       detail?: components['schemas']['ValidationError'][];
     };
-    /** HealthResponse */
+    /**
+     * HealthResponse
+     * @description A resposta de `GET /health`.
+     *
+     *     `git_sha` e o commit de que a imagem foi construida, e existe aqui para a
+     *     pergunta "qual versao esta no ar AGORA?" ter resposta sem precisar de
+     *     acesso ao log do container. Vale `nao-carimbado` quando a imagem foi
+     *     construida sem o build arg — ver `Settings.GIT_SHA`.
+     *
+     *     **Nao ha risco de vazamento aqui.** O repositorio e privado, e um hash de
+     *     commit nao diz nada a quem nao o tem; o que ele evita e uma investigacao
+     *     inteira. A rota ja era publica e ja dizia o nome da aplicacao.
+     */
     HealthResponse: {
       /** App */
       app: string;
+      /** Git Sha */
+      git_sha: string;
       /** Status */
       status: string;
     };
@@ -6094,7 +6460,8 @@ export interface components {
       | 'payment_unavailable'
       | 'payment_rejected'
       | 'login_required'
-      | 'card_token_required';
+      | 'card_token_required'
+      | 'saved_card_not_found';
     /**
      * PaymentErrorDetail
      * @description O `detail` quando a cobranca nao pode ser criada.
@@ -6604,6 +6971,8 @@ export interface components {
        * Format: uuid
        */
       restaurant_id: string;
+      /** Serves People */
+      serves_people?: number | null;
       /** Slug */
       slug?: string | null;
       /**
@@ -6650,7 +7019,7 @@ export interface components {
      */
     PublicCouponResponse: {
       /** Code */
-      code: string;
+      code?: string | null;
       /** Discount Type */
       discount_type: string;
       /** Discount Value */
@@ -7030,6 +7399,81 @@ export interface components {
       revenue_total: string;
     };
     /**
+     * SaveCardRequest
+     * @description O que o navegador manda para salvar um cartao.
+     *
+     *     `restaurant_slug` no corpo, e nao inferido: o cartao salvo vive dentro
+     *     da conta do Mercado Pago DAQUELE restaurante (ver
+     *     `customer_saved_cards`), entao nao existe "salvar o cartao" sem dizer
+     *     onde. Um default silencioso salvaria na loja errada e o cartao nao
+     *     apareceria na tela do checkout.
+     */
+    SaveCardRequest: {
+      /**
+       * Restaurant Slug
+       * @description Restaurante em cuja conta do gateway o cartao sera salvo.
+       */
+      restaurant_slug: string;
+      /**
+       * Token
+       * @description Token de uso unico gerado pelo SDK do Mercado Pago NO NAVEGADOR. O numero do cartao nao passa por esta API.
+       */
+      token: string;
+    };
+    /**
+     * SavedCardResponse
+     * @description O cartao como a tela precisa dele: para reconhecer E para tokenizar.
+     *
+     *     `id` e o nosso UUID, e e ele que volta em `card.saved_card_id` na hora
+     *     de pagar.
+     *
+     *     `provider_card_id` e o id do cartao na conta do Mercado Pago do lojista,
+     *     e ele SAI daqui de proposito. A versao anterior deste contrato o retinha
+     *     ("nao ajudaria o front em nada") e isso contradizia o
+     *     `CardPaymentPayload` deste mesmo backend, que exige um `token` gerado no
+     *     navegador "a partir do `card_id` mais o CVV". Sem este campo o navegador
+     *     mandava o nosso UUID no lugar e a tokenizacao voltava
+     *     `400 {"message":"invalid card_id", "cause":[{"code":"E201"}]}` —
+     *     a tela de CVV nunca conseguia confirmar cartao salvo nenhum.
+     *
+     *     Publicar o valor nao afrouxa nada: ele so vale acompanhado do CVV (que
+     *     esta pessoa acabou de digitar) ou do access_token do lojista (que nunca
+     *     sai do servidor), a rota e `/customers/me/cards` autorizada pelo Bearer
+     *     do dono do cartao, e a propria referencia do Mercado Pago carrega esse id
+     *     num input escondido do navegador.
+     */
+    SavedCardResponse: {
+      /**
+       * Brand
+       * @description Bandeira, no vocabulario do gateway: "visa", "master", "elo".
+       */
+      brand: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Expiration Month */
+      expiration_month?: number | null;
+      /** Expiration Year */
+      expiration_year?: number | null;
+      /**
+       * Id
+       * Format: uuid
+       */
+      id: string;
+      /**
+       * Last Four Digits
+       * @description Os quatro ultimos digitos, para a tela.
+       */
+      last_four_digits: string;
+      /**
+       * Provider Card Id
+       * @description Id do cartao na conta do Mercado Pago do restaurante. O SDK do navegador precisa dele para gerar o token de cobranca a partir de `card_id` + CVV.
+       */
+      provider_card_id: string;
+    };
+    /**
      * StartPaymentRequest
      * @description Corpo da criacao da cobranca.
      *
@@ -7163,6 +7607,12 @@ export interface components {
      *     efeito.
      */
     UpdateOrderStatusRequest: {
+      /**
+       * Confirm Prepared Order
+       * @description Mesma confirmacao de `CancelOrderRequest`, e ela precisa existir aqui tambem: esta rota aceita `status='cancelled'` e seria a porta pela qual o painel pularia o dialogo. So tem efeito nesse status.
+       * @default false
+       */
+      confirm_prepared_order: boolean;
       /** Note */
       note?: string | null;
       /** Status */
@@ -7170,6 +7620,10 @@ export interface components {
     };
     /** ValidationError */
     ValidationError: {
+      /** Context */
+      ctx?: Record<string, never>;
+      /** Input */
+      input?: unknown;
       /** Location */
       loc: (string | number)[];
       /** Message */
@@ -8887,6 +9341,15 @@ export interface operations {
           'application/json': components['schemas']['HTTPValidationError'];
         };
       };
+      /** @description Cancelamento de pedido ja em producao sem `confirm_prepared_order`. Nao e erro: o painel abre o dialogo de confirmacao e reenvia. */
+      428: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CancelOrderErrorResponse'];
+        };
+      };
     };
   };
   get_order_print_jobs_admin_orders__order_id__print_jobs_get: {
@@ -8954,6 +9417,15 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+      /** @description Cancelamento de pedido ja em producao sem `confirm_prepared_order`. Nao e erro: o painel abre o dialogo de confirmacao e reenvia. */
+      428: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CancelOrderErrorResponse'];
         };
       };
     };
@@ -10539,6 +11011,165 @@ export interface operations {
       };
     };
   };
+  list_saved_cards_customers_me_cards_get: {
+    parameters: {
+      query: {
+        /** @description Restaurante cujos cartoes salvos se quer listar. Obrigatorio: o cartao vive na conta do gateway DAQUELE lojista e nao e visivel nem cobravel pela conta de outro. */
+        restaurant_slug: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SavedCardResponse'][];
+        };
+      };
+      /** @description Nao autenticado */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Restaurante nao encontrado */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  save_card_customers_me_cards_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SaveCardRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SavedCardResponse'];
+        };
+      };
+      /** @description Nao autenticado */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Conta sem e-mail */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+      /** @description Gateway recusou ou nao respondeu */
+      502: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Restaurante sem cartao habilitado no ambiente ativo */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  delete_saved_card_customers_me_cards__card_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        card_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MessageResponse'];
+        };
+      };
+      /** @description Nao autenticado */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Cartao nao encontrado nesta conta */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+      /** @description Gateway nao respondeu */
+      502: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   get_cashback_balance_customers_me_cashback_get: {
     parameters: {
       query?: never;
@@ -10867,7 +11498,7 @@ export interface operations {
       };
     };
   };
-  list_available_coupons_restaurants__restaurant_slug__coupons_available_get: {
+  list_customer_coupons_restaurants__restaurant_slug__coupons_get: {
     parameters: {
       query?: {
         subtotal?: number | string | null;
@@ -10888,7 +11519,42 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['AvailableCouponsResponse'];
+          'application/json': components['schemas']['CustomerCouponsResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  claim_coupon_restaurants__restaurant_slug__coupons_claim_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        restaurant_slug: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CouponClaimRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CouponClaimResponse'];
         };
       };
       /** @description Validation Error */
@@ -11096,6 +11762,56 @@ export interface operations {
         content: {
           'application/json': components['schemas']['OrderDetailResponse'];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  cancel_order_by_customer_restaurants__restaurant_slug__orders_track__tracking_token__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        restaurant_slug: string;
+        tracking_token: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['CustomerCancelOrderRequest'] | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OrderDetailResponse'];
+        };
+      };
+      /** @description Pedido nao encontrado, ou token invalido */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description O pedido ja saiu da janela em que o cliente cancela sozinho (a partir de `preparing`), ou ja e um estado final */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {
