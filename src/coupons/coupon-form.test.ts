@@ -45,14 +45,46 @@ describe('a validação do formulário', () => {
   });
 
   /*
-   * O código PARECE opcional ("o cliente acha o cupom na vitrine sem digitar")
-   * e não é: `code` tem `min_length=1` e um validador que recusa só-espaços.
-   * Antes desse validador o branco chegava ao banco e voltava como "código já
-   * existe" — 409 para um cupom que não existia.
+   * O CÓDIGO DEIXOU DE SER COBRADO em 28/08/2026, e o vazio passou a ter
+   * significado: o cupom aplica sozinho no checkout. A tela que continuasse
+   * cobrando o campo estaria proibindo a campanha automática inteira.
    */
-  it('cobra o código, inclusive quando ele é só espaço', () => {
-    expect(validarRascunho(rascunho({ code: '' }), arte()).campos.code).toBeTruthy();
-    expect(validarRascunho(rascunho({ code: '   ' }), arte()).campos.code).toBeTruthy();
+  it('deixa passar sem código — o vazio é o cupom que aplica sozinho', () => {
+    expect(temErro(validarRascunho(rascunho({ code: '' }), arte()))).toBe(false);
+    expect(temErro(validarRascunho(rascunho({ code: '   ' }), arte()))).toBe(false);
+  });
+
+  /*
+   * PRIVADO SEM CÓDIGO É A ÚNICA REGRA DESTE ARQUIVO SEM PAR NO BACKEND, e por
+   * isso ela precisa existir aqui: as duas metades são válidas separadamente e
+   * a combinação grava, responde 201 e some. O resgate procura a campanha PELO
+   * CÓDIGO, e `_can_see` só libera um cupom privado que tenha resgate gravado —
+   * sem código não há como resgatar, e o automático não salva porque passa pelo
+   * mesmo `evaluate`.
+   */
+  it('recusa privado sem código, que é a campanha que não chega a ninguém', () => {
+    const erros = validarRascunho(rascunho({ visibility: 'private', code: '' }), arte());
+    expect(erros.campos.code).toContain('só chega a quem digita');
+  });
+
+  it('privado COM código passa, e público sem código também', () => {
+    expect(
+      temErro(validarRascunho(rascunho({ visibility: 'private', code: 'NATAL10' }), arte())),
+    ).toBe(false);
+    expect(
+      temErro(validarRascunho(rascunho({ visibility: 'public', code: '' }), arte())),
+    ).toBe(false);
+  });
+
+  /* Espelha o CHECK `ck_restaurant_coupons_segment_needs_target`. O sentido
+     contrário (alvo fora de segmento) não é conferido porque a tela o torna
+     impossível: o seletor some e `bodyFrom` zera o campo. */
+  it('cobra a classe quando a visibilidade é por segmento', () => {
+    const erros = validarRascunho(rascunho({ visibility: 'segment', targetSegment: '' }), arte());
+    expect(erros.campos.targetSegment).toBeTruthy();
+
+    const completo = rascunho({ visibility: 'segment', targetSegment: 'fiel' });
+    expect(temErro(validarRascunho(completo, arte()))).toBe(false);
   });
 
   it('recusa a data final anterior à inicial', () => {
@@ -160,6 +192,32 @@ describe('a tradução da recusa da API', () => {
     });
 
     expect(errosDaResposta(erro).campos.code).toBe('String should have at most 100 characters');
+  });
+
+  /*
+   * OS DOIS SENTIDOS DO CHECK DE SEGMENTO APONTAM CAMPOS DIFERENTES, e é a
+   * razão de haver duas regras em vez de uma: o que sobra num cupom público não
+   * é a classe, é a visibilidade que deixou de ser "por segmento". Mandar o
+   * lojista apagar a classe seria mandá-lo desfazer a metade errada.
+   */
+  it('422 de segmento sem alvo destaca a CLASSE', () => {
+    const erro = new ApiError(422, 'x', {
+      detail: [{ loc: ['body'], msg: 'Value error, cupom de segmento precisa de target_segment' }],
+    });
+
+    expect(errosDaResposta(erro).campos.targetSegment).toBeTruthy();
+    expect(errosDaResposta(erro).campos.visibility).toBeUndefined();
+  });
+
+  it('422 de alvo sobrando destaca a VISIBILIDADE', () => {
+    const erro = new ApiError(422, 'x', {
+      detail: [
+        { loc: ['body'], msg: 'Value error, target_segment só vale com visibility = segment' },
+      ],
+    });
+
+    expect(errosDaResposta(erro).campos.visibility).toBeTruthy();
+    expect(errosDaResposta(erro).campos.targetSegment).toBeUndefined();
   });
 
   /*

@@ -436,6 +436,21 @@ export type CouponTemplate = Schemas['CouponTemplateResponse'];
 /** `percent`, `fixed` ou `free_delivery` — sempre lido da arte, nunca digitado. */
 export type CouponDiscountType = Coupon['discount_type'];
 
+/**
+ * QUEM ENXERGA O CUPOM — `public`, `segment` ou `private`.
+ *
+ * Substituiu `is_public` na revisão `20260828_0043` do backend, e SEM ALIAS: o
+ * booleano não existe mais em corpo nenhum. A troca não é de nome — o booleano
+ * tinha dois valores e um deles (`false`) era um cupom que ninguém conseguia
+ * usar; aqui os três são utilizáveis, e o que muda é por onde o cliente chega.
+ *
+ * O apelido sai do enum GERADO pelo mesmo motivo de `CustomerSegment`: é o que
+ * faz `Record<CouponVisibility, ...>` acender no `npm run typecheck` no dia em
+ * que a plataforma criar um quarto valor, em vez de a lista mostrar uma linha
+ * sem etiqueta.
+ */
+export type CouponVisibility = Coupon['visibility'];
+
 // --- a equipe do restaurante (Usuários) -----------------------------------
 
 /**

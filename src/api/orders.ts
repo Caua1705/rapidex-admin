@@ -80,7 +80,8 @@ export async function updateOrderStatus(
         // histórico do pedido.
         header: { 'Idempotency-Key': crypto.randomUUID() },
       },
-      body: { status, ...(note ? { note } : {}) },
+      // `confirm_prepared_order: false` — ver `cancelOrder` logo abaixo.
+      body: { status, confirm_prepared_order: false, ...(note ? { note } : {}) },
     }),
   );
 }
@@ -103,7 +104,23 @@ export async function cancelOrder(orderId: string, reason: string): Promise<Orde
         // dois cancelamentos no histórico.
         header: { 'Idempotency-Key': crypto.randomUUID() },
       },
-      body: { reason },
+      /*
+       * `confirm_prepared_order: false`, E ELE É UM PENDENTE, não uma decisão
+       * fechada.
+       *
+       * O campo entrou no contrato junto com a visibilidade do cupom. A partir
+       * de `preparing`, cancelar sem ele responde **428 `confirmation_required`**
+       * — que o próprio contrato diz não ser erro: "o painel abre o diálogo de
+       * confirmação e reenvia". Esse diálogo AINDA NÃO EXISTE, então hoje o
+       * lojista vê a mensagem do 428 e o cancelamento não acontece.
+       *
+       * `false` explícito é o que preserva o comportamento de antes e falha
+       * FECHADO: mandar `true` daqui seria o painel afirmando, por conta
+       * própria, que o lojista sabe que a comida já foi feita — em toda
+       * cozinha, para todo cancelamento, sem ninguém ter confirmado nada. É
+       * exatamente o que o campo existe para impedir.
+       */
+      body: { reason, confirm_prepared_order: false },
     }),
   );
 }

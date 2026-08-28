@@ -107,10 +107,13 @@
  * quebra em "37 de / 100" ou "20% (até R$ / 15,00)" dá à linha uma altura
  * diferente da vizinha — o alinhamento por coluna é o que faz a lista se ler
  * de relance, e ele depende de as linhas terem o mesmo passo.
+ *
+ * (3 é Desconto e 6 é Usos. A coluna 4, "Quem vê", ficou de fora de propósito:
+ * ela leva uma etiqueta, que já não quebra por conta própria.)
  */
 .cupons__validade,
 .cupons__lista td:nth-child(3),
-.cupons__lista td:nth-child(5) {
+.cupons__lista td:nth-child(6) {
   white-space: nowrap;
 }
 
@@ -435,6 +438,8 @@
  *
  *    72  a miniatura de 56px mais o respiro da célula
  *   160  "20% (até R$ 15,00)" numa linha só — o mais largo dos três tipos
+ *   132  "Por segmento" numa etiqueta, que é o mais largo de "Quem vê": as
+ *        campanhas segmentadas mostram a CLASSE ("Em risco"), mais curta
  *   148  "01/09 a 30/09" sem quebrar
  *    88  "37 de 100", alinhado à direita
  *   164  a coluna de situação abriga DUAS etiquetas empilhadas ("Ativo" e
@@ -442,14 +447,18 @@
  *        a letra
  *   124  o lápis (`icon-btn`) e "Desligar" lado a lado em `.btn--sm`
  *
- * SÓ A PARTIR DE 1180px, que é onde a lateral do shell ganha os nomes — a
- * mesma faixa de Clientes, e pelo mesmo motivo: as seis larguras fixas somam
- * 756px, e abaixo disso elas não cabem junto de um nome de campanha legível.
- * Uma coluna declarada mais larga que o espaço não encolhe: ela empurra a
- * tabela para fora da margem. Entre 640 e 1179px a distribuição fica com o
- * navegador, que nunca comprime uma coluna abaixo do cabeçalho dela.
+ * SÓ A PARTIR DE 1320px, e o número SUBIU de 1180 quando "Quem vê" entrou.
+ * Não é gosto: as sete larguras fixas somam 888px, e a 1180 sobra 920px de
+ * tabela (o viewport menos a lateral escrita de 212 e os dois respiros de 24) —
+ * o que deixaria 32px para o nome da campanha. Uma coluna declarada mais larga
+ * que o espaço não encolhe: ela empurra a tabela para fora da margem. A 1320
+ * sobram 172px para o nome, que é a mesma folga que as seis colunas antigas
+ * tinham a 1180.
+ *
+ * Entre 640 e 1319px a distribuição fica com o navegador, que nunca comprime
+ * uma coluna abaixo do cabeçalho dela.
  * ======================================================================= */
-@media (min-width: 1180px) {
+@media (min-width: 1320px) {
   .cupons__lista th:nth-child(1) {
     width: 72px;
   }
@@ -459,18 +468,22 @@
   }
 
   .cupons__lista th:nth-child(4) {
-    width: 148px;
+    width: 132px;
   }
 
   .cupons__lista th:nth-child(5) {
-    width: 88px;
+    width: 148px;
   }
 
   .cupons__lista th:nth-child(6) {
-    width: 164px;
+    width: 88px;
   }
 
   .cupons__lista th:nth-child(7) {
+    width: 164px;
+  }
+
+  .cupons__lista th:nth-child(8) {
     width: 124px;
   }
 }

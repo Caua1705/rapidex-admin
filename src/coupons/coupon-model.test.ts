@@ -13,7 +13,9 @@ import {
   rascunhoDe,
   rascunhoNovo,
   situacaoDoCupom,
+  textoDeQuemVe,
   textoDeUso,
+  textoDoCodigo,
   tipoDaArte,
 } from './coupon-model';
 
@@ -48,7 +50,8 @@ function cupom(overrides: Partial<Coupon> = {}): Coupon {
     usage_limit_per_customer: null,
     cooldown_days: null,
     first_order_only: false,
-    is_public: true,
+    visibility: 'public',
+    target_segment: null,
     is_active: true,
     total_usage_count: 0,
     created_at: null,
@@ -146,9 +149,56 @@ describe('o corpo', () => {
     expect('total_usage_limit' in (body ?? {})).toBe(true);
   });
 
-  it('nunca manda is_public false — ele é o interruptor que mata o cupom', () => {
-    expect(bodyFrom(RASCUNHO, arte())?.is_public).toBe(true);
-    expect(bodyFrom({ ...RASCUNHO, isActive: false }, arte())?.is_public).toBe(true);
+  /*
+   * O CÓDIGO VAZIO SOBE COMO `null`, e não como `""`.
+   *
+   * É o que liga o desconto automático: `auto_apply_for_order` procura os
+   * cupons `code IS NULL`. Uma string vazia não é nenhum dos dois — o backend
+   * a recusa de propósito ("code não pode ser só espaços; omita o campo"),
+   * porque a diferença decide comportamento de produto.
+   */
+  it('código vazio vira null, que é o que faz o cupom aplicar sozinho', () => {
+    expect(bodyFrom({ ...RASCUNHO, code: '' }, arte())?.code).toBeNull();
+    expect(bodyFrom({ ...RASCUNHO, code: '   ' }, arte())?.code).toBeNull();
+  });
+
+  /*
+   * No PATCH, `null` EXPLÍCITO é o que TIRA o código de uma campanha que tinha
+   * um. `exclude_unset=True` do outro lado: campo ausente preserva o gravado, e
+   * o lojista apagaria "SETEMBRO" na tela para continuar com SETEMBRO no banco.
+   */
+  it('o código nulo vai no corpo em vez de sumir dele', () => {
+    const body = bodyFrom({ ...RASCUNHO, code: '' }, arte());
+    expect('code' in (body ?? {})).toBe(true);
+  });
+
+  it('manda a visibilidade escolhida, e o alvo junto quando é por segmento', () => {
+    const body = bodyFrom(
+      { ...RASCUNHO, visibility: 'segment', targetSegment: 'em_risco' },
+      arte(),
+    );
+    expect(body).toMatchObject({ visibility: 'segment', target_segment: 'em_risco' });
+  });
+
+  /*
+   * O CHECK do banco vale nos DOIS sentidos — `(visibility = 'segment') =
+   * (target_segment IS NOT NULL)` —, e o Pydantic o espelha. O rascunho pode
+   * carregar a classe de uma escolha anterior: sem esta zeragem, voltar para
+   * "Público" mandaria `target_segment` junto e o 422 apontaria um seletor que
+   * a tela parou de mostrar.
+   */
+  it('zera o alvo fora de "por segmento", mesmo com a classe no rascunho', () => {
+    const publico = bodyFrom(
+      { ...RASCUNHO, visibility: 'public', targetSegment: 'fiel' },
+      arte(),
+    );
+    const privado = bodyFrom(
+      { ...RASCUNHO, visibility: 'private', targetSegment: 'fiel' },
+      arte(),
+    );
+
+    expect(publico?.target_segment).toBeNull();
+    expect(privado?.target_segment).toBeNull();
   });
 });
 
@@ -192,6 +242,50 @@ describe('a conversão de dia para instante', () => {
 });
 
 /* ==========================================================================
+ * QUEM VÊ, E COMO O CLIENTE CHEGA
+ * ======================================================================= */
+
+describe('a coluna "Quem vê"', () => {
+  it('nomeia as visibilidades sem alvo pelo rótulo delas', () => {
+    expect(textoDeQuemVe(cupom({ visibility: 'public' }))).toBe('Público');
+    expect(textoDeQuemVe(cupom({ visibility: 'private' }))).toBe('Privado');
+  });
+
+  /*
+   * "Por segmento" sozinho não responde à pergunta que a coluna existe para
+   * responder: duas campanhas segmentadas lado a lado, uma para "Fiel" e outra
+   * para "Perdido", apareceriam idênticas.
+   */
+  it('a campanha por segmento mostra a CLASSE, e não o rótulo genérico', () => {
+    const alvo = cupom({ visibility: 'segment', target_segment: 'em_risco' });
+    expect(textoDeQuemVe(alvo)).toBe('Em risco');
+  });
+
+  /* Uma sexta classe RFV na plataforma chegaria sem par em `SEGMENT_LABEL`.
+     Sobra o rótulo da visibilidade, que continua verdadeiro — nunca `undefined`
+     escrito na célula. */
+  it('classe desconhecida cai para o rótulo da visibilidade, e não inventa nada', () => {
+    const estranho = cupom({ visibility: 'segment', target_segment: null });
+    expect(textoDeQuemVe(estranho)).toBe('Por segmento');
+  });
+});
+
+describe('a linha do código na lista', () => {
+  it('mostra o código quando ele existe', () => {
+    expect(textoDoCodigo(cupom({ code: 'PROMO10' }))).toBe('PROMO10');
+  });
+
+  /*
+   * Célula vazia leria como dado faltando, e o lojista procuraria o código que
+   * o cupom não tem — em vez de entender que este desconto entra no pedido sem
+   * ninguém digitar nada.
+   */
+  it('sem código ela DIZ o que o nulo significa, em vez de ficar vazia', () => {
+    expect(textoDoCodigo(cupom({ code: null }))).toBe('aplica sozinho');
+  });
+});
+
+/* ==========================================================================
  * A SITUAÇÃO — cinco estados, na ordem do backend
  * ======================================================================= */
 
@@ -222,13 +316,21 @@ describe('a situação da campanha', () => {
   });
 
   /*
-   * `is_public: false` NÃO É CUPOM SECRETO. `evaluate` recusa `not_public` na
-   * prévia e no fechamento do pedido — ninguém consegue usá-lo, nem digitando
-   * o código. Chamá-lo de "ativo" seria a tela afirmando que a campanha está no
-   * ar quando ela não está.
+   * A VISIBILIDADE NÃO DESLIGA CAMPANHA NENHUMA, e este teste guarda a virada
+   * de `20260828_0043`.
+   *
+   * Com `is_public`, o `false` caía em DESLIGADO — e caía com razão: `evaluate`
+   * recusava `not_public` na prévia E no fechamento, então o cupom era inusável
+   * por caminho nenhum. As três visibilidades de hoje são todas usáveis; o que
+   * muda é por onde o cliente chega. Marcar "Desligado" um cupom privado diria
+   * que a campanha está fora do ar quando ela está valendo para quem tem o
+   * código.
    */
-  it('desligado também quando is_public é falso', () => {
-    expect(situacaoDoCupom(cupom({ is_public: false }), dentro)).toBe('desligado');
+  it('privado e por segmento continuam ATIVOS — quem vê não é o interruptor', () => {
+    expect(situacaoDoCupom(cupom({ visibility: 'private' }), dentro)).toBe('ativo');
+    expect(
+      situacaoDoCupom(cupom({ visibility: 'segment', target_segment: 'fiel' }), dentro),
+    ).toBe('ativo');
   });
 
   /*

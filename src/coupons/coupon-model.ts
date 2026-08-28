@@ -1,15 +1,26 @@
 /**
  * O que a tela de Cupons sabe sobre uma campanha — sem React, sem tela.
  *
- * Três coisas moram aqui, e as três existem porque a tela não pode deduzi-las
- * de novo em cada lugar que precisa delas:
+ * Quatro coisas moram aqui, e as quatro existem porque a tela não pode
+ * deduzi-las de novo em cada lugar que precisa delas:
  *
  *   1. A TRAVA DA ARTE — `bodyFrom` monta o corpo, e o tipo e o valor do
  *      desconto saem SEMPRE da arte escolhida, nunca do rascunho.
  *   2. A SITUAÇÃO — cinco estados, na ordem em que o backend recusa o cupom.
  *   3. AS ARTES QUE SOBRAM — o cruzamento que impede o 409 da arte repetida.
+ *   4. QUEM VÊ E COMO CHEGA — `visibility` mais a presença do código, que são
+ *      dois eixos independentes e juntos decidem por onde o cliente pega o
+ *      cupom.
  */
-import type { Coupon, CouponCreate, CouponDiscountType, CouponTemplate } from '../api/types';
+import type {
+  Coupon,
+  CouponCreate,
+  CouponDiscountType,
+  CouponTemplate,
+  CouponVisibility,
+  CustomerSegment,
+} from '../api/types';
+import { SEGMENT_LABEL } from '../customers/customer-segment';
 import { OPERATION_TIMEZONE } from '../orders/format';
 import {
   formatDecimalInput,
@@ -30,10 +41,9 @@ import {
  * escolher a arte de 10% e digitar 7%. Eles saem de `templateId` em
  * `bodyFrom`, e de lugar nenhum mais.
  *
- * Também não há `isPublic`: o campo existe no contrato e parece "cupom
- * secreto", mas `evaluate` recusa `not_public` tanto na prévia quanto no
- * fechamento do pedido — um cupom não público não é discreto, é inusável. A
- * criação usa o default `true` do backend e a edição nunca o toca.
+ * `code` É TEXTO E PODE FICAR VAZIO — e o vazio é uma ESCOLHA, não um campo
+ * por preencher: cupom sem código aplica sozinho no checkout. `bodyFrom` o
+ * traduz para `null`, que é o que o backend lê como automático.
  */
 export type CouponDraft = {
   /** Nulo em campanha nova. É o que separa POST de PATCH. */
@@ -42,6 +52,16 @@ export type CouponDraft = {
   title: string;
   code: string;
   description: string;
+  visibility: CouponVisibility;
+  /**
+   * Vazio quando a visibilidade não é `segment`.
+   *
+   * O banco tem o CHECK `(visibility = 'segment') = (target_segment IS NOT
+   * NULL)`, nos DOIS sentidos, e o Pydantic o espelha: alvo preenchido num
+   * cupom público é 422, não um campo ignorado. Por isso `bodyFrom` o zera
+   * fora de `segment` em vez de confiar no que a tela está mostrando.
+   */
+  targetSegment: CustomerSegment | '';
   /** AAAA-MM-DD, como o `input type="date"` devolve. */
   validFrom: string;
   validUntil: string;
@@ -234,6 +254,100 @@ export function aceitaTeto(tipo: CouponDiscountType | null): boolean {
 }
 
 /* ==========================================================================
+ * QUEM VÊ O CUPOM — e por onde ele chega
+ * ======================================================================= */
+
+/**
+ * A ordem das três opções, e ela vai do mais aberto para o mais fechado.
+ *
+ * Não é alfabética nem a do enum: quem abre o formulário está decidindo QUANTA
+ * gente alcança, e a escada crescente de restrição é a forma dessa decisão.
+ * `public` primeiro também porque é o default do backend e a campanha comum.
+ */
+export const ORDEM_DAS_VISIBILIDADES: readonly CouponVisibility[] = [
+  'public',
+  'segment',
+  'private',
+];
+
+/**
+ * O rótulo de cada uma. Substantivo curto — ele vive numa célula de tabela.
+ *
+ * `Record<CouponVisibility, string>` trava a lista no enum GERADO: um quarto
+ * valor no contrato vira erro de compilação aqui, e não uma linha sem etiqueta
+ * na tela do lojista. Mesma regra de `SEGMENT_LABEL` em Clientes.
+ */
+export const VISIBILIDADE_LABEL: Record<CouponVisibility, string> = {
+  public: 'Público',
+  segment: 'Por segmento',
+  private: 'Privado',
+};
+
+/**
+ * O QUE CADA UMA FAZ, dito pelo que o CLIENTE vê — não pelo nome do campo.
+ *
+ * As três frases saem de `CouponService._can_see`, que é o único lugar do
+ * backend que lê `visibility`, e cada uma guarda uma consequência que o lojista
+ * não tem como adivinhar do rótulo:
+ *
+ *   - `public` é o único que aparece para quem NÃO está logado. Nos outros dois
+ *     o convidado nem sabe que a campanha existe — de propósito: devolver "entre
+ *     na conta para usar" num cupom privado anunciaria a existência dele.
+ *   - `segment` compara com a classe RFV do cliente, que é calculada pelo
+ *     backend e MUDA sozinha: quem estava "Em risco" e voltou a pedir sai da
+ *     campanha sem ninguém mexer nela.
+ *   - `private` exige RESGATE: a pessoa digita o código no Clube (ou no
+ *     checkout) e o cupom passa a ser dela. Sem código digitado ele não existe
+ *     para ninguém — daí a regra de `validarRascunho` que impede privado sem
+ *     código.
+ */
+export const VISIBILIDADE_AJUDA: Record<CouponVisibility, string> = {
+  public: 'Aparece na lista de cupons do app para todo mundo, inclusive para quem não entrou na conta.',
+  segment:
+    'Aparece só para quem está na classe escolhida. A classe é calculada pelo Rapidex e muda sozinha conforme o cliente pede ou some.',
+  private:
+    'Não aparece para ninguém. Só chega a quem digitar o código — é o cupom que você manda por fora, no panfleto ou no direct.',
+};
+
+/** O alvo só existe em `segment` — nos outros dois o backend responde 422. */
+export function aceitaSegmento(visibilidade: CouponVisibility): boolean {
+  return visibilidade === 'segment';
+}
+
+/**
+ * QUEM VÊ ESTA CAMPANHA, em uma expressão — a coluna da lista.
+ *
+ * O segmento entra no texto porque "Por segmento" sozinho não responde à
+ * pergunta que a coluna existe para responder: duas campanhas segmentadas lado
+ * a lado, uma para "Fiel" e outra para "Perdido", são coisas diferentes e a
+ * etiqueta as mostraria idênticas.
+ *
+ * ALVO DESCONHECIDO NÃO INVENTA RÓTULO: `target_segment` é anulável no contrato
+ * e o CHECK do banco garante que ele existe em `segment`, mas uma classe RFV
+ * nova na plataforma chegaria aqui sem par em `SEGMENT_LABEL`. Nesse caso sobra
+ * o rótulo da visibilidade, que continua verdadeiro.
+ */
+export function textoDeQuemVe(cupom: Coupon): string {
+  const base = VISIBILIDADE_LABEL[cupom.visibility];
+  if (cupom.visibility !== 'segment') return base;
+  const alvo = cupom.target_segment ? SEGMENT_LABEL[cupom.target_segment] : null;
+  return alvo ?? base;
+}
+
+/**
+ * COMO O CLIENTE PEGA O CUPOM — a linha auxiliar embaixo do nome, na lista.
+ *
+ * É o par de `textoDeQuemVe` e responde outra pergunta: aquela diz QUEM
+ * enxerga, esta diz o que a pessoa faz para usar. São eixos independentes —
+ * existe cupom público automático e cupom público com código —, e mostrar só um
+ * dos dois deixaria o lojista sem saber por que o desconto está saindo sem
+ * ninguém digitar nada.
+ */
+export function textoDoCodigo(cupom: Coupon): string {
+  return cupom.code ?? 'aplica sozinho';
+}
+
+/* ==========================================================================
  * A SITUAÇÃO — cinco estados, na ordem em que o backend recusa
  * ======================================================================= */
 
@@ -254,19 +368,24 @@ export const SITUACAO_LABEL: Record<Situacao, string> = {
  * capricho: um cupom desligado E expirado precisa dizer a mesma coisa nas duas
  * telas, senão o lojista religa a campanha na nossa e o checkout continua
  * recusando pela outra razão. A ordem lá é
- * `inactive` → `not_public` → `not_started` → `expired` → `total_limit`.
+ * `inactive` → `not_started` → `expired` → `total_limit`.
  *
- * `is_public: false` cai em DESLIGADO junto com `is_active: false` porque as
- * duas recusas são indistinguíveis para quem está comprando: o cupom não
- * aparece na vitrine e não é aceito se digitado. Chamar isso de "ativo" seria
- * a tela afirmando que uma campanha está no ar quando ninguém consegue usá-la.
+ * A VISIBILIDADE NÃO ENTRA NESTA CONTA, e a ausência é a mudança de
+ * `20260828_0043`. Enquanto existia `is_public`, o `false` caía em DESLIGADO
+ * junto com `is_active: false` — e caía com razão, porque `evaluate` recusava
+ * `not_public` na prévia E no fechamento: o cupom era inusável por caminho
+ * nenhum. As três visibilidades de hoje são todas USÁVEIS; o que muda é por
+ * onde o cliente chega. Um cupom privado marcado "Desligado" diria que a
+ * campanha está fora do ar quando ela está valendo para quem tem o código.
+ *
+ * O interruptor é `is_active`, um só. Quem vê é outra coluna.
  *
  * ESGOTADO vem por último, e é por isso que ele só aparece dentro do prazo:
  * uma campanha que estourou o limite em julho e venceu em agosto lê "Expirado",
  * que é o que o checkout diria.
  */
 export function situacaoDoCupom(cupom: Coupon, agora: Date = new Date()): Situacao {
-  if (!cupom.is_active || !cupom.is_public) return 'desligado';
+  if (!cupom.is_active) return 'desligado';
 
   const instante = agora.getTime();
   const inicio = new Date(cupom.valid_from).getTime();
@@ -382,7 +501,14 @@ export function contarArtes(grupos: readonly GrupoDeArtes[]): number {
  * RASCUNHO ↔ CORPO
  * ======================================================================= */
 
-/** Campanha nova: começa hoje, dura o mês, e nasce ligada. */
+/**
+ * Campanha nova: começa hoje, dura o mês, e nasce ligada.
+ *
+ * NASCE PÚBLICA, que é o default do backend e a campanha que o lojista quase
+ * sempre está criando. Abrir em "Privado" faria a opção segura ser a de menos
+ * alcance — e uma campanha que ninguém vê é o defeito mais caro desta tela,
+ * porque ela não acusa nada: some da vitrine em silêncio.
+ */
 export function rascunhoNovo(hoje: string): CouponDraft {
   return {
     id: null,
@@ -390,6 +516,8 @@ export function rascunhoNovo(hoje: string): CouponDraft {
     title: '',
     code: '',
     description: '',
+    visibility: 'public',
+    targetSegment: '',
     validFrom: hoje,
     validUntil: hoje,
     minOrderValue: '',
@@ -416,8 +544,12 @@ export function rascunhoDe(cupom: Coupon): CouponDraft {
     id: cupom.id,
     templateId: cupom.coupon_template_id,
     title: cupom.title,
-    code: cupom.code,
+    /* Sem código, o campo abre VAZIO — que é o estado que significa
+       "aplica sozinho". Ver `bodyFrom`. */
+    code: cupom.code ?? '',
     description: cupom.description ?? '',
+    visibility: cupom.visibility,
+    targetSegment: cupom.target_segment ?? '',
     validFrom: diaDaOperacao(cupom.valid_from),
     validUntil: diaDaOperacao(cupom.valid_until),
     minOrderValue: semMinimo ? '' : formatDecimalInput(cupom.min_order_value),
@@ -470,6 +602,23 @@ function dinheiroOuNulo(raw: string): string | null {
  * vazio. Não é desleixo: `update_admin` revalida a MESCLA inteira, então um
  * campo omitido continua valendo o que estava gravado — e um `total_usage_limit`
  * que o lojista APAGOU precisa virar `null`, não sumir do corpo e continuar 100.
+ *
+ * O CÓDIGO VAZIO SOBE COMO `null`, e é aqui que "aplica sozinho" acontece. Os
+ * dois cuidados desta linha:
+ *
+ *   - o backend RECUSA código só de espaços em vez de convertê-lo (`code não
+ *     pode ser só espaços; omita o campo…`), justamente porque a diferença
+ *     decide comportamento de produto — então a tela apara antes de mandar;
+ *   - no PATCH, `null` EXPLÍCITO é o que TIRA o código de uma campanha que
+ *     tinha um. `exclude_unset=True` do outro lado significa que a ausência do
+ *     campo preservaria o código gravado — o lojista apagaria "SETEMBRO" na
+ *     tela e continuaria com SETEMBRO no banco. Mesma regra de
+ *     `printing_sector_id`: nulo é escolha, não vazio.
+ *
+ * O ALVO É ZERADO FORA DE `segment`, pelo mesmo motivo do teto de desconto: o
+ * rascunho pode carregar a classe escolhida antes de o lojista voltar para
+ * "Público", e `target_segment` num cupom público é 422 sobre um campo que a
+ * tela não está mais mostrando.
  */
 export function bodyFrom(rascunho: CouponDraft, arte: CouponTemplate): CouponCreate | null {
   /*
@@ -485,7 +634,7 @@ export function bodyFrom(rascunho: CouponDraft, arte: CouponTemplate): CouponCre
     coupon_template_id: arte.id,
     discount_type: tipo,
     discount_value: tipo === 'free_delivery' ? '0.00' : (arte.discount_value ?? '0.00'),
-    code: rascunho.code.trim().toUpperCase(),
+    code: rascunho.code.trim().toUpperCase() || null,
     title: rascunho.title.trim(),
     description: rascunho.description.trim() || null,
     valid_from: inicioDoDia(rascunho.validFrom),
@@ -497,18 +646,7 @@ export function bodyFrom(rascunho: CouponDraft, arte: CouponTemplate): CouponCre
     cooldown_days: inteiroOuNulo(rascunho.cooldownDays),
     first_order_only: rascunho.firstOrderOnly,
     is_active: rascunho.isActive,
-    /*
-     * `is_public` VAI SEMPRE `true`, e nunca é escolha do lojista.
-     *
-     * Ele não é "cupom secreto": `evaluate` recusa `not_public` na prévia E no
-     * fechamento do pedido, então `false` é uma campanha que ninguém consegue
-     * usar por caminho nenhum — nem digitando o código. Um cupom legado gravado
-     * assim aparece como DESLIGADO na lista, e sem esta linha ele seria
-     * indesligável ao contrário: o lojista religaria `is_active`, salvaria, e a
-     * campanha continuaria morta sem nada na tela explicando por quê.
-     *
-     * O interruptor da tela é `is_active`, um só, e é ele que decide.
-     */
-    is_public: true,
+    visibility: rascunho.visibility,
+    target_segment: aceitaSegmento(rascunho.visibility) ? rascunho.targetSegment || null : null,
   };
 }

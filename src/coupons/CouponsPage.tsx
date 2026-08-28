@@ -16,7 +16,9 @@ import {
   rascunhoDe,
   rascunhoNovo,
   situacaoDoCupom,
+  textoDeQuemVe,
   textoDeUso,
+  textoDoCodigo,
   TIPO_LABEL,
   ORDEM_DOS_TIPOS,
   SITUACAO_LABEL,
@@ -58,6 +60,7 @@ type Linha = {
   arte: ReactNode;
   campanha: ReactNode;
   desconto: string;
+  quemVe: ReactNode;
   validade: ReactNode;
   usos: string;
   situacao: ReactNode;
@@ -77,6 +80,17 @@ const COLUNAS: readonly Column<Linha>[] = [
   { key: 'arte', header: 'Arte' },
   { key: 'campanha', header: 'Campanha' },
   { key: 'desconto', header: 'Desconto' },
+  /*
+   * "QUEM VÊ" É COLUNA PRÓPRIA, e não uma terceira etiqueta na de Situação.
+   *
+   * Os dois eixos são independentes e se confundem se compartilharem célula:
+   * "Ativo" fala do prazo e do interruptor, "Privado" fala de público. Uma
+   * campanha ativa e privada está no ar — juntar as duas palavras na mesma
+   * coluna faria a segunda parecer uma qualificação da primeira, como se
+   * privado fosse um jeito de estar desligado. Era exatamente isso que o
+   * `is_public` fazia, e é o que a revisão do backend desfez.
+   */
+  { key: 'quemVe', header: 'Quem vê' },
   { key: 'validade', header: 'Validade' },
   { key: 'usos', header: 'Usos', align: 'end' },
   { key: 'situacao', header: 'Situação' },
@@ -144,10 +158,24 @@ export function CouponsPage() {
     campanha: (
       <span className="cupons__campanha">
         <span className="cupons__nome">{cupom.title}</span>
-        <span className="cupons__codigo t-aux tnum">{cupom.code}</span>
+        {/*
+          SEM CÓDIGO A LINHA NÃO FICA VAZIA: ela diz "aplica sozinho", que é o
+          que o nulo significa. Uma célula em branco leria como dado faltando —
+          e o lojista iria procurar o código que o cupom não tem, em vez de
+          entender que este desconto entra no pedido sem ninguém digitar nada.
+
+          `tnum` sai fora do código: a fonte tabular alinha ALGARISMOS, e
+          "aplica sozinho" não tem nenhum. É a única diferença de forma entre os
+          dois — a frase já se distingue do código pelo que ela diz, e itálico
+          ou segunda cor aqui seriam enfeite sobre uma célula auxiliar.
+        */}
+        <span className={`cupons__codigo t-aux${cupom.code ? ' tnum' : ''}`}>
+          {textoDoCodigo(cupom)}
+        </span>
       </span>
     ),
     desconto: descontoDoCupom(cupom),
+    quemVe: <span className="tag cupons__tag">{textoDeQuemVe(cupom)}</span>,
     validade: (
       <span className="t-aux cupons__validade">
         {diaCurto(diaDaOperacao(cupom.valid_from))} a {diaCurto(diaDaOperacao(cupom.valid_until))}
@@ -180,6 +208,12 @@ export function CouponsPage() {
     acoes: podeEscrever ? (
       <span className="cupons__acoes">
         {/*
+          O `data-testid` CAI PARA O `id` QUANDO NÃO HÁ CÓDIGO. Ele continua
+          nomeado pelo código porque é o que se lê na tela e nos testes — mas
+          desde que o código virou opcional, `cupom-editar-null` seria o mesmo
+          nome para todas as campanhas automáticas.
+        */}
+        {/*
           O LÁPIS É ÍCONE, e "Desligar" é palavra. Com os dois escritos por
           extenso a célula quebrava em duas fileiras e cada linha da tabela
           ficava com uma altura diferente da vizinha — o alinhamento por coluna
@@ -198,7 +232,7 @@ export function CouponsPage() {
           onClick={() => abrirEdicao(cupom)}
           aria-label={`Editar ${cupom.title}`}
           title="Editar"
-          data-testid={`cupom-editar-${cupom.code}`}
+          data-testid={`cupom-editar-${cupom.code ?? cupom.id}`}
         >
           <EditIcon size={14} />
         </button>
@@ -223,7 +257,7 @@ export function CouponsPage() {
             className="btn btn--sm btn--ghost"
             onClick={() => void desligarOuReligar(cupom)}
             disabled={isSaving}
-            data-testid={`cupom-alternar-${cupom.code}`}
+            data-testid={`cupom-alternar-${cupom.code ?? cupom.id}`}
           >
             {cupom.is_active ? 'Desligar' : 'Religar'}
           </button>
@@ -258,14 +292,26 @@ export function CouponsPage() {
                 que já estão em uso não aparecem na hora de criar a próxima.
               </p>
               <p className="t-aux">
+                <strong>"Quem vê" e "Situação" são coisas diferentes.</strong> A situação diz se a
+                campanha está no ar; a visibilidade diz quem a encontra. Um cupom privado e ativo
+                está valendo — ele só não aparece na lista do app: chega a quem digita o código.
+              </p>
+              <p className="t-aux">
+                <strong>Cupom sem código aplica sozinho.</strong> Quando a coluna do código diz
+                "aplica sozinho", o desconto entra no fechamento do pedido sem o cliente digitar
+                nada, em toda sacola que couber. Um pedido leva um cupom só — havendo mais de um
+                automático que caiba, entra o de maior desconto.
+              </p>
+              <p className="t-aux">
                 <strong>Os dois filtros acima são desta tela.</strong> A rota devolve as campanhas
                 todas de uma vez e não aceita recorte — o que o filtro esconde continua aqui, a um
                 clique de "Todas".
               </p>
               <p className="t-aux">
                 <strong>Não dá para segmentar por horário, dia da semana, tipo de pedido, produto
-                ou forma de pagamento.</strong> Esses campos não existem no cupom. O que recorta é o
-                valor mínimo, o prazo, os limites de uso e o "nunca pediu aqui".
+                ou forma de pagamento.</strong> Esses campos não existem no cupom. O que recorta é a
+                classe do cliente, o valor mínimo, o prazo, os limites de uso e o "nunca pediu
+                aqui".
               </p>
               <p className="t-aux">
                 <strong>Cupom não se apaga, se desliga.</strong> Os pedidos que já usaram a campanha

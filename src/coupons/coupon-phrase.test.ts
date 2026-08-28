@@ -71,7 +71,7 @@ describe('a frase-resumo', () => {
 });
 
 /* ==========================================================================
- * AS TRÊS ARMADILHAS — a razão de a frase existir
+ * AS QUATRO ARMADILHAS — a razão de a frase existir
  * ======================================================================= */
 
 describe('as ressalvas que o lojista descobriria depois', () => {
@@ -120,6 +120,56 @@ describe('as ressalvas que o lojista descobriria depois', () => {
     expect(resumo?.frase).toContain('só para quem nunca pediu aqui');
     expect(resumo?.frase).not.toContain('novos clientes');
     expect(resumo?.notas.join(' ')).toContain('não na plataforma');
+  });
+
+  /*
+   * 4. CÓDIGO VAZIO É A DECISÃO MAIS SILENCIOSA DA TELA. Um campo em branco não
+   *    parece uma escolha, e `auto_apply_for_order` põe o cupom em todo pedido
+   *    que couber. É a única coisa que a frase diz sobre uma AUSÊNCIA.
+   */
+  it('sem código, a frase diz por extenso que o cupom aplica sozinho', () => {
+    const resumo = resumoDoCupom(rascunho({ code: '' }), arte());
+
+    expect(resumo?.frase).toContain('aplicado sozinho no fechamento do pedido');
+    expect(resumo?.notas.join(' ')).toContain('cliente com conta');
+    expect(resumo?.notas.join(' ')).toContain('maior desconto');
+  });
+
+  it('com código, nada disso aparece — é o caso normal', () => {
+    const resumo = resumoDoCupom(rascunho(), arte());
+    expect(resumo?.frase).not.toContain('sozinho');
+  });
+});
+
+/* ==========================================================================
+ * QUEM VÊ — só fala quando recorta
+ * ======================================================================= */
+
+describe('a visibilidade na frase', () => {
+  /* "Público" é o default e a campanha comum: escrevê-lo alongaria toda frase
+     para dizer que não há recorte, e a frase existe para o lojista notar o que
+     recorta. */
+  it('público não vira palavra nenhuma', () => {
+    const resumo = resumoDoCupom(rascunho({ visibility: 'public' }), arte());
+    expect(resumo?.frase).not.toContain('classe');
+    expect(resumo?.frase).not.toContain('digitar');
+  });
+
+  it('por segmento nomeia a CLASSE, e avisa que ela muda sozinha', () => {
+    const resumo = resumoDoCupom(
+      rascunho({ visibility: 'segment', targetSegment: 'em_risco' }),
+      arte(),
+    );
+
+    expect(resumo?.frase).toContain('só para clientes na classe Em risco');
+    expect(resumo?.notas.join(' ')).toContain('MUDA sozinha');
+  });
+
+  it('privado diz que só chega a quem digita o código', () => {
+    const resumo = resumoDoCupom(rascunho({ visibility: 'private' }), arte());
+
+    expect(resumo?.frase).toContain('só para quem digitar o código');
+    expect(resumo?.notas.join(' ')).toContain('não aparece na lista do app');
   });
 });
 

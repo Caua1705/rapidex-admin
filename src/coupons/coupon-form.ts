@@ -23,7 +23,13 @@
 import { ApiError, messageFromUnknownError } from '../api/errors';
 import type { CouponTemplate } from '../api/types';
 import { parseDecimal, parseInteger } from '../store/settings-model';
-import { aceitaTeto, tipoDaArte, type CouponDraft, type CouponField } from './coupon-model';
+import {
+  aceitaSegmento,
+  aceitaTeto,
+  tipoDaArte,
+  type CouponDraft,
+  type CouponField,
+} from './coupon-model';
 
 export type ErrosDoCupom = {
   /** Erro por campo do formulário. */
@@ -48,14 +54,18 @@ const TETO_DO_NOME = 200;
 /**
  * O que dá para conferir sem sair da tela.
  *
- * As quatro regras do `model_validator` do backend estão todas aqui, e é por
- * isso que elas raramente chegam a ser traduzidas do outro lado:
+ * As regras do `model_validator` do backend estão todas aqui, e é por isso que
+ * elas raramente chegam a ser traduzidas do outro lado:
  *
  *   - `valid_until <= valid_from`;
  *   - `max_discount_amount` fora de percentual — que a TELA torna impossível,
  *     porque o campo não existe fora de percentual e `bodyFrom` o zera;
- *   - código só de espaços;
- *   - `cooldown_days` com `usage_limit_per_customer = 1`.
+ *   - `cooldown_days` com `usage_limit_per_customer = 1`;
+ *   - `segment` sem `target_segment`, e alvo fora de `segment` — este segundo a
+ *     tela também torna impossível, escondendo o seletor e zerando o campo.
+ *
+ * E UMA QUE O BACKEND NÃO TEM: privado sem código. Ver abaixo — é a única regra
+ * deste arquivo que não espelha nada do outro lado, e a razão está escrita lá.
  *
  * A DATA FINAL IGUAL À INICIAL É VÁLIDA, e é o detalhe que quase virou bug
  * aqui: a comparação do backend é sobre INSTANTES, e uma campanha de um dia só
@@ -76,16 +86,43 @@ export function validarRascunho(
   }
 
   /*
-   * O CÓDIGO É OBRIGATÓRIO. Ele parece opcional ("o cliente acha o cupom na
-   * vitrine sem digitar"), e não é: `code` tem `min_length=1` e um validador
-   * próprio que recusa só-espaços. Antes desse validador, o branco chegava ao
-   * banco, batia no CHECK e voltava como "código já existe" — 409 para um cupom
-   * que não existia.
+   * O CÓDIGO É OPCIONAL desde 28/08/2026, e o vazio TEM SIGNIFICADO: o cupom
+   * aplica sozinho no checkout, sem ninguém digitar nada. Por isso não há mais
+   * "o código é obrigatório" aqui — o que havia era a tela cobrando um campo
+   * que o contrato não cobra mais.
    */
   const codigo = rascunho.code.trim();
-  if (codigo === '') campos.code = 'O código é obrigatório.';
-  else if (codigo.length > TETO_DO_CODIGO) {
+  if (codigo.length > TETO_DO_CODIGO) {
     campos.code = `No máximo ${TETO_DO_CODIGO} caracteres.`;
+  }
+
+  /*
+   * PRIVADO SEM CÓDIGO NÃO CHEGA A NINGUÉM — e o backend NÃO recusa isso.
+   *
+   * É a única regra deste arquivo sem par do outro lado, e por isso ela precisa
+   * existir aqui: as duas metades são válidas separadamente e a combinação é
+   * uma campanha morta que grava, responde 201 e some.
+   *
+   * O caminho do cupom privado é o RESGATE (`POST .../coupons/claim`), que
+   * procura a campanha PELO CÓDIGO — e `_can_see` só devolve `true` para
+   * privado quando existe resgate gravado. Sem código não há como resgatar,
+   * então não há como enxergar; e o desconto automático também não salva, porque
+   * `auto_apply_for_order` passa pelo mesmo `evaluate`. O cupom fica invisível
+   * para a plataforma inteira, sem erro em lugar nenhum.
+   */
+  if (rascunho.visibility === 'private' && codigo === '') {
+    campos.code =
+      'Cupom privado precisa de código: ele só chega a quem digita. Sem código, ninguém consegue resgatá-lo — nem você.';
+  }
+
+  /*
+   * SEGMENTO SEM ALVO. Espelha o CHECK `ck_restaurant_coupons_segment_needs_target`
+   * e o `model_validator` que o acompanha. O sentido contrário (alvo fora de
+   * segmento) não é conferido porque a tela o torna impossível: o seletor some
+   * e `bodyFrom` zera o campo.
+   */
+  if (aceitaSegmento(rascunho.visibility) && rascunho.targetSegment === '') {
+    campos.targetSegment = 'Escolha para qual classe de cliente a campanha aparece.';
   }
 
   if (rascunho.validFrom === '') campos.validFrom = 'Escolha quando a campanha começa.';
@@ -164,6 +201,8 @@ const CAMPO_DO_CONTRATO: Record<string, CouponField> = {
   cooldown_days: 'cooldownDays',
   first_order_only: 'firstOrderOnly',
   is_active: 'isActive',
+  visibility: 'visibility',
+  target_segment: 'targetSegment',
 };
 
 /**
@@ -196,6 +235,23 @@ const REGRA_DO_MODELO: { padrao: RegExp; campo: CouponField; texto: string }[] =
     padrao: /discount_value/i,
     campo: 'templateId',
     texto: 'O valor desta arte não é aceito pelo backend. Escolha outra arte.',
+  },
+  /*
+   * OS DOIS SENTIDOS DO CHECK DE SEGMENTO, e a ordem importa: o `.find` pega o
+   * primeiro que casar, e os dois textos do backend citam `target_segment`. O
+   * caso "alvo sobrando" vem antes porque é o mais específico — e é o que
+   * apontaria para o campo errado se caísse na regra genérica: o que está
+   * sobrando ali não é a classe, é a visibilidade que deixou de ser "segmento".
+   */
+  {
+    padrao: /target_segment.*(vale|somente|apenas)/i,
+    campo: 'visibility',
+    texto: 'A classe de cliente só vale em campanha por segmento. Volte a visibilidade para "Por segmento" ou apague a classe.',
+  },
+  {
+    padrao: /target_segment/i,
+    campo: 'targetSegment',
+    texto: 'Escolha para qual classe de cliente a campanha aparece.',
   },
 ];
 

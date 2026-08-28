@@ -13,6 +13,13 @@
  *   4. A campanha de arte desativada não oferece "Desligar" — o backend
  *      responderia 400 até para isso.
  *   5. Ler é da gerência, escrever é só do dono.
+ *   6. QUEM VÊ NÃO É A SITUAÇÃO. Um cupom privado e ativo está no ar; ele só
+ *      não aparece na lista do app. Enquanto existia `is_public`, a tela
+ *      chamava isso de "Desligado" — e chamava com razão, porque o backend de
+ *      então recusava o cupom por caminho nenhum.
+ *   7. CÓDIGO VAZIO É UMA ESCOLHA, e a mais silenciosa da tela: o cupom passa a
+ *      aplicar sozinho em todo pedido que couber. Só o CORPO prova que o vazio
+ *      subiu como nulo, e não como string em branco.
  */
 import { expect, test, type Page } from '@playwright/test';
 
@@ -51,7 +58,7 @@ test('o valor do desconto sai da arte escolhida, e não de campo nenhum', async 
 
   await page.getByRole('radio', { name: /15% OFF/ }).check();
   await page.getByLabel('Nome', { exact: false }).first().fill('Quinze');
-  await page.getByLabel('Código', { exact: false }).fill('quinze');
+  await page.getByLabel('Código', { exact: true }).fill('quinze');
   await page.getByRole('button', { name: 'Criar campanha' }).click();
 
   await expect(page.getByTestId('cupom-editar-QUINZE')).toBeVisible();
@@ -75,7 +82,7 @@ test('a validade sobe como instante do fuso da operação, com o último dia int
 
   await page.getByRole('radio', { name: /15% OFF/ }).check();
   await page.getByLabel('Nome', { exact: false }).first().fill('Setembro');
-  await page.getByLabel('Código', { exact: false }).fill('SET');
+  await page.getByLabel('Código', { exact: true }).fill('SET');
   await page.getByLabel('Começa em').fill('2026-09-01');
   await page.getByLabel('Termina em').fill('2026-09-30');
   await page.getByRole('button', { name: 'Criar campanha' }).click();
@@ -107,7 +114,7 @@ test('o teto de desconto só existe em percentual, e sai do corpo ao trocar de a
   await expect(page.getByLabel('Desconto máximo')).toHaveCount(0);
 
   await page.getByLabel('Nome', { exact: false }).first().fill('Cinco reais bis');
-  await page.getByLabel('Código', { exact: false }).fill('CINCOBIS');
+  await page.getByLabel('Código', { exact: true }).fill('CINCOBIS');
   await page.getByRole('button', { name: 'Criar campanha' }).click();
 
   expect(api.couponBodies().at(-1)?.body).toMatchObject({
@@ -165,7 +172,7 @@ test('o 409 de código repetido destaca o código, mesmo em outra caixa', async 
   await page.getByRole('radio', { name: /15% OFF/ }).check();
   await page.getByLabel('Nome', { exact: false }).first().fill('Repetido');
   /* SETEMBRO já existe. Em minúsculas ele colide igual: `lower(trim(code))`. */
-  await page.getByLabel('Código', { exact: false }).fill('setembro');
+  await page.getByLabel('Código', { exact: true }).fill('setembro');
   await page.getByRole('button', { name: 'Criar campanha' }).click();
 
   await expect(page.getByText(/já existe um cupom com este código/i)).toBeVisible();
@@ -211,6 +218,170 @@ test('desligar manda um corpo de um campo só', async ({ page }) => {
    * aba acabou de gravar.
    */
   expect(corpo?.body).toEqual({ is_active: false });
+});
+
+/* ==========================================================================
+ * 4bis. QUEM VÊ O CUPOM, E COMO O CLIENTE CHEGA
+ * ======================================================================= */
+
+test('o cupom público sem código sobe com code null — é o que aplica sozinho', async ({
+  page,
+}) => {
+  await entrar(page);
+  await page.getByTestId('cupons-nova').click();
+
+  await page.getByRole('radio', { name: /15% OFF/ }).check();
+  await page.getByLabel('Nome', { exact: false }).first().fill('Automático');
+
+  /* O campo de código fica VAZIO de propósito, e a ajuda embaixo dele diz o que
+     isso faz — antes de o lojista salvar, não depois do primeiro extrato. */
+  await expect(page.getByText(/APLICA SOZINHO no fechamento do pedido/i)).toBeVisible();
+
+  /* A frase-resumo repete a decisão por extenso: um campo em branco não parece
+     uma escolha. */
+  const resumo = page.getByText('O que este cupom faz').locator('..');
+  await expect(resumo).toContainText('aplicado sozinho no fechamento do pedido');
+  await expect(resumo).toContainText('maior desconto');
+
+  await page.getByRole('button', { name: 'Criar campanha' }).click();
+
+  const corpo = api.couponBodies().at(-1);
+  expect(corpo?.metodo).toBe('POST');
+  /*
+   * `null`, e nunca uma string em branco. `auto_apply_for_order` procura
+   * `code IS NULL`; o branco não é nem código nem automático, e o backend o
+   * recusa de propósito ("code não pode ser só espaços; omita o campo").
+   */
+  expect(corpo?.body).toMatchObject({ code: null, visibility: 'public', target_segment: null });
+
+  /* E a lista DIZ o que o nulo significa, em vez de deixar a célula vazia. */
+  await expect(page.getByRole('row').filter({ hasText: 'Automático' })).toContainText(
+    'aplica sozinho',
+  );
+});
+
+test('o cupom por segmento só pede a classe quando é por segmento', async ({ page }) => {
+  await entrar(page);
+  await page.getByTestId('cupons-nova').click();
+
+  /* Em "Público" o seletor de classe não existe: alvo preenchido fora de
+     segmento é 422, e o CHECK do banco vale nos dois sentidos. */
+  await expect(page.getByTestId('cupom-segmento')).toHaveCount(0);
+
+  await page.getByRole('radio', { name: 'Por segmento' }).check();
+  await expect(page.getByTestId('cupom-segmento')).toBeVisible();
+
+  await page.getByRole('radio', { name: /15% OFF/ }).check();
+  await page.getByLabel('Nome', { exact: false }).first().fill('Volta para os sumidos');
+  await page.getByLabel('Código', { exact: true }).fill('VOLTEI');
+  await escolher(page.getByTestId('cupom-segmento'), 'Perdido');
+
+  /* A frase nomeia a CLASSE, e avisa que ela se recalcula sozinha. */
+  const resumo = page.getByText('O que este cupom faz').locator('..');
+  await expect(resumo).toContainText('só para clientes na classe Perdido');
+
+  await page.getByRole('button', { name: 'Criar campanha' }).click();
+
+  expect(api.couponBodies().at(-1)?.body).toMatchObject({
+    visibility: 'segment',
+    target_segment: 'perdido',
+    code: 'VOLTEI',
+  });
+});
+
+test('voltar para público zera a classe, em vez de mandá-la e tomar 422', async ({ page }) => {
+  await entrar(page);
+  await page.getByTestId('cupons-nova').click();
+
+  await page.getByRole('radio', { name: 'Por segmento' }).check();
+  await escolher(page.getByTestId('cupom-segmento'), 'Fiel');
+  await page.getByRole('radio', { name: 'Público' }).check();
+
+  await expect(page.getByTestId('cupom-segmento')).toHaveCount(0);
+
+  await page.getByRole('radio', { name: /15% OFF/ }).check();
+  await page.getByLabel('Nome', { exact: false }).first().fill('Público de novo');
+  await page.getByLabel('Código', { exact: true }).fill('PUB15');
+  await page.getByRole('button', { name: 'Criar campanha' }).click();
+
+  expect(api.couponBodies().at(-1)?.body).toMatchObject({
+    visibility: 'public',
+    target_segment: null,
+  });
+});
+
+/*
+ * A ÚNICA REGRA DA TELA SEM PAR NO BACKEND, e é por isso que ela precisa
+ * existir aqui: privado sem código GRAVA, responde 201 e some. O resgate
+ * procura a campanha pelo CÓDIGO, e `_can_see` só libera um cupom privado que
+ * tenha resgate gravado — sem código não há como resgatar, e o automático não
+ * salva porque passa pelo mesmo `evaluate`.
+ */
+test('privado sem código é barrado antes de virar uma campanha invisível', async ({ page }) => {
+  await entrar(page);
+  await page.getByTestId('cupons-nova').click();
+
+  await page.getByRole('radio', { name: /15% OFF/ }).check();
+  await page.getByRole('radio', { name: 'Privado' }).check();
+  await page.getByLabel('Nome', { exact: false }).first().fill('Invisível');
+  await page.getByRole('button', { name: 'Criar campanha' }).click();
+
+  await expect(page.getByText(/Cupom privado precisa de código/i)).toBeVisible();
+  /* Nada foi mandado: a recusa é da tela, antes da rede. */
+  expect(api.couponBodies()).toHaveLength(0);
+
+  await page.getByLabel('Código', { exact: true }).fill('SECRETO');
+  await page.getByRole('button', { name: 'Criar campanha' }).click();
+
+  expect(api.couponBodies().at(-1)?.body).toMatchObject({
+    visibility: 'private',
+    code: 'SECRETO',
+  });
+});
+
+test('editar uma campanha troca a visibilidade sem mexer no resto', async ({ page }) => {
+  await entrar(page);
+  await page.getByTestId('cupom-editar-SETEMBRO').click();
+
+  /* A edição abre com a visibilidade GRAVADA marcada — não com o default. */
+  await expect(page.getByRole('radio', { name: 'Público' })).toBeChecked();
+
+  await page.getByRole('radio', { name: 'Privado' }).check();
+  await page.getByRole('button', { name: 'Salvar' }).click();
+
+  const corpo = api.couponBodies().at(-1);
+  expect(corpo?.metodo).toBe('PATCH');
+  expect(corpo?.body).toMatchObject({
+    visibility: 'private',
+    target_segment: null,
+    /* O corpo vai COMPLETO no PATCH: `update_admin` revalida a mescla inteira. */
+    code: 'SETEMBRO',
+    title: 'Setembro sem frete',
+  });
+
+  await expect(page.getByRole('row').filter({ hasText: 'SETEMBRO' })).toContainText('Privado');
+});
+
+test('a coluna "Quem vê" separa as três, e a situação continua sendo outra coisa', async ({
+  page,
+}) => {
+  await entrar(page);
+
+  const linha = (codigo: string) => page.getByRole('row').filter({ hasText: codigo });
+
+  await expect(linha('SETEMBRO')).toContainText('Público');
+  /* A campanha por segmento mostra a CLASSE, e não "Por segmento": duas
+     segmentadas lado a lado precisam se distinguir de relance. */
+  await expect(linha('VOLTA20')).toContainText('Em risco');
+
+  /*
+   * NATAL10 É PRIVADO E PROGRAMADO — os dois eixos na mesma linha, e é aqui que
+   * a virada de `is_public` se prova: privado não é uma forma de estar
+   * desligado. Com o booleano de antes, esta linha leria "Desligado".
+   */
+  await expect(linha('NATAL10')).toContainText('Privado');
+  await expect(linha('NATAL10')).toContainText('Programado');
+  await expect(linha('NATAL10')).not.toContainText('Desligado');
 });
 
 /* ==========================================================================
@@ -284,6 +455,10 @@ test('não há como segmentar por horário, dia ou produto — nem campo, nem pr
   for (const rotulo of [/dia da semana/i, /horário/i, /forma de pagamento/i, /filial/i]) {
     await expect(dialogo.getByLabel(rotulo)).toHaveCount(0);
   }
+
+  /* O ÚNICO recorte de público que existe é a classe RFV do cliente, e ele fica
+     atrás de "Por segmento" — não é um campo solto no formulário. */
+  await expect(dialogo.getByRole('radio', { name: 'Por segmento' })).toBeVisible();
 });
 
 /* ==========================================================================

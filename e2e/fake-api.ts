@@ -1888,7 +1888,13 @@ function initialCoupons(restaurantId: string): Coupon[] {
     usage_limit_per_customer: null,
     cooldown_days: null,
     first_order_only: false,
-    is_public: true,
+    /*
+     * PUBLICO E SEM ALVO e a semente, e e o default do backend. As tres
+     * visibilidades aparecem entre as campanhas abaixo, porque a coluna "Quem
+     * ve" da lista so se prova com as tres na tela ao mesmo tempo.
+     */
+    visibility: 'public' as const,
+    target_segment: null,
     is_active: true,
     total_usage_count: 0,
     created_at: null,
@@ -1920,6 +1926,10 @@ function initialCoupons(restaurantId: string): Coupon[] {
       title: 'Natal',
       discount_type: 'percent',
       discount_value: '10.00',
+      /* PRIVADO: nao aparece na lista do app: chega a quem digita NATAL10. E
+         ele esta PROGRAMADO, o que e o par que a tela precisa saber separar —
+         situacao e visibilidade sao eixos diferentes. */
+      visibility: 'private' as const,
       valid_from: diasDaqui(30),
       valid_until: diasDaqui(45),
     },
@@ -1929,6 +1939,11 @@ function initialCoupons(restaurantId: string): Coupon[] {
       coupon_template_id: 'tpl-percent-20',
       code: 'VOLTA20',
       title: 'Volta às aulas',
+      /* POR SEGMENTO: a coluna mostra a CLASSE ("Em risco"), e nao o rotulo da
+         visibilidade — duas campanhas segmentadas para classes diferentes
+         precisam se distinguir de relance. */
+      visibility: 'segment' as const,
+      target_segment: 'em_risco' as const,
       discount_type: 'percent',
       discount_value: '20.00',
       max_discount_amount: '15.00',
@@ -3112,9 +3127,17 @@ function senhaTemporariaFalsa(indice: number): string {
       const codigo = String(body.code ?? '')
         .trim()
         .toLowerCase();
-      const donoDoCodigo = state.coupons.find(
-        (item) => item.code.trim().toLowerCase() === codigo && item.id !== ignorando,
-      );
+      /*
+       * SEM CODIGO NAO HA COLISAO. O indice unico do banco e sobre
+       * `lower(trim(code))` e ignora nulo — dois cupons automaticos convivem, e
+       * e o caso normal desde que o codigo virou opcional. Sem esta guarda o
+       * falso responderia 409 ao segundo cupom que aplica sozinho.
+       */
+      const donoDoCodigo = codigo
+        ? state.coupons.find(
+            (item) => (item.code ?? '').trim().toLowerCase() === codigo && item.id !== ignorando,
+          )
+        : undefined;
       if (donoDoCodigo) {
         return json(route, 409, { detail: 'Codigo de cupom ja existe neste restaurante' });
       }

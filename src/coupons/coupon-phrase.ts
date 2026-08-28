@@ -10,8 +10,8 @@
  *    de 23/08 a 30/09, 100 usos no total, 1 por cliente, só para quem nunca
  *    pediu aqui."
  *
- * ELA NÃO É ENFEITE: resolve três armadilhas que o lojista descobriria depois,
- * e cada uma delas é uma linha de `CouponService.evaluate` que a tela não tem
+ * ELA NÃO É ENFEITE: resolve quatro armadilhas que o lojista descobriria
+ * depois, e cada uma delas é uma linha de `CouponService` que a tela não tem
  * como mostrar de outro jeito.
  *
  *   1. `min_order_value` é comparado com o SUBTOTAL (`if subtotal < minimum`).
@@ -22,6 +22,10 @@
  *   3. `first_order_only` olha `customer_has_valid_order(cliente, ESTE
  *      restaurante)`. É primeiro pedido NESTA loja, não na plataforma — daí
  *      "nunca pediu aqui", e nunca "novos clientes".
+ *   4. CÓDIGO VAZIO É A DECISÃO MAIS SILENCIOSA DA TELA: `auto_apply_for_order`
+ *      escolhe os cupons `code IS NULL` sozinho, em todo pedido que couber.
+ *      Um campo em branco não parece uma escolha — daí "aplicado sozinho no
+ *      fechamento do pedido" escrito por extenso.
  *
  * O QUE CABE NA FRASE E O QUE VIRA NOTA: a frase diz o QUE acontece, curto o
  * bastante para ser lido de uma vez; a nota diz POR QUE, e só aparece quando a
@@ -29,6 +33,7 @@
  * num parágrafo, e um parágrafo ninguém relê a cada tecla.
  */
 import type { CouponTemplate } from '../api/types';
+import { SEGMENT_LABEL } from '../customers/customer-segment';
 import { diaCurto, textoDoDesconto, tipoDaArte, type CouponDraft } from './coupon-model';
 
 export type ResumoDoCupom = {
@@ -129,11 +134,52 @@ export function resumoDoCupom(
   }
 
   /* 5. Quem pode usar. */
+
+  /*
+   * A VISIBILIDADE SÓ FALA QUANDO ELA RECORTA. "Público" é o default e a
+   * campanha comum — escrevê-lo alongaria toda frase para dizer "não há
+   * recorte", e a frase existe justamente para o lojista notar o que recorta.
+   */
+  if (rascunho.visibility === 'segment') {
+    const classe = rascunho.targetSegment ? SEGMENT_LABEL[rascunho.targetSegment] : null;
+    partes.push(classe ? `só para clientes na classe ${classe}` : 'só para uma classe de clientes');
+    notas.push(
+      'A classe é calculada pelo Rapidex a partir do histórico de cada cliente, e MUDA sozinha: ' +
+        'quem estava "Em risco" e voltou a pedir sai da campanha sem você mexer nela.',
+    );
+  }
+
+  if (rascunho.visibility === 'private') {
+    partes.push('só para quem digitar o código');
+    notas.push(
+      'Cupom privado não aparece na lista do app para ninguém, nem para quem está logado. ' +
+        'Ele existe para ser mandado por fora — panfleto, direct, cartão na sacola.',
+    );
+  }
+
   if (rascunho.firstOrderOnly) {
     partes.push('só para quem nunca pediu aqui');
     notas.push(
       '"Nunca pediu aqui" é nesta loja, não na plataforma: quem já comprou em outro ' +
         'restaurante do Rapidex continua contando como primeiro pedido seu.',
+    );
+  }
+
+  /*
+   * 6. COMO O CLIENTE PEGA — e o vazio é que fala, ao contrário de todo o
+   * resto da frase.
+   *
+   * Um campo de código em branco não parece uma decisão, e é a maior desta
+   * tela: o cupom passa a entrar sozinho em todo pedido que couber. A frase o
+   * diz por extenso porque o lojista que deixou o campo vazio por descuido não
+   * tem outro lugar onde descobrir isso antes do primeiro extrato.
+   */
+  if (rascunho.code.trim() === '') {
+    partes.push('aplicado sozinho no fechamento do pedido');
+    notas.push(
+      'Sem código, o cupom entra sozinho na sacola que couber, sem o cliente digitar nada. ' +
+        'Vale só para cliente com conta, e um pedido leva um cupom só: se houver mais de um ' +
+        'automático que caiba, entra o de maior desconto.',
     );
   }
 

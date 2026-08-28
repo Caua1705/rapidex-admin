@@ -1,13 +1,51 @@
 import { useId, useRef, useState, type FormEvent } from 'react';
 
-import type { CouponTemplate } from '../api/types';
-import { Checkbox, Field, FieldRow, Input, Switch, Textarea } from '../ds';
+import type { CouponTemplate, CouponVisibility, CustomerSegment } from '../api/types';
+import { SEGMENT_LABEL } from '../customers/customer-segment';
+import { Checkbox, Field, FieldRow, Input, RadioGroup, Select, Switch, Textarea } from '../ds';
 import { AlertIcon } from '../ds/icons';
 import { Modal } from '../ui/Modal';
 import { ArtePicker } from './ArtePicker';
 import { temErro, validarRascunho, SEM_ERRO, type ErrosDoCupom } from './coupon-form';
-import { aceitaTeto, tipoDaArte, type CouponDraft, type GrupoDeArtes } from './coupon-model';
+import {
+  aceitaSegmento,
+  aceitaTeto,
+  tipoDaArte,
+  ORDEM_DAS_VISIBILIDADES,
+  VISIBILIDADE_AJUDA,
+  VISIBILIDADE_LABEL,
+  type CouponDraft,
+  type GrupoDeArtes,
+} from './coupon-model';
 import { resumoDoCupom } from './coupon-phrase';
+
+/*
+ * AS TRÊS OPÇÕES, CADA UMA COM O QUE ELA FAZ ESCRITO EMBAIXO.
+ *
+ * O rádio leva `hint` e não `title` porque a diferença entre "Por segmento" e
+ * "Privado" não está nos rótulos: os dois soam como "cupom restrito". O que
+ * separa um do outro é quem chega — a classe que o Rapidex calcula, ou o código
+ * digitado — e isso precisa estar VISÍVEL na hora de escolher, não escondido
+ * atrás de um apoio que não sobrevive ao toque.
+ */
+const OPCOES_DE_VISIBILIDADE = ORDEM_DAS_VISIBILIDADES.map((visibilidade) => ({
+  value: visibilidade,
+  label: VISIBILIDADE_LABEL[visibilidade],
+  hint: VISIBILIDADE_AJUDA[visibilidade],
+}));
+
+/*
+ * As cinco classes RFV, com o rótulo saindo de `SEGMENT_LABEL` — a MESMA
+ * constante da tela de Clientes. Uma segunda tabela de rótulos aqui deixaria
+ * "Em risco" virar "Sumido" em uma tela e não na outra, para a mesma classe.
+ *
+ * NÃO HÁ OPÇÃO VAZIA: aqui o seletor só existe quando a classe é obrigatória,
+ * ao contrário do filtro de Clientes, onde o vazio significa "todas".
+ */
+const OPCOES_DE_SEGMENTO = (Object.keys(SEGMENT_LABEL) as CustomerSegment[]).map((segmento) => ({
+  value: segmento,
+  label: SEGMENT_LABEL[segmento],
+}));
 
 /**
  * Nova campanha / editar campanha.
@@ -28,6 +66,11 @@ import { resumoDoCupom } from './coupon-phrase';
  * semana, tipo de pedido, produto, forma de pagamento e filial. O modelo não
  * tem esses campos — `restaurant_coupons` não tem coluna nenhuma disso — e
  * cupom é do restaurante inteiro, valendo em todas as lojas.
+ *
+ * O ÚNICO RECORTE DE PÚBLICO QUE EXISTE é a classe RFV do cliente, e ele mora
+ * no bloco "Quem vê o cupom" — que também é onde o código passou a ficar, desde
+ * que ele virou opcional: visibilidade e código são as duas metades de "por
+ * onde o cliente chega a esta campanha".
  */
 export function CouponDialog({
   initial,
@@ -105,6 +148,23 @@ export function CouponDialog({
    * lojista trocaria uma arte de 20% por uma de R$ 5 e levaria uma recusa
    * apontando um campo que ele não está mais vendo.
    */
+  /**
+   * Sair de "Por segmento" LIMPA A CLASSE, pelo mesmo motivo do teto.
+   *
+   * O CHECK do banco vale nos dois sentidos (`(visibility = 'segment') =
+   * (target_segment IS NOT NULL)`), e o Pydantic o espelha: uma classe que
+   * sobrou de uma escolha anterior é 422 num cupom público — sobre um seletor
+   * que a tela já parou de mostrar. `bodyFrom` também zera, e a repetição é de
+   * propósito: aqui é para o RESUMO deixar de dizer "só para clientes na classe
+   * Fiel" no instante em que o lojista volta para "Público".
+   */
+  function escolherVisibilidade(visibilidade: CouponVisibility) {
+    mexer({
+      visibility: visibilidade,
+      ...(aceitaSegmento(visibilidade) ? {} : { targetSegment: '' as const }),
+    });
+  }
+
   function escolherArte(templateId: string) {
     const nova = artes.find((item) => item.id === templateId) ?? null;
     const novoTipo = nova ? tipoDaArte(nova) : null;
@@ -187,35 +247,14 @@ export function CouponDialog({
         <section className="cupom__bloco">
           <h3 className="t-section cupom__titulo">A campanha</h3>
 
-          <FieldRow>
-            <Field label="Nome" required error={erros.campos.title ?? null}>
-              <Input
-                value={draft.title}
-                onValueChange={(value) => mexer({ title: value })}
-                placeholder="Setembro sem frete"
-                maxLength={200}
-              />
-            </Field>
-
-            <Field
-              label="Código"
-              required
-              hint="O cliente também acha o cupom na vitrine sem digitar — o código é para quem recebeu por fora."
-              error={erros.campos.code ?? null}
-            >
-              <Input
-                className="cupom__campo--codigo"
-                value={draft.code}
-                /* Maiúsculas na digitação: PROMO10 e promo10 colidem no mesmo
-                   índice do banco, e o backend normaliza assim de qualquer
-                   jeito. Deixar a tela mostrar minúsculas seria mostrar um
-                   código que não é o que vai ser gravado. */
-                onValueChange={(value) => mexer({ code: value.toUpperCase() })}
-                placeholder="SETEMBRO"
-                maxLength={100}
-              />
-            </Field>
-          </FieldRow>
+          <Field label="Nome" required error={erros.campos.title ?? null}>
+            <Input
+              value={draft.title}
+              onValueChange={(value) => mexer({ title: value })}
+              placeholder="Setembro sem frete"
+              maxLength={200}
+            />
+          </Field>
 
           <Field
             label="Descrição"
@@ -227,6 +266,80 @@ export function CouponDialog({
               onValueChange={(value) => mexer({ description: value })}
               rows={2}
               placeholder="Válido em todos os pedidos de entrega."
+            />
+          </Field>
+        </section>
+
+        {/* ---- Quem vê, e por onde ele chega -------------------------------- */}
+        {/*
+          A VISIBILIDADE E O CÓDIGO ANDAM JUNTOS, num bloco só, e não é
+          arrumação: eles são as duas metades da mesma pergunta — quem enxerga
+          a campanha, e o que a pessoa faz para usá-la. Separá-los põe a recusa
+          "cupom privado precisa de código" a dois blocos de distância do rádio
+          que a causou.
+        */}
+        <section className="cupom__bloco">
+          <div className="cupom__cabecalho">
+            <h3 className="t-section cupom__titulo">Quem vê o cupom</h3>
+            <p className="t-aux cupom__ajuda">
+              A visibilidade decide quem encontra a campanha na lista do app. O código decide o que
+              a pessoa faz depois — digitar, ou nada.
+            </p>
+          </div>
+
+          <RadioGroup
+            legend="Visibilidade"
+            name={`${formId}-visibilidade`}
+            value={draft.visibility}
+            onChange={(value) => escolherVisibilidade(value as CouponVisibility)}
+            options={OPCOES_DE_VISIBILIDADE}
+            error={erros.campos.visibility ?? null}
+            disabled={isSaving}
+          />
+
+          {/*
+            O ALVO SÓ EXISTE EM "POR SEGMENTO", como o teto só existe em
+            percentual — e pelo mesmo motivo: o CHECK do banco vale nos DOIS
+            sentidos, então uma classe escolhida sobrando num cupom público é
+            422. Escondê-la e zerá-la (`escolherVisibilidade`) tira o erro do
+            mapa em vez de traduzi-lo.
+          */}
+          {aceitaSegmento(draft.visibility) ? (
+            <Field
+              label="Classe do cliente"
+              required
+              hint="A mesma classificação da tela de Clientes. O Rapidex a recalcula sozinho — quem muda de classe entra ou sai da campanha sem você mexer nela."
+              error={erros.campos.targetSegment ?? null}
+            >
+              <Select
+                value={draft.targetSegment}
+                onChange={(value) => mexer({ targetSegment: value as CustomerSegment | '' })}
+                options={OPCOES_DE_SEGMENTO}
+                placeholder="Escolher a classe…"
+                data-testid="cupom-segmento"
+              />
+            </Field>
+          ) : null}
+
+          <Field
+            label="Código"
+            hint={
+              draft.code.trim() === ''
+                ? 'Vazio: o cupom APLICA SOZINHO no fechamento do pedido, sem o cliente digitar nada. Vale para cliente com conta, e entra em toda sacola que couber.'
+                : 'Com código, o cliente precisa digitá-lo para usar. Apague o campo para o cupom aplicar sozinho.'
+            }
+            error={erros.campos.code ?? null}
+          >
+            <Input
+              className="cupom__campo--codigo"
+              value={draft.code}
+              /* Maiúsculas na digitação: PROMO10 e promo10 colidem no mesmo
+                 índice do banco, e o backend normaliza assim de qualquer
+                 jeito. Deixar a tela mostrar minúsculas seria mostrar um
+                 código que não é o que vai ser gravado. */
+              onValueChange={(value) => mexer({ code: value.toUpperCase() })}
+              placeholder="sem código — aplica sozinho"
+              maxLength={100}
             />
           </Field>
         </section>
