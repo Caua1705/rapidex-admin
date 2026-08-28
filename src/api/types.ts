@@ -22,6 +22,25 @@ export type OrderItem = Schemas['OrderItemResponse'];
 export type OrderItemOptionGroup = Schemas['OrderItemOptionGroupResponse'];
 export type OrderItemOption = Schemas['OrderItemOptionResponse'];
 export type OrderStatusHistoryEntry = Schemas['StatusHistoryResponse'];
+
+/**
+ * O 428 DO CANCELAMENTO — que não é erro, e por isso vem tipado.
+ *
+ * Cancelar um pedido a partir de `preparing` exige `confirm_prepared_order`.
+ * Sem ele a rota responde **428 `confirmation_required`** com este corpo, e o
+ * contrato é explícito sobre o que ele é: "não é erro: o painel abre o diálogo
+ * de confirmação e reenvia".
+ *
+ * O backend escolheu 428 e não 409 justamente para o painel poder distinguir
+ * sem ler texto de mensagem: os 409 desta rota são conflitos de verdade
+ * ("pedido entregue não muda mais") e saem com `detail` de STRING. Aqui o
+ * `detail` é OBJETO, e `code` diz qual diálogo abrir.
+ *
+ * `message` já vem pronta para a tela, e `order_status` existe para o painel
+ * conseguir dizer "já saiu para entrega" em vez de "já está em preparo" — ver
+ * `orders/cancel-confirmation.ts`.
+ */
+export type CancelConfirmation = Schemas['CancelOrderErrorDetail'];
 export type OrderStatusCountsResponse = Schemas['AdminOrderStatusCountsResponse'];
 export type OrderStreamEvent = Schemas['AdminOrderStreamEvent'];
 export type StreamTicket = Schemas['AdminStreamTicketResponse'];

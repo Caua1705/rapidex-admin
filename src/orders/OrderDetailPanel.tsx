@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 
 import { messageFromUnknownError } from '../api/errors';
 import { fetchOrderDetail } from '../api/orders';
-import type { OrderDetail, OrderItem } from '../api/types';
+import type { CancelConfirmation, OrderDetail, OrderItem } from '../api/types';
 import { XIcon } from '../ds/icons';
 import { StatusChip } from '../ds/StatusChip';
 import { customerHistoryLine, formatPhone, phoneHref } from '../customers/customer-model';
 import { CancelOrderDialog } from './CancelOrderDialog';
+import { ConfirmPreparedCancelDialog } from './ConfirmPreparedCancelDialog';
 import { RejectOrderDialog } from './RejectOrderDialog';
 import { advanceActionFor, exitActionFor, type ConfirmKind } from './order-actions';
 import {
@@ -19,6 +20,7 @@ import {
 import { readOptionGroups } from './order-options';
 import { paymentOutcome, type PaymentOutcome } from './payment-outcome';
 import { useCustomerHistory } from './useCustomerHistory';
+import type { CancelOutcome } from './useOrdersBoard';
 import { stageOf } from './order-status';
 import { STATUS_LABELS, checkTransition } from './order-status';
 import './OrderDetailPanel.css';
@@ -74,7 +76,7 @@ export function OrderDetailPanel({
    * cancelamento.
    */
   onChangeStatus: (orderId: string, status: string, note?: string) => Promise<boolean>;
-  /** Devolve true quando o backend aceitou o cancelamento. */
+  /** Devolve o desfecho do cancelamento — que tem TRÊS valores. Ver abaixo. */
   /**
    * "Cancelar" existe para este papel.
    *
@@ -84,7 +86,17 @@ export function OrderDetailPanel({
    * daqui transformaria "quem é você" numa exceção na montagem.
    */
   podeCancelar: boolean;
-  onCancelOrder: (orderId: string, reason: string) => Promise<boolean>;
+  /**
+   * `confirmPreparedOrder` é o SEGUNDO CLIQUE, e ele só sai `true` daqui pelo
+   * `ConfirmPreparedCancelDialog`. O desfecho traz `confirmation` preenchida
+   * quando o backend respondeu 428 pedindo essa confirmação — que não é erro, e
+   * por isso não vem como mensagem em `actionErrorMessage`.
+   */
+  onCancelOrder: (
+    orderId: string,
+    reason: string,
+    confirmPreparedOrder?: boolean,
+  ) => Promise<CancelOutcome>;
   actionErrorMessage: string | null;
 }) {
   const [detail, setDetail] = useState<OrderDetail | null>(null);
@@ -97,6 +109,18 @@ export function OrderDetailPanel({
    */
   const [confirmando, setConfirmando] = useState<ConfirmKind | null>(null);
   const [isConfirmando, setIsConfirmando] = useState(false);
+  /**
+   * A SEGUNDA ETAPA DO CANCELAMENTO — o pedido já está em produção.
+   *
+   * Guarda o corpo do 428 E o motivo já digitado, porque quem reenvia é este
+   * painel: o primeiro diálogo desmonta ao dar lugar ao segundo, e o motivo
+   * mora no estado local dele. Sem isto o lojista redigitaria a justificativa
+   * para responder a uma pergunta que o backend fez sobre outra coisa.
+   */
+  const [emProducao, setEmProducao] = useState<{
+    reason: string;
+    confirmation: CancelConfirmation;
+  } | null>(null);
   // Muda de valor para forçar o recarregamento do detalhe após uma transição.
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -111,6 +135,7 @@ export function OrderDetailPanel({
     setDetail(null);
     setLoadError(null);
     setConfirmando(null);
+    setEmProducao(null);
 
     void (async () => {
       try {
@@ -134,13 +159,29 @@ export function OrderDetailPanel({
     if (changed) setReloadToken((token) => token + 1);
   }
 
-  async function handleCancel(reason: string) {
+  /**
+   * O cancelamento, nas suas duas etapas possíveis.
+   *
+   * `confirmPreparedOrder` só chega `true` pelo segundo diálogo. Quando o
+   * backend responde 428, este handler NÃO trata como falha: ele troca de
+   * diálogo, levando o motivo já escrito junto. O primeiro diálogo fecha —
+   * empilhar os dois seria dois fundos, dois Esc e duas armadilhas de foco.
+   */
+  async function handleCancel(reason: string, confirmPreparedOrder = false) {
     if (!orderId) return;
     setIsConfirmando(true);
-    const cancelled = await onCancelOrder(orderId, reason);
+    const outcome = await onCancelOrder(orderId, reason, confirmPreparedOrder);
     setIsConfirmando(false);
-    if (cancelled) {
+
+    if (outcome.confirmation) {
+      setEmProducao({ reason, confirmation: outcome.confirmation });
       setConfirmando(null);
+      return;
+    }
+
+    if (outcome.ok) {
+      setConfirmando(null);
+      setEmProducao(null);
       setReloadToken((token) => token + 1);
     }
   }
@@ -324,6 +365,23 @@ export function OrderDetailPanel({
           errorMessage={actionErrorMessage}
           onClose={() => setConfirmando(null)}
           onConfirm={(reason) => void handleCancel(reason)}
+        />
+      ) : null}
+
+      {/*
+        A SEGUNDA ETAPA, e ela substitui a primeira em vez de se somar a ela.
+        "Manter o pedido" aqui desiste do cancelamento inteiro: o lojista
+        acabou de descobrir que a comida já está feita, e voltar ao campo de
+        motivo o faria reler uma pergunta que ele já respondeu.
+      */}
+      {emProducao && detail ? (
+        <ConfirmPreparedCancelDialog
+          orderNumber={detail.order_number}
+          confirmation={emProducao.confirmation}
+          isSending={isConfirmando}
+          errorMessage={actionErrorMessage}
+          onClose={() => setEmProducao(null)}
+          onConfirm={() => void handleCancel(emProducao.reason, true)}
         />
       ) : null}
 

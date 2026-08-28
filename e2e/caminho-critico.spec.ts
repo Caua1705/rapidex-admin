@@ -515,9 +515,17 @@ test('cancelar exige motivo e grava o que foi escrito', async ({ page }) => {
   await expect(confirmar).toBeEnabled();
   await confirmar.click();
 
+  /*
+   * O #1003 ESTÁ EM PREPARO, então o backend responde 428 e pede o segundo
+   * clique. Nada foi gravado ainda — ver o teste dedicado logo abaixo.
+   */
+  await page.getByTestId('confirm-prepared-cancel').click();
+
   await expect
     .poll(() => api.cancelReasons())
-    .toEqual([{ orderId: 'ord-1003', reason: 'Cliente desistiu por telefone.' }]);
+    .toEqual([
+      { orderId: 'ord-1003', reason: 'Cliente desistiu por telefone.', confirmPrepared: true },
+    ]);
 
   // O card SAIU do quadro: cancelado é histórico, e histórico é a outra aba.
   await expect(page.getByTestId('order-card-1003')).toHaveCount(0);
@@ -527,6 +535,117 @@ test('cancelar exige motivo e grava o que foi escrito', async ({ page }) => {
   ).toBeVisible();
   await page.getByTestId('orders-tab-andamento').click();
   await expect(painel.getByText('Cliente desistiu por telefone.')).toBeVisible();
+});
+
+/*
+ * ============================================================================
+ * O SEGUNDO CLIQUE — cancelar comida que já está na chapa
+ * ============================================================================
+ *
+ * A partir de `preparing`, o backend responde **428 `confirmation_required`** a
+ * um cancelamento sem `confirm_prepared_order`. Não é erro: é ele pedindo uma
+ * precondição que a tela satisfaz na hora.
+ *
+ * ERA UM DEFEITO EM PRODUÇÃO. O painel mandava `false` e não sabia ler o 428 —
+ * o `detail` dele é OBJETO, e o tradutor genérico de erro não acha frase
+ * nenhuma ali. O lojista via uma tarja vermelha, o pedido continuava na chapa e
+ * não havia caminho na tela para sair dali.
+ */
+test('cancelar pedido em preparo pede o segundo clique antes de gravar', async ({ page }) => {
+  await fazerLogin(page);
+  await page.getByTestId('order-card-1003').click();
+  await page.getByTestId('order-panel').getByTestId('change-status-cancelled').click();
+
+  const primeiro = page.getByRole('dialog');
+  await primeiro.getByLabel('Motivo do cancelamento').fill('Cliente desistiu por telefone.');
+  await primeiro.getByTestId('confirm-cancel').click();
+
+  /* NADA FOI GRAVADO: o 428 não é um cancelamento que falhou, é um que ainda
+     não aconteceu. */
+  expect(api.cancelReasons()).toHaveLength(0);
+
+  /* E NÃO HÁ TARJA VERMELHA — o defeito era exatamente este. */
+  await expect(page.getByTestId('cancel-error')).toHaveCount(0);
+
+  const segundo = page.getByRole('dialog');
+  await expect(segundo).toContainText('Cancelar o pedido #1003 mesmo em produção?');
+
+  /*
+   * O ESTÁGIO É NOMEADO, e não repetido como "em produção": é para isso que o
+   * backend manda `order_status` junto de uma mensagem que já estaria pronta.
+   * "Já saiu para entrega" e "a cozinha está preparando" são conversas
+   * diferentes com o cliente.
+   */
+  await expect(segundo.getByTestId('prepared-cancel-stage')).toContainText(
+    'cozinha já está preparando',
+  );
+  await expect(segundo).toContainText('custo dela fica com a loja');
+
+  /* UM DIÁLOGO DE CADA VEZ: o segundo substitui o primeiro. Dois `Modal`
+     abertos seriam dois fundos, dois Esc e duas armadilhas de foco. */
+  await expect(page.getByRole('dialog')).toHaveCount(1);
+  await expect(page.getByLabel('Motivo do cancelamento')).toHaveCount(0);
+
+  await segundo.getByTestId('confirm-prepared-cancel').click();
+
+  /*
+   * O REENVIO LEVA `confirm_prepared_order: true` E O MESMO MOTIVO — sem
+   * redigitar. O motivo mora no painel justamente porque o primeiro diálogo
+   * desmontou.
+   */
+  await expect
+    .poll(() => api.cancelReasons())
+    .toEqual([
+      { orderId: 'ord-1003', reason: 'Cliente desistiu por telefone.', confirmPrepared: true },
+    ]);
+
+  await expect(page.getByTestId('order-card-1003')).toHaveCount(0);
+});
+
+test('"Manter o pedido" na segunda etapa desiste sem cancelar nada', async ({ page }) => {
+  await fazerLogin(page);
+  await page.getByTestId('order-card-1003').click();
+  await page.getByTestId('order-panel').getByTestId('change-status-cancelled').click();
+
+  const primeiro = page.getByRole('dialog');
+  await primeiro.getByLabel('Motivo do cancelamento').fill('Cliente desistiu por telefone.');
+  await primeiro.getByTestId('confirm-cancel').click();
+
+  await page.getByRole('dialog').getByRole('button', { name: 'Manter o pedido' }).click();
+
+  /* Some tudo: o lojista acabou de descobrir que a comida já está feita, e
+     voltar ao campo de motivo o faria reler uma pergunta já respondida. */
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(api.cancelReasons()).toHaveLength(0);
+  await expect(page.getByTestId('order-card-1003')).toBeVisible();
+});
+
+/*
+ * `accepted` NÃO É PRODUÇÃO, e a diferença é o que impede a confirmação de
+ * virar pedágio: o pedido foi aceito e ninguém encostou na chapa ainda, então
+ * cancelar ali não custa comida nenhuma. Um diálogo em todo cancelamento
+ * treinaria o lojista a apertar "Cancelar assim mesmo" sem ler.
+ */
+test('pedido aceito, sem nada preparado, cancela em uma etapa só', async ({ page }) => {
+  await fazerLogin(page);
+  api.setStatusFromAnotherUser('ord-1003', 'accepted');
+  await page.reload();
+
+  await page.getByTestId('order-card-1003').click();
+  await page.getByTestId('order-panel').getByTestId('change-status-cancelled').click();
+
+  const confirmacao = page.getByRole('dialog');
+  await confirmacao.getByLabel('Motivo do cancelamento').fill('Cliente desistiu por telefone.');
+  await confirmacao.getByTestId('confirm-cancel').click();
+
+  await expect
+    .poll(() => api.cancelReasons())
+    .toEqual([
+      { orderId: 'ord-1003', reason: 'Cliente desistiu por telefone.', confirmPrepared: false },
+    ]);
+
+  await expect(page.getByTestId('confirm-prepared-cancel')).toHaveCount(0);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
 test('cancelar recusado pelo backend mostra o erro sem fechar a confirmação', async ({ page }) => {

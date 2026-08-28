@@ -2,10 +2,24 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { messageFromUnknownError } from '../api/errors';
 import { cancelOrder, fetchStatusCounts, listOrders, updateOrderStatus } from '../api/orders';
-import type { OrderListItem, OrderStreamEvent } from '../api/types';
+import type { CancelConfirmation, OrderListItem, OrderStreamEvent } from '../api/types';
+import { confirmacaoExigida } from './cancel-confirmation';
 import { defaultFilters, orderMatchesFilters, type OrdersFilterState } from './order-filters';
 import { listItemFromDetail } from './order-mapping';
 import { upsertOrder } from './stream-events';
+
+/**
+ * OS TRÊS DESFECHOS DE UM CANCELAMENTO.
+ *
+ * `{ ok: true }` gravou; `{ ok: false, confirmation }` é o 428 — o backend
+ * pedindo o segundo clique, e não uma falha; `{ ok: false, confirmation: null }`
+ * é erro de verdade, e a mensagem dele já está em `actionError`.
+ *
+ * UM BOOLEANO NÃO DAVA CONTA, e é por isso que este tipo existe: com `false`
+ * para os dois últimos casos, a tela não tinha como distinguir "o backend
+ * recusou" de "o backend está perguntando" — e tratava os dois como recusa.
+ */
+export type CancelOutcome = { ok: boolean; confirmation: CancelConfirmation | null };
 
 /** 100 é o teto do `limit` da API. Uma página cobre o dia da maioria das lojas. */
 const PAGE_SIZE = 100;
@@ -163,20 +177,41 @@ export function useOrdersBoard() {
   /**
    * Cancela com motivo, por rota própria.
    *
-   * Mesmo tratamento do `changeOrderStatus` — o backend devolve o pedido já
-   * cancelado e o quadro aplica isso na hora, sem recarregar a lista inteira.
+   * O backend devolve o pedido já cancelado e o quadro aplica isso na hora,
+   * sem recarregar a lista inteira.
+   *
+   * ELE TEM TRÊS DESFECHOS, E NÃO DOIS, e é essa a diferença para
+   * `changeOrderStatus`: entre "deu certo" e "deu erro" existe o 428
+   * `confirmation_required`, que não é nem um nem outro. É o backend pedindo
+   * uma precondição que a tela satisfaz na hora — o pedido já está em produção
+   * e falta o segundo clique.
+   *
+   * **O 428 NÃO PODE VIRAR `actionError`**, e era exatamente o que acontecia:
+   * `messageFromUnknownError` não acha frase num `detail` que é objeto, então o
+   * lojista via a tarja vermelha genérica, o pedido continuava na chapa e não
+   * havia caminho na tela para sair dali. Por isso a leitura de
+   * `confirmacaoExigida` vem ANTES do `setActionError` — uma resposta que não é
+   * erro não pode acender a régua de erro.
    */
   const cancelOrderWithReason = useCallback(
-    async (orderId: string, reason: string): Promise<boolean> => {
+    async (
+      orderId: string,
+      reason: string,
+      /** Só `true` vindo do diálogo de produção. Ver `api/orders.ts`. */
+      confirmPreparedOrder = false,
+    ): Promise<CancelOutcome> => {
       setActionError(null);
       try {
-        const detail = await cancelOrder(orderId, reason);
+        const detail = await cancelOrder(orderId, reason, confirmPreparedOrder);
         commitOrders(upsertOrder(ordersRef.current, listItemFromDetail(detail)));
         scheduleCountsRefresh();
-        return true;
+        return { ok: true, confirmation: null };
       } catch (error) {
+        const confirmation = confirmacaoExigida(error);
+        if (confirmation) return { ok: false, confirmation };
+
         setActionError({ orderId, message: messageFromUnknownError(error) });
-        return false;
+        return { ok: false, confirmation: null };
       }
     },
     [commitOrders, scheduleCountsRefresh],

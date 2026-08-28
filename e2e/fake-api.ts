@@ -1538,6 +1538,16 @@ function isTerminal(status: string): boolean {
   return (TRANSICOES[status]?.length ?? 0) === 0;
 }
 
+/**
+ * A COMIDA JÁ FOI FEITA — `PREPARED_ORDER_STATUSES` do backend.
+ *
+ * São os três estados em que cancelar exige o segundo clique
+ * (`confirm_prepared_order`). `accepted` fica de FORA de propósito: o pedido
+ * foi aceito e ninguém encostou na chapa ainda, então cancelar ali não custa
+ * comida nenhuma e não pede confirmação.
+ */
+const EM_PRODUCAO = ['preparing', 'ready', 'out_for_delivery'];
+
 const ROTULOS: Record<string, string> = {
   pending: 'Pendente',
   accepted: 'Aceito',
@@ -1580,8 +1590,14 @@ export type FakeApi = {
    * ficou para trás.
    */
   failAvailability: (productId: string) => void;
-  /** Motivo gravado no cancelamento, para conferir o que a tela mandou. */
-  cancelReasons: () => { orderId: string; reason: string }[];
+  /**
+   * Motivo gravado no cancelamento, para conferir o que a tela mandou.
+   *
+   * `confirmPrepared` é o que prova o SEGUNDO clique: um cancelamento de pedido
+   * em produção só grava com ele `true`, e é a única forma de o teste distinguir
+   * "a tela reenviou depois de confirmar" de "a tela mandou `true` sozinha".
+   */
+  cancelReasons: () => { orderId: string; reason: string; confirmPrepared: boolean }[];
   /** Apaga a faixa base da filial: o próximo ajuste responde 409. */
   clearPrepTimeBase: (branchId: string) => void;
   /** Fecha a filial: qualquer ajuste responde 409 de loja fechada. */
@@ -2119,7 +2135,7 @@ function senhaTemporariaFalsa(indice: number): string {
     availabilityCalls: [] as { productId: string; isAvailable: boolean }[],
     customerQueries: [] as URLSearchParams[],
     imageUploads: [] as { productId: string; bytes: number }[],
-    cancelReasons: [] as { orderId: string; reason: string }[],
+    cancelReasons: [] as { orderId: string; reason: string; confirmPrepared: boolean }[],
     // A matriz já tem faixa gravada; a segunda filial não, para o teste do 409.
     prepTime: {
       [BRANCH_ID]: { min: 25, max: 35 },
@@ -2996,7 +3012,10 @@ function senhaTemporariaFalsa(indice: number): string {
       const item = findOrder(cancelMatch[1]);
       if (!item) return json(route, 404, { detail: 'Pedido não encontrado.' });
 
-      const body = request.postDataJSON() as { reason?: string };
+      const body = request.postDataJSON() as {
+        reason?: string;
+        confirm_prepared_order?: boolean;
+      };
       const reason = (body.reason ?? '').trim();
       // Mesma validação do backend: 3 a 300 caracteres, 422 fora disso.
       if (reason.length < 3 || reason.length > 300) {
@@ -3004,13 +3023,41 @@ function senhaTemporariaFalsa(indice: number): string {
           detail: [{ loc: ['body', 'reason'], msg: 'O motivo precisa ter de 3 a 300 caracteres.' }],
         });
       }
+
+      /*
+       * O 428 DA COMIDA JÁ FEITA, e ele vem ANTES do 409 de estado final —
+       * como no backend, onde `_ensure_cancellation_confirmed` roda antes de
+       * `status_change_service.apply`.
+       *
+       * A ORDEM IMPORTA PARA O TESTE VIZINHO: um pedido que outro atendente
+       * concluiu no meio do diálogo está em `completed`, que NÃO é estado de
+       * produção — ele continua caindo no 409, e é isso que mantém as duas
+       * recusas distinguíveis na tela.
+       *
+       * 428 e não 409 de propósito: aqui o `detail` é OBJETO, com `code`, e é
+       * por ele que o painel decide abrir o diálogo em vez de pintar uma tarja
+       * vermelha. Ver `orders/cancel-confirmation.ts`.
+       */
+      const confirmPrepared = body.confirm_prepared_order === true;
+      if (!confirmPrepared && EM_PRODUCAO.includes(item.status)) {
+        return json(route, 428, {
+          detail: {
+            code: 'confirmation_required',
+            message:
+              'Este pedido já está em produção. Cancelar agora não devolve o custo da comida ' +
+              'para o restaurante. Confirme para continuar.',
+            order_status: item.status,
+          },
+        });
+      }
+
       if (isTerminal(item.status)) {
         return json(route, 409, {
           detail: `"${ROTULOS[item.status]}" é um estado final e não muda mais.`,
         });
       }
 
-      state.cancelReasons.push({ orderId: item.id, reason });
+      state.cancelReasons.push({ orderId: item.id, reason, confirmPrepared });
       item.status = 'cancelled';
       historyOf(item).push({
         id: `${item.id}-hist-cancelled`,
