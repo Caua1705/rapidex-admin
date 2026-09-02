@@ -4,8 +4,26 @@ import { API_BASE_URL } from '../api/client';
 import { createStreamTicket } from '../api/orders';
 import type { OrderStreamEvent } from '../api/types';
 import { AppliedEventKeys } from './stream-events';
+import { fluxoParado, PASSO_DO_RELOGIO_MS } from './stream-health';
 
-export type StreamStatus = 'connecting' | 'live' | 'offline';
+export type StreamStatus = 'connecting' | 'live' | 'offline' | 'stale';
+
+/**
+ * O RÓTULO DE CADA ESTADO, NUM MAPA SÓ.
+ *
+ * Eram dois: um em `OrdersToolbar` e outro em `KitchenPage`, com textos já
+ * diferentes ("Tempo real" e "Tempo real ligado") — e o da Cozinha era
+ * `Record<string, string>`, então um estado novo NÃO daria erro de compilação
+ * lá: a etiqueta simplesmente ficaria vazia na tela que fica pendurada na
+ * parede. É o defeito da barra de navegação outra vez, e por isso o mapa mora
+ * ao lado do tipo que ele cobre.
+ */
+export const STREAM_LABELS: Record<StreamStatus, string> = {
+  live: 'Tempo real',
+  connecting: 'Reconectando…',
+  offline: 'Sem conexão',
+  stale: 'Sem sinal do servidor',
+};
 
 type StreamCallbacks = {
   /** Pedido novo ou mudança de status. `event.order` já vem no formato da lista. */
@@ -42,12 +60,41 @@ const MAX_RETRY_DELAY_MS = 30_000;
  *    caminho é outro.
  *
  * 4. A conexão morre sozinha aos 15 min no backend (para não acumular conexão
- *    zumbi). Para nós isso é só mais um `onerror` seguido de reabertura.
+ *    zumbi). Para nós isso é só mais um `onerror` seguido de reabertura — e é
+ *    também a GARANTIA em que o relógio de silêncio se apoia (ponto 5).
+ *
+ * 5. CONEXÃO ABERTA QUE PAROU DE ENTREGAR. Os quatro pontos acima cuidam da
+ *    conexão que QUEBRA; nenhum deles enxerga a que fica aberta e muda. Sem o
+ *    relógio abaixo, `live` era dito no `onopen` e nunca mais reavaliado: o
+ *    painel afirmava tempo real enquanto o quadro parava. Ver `stream-health.ts`
+ *    para por que o limite sai do teto do backend e não do movimento da loja.
  */
 export function useOrderStream(options: { enabled: boolean } & StreamCallbacks): {
   status: StreamStatus;
 } {
   const [status, setStatus] = useState<StreamStatus>('connecting');
+
+  /**
+   * O ÚLTIMO INSTANTE EM QUE O SERVIDOR DEU SINAL — evento ou reabertura.
+   *
+   * Estado, e não `ref`: o relógio abaixo precisa que a tela repinte quando
+   * ele muda de lado. `null` enquanto nada chegou.
+   */
+  const [ultimoSinal, setUltimoSinal] = useState<number | null>(null);
+
+  /**
+   * O DIAGNÓSTICO DO RELÓGIO, separado do estado da conexão.
+   *
+   * São dois fatos diferentes e cada um tem um dono: `status` conta o que o
+   * `EventSource` fez, `parado` conta o que o relógio concluiu. Guardar os
+   * dois na mesma variável fazia a reabertura apagar o diagnóstico no primeiro
+   * `setStatus('connecting')` — e a etiqueta que o lojista precisava ler
+   * piscava por um quadro e sumia.
+   */
+  const [parado, setParado] = useState(false);
+
+  /** Reabrir a conexão de fora do efeito que a criou. Ver o relógio, no fim. */
+  const reabrirRef = useRef<(() => void) | null>(null);
 
   // Os callbacks mudam de identidade a cada render do componente pai. Se
   // entrassem nas dependências do efeito, o stream fecharia e reabriria a cada
@@ -91,6 +138,13 @@ export function useOrderStream(options: { enabled: boolean } & StreamCallbacks):
       }
 
       // Entrega é ao menos uma vez; descartar repetido é obrigação do cliente.
+      /*
+       * O SINAL DE VIDA É ANTES DA DEDUPLICAÇÃO. Um evento repetido não muda a
+       * tela, mas prova que a conexão está entregando — descartá-lo aqui faria
+       * o relógio contar silêncio que não houve.
+       */
+      setUltimoSinal(Date.now());
+
       if (!applied.markIfNew(parsed.event_key)) return;
 
       if (parsed.type === 'sync_required') {
@@ -127,6 +181,9 @@ export function useOrderStream(options: { enabled: boolean } & StreamCallbacks):
       eventSource.onopen = () => {
         retryAttempt = 0;
         setStatus('live');
+        // A conexão nova entregou: o diagnóstico do relógio caiu por terra.
+        setUltimoSinal(Date.now());
+        setParado(false);
         if (hasConnectedBefore) {
           // Ver ponto 3 do comentário do hook: sem cursor, recarregamos tudo.
           callbacksRef.current.onReconnected();
@@ -156,7 +213,16 @@ export function useOrderStream(options: { enabled: boolean } & StreamCallbacks):
       window.clearTimeout(retryTimer);
       closeSource();
       setStatus('offline');
+      /*
+       * "SEM CONEXÃO" EXPLICA MELHOR QUE "SEM SINAL DO SERVIDOR", e é uma
+       * explicação que o navegador ACABOU de dar. Deixar o diagnóstico do
+       * relógio por cima diria ao lojista que o problema está do outro lado
+       * quando ele está no wi-fi da loja.
+       */
+      setParado(false);
     }
+
+    reabrirRef.current = handleOnline;
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -171,5 +237,53 @@ export function useOrderStream(options: { enabled: boolean } & StreamCallbacks):
     };
   }, [enabled]);
 
-  return { status };
+  /*
+   * ==========================================================================
+   * O RELÓGIO DO SILÊNCIO
+   * ==========================================================================
+   *
+   * Efeito próprio, e de propósito: ele não pode morar dentro do efeito da
+   * conexão, que só depende de `enabled` — lá ele nunca releria `ultimoSinal`.
+   *
+   * O PASSO É DE UM MINUTO para um limite de vinte: um relógio mais fino não
+   * responderia nada diferente e acordaria a tela sessenta vezes mais. Ele
+   * também não precisa de precisão nenhuma — a aba escondida tem os timers
+   * estrangulados pelo navegador, e chegar atrasado só adia o diagnóstico, que
+   * é o lado barato do erro.
+   */
+  useEffect(() => {
+    if (!enabled || ultimoSinal === null) return;
+
+    const timer = window.setInterval(() => {
+      if (fluxoParado(ultimoSinal, Date.now())) setParado(true);
+    }, PASSO_DO_RELOGIO_MS);
+
+    return () => window.clearInterval(timer);
+  }, [enabled, ultimoSinal]);
+
+  /*
+   * O DIAGNÓSTICO MUDA A ETIQUETA **E** REFAZ A CONEXÃO.
+   *
+   * Só mudar a etiqueta seria contar ao lojista que o painel parou e não fazer
+   * nada a respeito. O remédio de uma conexão morta é uma conexão nova — e a
+   * reabertura ainda arrasta a recarga da lista (`onReconnected`), que é o que
+   * repõe os pedidos que entraram durante o silêncio.
+   *
+   * A reabertura sai daqui, e não de dentro do intervalo, para acontecer UMA
+   * vez por diagnóstico em vez de uma por volta do relógio. Se a conexão nova
+   * também emudecer, o ciclo recomeça vinte minutos depois — três vezes por
+   * hora no pior caso, que é barato.
+   */
+  useEffect(() => {
+    if (!parado) return;
+    setUltimoSinal(Date.now());
+    reabrirRef.current?.();
+  }, [parado]);
+
+  /*
+   * O DIAGNÓSTICO VENCE O ESTADO DA CONEXÃO enquanto durar. Sem isto, o
+   * `setStatus('connecting')` da própria reabertura apagaria em um quadro a
+   * única etiqueta que contava ao lojista por que o quadro tinha parado.
+   */
+  return { status: parado ? 'stale' : status };
 }

@@ -11,7 +11,7 @@ o que já foi fechado está marcado no título de cada item, com o commit.
 
 | #   | Item                                           | Estado              |
 | --- | ---------------------------------------------- | ------------------- |
-| 1   | o "ao vivo" que nunca é reavaliado             | aberto              |
+| 1   | o "ao vivo" que nunca é reavaliado             | **feito**           |
 | 2   | o agente de impressão fora de Loja › Impressão | **feito** `589cd94` |
 | 3   | o primeiro pedido do turno não apita           | aberto              |
 | 4-8 | os cinco menores                               | anotados            |
@@ -34,7 +34,7 @@ Sobraram **oito**. Estão em ordem de estrago.
 
 ---
 
-## 1. O painel afirma "ao vivo" sem ter como saber
+## 1. ~~O painel afirma "ao vivo" sem ter como saber~~ — FEITO
 
 `src/orders/useOrderStream.ts:129`
 
@@ -50,11 +50,33 @@ mantém a etiqueta **ao vivo** na tela enquanto nenhum pedido aparece.
 _ativamente tranquilizando_ o lojista enquanto o telefone toca. É a irmã mais
 próxima da camada 2, e é a auditoria **D.5**, ainda aberta.
 
-O conserto tem forma conhecida: guardar o instante do último evento (ou de um
-`ping`, se existir no stream) e virar o rótulo depois de N minutos de silêncio.
-Precisa conferir antes se a rota manda comentário de _keep-alive_ — sem isso,
-"N minutos sem evento" numa madrugada de domingo é silêncio legítimo, e o
-rótulo mentiria para o outro lado.
+**A conferência que a suspeita pedia mudou o desenho inteiro.** O backend
+MANDA `keep-alive` — `: ping` a cada 20s, `HEARTBEAT_INTERVAL_SECONDS` — e ele
+não serve: comentário SSE **não vira evento no `EventSource`**, não há callback
+para ele, e contar batidas (o desenho óbvio) é impossível do navegador.
+
+O sinal observável é outro, e é uma GARANTIA: `MAX_STREAM_SECONDS = 900` — toda
+conexão morre aos 15 minutos de propósito, para não acumular zumbi no worker.
+Logo **uma conexão saudável produz um `onopen` a cada quinze minutos**, tenha
+entrado pedido ou não. O relógio não mede "há quanto tempo não entra pedido"
+(numa madrugada de domingo isso mentiria); mede há quanto tempo o painel não
+recebe NADA — evento **ou reabertura**.
+
+**Limite: 20 minutos** = o teto do backend mais cinco de folga, e a folga
+precisa caber uma reabertura inteira que deu trabalho (ticket, conexão, espera
+crescente). Generosa de propósito, para o erro cair do lado barato: acusar tarde
+custa minutos de lista velha com a recarga logo atrás; acusar cedo ensina o
+lojista a ignorar a etiqueta.
+
+Os dois números são **espelho declarado** de `admin_order_stream_service.py` —
+nenhum está no `/openapi.json` —, e o estrago da divergência está escrito em
+`stream-health.ts`.
+
+**E a etiqueta não basta:** o diagnóstico refaz a conexão, que é o remédio de
+uma conexão morta, e a reabertura arrasta a recarga da lista. De brinde, o
+`typecheck` denunciou dois `STREAM_LABELS` — um deles `Record<string, string>`,
+onde um estado novo não daria erro e a etiqueta ficaria vazia na tela que fica
+pendurada na parede da cozinha.
 
 ## 2. ~~O agente de impressão cair é invisível fora de Loja › Impressão~~ — FEITO (`589cd94`)
 

@@ -809,3 +809,19 @@
     grid-column: 1 / -1;
   }
 }
+
+/*
+ * SEM SINAL DO SERVIDOR — a conexão está aberta e não entrega nada.
+ *
+ * Tinta de ATENÇÃO e não de perigo, e a diferença não é estética: "sem conexão"
+ * é um fato fechado (a rede caiu, o painel não vai receber), enquanto este é um
+ * diagnóstico do relógio que a reabertura logo atrás pode desmentir. Pintar os
+ * dois de vermelho faria o mais provável dos dois parecer o mais grave.
+ */
+.conn--stale {
+  color: var(--alert);
+}
+
+.conn--stale .conn__dot {
+  background: var(--alert);
+}

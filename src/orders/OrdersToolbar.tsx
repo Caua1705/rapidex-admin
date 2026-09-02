@@ -7,7 +7,7 @@ import { datesForPeriod, type OrdersFilterState, type PeriodPreset } from './ord
 import { formatPrepRange, promessaAoCliente } from './prep-time';
 import { PrepTimeControl } from './PrepTimeControl';
 import { useDeliveryEstimate, type DeliveryEstimate as Estimativa } from './useDeliveryEstimate';
-import type { StreamStatus } from './useOrderStream';
+import { STREAM_LABELS, type StreamStatus } from './useOrderStream';
 import { usePrepTime } from './usePrepTime';
 
 const PERIODOS: readonly { value: PeriodPreset; label: string }[] = [
@@ -16,12 +16,6 @@ const PERIODOS: readonly { value: PeriodPreset; label: string }[] = [
   { value: 'last7', label: '7 dias' },
   { value: 'custom', label: 'Escolher' },
 ];
-
-const STREAM_LABELS: Record<StreamStatus, string> = {
-  live: 'Tempo real',
-  connecting: 'Reconectando…',
-  offline: 'Sem conexão',
-};
 
 /**
  * ============================================================================

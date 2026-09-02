@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { useSession } from '../auth/session-context';
 import { AvisoDoAgente } from '../print-sectors/AvisoDoAgente';
-import { useOrderStream } from '../orders/useOrderStream';
+import { STREAM_LABELS, useOrderStream } from '../orders/useOrderStream';
 import { stageOf } from '../orders/order-status';
 import { usePrepRange } from '../orders/usePrepRange';
 import { KitchenCard } from './KitchenCard';
@@ -11,12 +11,6 @@ import { groupForKitchen, KITCHEN_COLUMNS } from './kitchen-board';
 import { useKitchenOrders } from './useKitchenOrders';
 import { useNow } from './useNow';
 import './KitchenPage.css';
-
-const STREAM_LABELS: Record<string, string> = {
-  live: 'Tempo real ligado',
-  connecting: 'Reconectando…',
-  offline: 'Sem conexão',
-};
 
 /**
  * A tela da Cozinha: tela cheia, sem navegação lateral.
