@@ -480,9 +480,7 @@ export function PerformancePage() {
                 entregasse.
                ============================================================== */}
             <Secao titulo="O que não virou venda" erro={errors.cancellations}>
-              {cancellations ? (
-                <Cancelados cancellations={cancellations} horas={horas} />
-              ) : null}
+              {cancellations ? <Cancelados cancellations={cancellations} horas={horas} /> : null}
             </Secao>
 
             {/* ==============================================================
@@ -1101,7 +1099,11 @@ function Quadrantes({ grupos }: { grupos: readonly Quadrante[] }) {
           const restantes = grupo.produtos.length - nomeados.length;
 
           return (
-            <div className="quadrantes__grupo" key={grupo.id} data-testid={`perf-grupo-${grupo.id}`}>
+            <div
+              className="quadrantes__grupo"
+              key={grupo.id}
+              data-testid={`perf-grupo-${grupo.id}`}
+            >
               <dt className="quadrantes__nome">
                 {grupo.nome}
                 <span className="quadrantes__contagem tnum">

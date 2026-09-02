@@ -321,8 +321,8 @@
  *   coluna anterior — foi o que o print mostrou.
  */
 .menu__table {
-  --cols: var(--col-punho, ) var(--col-selecao, ) var(--col-foto, )
-    minmax(180px, 1fr) 96px var(--col-setor, ) 148px 64px;
+  --cols: var(--col-punho,) var(--col-selecao,) var(--col-foto,) minmax(180px, 1fr) 96px
+    var(--col-setor,) 148px 64px;
 }
 .menu__table--reordenavel {
   --col-punho: 28px;

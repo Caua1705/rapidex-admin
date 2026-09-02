@@ -161,9 +161,7 @@ export const ROUTE_BRANCH_SCOPE = {
  * é um recorte mais largo, é o cardápio das duas somado.
  */
 export const SINGLE_BRANCH_PATHS: readonly string[] = [
-  ...STORE_SECTIONS.filter((secao) => secao.scope === 'branch').map(
-    (secao) => `/loja/${secao.id}`,
-  ),
+  ...STORE_SECTIONS.filter((secao) => secao.scope === 'branch').map((secao) => `/loja/${secao.id}`),
   '/cardapio',
 ];
 

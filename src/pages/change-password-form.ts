@@ -34,11 +34,7 @@ export type ErrosDaTroca = { atual?: string; nova?: string; confirmacao?: string
  * A SENHA ATUAL ERRADA NÃO DÁ PARA ANTECIPAR: só o bcrypt sabe. Ela chega como
  * 400 e vai para o aviso do topo, com a frase do backend.
  */
-export function validarTroca(
-  atual: string,
-  nova: string,
-  confirmacao: string,
-): ErrosDaTroca {
+export function validarTroca(atual: string, nova: string, confirmacao: string): ErrosDaTroca {
   const erros: ErrosDaTroca = {};
 
   if (atual === '') erros.atual = 'Digite a senha com que você entrou.';

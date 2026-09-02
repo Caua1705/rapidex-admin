@@ -188,14 +188,8 @@ describe('o corpo', () => {
    * a tela parou de mostrar.
    */
   it('zera o alvo fora de "por segmento", mesmo com a classe no rascunho', () => {
-    const publico = bodyFrom(
-      { ...RASCUNHO, visibility: 'public', targetSegment: 'fiel' },
-      arte(),
-    );
-    const privado = bodyFrom(
-      { ...RASCUNHO, visibility: 'private', targetSegment: 'fiel' },
-      arte(),
-    );
+    const publico = bodyFrom({ ...RASCUNHO, visibility: 'public', targetSegment: 'fiel' }, arte());
+    const privado = bodyFrom({ ...RASCUNHO, visibility: 'private', targetSegment: 'fiel' }, arte());
 
     expect(publico?.target_segment).toBeNull();
     expect(privado?.target_segment).toBeNull();
@@ -328,9 +322,9 @@ describe('a situação da campanha', () => {
    */
   it('privado e por segmento continuam ATIVOS — quem vê não é o interruptor', () => {
     expect(situacaoDoCupom(cupom({ visibility: 'private' }), dentro)).toBe('ativo');
-    expect(
-      situacaoDoCupom(cupom({ visibility: 'segment', target_segment: 'fiel' }), dentro),
-    ).toBe('ativo');
+    expect(situacaoDoCupom(cupom({ visibility: 'segment', target_segment: 'fiel' }), dentro)).toBe(
+      'ativo',
+    );
   });
 
   /*

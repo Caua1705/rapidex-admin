@@ -161,10 +161,7 @@ export const TODAS_AS_FILIAIS = '';
  * "outra filial". O dono enxerga todas as do restaurante, então isto só
  * acontece com dado velho, e um UUID cru numa coluna não ajuda ninguém.
  */
-export function filialLabel(
-  usuario: AdminUserDetail,
-  branches: readonly Branch[],
-): string {
+export function filialLabel(usuario: AdminUserDetail, branches: readonly Branch[]): string {
   if (usuario.role === 'owner') return 'Todas as filiais';
   if (!usuario.branch_id) return 'Todas as filiais';
   const filial = branches.find((branch) => branch.id === usuario.branch_id);
@@ -261,10 +258,7 @@ export function bodyDeCriacao(draft: UserDraft): AdminUserCreate {
  * Devolve `null` quando nada mudou — e quem chama usa isso para não gastar uma
  * chamada, em vez de mandar `{}` e receber a mesma ficha de volta.
  */
-export function bodyDeEdicao(
-  draft: UserDraft,
-  original: AdminUserDetail,
-): AdminUserUpdate | null {
+export function bodyDeEdicao(draft: UserDraft, original: AdminUserDetail): AdminUserUpdate | null {
   const body: AdminUserUpdate = {};
 
   const nome = draft.name.trim();
@@ -311,7 +305,8 @@ export function validarRascunho(draft: UserDraft): Partial<Record<UserField, str
   if (email === '') campos.email = 'O e-mail é com o que a pessoa entra no painel.';
   else if (email.length > TETO_DO_EMAIL) campos.email = `No máximo ${TETO_DO_EMAIL} caracteres.`;
   else if (!FORMA_DE_EMAIL.test(email)) {
-    campos.email = 'Este endereço não parece um e-mail. Ele é o login da pessoa — sem ele, ninguém entra.';
+    campos.email =
+      'Este endereço não parece um e-mail. Ele é o login da pessoa — sem ele, ninguém entra.';
   }
 
   return campos;

@@ -392,8 +392,8 @@ export function UiGalleryPage() {
               confere que a área de transferência responde neste navegador.
             */}
             <p className="t-aux">
-              Aperte "Copiar" na amostra acima: o botão troca para "Copiado" e volta em 2,4s. Onde
-              a área de transferência do navegador não existe (painel aberto por IP, sem HTTPS), o
+              Aperte "Copiar" na amostra acima: o botão troca para "Copiado" e volta em 2,4s. Onde a
+              área de transferência do navegador não existe (painel aberto por IP, sem HTTPS), o
               componente cai no caminho antigo em vez de não fazer nada.
             </p>
           </Amostra>

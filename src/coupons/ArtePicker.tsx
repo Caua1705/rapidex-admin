@@ -1,11 +1,6 @@
 import type { CouponTemplate } from '../api/types';
 import { ImageIcon } from '../ds/icons';
-import {
-  contarArtes,
-  descontoDaArte,
-  textoDoQueDesconta,
-  type GrupoDeArtes,
-} from './coupon-model';
+import { contarArtes, descontoDaArte, textoDoQueDesconta, type GrupoDeArtes } from './coupon-model';
 
 /**
  * A ESCOLHA DA ARTE — uma grade visual, nunca um `<select>`.

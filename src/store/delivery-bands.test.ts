@@ -78,8 +78,20 @@ describe('qual faixa responde por uma distância', () => {
 describe('o que veio do backend vira rascunho', () => {
   it('já ordenado, e com a distância no formato que se digita', () => {
     const draft = draftFromBands([
-      { id: 'b', branch_id: 'f1', max_distance_km: 7.5, delivery_time_min: 30, delivery_time_max: 45 },
-      { id: 'a', branch_id: 'f1', max_distance_km: 3, delivery_time_min: 15, delivery_time_max: 25 },
+      {
+        id: 'b',
+        branch_id: 'f1',
+        max_distance_km: 7.5,
+        delivery_time_min: 30,
+        delivery_time_max: 45,
+      },
+      {
+        id: 'a',
+        branch_id: 'f1',
+        max_distance_km: 3,
+        delivery_time_min: 15,
+        delivery_time_max: 25,
+      },
     ]);
     expect(draft.map((linha) => linha.maxDistanceKm)).toEqual(['3', '7,5']);
   });

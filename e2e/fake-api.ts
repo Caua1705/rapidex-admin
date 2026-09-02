@@ -1812,279 +1812,278 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * Instala o backend falso na página. Chame ANTES do primeiro page.goto().
  */
 export async function installFakeApi(page: Page): Promise<FakeApi> {
+  /* ==========================================================================
+   * CUPONS
+   *
+   * A ARTE É DA PLATAFORMA, e o falso a trata assim: `coupon_templates` não tem
+   * `restaurant_id` e não há rota que as cadastre — a lista vem inteira, sem
+   * recorte, e só com as ativas.
+   *
+   * A semente cobre as CINCO situações de uma vez (programado, ativo, expirado,
+   * esgotado, desligado) mais a arte fora do ar. Não é excesso: é o que faz uma
+   * captura de tela mostrar a coluna de situação inteira em vez de uma etiqueta
+   * repetida seis vezes.
+   * ======================================================================= */
 
-/* ==========================================================================
- * CUPONS
- *
- * A ARTE É DA PLATAFORMA, e o falso a trata assim: `coupon_templates` não tem
- * `restaurant_id` e não há rota que as cadastre — a lista vem inteira, sem
- * recorte, e só com as ativas.
- *
- * A semente cobre as CINCO situações de uma vez (programado, ativo, expirado,
- * esgotado, desligado) mais a arte fora do ar. Não é excesso: é o que faz uma
- * captura de tela mostrar a coluna de situação inteira em vez de uma etiqueta
- * repetida seis vezes.
- * ======================================================================= */
+  const ARTE_SUMIDA = 'tpl-desativada-pela-plataforma';
 
-const ARTE_SUMIDA = 'tpl-desativada-pela-plataforma';
+  function diasDaqui(dias: number): string {
+    return new Date(Date.now() + dias * 86_400_000).toISOString();
+  }
 
-function diasDaqui(dias: number): string {
-  return new Date(Date.now() + dias * 86_400_000).toISOString();
-}
+  function initialCouponTemplates(): CouponTemplate[] {
+    const arte = (
+      id: string,
+      name: string,
+      discount_type: string,
+      discount_value: string | null,
+      sort_order: number,
+    ): CouponTemplate => ({
+      id,
+      name,
+      image_path: `${id}.png`,
+      /*
+       * `image_url` VEM PRONTA do backend (`build_storage_url`) — o painel não
+       * monta URL de bucket. Aqui ela é um data: URI de 1px porque o e2e roda sem
+       * rede: uma URL de verdade viraria uma imagem quebrada em toda captura.
+       */
+      image_url:
+        'data:image/svg+xml;base64,' +
+        Buffer.from(
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90"><rect width="160" height="90" fill="#dfe4ee"/><text x="80" y="52" font-family="sans-serif" font-size="20" text-anchor="middle" fill="#2b3444">${name}</text></svg>`,
+        ).toString('base64'),
+      discount_type,
+      discount_value,
+      sort_order,
+    });
 
-function initialCouponTemplates(): CouponTemplate[] {
-  const arte = (
-    id: string,
-    name: string,
-    discount_type: string,
-    discount_value: string | null,
-    sort_order: number,
-  ): CouponTemplate => ({
-    id,
-    name,
-    image_path: `${id}.png`,
-    /*
-     * `image_url` VEM PRONTA do backend (`build_storage_url`) — o painel não
-     * monta URL de bucket. Aqui ela é um data: URI de 1px porque o e2e roda sem
-     * rede: uma URL de verdade viraria uma imagem quebrada em toda captura.
-     */
-    image_url:
-      'data:image/svg+xml;base64,' +
-      Buffer.from(
-        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90"><rect width="160" height="90" fill="#dfe4ee"/><text x="80" y="52" font-family="sans-serif" font-size="20" text-anchor="middle" fill="#2b3444">${name}</text></svg>`,
-      ).toString('base64'),
-    discount_type,
-    discount_value,
-    sort_order,
-  });
-
-  return [
-    arte('tpl-percent-10', '10% OFF', 'percent', '10.00', 1),
-    arte('tpl-percent-15', '15% OFF', 'percent', '15.00', 2),
-    arte('tpl-percent-20', '20% OFF', 'percent', '20.00', 3),
-    /* Uma arte de valor fixo LIVRE na semente: é ela que permite ao e2e trocar
+    return [
+      arte('tpl-percent-10', '10% OFF', 'percent', '10.00', 1),
+      arte('tpl-percent-15', '15% OFF', 'percent', '15.00', 2),
+      arte('tpl-percent-20', '20% OFF', 'percent', '20.00', 3),
+      /* Uma arte de valor fixo LIVRE na semente: é ela que permite ao e2e trocar
        de arte percentual para não-percentual e conferir que o teto de desconto
        sai do corpo junto com o campo. */
-    arte('tpl-fixed-3', 'R$ 3 OFF', 'fixed', '3.00', 4),
-    arte('tpl-fixed-5', 'R$ 5 OFF', 'fixed', '5.00', 5),
-    /*
-     * "Primeiro pedido" é uma ARTE, cadastrada como `fixed` de R$ 10 — ela só
-     * DIZ isso na vitrine. Marcar `first_order_only` não obriga a escolhê-la, e
-     * escolhê-la não marca o booleano: são coisas independentes, e o painel não
-     * pode ligar uma na outra.
-     */
-    arte('tpl-first', 'Primeiro pedido', 'fixed', '10.00', 6),
-    arte('tpl-free', 'Frete grátis', 'free_delivery', null, 7),
-  ];
-}
+      arte('tpl-fixed-3', 'R$ 3 OFF', 'fixed', '3.00', 4),
+      arte('tpl-fixed-5', 'R$ 5 OFF', 'fixed', '5.00', 5),
+      /*
+       * "Primeiro pedido" é uma ARTE, cadastrada como `fixed` de R$ 10 — ela só
+       * DIZ isso na vitrine. Marcar `first_order_only` não obriga a escolhê-la, e
+       * escolhê-la não marca o booleano: são coisas independentes, e o painel não
+       * pode ligar uma na outra.
+       */
+      arte('tpl-first', 'Primeiro pedido', 'fixed', '10.00', 6),
+      arte('tpl-free', 'Frete grátis', 'free_delivery', null, 7),
+    ];
+  }
 
-function initialCoupons(restaurantId: string): Coupon[] {
-  const base = {
-    restaurant_id: restaurantId,
-    description: null,
-    max_discount_amount: null,
-    min_order_value: '0.00',
-    total_usage_limit: null,
-    usage_limit_per_customer: null,
-    cooldown_days: null,
-    first_order_only: false,
-    /*
-     * PUBLICO E SEM ALVO e a semente, e e o default do backend. As tres
-     * visibilidades aparecem entre as campanhas abaixo, porque a coluna "Quem
-     * ve" da lista so se prova com as tres na tela ao mesmo tempo.
-     */
-    visibility: 'public' as const,
-    target_segment: null,
-    is_active: true,
-    total_usage_count: 0,
-    created_at: null,
-    updated_at: null,
-  };
+  function initialCoupons(restaurantId: string): Coupon[] {
+    const base = {
+      restaurant_id: restaurantId,
+      description: null,
+      max_discount_amount: null,
+      min_order_value: '0.00',
+      total_usage_limit: null,
+      usage_limit_per_customer: null,
+      cooldown_days: null,
+      first_order_only: false,
+      /*
+       * PUBLICO E SEM ALVO e a semente, e e o default do backend. As tres
+       * visibilidades aparecem entre as campanhas abaixo, porque a coluna "Quem
+       * ve" da lista so se prova com as tres na tela ao mesmo tempo.
+       */
+      visibility: 'public' as const,
+      target_segment: null,
+      is_active: true,
+      total_usage_count: 0,
+      created_at: null,
+      updated_at: null,
+    };
 
-  return [
-    {
-      ...base,
-      id: 'cupom-frete',
-      coupon_template_id: 'tpl-free',
-      code: 'SETEMBRO',
-      title: 'Setembro sem frete',
-      discount_type: 'free_delivery',
-      discount_value: '0.00',
-      min_order_value: '60.00',
-      valid_from: diasDaqui(-10),
-      valid_until: diasDaqui(20),
-      total_usage_limit: 100,
-      total_usage_count: 37,
-      usage_limit_per_customer: 1,
-      first_order_only: true,
-    },
-    {
-      ...base,
-      id: 'cupom-natal',
-      coupon_template_id: 'tpl-percent-10',
-      code: 'NATAL10',
-      title: 'Natal',
-      discount_type: 'percent',
-      discount_value: '10.00',
-      /* PRIVADO: nao aparece na lista do app: chega a quem digita NATAL10. E
+    return [
+      {
+        ...base,
+        id: 'cupom-frete',
+        coupon_template_id: 'tpl-free',
+        code: 'SETEMBRO',
+        title: 'Setembro sem frete',
+        discount_type: 'free_delivery',
+        discount_value: '0.00',
+        min_order_value: '60.00',
+        valid_from: diasDaqui(-10),
+        valid_until: diasDaqui(20),
+        total_usage_limit: 100,
+        total_usage_count: 37,
+        usage_limit_per_customer: 1,
+        first_order_only: true,
+      },
+      {
+        ...base,
+        id: 'cupom-natal',
+        coupon_template_id: 'tpl-percent-10',
+        code: 'NATAL10',
+        title: 'Natal',
+        discount_type: 'percent',
+        discount_value: '10.00',
+        /* PRIVADO: nao aparece na lista do app: chega a quem digita NATAL10. E
          ele esta PROGRAMADO, o que e o par que a tela precisa saber separar —
          situacao e visibilidade sao eixos diferentes. */
-      visibility: 'private' as const,
-      valid_from: diasDaqui(30),
-      valid_until: diasDaqui(45),
-    },
-    {
-      ...base,
-      id: 'cupom-volta',
-      coupon_template_id: 'tpl-percent-20',
-      code: 'VOLTA20',
-      title: 'Volta às aulas',
-      /* POR SEGMENTO: a coluna mostra a CLASSE ("Em risco"), e nao o rotulo da
+        visibility: 'private' as const,
+        valid_from: diasDaqui(30),
+        valid_until: diasDaqui(45),
+      },
+      {
+        ...base,
+        id: 'cupom-volta',
+        coupon_template_id: 'tpl-percent-20',
+        code: 'VOLTA20',
+        title: 'Volta às aulas',
+        /* POR SEGMENTO: a coluna mostra a CLASSE ("Em risco"), e nao o rotulo da
          visibilidade — duas campanhas segmentadas para classes diferentes
          precisam se distinguir de relance. */
-      visibility: 'segment' as const,
-      target_segment: 'em_risco' as const,
-      discount_type: 'percent',
-      discount_value: '20.00',
-      max_discount_amount: '15.00',
-      valid_from: diasDaqui(-60),
-      valid_until: diasDaqui(-30),
-    },
-    {
-      ...base,
-      id: 'cupom-cinco',
-      coupon_template_id: 'tpl-fixed-5',
-      code: 'CINCO',
-      title: 'Cinco reais',
-      discount_type: 'fixed',
-      discount_value: '5.00',
-      valid_from: diasDaqui(-5),
-      valid_until: diasDaqui(25),
-      total_usage_limit: 50,
-      total_usage_count: 50,
-    },
-    {
-      ...base,
-      id: 'cupom-pausado',
-      coupon_template_id: 'tpl-first',
-      code: 'PRIMEIRA',
-      title: 'Primeira compra',
-      discount_type: 'fixed',
-      discount_value: '10.00',
-      valid_from: diasDaqui(-20),
-      valid_until: diasDaqui(40),
-      is_active: false,
-    },
-    /*
-     * A CAMPANHA PENDURADA NUMA ARTE QUE A PLATAFORMA DESATIVOU. Ela não tem
-     * par em `GET /admin/coupon-templates`, e por isso o backend responde 400 a
-     * qualquer PATCH dela — inclusive a um que só a desligue.
-     */
-    {
-      ...base,
-      id: 'cupom-orfao',
-      coupon_template_id: ARTE_SUMIDA,
-      code: 'ANTIGA',
-      title: 'Campanha antiga',
-      discount_type: 'percent',
-      discount_value: '5.00',
-      valid_from: diasDaqui(-15),
-      valid_until: diasDaqui(15),
-      total_usage_count: 4,
-    },
-  ];
-}
+        visibility: 'segment' as const,
+        target_segment: 'em_risco' as const,
+        discount_type: 'percent',
+        discount_value: '20.00',
+        max_discount_amount: '15.00',
+        valid_from: diasDaqui(-60),
+        valid_until: diasDaqui(-30),
+      },
+      {
+        ...base,
+        id: 'cupom-cinco',
+        coupon_template_id: 'tpl-fixed-5',
+        code: 'CINCO',
+        title: 'Cinco reais',
+        discount_type: 'fixed',
+        discount_value: '5.00',
+        valid_from: diasDaqui(-5),
+        valid_until: diasDaqui(25),
+        total_usage_limit: 50,
+        total_usage_count: 50,
+      },
+      {
+        ...base,
+        id: 'cupom-pausado',
+        coupon_template_id: 'tpl-first',
+        code: 'PRIMEIRA',
+        title: 'Primeira compra',
+        discount_type: 'fixed',
+        discount_value: '10.00',
+        valid_from: diasDaqui(-20),
+        valid_until: diasDaqui(40),
+        is_active: false,
+      },
+      /*
+       * A CAMPANHA PENDURADA NUMA ARTE QUE A PLATAFORMA DESATIVOU. Ela não tem
+       * par em `GET /admin/coupon-templates`, e por isso o backend responde 400 a
+       * qualquer PATCH dela — inclusive a um que só a desligue.
+       */
+      {
+        ...base,
+        id: 'cupom-orfao',
+        coupon_template_id: ARTE_SUMIDA,
+        code: 'ANTIGA',
+        title: 'Campanha antiga',
+        discount_type: 'percent',
+        discount_value: '5.00',
+        valid_from: diasDaqui(-15),
+        valid_until: diasDaqui(15),
+        total_usage_count: 4,
+      },
+    ];
+  }
 
-/* ==========================================================================
- * A EQUIPE
- *
- * A semente é o restaurante REAL de hoje: uma conta só, a do dono. É o estado
- * que a tela existe para acabar — enquanto ele durar, a senha do dono circula
- * no balcão.
- *
- * As outras três linhas cobrem o que a tela precisa mostrar de uma vez: um
- * gerente preso a uma filial, um atendente que ainda não entrou (senha
- * temporária) e alguém desativado. Não é excesso — é o que faz uma captura
- * mostrar a coluna de situação inteira em vez da mesma etiqueta quatro vezes.
- *
- * O `print_agent` NÃO ESTÁ AQUI, e a ausência é o contrato:
- * `list_people_by_restaurant` filtra a conta de máquina, e o PATCH responde 404
- * nela. Ele tem tela própria em Loja › Impressão.
- * ======================================================================= */
+  /* ==========================================================================
+   * A EQUIPE
+   *
+   * A semente é o restaurante REAL de hoje: uma conta só, a do dono. É o estado
+   * que a tela existe para acabar — enquanto ele durar, a senha do dono circula
+   * no balcão.
+   *
+   * As outras três linhas cobrem o que a tela precisa mostrar de uma vez: um
+   * gerente preso a uma filial, um atendente que ainda não entrou (senha
+   * temporária) e alguém desativado. Não é excesso — é o que faz uma captura
+   * mostrar a coluna de situação inteira em vez da mesma etiqueta quatro vezes.
+   *
+   * O `print_agent` NÃO ESTÁ AQUI, e a ausência é o contrato:
+   * `list_people_by_restaurant` filtra a conta de máquina, e o PATCH responde 404
+   * nela. Ele tem tela própria em Loja › Impressão.
+   * ======================================================================= */
 
-function initialAdminUsers(): AdminUserDetail[] {
-  const base = {
-    restaurant_id: RESTAURANT_ID,
-    is_active: true,
-    must_change_password: false,
-    password_changed_at: '2026-07-02T12:00:00Z',
-    created_at: '2026-05-10T12:00:00Z',
-  };
+  function initialAdminUsers(): AdminUserDetail[] {
+    const base = {
+      restaurant_id: RESTAURANT_ID,
+      is_active: true,
+      must_change_password: false,
+      password_changed_at: '2026-07-02T12:00:00Z',
+      created_at: '2026-05-10T12:00:00Z',
+    };
 
-  return [
-    {
-      ...base,
-      id: FAKE_USER.id,
-      branch_id: null,
-      name: FAKE_USER.name,
-      email: FAKE_USER.email,
-      role: 'owner',
-    },
-    {
-      ...base,
-      id: 'user-gerente',
-      branch_id: BRANCH_ID_2,
-      name: 'Rafael Lima',
-      email: 'rafael@pizzaria.com',
-      role: 'manager',
-      created_at: '2026-06-01T12:00:00Z',
-    },
-    {
-      /* Cadastrado e ainda não entrou: `password_changed_at` nulo e a marca de
+    return [
+      {
+        ...base,
+        id: FAKE_USER.id,
+        branch_id: null,
+        name: FAKE_USER.name,
+        email: FAKE_USER.email,
+        role: 'owner',
+      },
+      {
+        ...base,
+        id: 'user-gerente',
+        branch_id: BRANCH_ID_2,
+        name: 'Rafael Lima',
+        email: 'rafael@pizzaria.com',
+        role: 'manager',
+        created_at: '2026-06-01T12:00:00Z',
+      },
+      {
+        /* Cadastrado e ainda não entrou: `password_changed_at` nulo e a marca de
          senha temporária ligada — os dois juntos são o estado real de quem
          acabou de receber a senha pelo telefone. */
-      ...base,
-      id: 'user-balcao',
-      branch_id: BRANCH_ID,
-      name: 'Carla Nogueira',
-      email: 'carla@pizzaria.com',
-      role: 'attendant',
-      must_change_password: true,
-      password_changed_at: null,
-      created_at: '2026-08-20T12:00:00Z',
-    },
-    {
-      ...base,
-      id: 'user-saiu',
-      branch_id: BRANCH_ID,
-      name: 'Bruno Alves',
-      email: 'bruno@pizzaria.com',
-      role: 'attendant',
-      is_active: false,
-      created_at: '2026-05-30T12:00:00Z',
-    },
-  ];
-}
-
-/**
- * A senha temporária, com o ALFABETO DO BACKEND.
- *
- * `ABCDEFGHJKMNPQRSTUVWXYZ23456789`, 20 caracteres: sem O/0 e sem I/l/1, e sem
- * minúscula. O falso repete o alfabeto de propósito — uma senha de mentira com
- * um "l" e um "0" dentro faria a captura de tela mentir sobre justamente a
- * propriedade que o diálogo promete (que ela dá para ditar por telefone).
- *
- * DETERMINÍSTICA: o e2e não pode fotografar uma senha diferente a cada
- * execução, e o teste precisa poder afirmar o que está na tela.
- */
-function senhaTemporariaFalsa(indice: number): string {
-  const alfabeto = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  let senha = '';
-  for (let i = 0; i < 20; i += 1) {
-    senha += alfabeto[(i * 7 + indice * 3) % alfabeto.length];
+        ...base,
+        id: 'user-balcao',
+        branch_id: BRANCH_ID,
+        name: 'Carla Nogueira',
+        email: 'carla@pizzaria.com',
+        role: 'attendant',
+        must_change_password: true,
+        password_changed_at: null,
+        created_at: '2026-08-20T12:00:00Z',
+      },
+      {
+        ...base,
+        id: 'user-saiu',
+        branch_id: BRANCH_ID,
+        name: 'Bruno Alves',
+        email: 'bruno@pizzaria.com',
+        role: 'attendant',
+        is_active: false,
+        created_at: '2026-05-30T12:00:00Z',
+      },
+    ];
   }
-  return senha;
-}
+
+  /**
+   * A senha temporária, com o ALFABETO DO BACKEND.
+   *
+   * `ABCDEFGHJKMNPQRSTUVWXYZ23456789`, 20 caracteres: sem O/0 e sem I/l/1, e sem
+   * minúscula. O falso repete o alfabeto de propósito — uma senha de mentira com
+   * um "l" e um "0" dentro faria a captura de tela mentir sobre justamente a
+   * propriedade que o diálogo promete (que ela dá para ditar por telefone).
+   *
+   * DETERMINÍSTICA: o e2e não pode fotografar uma senha diferente a cada
+   * execução, e o teste precisa poder afirmar o que está na tela.
+   */
+  function senhaTemporariaFalsa(indice: number): string {
+    const alfabeto = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    let senha = '';
+    for (let i = 0; i < 20; i += 1) {
+      senha += alfabeto[(i * 7 + indice * 3) % alfabeto.length];
+    }
+    return senha;
+  }
 
   const state = {
     orders: initialOrders(),
@@ -2520,7 +2519,9 @@ function senhaTemporariaFalsa(indice: number): string {
        */
       state.senhaTemporaria = false;
       state.senhaDeLogin = nova;
-      return json(route, 200, { message: 'Senha alterada. Entre de novo em todos os dispositivos.' });
+      return json(route, 200, {
+        message: 'Senha alterada. Entre de novo em todos os dispositivos.',
+      });
     }
 
     /*
@@ -3294,7 +3295,9 @@ function senhaTemporariaFalsa(indice: number): string {
         const body = request.postDataJSON() as Record<string, unknown>;
         state.adminUserBodies.push({ metodo: 'POST', id: null, body });
 
-        const email = String(body.email ?? '').trim().toLowerCase();
+        const email = String(body.email ?? '')
+          .trim()
+          .toLowerCase();
 
         /* `print_agent` tem recusa PRÓPRIA, antes do Literal: o 422 do enum
            diria "Input should be 'owner', 'manager' or 'attendant'", que é
@@ -3355,7 +3358,9 @@ function senhaTemporariaFalsa(indice: number): string {
 
       if (body.role === 'print_agent') {
         return json(route, 422, {
-          detail: [{ loc: ['body', 'role'], msg: 'print_agent e conta de maquina', type: 'value_error' }],
+          detail: [
+            { loc: ['body', 'role'], msg: 'print_agent e conta de maquina', type: 'value_error' },
+          ],
         });
       }
 
@@ -3373,7 +3378,12 @@ function senhaTemporariaFalsa(indice: number): string {
       const donosAtivos = state.adminUsers.filter(
         (item) => item.role === 'owner' && item.is_active,
       ).length;
-      if (atual.role === 'owner' && atual.is_active && (desativando || rebaixando) && donosAtivos <= 1) {
+      if (
+        atual.role === 'owner' &&
+        atual.is_active &&
+        (desativando || rebaixando) &&
+        donosAtivos <= 1
+      ) {
         const acao = desativando ? 'desativar' : 'rebaixar';
         return json(route, 400, {
           detail: `Nao da para ${acao} o unico dono ativo do restaurante`,

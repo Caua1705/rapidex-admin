@@ -219,17 +219,18 @@ export function CouponDialog({
           <div className="cupom__cabecalho">
             <h3 className="t-section cupom__titulo">A arte que o cliente vê</h3>
             <p className="t-aux cupom__ajuda">
-              Cada arte já traz o valor desenhado. É ela que fixa o desconto — por isso não há
-              campo de valor aqui: escolher a arte de 10% e digitar outro número faria a vitrine e
-              o checkout discordarem.
+              Cada arte já traz o valor desenhado. É ela que fixa o desconto — por isso não há campo
+              de valor aqui: escolher a arte de 10% e digitar outro número faria a vitrine e o
+              checkout discordarem.
             </p>
           </div>
 
           {arteForaDoAr ? (
             <p className="alert alert--warn cupom__aviso" role="alert">
               <AlertIcon size={14} aria-hidden="true" /> A arte desta campanha saiu do catálogo da
-              plataforma. Escolha outra para conseguir salvar — <strong>inclusive para desligar o
-              cupom</strong>, que hoje também depende de uma arte no ar.
+              plataforma. Escolha outra para conseguir salvar —{' '}
+              <strong>inclusive para desligar o cupom</strong>, que hoje também depende de uma arte
+              no ar.
             </p>
           ) : null}
 

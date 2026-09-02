@@ -116,7 +116,9 @@ describe('quadrantesDeProduto', () => {
    */
   it('sem total legível não classifica nada', () => {
     expect(
-      quadrantesDeProduto(productsOf([{ nome: 'A', receita: '10' }], { listed_revenue_total: '0' })),
+      quadrantesDeProduto(
+        productsOf([{ nome: 'A', receita: '10' }], { listed_revenue_total: '0' }),
+      ),
     ).toBeNull();
 
     expect(

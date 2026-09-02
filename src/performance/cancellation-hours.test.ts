@@ -101,10 +101,7 @@ describe('lerHorasDeCancelamento', () => {
    * "concentrado" e "espalhado" passariam a ter o mesmo desenho.
    */
   it('desenha da primeira à última hora com movimento, com os buracos de dentro', () => {
-    const leitura = lerHorasDeCancelamento([
-      ...naHoraLocal(19, 3),
-      ...naHoraLocal(21, 3),
-    ]);
+    const leitura = lerHorasDeCancelamento([...naHoraLocal(19, 3), ...naHoraLocal(21, 3)]);
 
     expect(leitura?.horas.map((balde) => balde.hour)).toEqual([19, 20, 21]);
     expect(leitura?.horas.map((balde) => balde.count)).toEqual([3, 0, 3]);

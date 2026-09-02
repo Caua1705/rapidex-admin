@@ -302,7 +302,8 @@ export const VISIBILIDADE_LABEL: Record<CouponVisibility, string> = {
  *     código.
  */
 export const VISIBILIDADE_AJUDA: Record<CouponVisibility, string> = {
-  public: 'Aparece na lista de cupons do app para todo mundo, inclusive para quem não entrou na conta.',
+  public:
+    'Aparece na lista de cupons do app para todo mundo, inclusive para quem não entrou na conta.',
   segment:
     'Aparece só para quem está na classe escolhida. A classe é calculada pelo Rapidex e muda sozinha conforme o cliente pede ou some.',
   private:

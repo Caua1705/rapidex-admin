@@ -224,9 +224,7 @@ test('desligar manda um corpo de um campo só', async ({ page }) => {
  * 4bis. QUEM VÊ O CUPOM, E COMO O CLIENTE CHEGA
  * ======================================================================= */
 
-test('o cupom público sem código sobe com code null — é o que aplica sozinho', async ({
-  page,
-}) => {
+test('o cupom público sem código sobe com code null — é o que aplica sozinho', async ({ page }) => {
   await entrar(page);
   await page.getByTestId('cupons-nova').click();
 

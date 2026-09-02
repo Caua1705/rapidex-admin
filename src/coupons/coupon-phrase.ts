@@ -130,7 +130,11 @@ export function resumoDoCupom(
 
   const intervalo = inteiroDoCampo(rascunho.cooldownDays);
   if (intervalo) {
-    partes.push(intervalo === 1 ? 'com 1 dia entre um uso e outro' : `com ${intervalo} dias entre um uso e outro`);
+    partes.push(
+      intervalo === 1
+        ? 'com 1 dia entre um uso e outro'
+        : `com ${intervalo} dias entre um uso e outro`,
+    );
   }
 
   /* 5. Quem pode usar. */

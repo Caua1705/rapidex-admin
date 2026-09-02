@@ -109,67 +109,70 @@ export function usePerformance(
 
   const problem = rangeProblem(range);
 
-  const load = useCallback(async (janela: ReportRange) => {
-    const requestId = ++requestRef.current;
-    setIsLoading(true);
+  const load = useCallback(
+    async (janela: ReportRange) => {
+      const requestId = ++requestRef.current;
+      setIsLoading(true);
 
-    /*
-     * A SÉTIMA CHAMADA É A MESMA ROTA COM OUTRO INTERVALO, e ela vai no mesmo
-     * `allSettled` — em paralelo, não depois. Em série, a frase do topo (que é
-     * a primeira coisa da tela) esperaria dois tempos de rede para aparecer.
-     *
-     * `previousRange` devolve `null` se o par de datas for ilegível; aí a
-     * promessa nem é criada e `byDayPrevious` fica nulo, que é exatamente o que
-     * `diasQueExplicam` já trata.
-     */
-    const anterior = previousRange(janela);
+      /*
+       * A SÉTIMA CHAMADA É A MESMA ROTA COM OUTRO INTERVALO, e ela vai no mesmo
+       * `allSettled` — em paralelo, não depois. Em série, a frase do topo (que é
+       * a primeira coisa da tela) esperaria dois tempos de rede para aparecer.
+       *
+       * `previousRange` devolve `null` se o par de datas for ilegível; aí a
+       * promessa nem é criada e `byDayPrevious` fica nulo, que é exatamente o que
+       * `diasQueExplicam` já trata.
+       */
+      const anterior = previousRange(janela);
 
-    const [summary, byDay, byDayPrevious, payments, products, cancellations, commission] =
-      await Promise.allSettled([
-        fetchSalesSummary(janela),
-        fetchSalesByDay(janela),
-        // O período anterior herda o MESMO recorte de filial: comparar a
-        // Aldeota desta semana com a rede da semana passada seria uma variação
-        // inventada.
-        anterior
-          ? fetchSalesByDay({ ...anterior, branchId: janela.branchId })
-          : Promise.resolve(null),
-        fetchPaymentMethodsReport(janela),
-        fetchProductSales(janela, PRODUTOS_ANALISADOS),
-        fetchCancellations(janela),
-        /*
-         * A COMISSÃO É SÓ DO DONO, e para os outros ela não é nem pedida.
-         * Deixar a requisição sair e cair em `errors.commission` funcionaria —
-         * o `allSettled` já isola cada relatório —, mas seria um 403 por
-         * abertura de tela no log do backend para uma seção que a tela nem vai
-         * desenhar.
-         */
-        comComissao ? fetchCommissionReport(janela) : Promise.resolve(null),
-      ]);
+      const [summary, byDay, byDayPrevious, payments, products, cancellations, commission] =
+        await Promise.allSettled([
+          fetchSalesSummary(janela),
+          fetchSalesByDay(janela),
+          // O período anterior herda o MESMO recorte de filial: comparar a
+          // Aldeota desta semana com a rede da semana passada seria uma variação
+          // inventada.
+          anterior
+            ? fetchSalesByDay({ ...anterior, branchId: janela.branchId })
+            : Promise.resolve(null),
+          fetchPaymentMethodsReport(janela),
+          fetchProductSales(janela, PRODUTOS_ANALISADOS),
+          fetchCancellations(janela),
+          /*
+           * A COMISSÃO É SÓ DO DONO, e para os outros ela não é nem pedida.
+           * Deixar a requisição sair e cair em `errors.commission` funcionaria —
+           * o `allSettled` já isola cada relatório —, mas seria um 403 por
+           * abertura de tela no log do backend para uma seção que a tela nem vai
+           * desenhar.
+           */
+          comComissao ? fetchCommissionReport(janela) : Promise.resolve(null),
+        ]);
 
-    if (requestId !== requestRef.current) return;
+      if (requestId !== requestRef.current) return;
 
-    const proximosErros: Partial<Record<keyof Reports, string>> = {};
-    function ler<T>(resultado: PromiseSettledResult<T>, chave: keyof Reports): T | null {
-      if (resultado.status === 'fulfilled') return resultado.value;
-      proximosErros[chave] = messageFromUnknownError(resultado.reason);
-      return null;
-    }
+      const proximosErros: Partial<Record<keyof Reports, string>> = {};
+      function ler<T>(resultado: PromiseSettledResult<T>, chave: keyof Reports): T | null {
+        if (resultado.status === 'fulfilled') return resultado.value;
+        proximosErros[chave] = messageFromUnknownError(resultado.reason);
+        return null;
+      }
 
-    setReports({
-      summary: ler(summary, 'summary'),
-      byDay: ler(byDay, 'byDay'),
-      // Sem `ler`: a falha dele não vira erro de seção nenhuma — ver o
-      // comentário do campo em `Reports`.
-      byDayPrevious: byDayPrevious.status === 'fulfilled' ? byDayPrevious.value : null,
-      payments: ler(payments, 'payments'),
-      products: ler(products, 'products'),
-      cancellations: ler(cancellations, 'cancellations'),
-      commission: ler(commission, 'commission'),
-    });
-    setErrors(proximosErros);
-    setIsLoading(false);
-  }, [comComissao]);
+      setReports({
+        summary: ler(summary, 'summary'),
+        byDay: ler(byDay, 'byDay'),
+        // Sem `ler`: a falha dele não vira erro de seção nenhuma — ver o
+        // comentário do campo em `Reports`.
+        byDayPrevious: byDayPrevious.status === 'fulfilled' ? byDayPrevious.value : null,
+        payments: ler(payments, 'payments'),
+        products: ler(products, 'products'),
+        cancellations: ler(cancellations, 'cancellations'),
+        commission: ler(commission, 'commission'),
+      });
+      setErrors(proximosErros);
+      setIsLoading(false);
+    },
+    [comComissao],
+  );
 
   useEffect(() => {
     // Período inválido não vira requisição: o backend responderia 422 e a tela

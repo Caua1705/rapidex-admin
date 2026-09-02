@@ -119,7 +119,11 @@ export function OneTimeSecret({
         onClick={() => void copiar()}
         data-testid={testId ? `${testId}-copiar` : undefined}
       >
-        {copiado ? <CheckIcon size={14} aria-hidden="true" /> : <CopyIcon size={14} aria-hidden="true" />}
+        {copiado ? (
+          <CheckIcon size={14} aria-hidden="true" />
+        ) : (
+          <CopyIcon size={14} aria-hidden="true" />
+        )}
         {copiado ? 'Copiado' : 'Copiar'}
       </button>
 

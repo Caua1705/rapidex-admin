@@ -98,7 +98,10 @@ test('a filial que herda avisa que salvar CRIA uma sobrescrita', async ({ page }
 
 test('a filial com regra própria oferece voltar a herdar, e volta mesmo', async ({ page }) => {
   api.setCashbackRestaurantRule(regraDaRede());
-  api.setCashbackBranchRule(FAKE_BRANCH.id, regraDaRede({ id: 'cb-fil', default_percent: '12.00' }));
+  api.setCashbackBranchRule(
+    FAKE_BRANCH.id,
+    regraDaRede({ id: 'cb-fil', default_percent: '12.00' }),
+  );
   await entrar(page);
 
   await page.getByTestId('cashback-escopo-filial').click();

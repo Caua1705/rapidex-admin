@@ -84,9 +84,10 @@ export function UsersPage() {
     redefinirSenha,
   } = useUsers();
 
-  const [emEdicao, setEmEdicao] = useState<{ draft: UserDraft; original: AdminUserDetail | null } | null>(
-    null,
-  );
+  const [emEdicao, setEmEdicao] = useState<{
+    draft: UserDraft;
+    original: AdminUserDetail | null;
+  } | null>(null);
   /* A senha temporária vive AQUI e em mais lugar nenhum: ela chega da resposta,
      abre o diálogo e some quando ele fecha. Não é gravada, não vai para o
      `localStorage` e não volta a existir. */
@@ -288,15 +289,15 @@ export function UsersPage() {
                 perder, o caminho é "Redefinir senha", que gera outra e mata a anterior.
               </p>
               <p className="t-aux">
-                <strong>No primeiro acesso a pessoa troca a senha.</strong> Até trocar, a única
-                tela que abre para ela é a da troca. Depois disso, ninguém mais conhece a senha
-                dela — inclusive você.
+                <strong>No primeiro acesso a pessoa troca a senha.</strong> Até trocar, a única tela
+                que abre para ela é a da troca. Depois disso, ninguém mais conhece a senha dela —
+                inclusive você.
               </p>
               <p className="t-aux">
                 <strong>Desativar tem efeito imediato.</strong> Não existe excluir: o histórico de
                 cada pedido guarda quem agiu por aquele e-mail, e apagar a conta faria o passado
-                apontar para a pessoa errada. Desativada, ela perde o acesso na requisição
-                seguinte — não espera a sessão expirar.
+                apontar para a pessoa errada. Desativada, ela perde o acesso na requisição seguinte
+                — não espera a sessão expirar.
               </p>
               <p className="t-aux">
                 <strong>Três coisas o painel não deixa fazer</strong>, porque um restaurante sem

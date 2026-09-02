@@ -72,10 +72,7 @@ const TETO_DO_NOME = 200;
  * vai de 00:00:00 a 23:59:59 do mesmo dia — `valid_until` continua maior. A
  * regra da tela é sobre DIA, então ela recusa só a data final ANTERIOR.
  */
-export function validarRascunho(
-  rascunho: CouponDraft,
-  arte: CouponTemplate | null,
-): ErrosDoCupom {
+export function validarRascunho(rascunho: CouponDraft, arte: CouponTemplate | null): ErrosDoCupom {
   const campos: Partial<Record<CouponField, string>> = {};
 
   if (!arte) campos.templateId = 'Escolha a arte que o cliente vai ver.';
@@ -156,7 +153,8 @@ export function validarRascunho(
   for (const [campo, texto] of limites) {
     const lido = parseInteger(texto);
     if (!lido.ok) campos[campo] = lido.message;
-    else if (lido.value === 0) campos[campo] = 'Precisa ser pelo menos 1. Deixe vazio para não limitar.';
+    else if (lido.value === 0)
+      campos[campo] = 'Precisa ser pelo menos 1. Deixe vazio para não limitar.';
   }
 
   /*
@@ -246,7 +244,8 @@ const REGRA_DO_MODELO: { padrao: RegExp; campo: CouponField; texto: string }[] =
   {
     padrao: /target_segment.*(vale|somente|apenas)/i,
     campo: 'visibility',
-    texto: 'A classe de cliente só vale em campanha por segmento. Volte a visibilidade para "Por segmento" ou apague a classe.',
+    texto:
+      'A classe de cliente só vale em campanha por segmento. Volte a visibilidade para "Por segmento" ou apague a classe.',
   },
   {
     padrao: /target_segment/i,
@@ -332,7 +331,8 @@ export function errosDaResposta(erro: unknown): ErrosDoCupom {
     if (erro.status === 400 && /template de cupom/i.test(detalhe)) {
       return {
         campos: {
-          templateId: 'Esta arte saiu do catálogo da plataforma. Escolha outra para conseguir salvar.',
+          templateId:
+            'Esta arte saiu do catálogo da plataforma. Escolha outra para conseguir salvar.',
         },
         geral: null,
       };

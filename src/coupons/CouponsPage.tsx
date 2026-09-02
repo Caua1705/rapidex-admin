@@ -37,13 +37,7 @@ import './CouponsPage.css';
  * "Expirados" selecionado e uma lista curta precisa saber que o resto está na
  * mão do painel, e não que o backend perdeu campanha.
  */
-const SITUACOES: readonly Situacao[] = [
-  'programado',
-  'ativo',
-  'expirado',
-  'esgotado',
-  'desligado',
-];
+const SITUACOES: readonly Situacao[] = ['programado', 'ativo', 'expirado', 'esgotado', 'desligado'];
 
 const OPCOES_DE_SITUACAO = [
   { value: '', label: 'Todas as situações' },
@@ -308,10 +302,12 @@ export function CouponsPage() {
                 clique de "Todas".
               </p>
               <p className="t-aux">
-                <strong>Não dá para segmentar por horário, dia da semana, tipo de pedido, produto
-                ou forma de pagamento.</strong> Esses campos não existem no cupom. O que recorta é a
-                classe do cliente, o valor mínimo, o prazo, os limites de uso e o "nunca pediu
-                aqui".
+                <strong>
+                  Não dá para segmentar por horário, dia da semana, tipo de pedido, produto ou forma
+                  de pagamento.
+                </strong>{' '}
+                Esses campos não existem no cupom. O que recorta é a classe do cliente, o valor
+                mínimo, o prazo, os limites de uso e o "nunca pediu aqui".
               </p>
               <p className="t-aux">
                 <strong>Cupom não se apaga, se desliga.</strong> Os pedidos que já usaram a campanha
@@ -380,7 +376,11 @@ export function CouponsPage() {
         procurar por que o botão sumiu.
       */}
       {foraDoAr > 0 ? (
-        <p className="alert alert--warn cupons__alerta" role="status" data-testid="cupons-fora-do-ar">
+        <p
+          className="alert alert--warn cupons__alerta"
+          role="status"
+          data-testid="cupons-fora-do-ar"
+        >
           <AlertIcon size={14} aria-hidden="true" />{' '}
           {foraDoAr === 1
             ? 'Uma campanha usa uma arte que saiu do catálogo. Ela continua valendo, mas nada nela pode ser alterado — nem desligada — antes de você escolher outra arte em "Editar".'

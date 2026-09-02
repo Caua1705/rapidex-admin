@@ -101,9 +101,7 @@ describe('compararFiliais', () => {
   });
 
   it('uma filial só divide 100% consigo mesma', () => {
-    const filiais = compararFiliais([
-      { branch: branch('b1', 'A'), summary: summaryOf('500.00') },
-    ]);
+    const filiais = compararFiliais([{ branch: branch('b1', 'A'), summary: summaryOf('500.00') }]);
     expect(filiais[0]?.fatiaPct).toBeCloseTo(100, 5);
   });
 });

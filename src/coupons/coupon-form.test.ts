@@ -71,9 +71,9 @@ describe('a validação do formulário', () => {
     expect(
       temErro(validarRascunho(rascunho({ visibility: 'private', code: 'NATAL10' }), arte())),
     ).toBe(false);
-    expect(
-      temErro(validarRascunho(rascunho({ visibility: 'public', code: '' }), arte())),
-    ).toBe(false);
+    expect(temErro(validarRascunho(rascunho({ visibility: 'public', code: '' }), arte()))).toBe(
+      false,
+    );
   });
 
   /* Espelha o CHECK `ck_restaurant_coupons_segment_needs_target`. O sentido
@@ -103,8 +103,9 @@ describe('a validação do formulário', () => {
   });
 
   it('recusa limite zero, que o backend recusaria com ge=1', () => {
-    expect(validarRascunho(rascunho({ totalUsageLimit: '0' }), arte()).campos.totalUsageLimit)
-      .toBeTruthy();
+    expect(
+      validarRascunho(rascunho({ totalUsageLimit: '0' }), arte()).campos.totalUsageLimit,
+    ).toBeTruthy();
   });
 
   it('vazio é sem limite, e não erro', () => {

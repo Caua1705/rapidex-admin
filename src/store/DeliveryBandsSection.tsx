@@ -110,7 +110,9 @@ export function DeliveryBandsSection({ bands }: { bands: ReturnType<typeof useDe
                       aria-label="Distância máxima desta faixa, em quilômetros"
                       value={linha.maxDistanceKm}
                       disabled={!podeEditar}
-                      onChange={(evento) => patch(linha.key, { maxDistanceKm: evento.target.value })}
+                      onChange={(evento) =>
+                        patch(linha.key, { maxDistanceKm: evento.target.value })
+                      }
                       data-testid={`band-km-${linha.key}`}
                     />
                     <span className="faixas__unidade">km</span>

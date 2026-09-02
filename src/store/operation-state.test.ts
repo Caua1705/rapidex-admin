@@ -135,9 +135,9 @@ describe('a pausa da entrega', () => {
       ),
     ).toBe('Pausada até 20:30 · chuva forte');
 
-    expect(
-      notaDaPausa(filial({ delivery_paused_until: '2026-08-22T20:30:00-03:00' }), AGORA),
-    ).toBe('Pausada até 20:30');
+    expect(notaDaPausa(filial({ delivery_paused_until: '2026-08-22T20:30:00-03:00' }), AGORA)).toBe(
+      'Pausada até 20:30',
+    );
   });
 });
 

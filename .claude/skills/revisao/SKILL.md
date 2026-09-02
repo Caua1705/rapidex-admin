@@ -44,12 +44,12 @@ filtro em cada componente.
 
 Onde isto reaparece:
 
-| Regra                         | A fonte única                        | Quem consome                |
-| ----------------------------- | ------------------------------------ | --------------------------- |
-| Qual é o próximo passo do pedido | `orders/order-actions.ts`         | a linha e o rodapé do detalhe |
-| A máquina de estados          | o backend; `orders/order-status.ts` é ESPELHO declarado | os botões oferecidos |
-| O que este papel enxerga      | `layout/use-nav.ts`                  | lateral e barra de baixo    |
-| Rótulo de dia da semana       | `WEEKDAYS` em `store/business-hours.ts` | toda tela de horário     |
+| Regra                            | A fonte única                                           | Quem consome                  |
+| -------------------------------- | ------------------------------------------------------- | ----------------------------- |
+| Qual é o próximo passo do pedido | `orders/order-actions.ts`                               | a linha e o rodapé do detalhe |
+| A máquina de estados             | o backend; `orders/order-status.ts` é ESPELHO declarado | os botões oferecidos          |
+| O que este papel enxerga         | `layout/use-nav.ts`                                     | lateral e barra de baixo      |
+| Rótulo de dia da semana          | `WEEKDAYS` em `store/business-hours.ts`                 | toda tela de horário          |
 
 Um espelho declarado (como `order-status.ts`) é aceitável quando está escrito
 QUEM ganha na divergência e qual é o estrago máximo. Um espelho por acidente,
@@ -148,7 +148,7 @@ balcão.
 `.item__reorder` e `.rail__reorder` nasciam com `opacity: 0` e apareciam no
 `:hover`. Editar um item do cardápio era impossível no tablet do balcão, e as
 setas de reordenar — que são a alternativa que a **WCAG 2.5.7** exige para o
-arrastar — estavam invisíveis. *Uma alternativa invisível não é alternativa.*
+arrastar — estavam invisíveis. _Uma alternativa invisível não é alternativa._
 
 O conserto está em `menu/MenuPage.css` e vale pela **CAPACIDADE do aparelho, não
 pela largura da janela**:
@@ -168,7 +168,7 @@ telefone de 390. `@media (max-width: …)` sozinho não o alcança.
 
 **E a verificação tem uma armadilha própria:** redimensionar a janela do
 navegador **não** ativa `@media (hover: none)`. Sem emular a capacidade de toque
-por *device descriptor*, a varredura confere o desktop duas vezes e conclui que
+por _device descriptor_, a varredura confere o desktop duas vezes e conclui que
 está tudo certo — foi por isso que a auditoria de `3e7ad94` teve de dizer isso
 por escrito. O `e2e/capturas.spec.ts` fotografa em 390px, mas em `Desktop
 Chrome`: **ele não cobre este item.**
@@ -265,16 +265,16 @@ Este é o item mais específico da lista e ele está aqui porque o defeito era
 **O caso real (`3e7ad94`).** Com o formulário de Geral sujo numa tela de 844px,
 a `store-save-bar` estava em **y=1204** — fora da tela, no fim do documento,
 exatamente onde o botão morava ANTES de existir uma barra grudenta, e
-exatamente o que `store/SaveBar.tsx` foi escrito para impedir: *"quem editava um
+exatamente o que `store/SaveBar.tsx` foi escrito para impedir: _"quem editava um
 campo do meio e trocava de aba perdia a alteração sem nunca ter visto que havia
-algo para salvar"*.
+algo para salvar"_.
 
 **A causa não era o `bottom`, era o CONTÊINER.** `position: sticky` gruda dentro
 do ancestral que ROLA. `.store__col` declara `overflow-y: auto` e por isso era o
 ancestral eleito — mas no telefone a moldura não tem altura fixa (`.shell` é
 `min-height`, não `height`): a coluna cresce com o conteúdo,
-`scrollHeight === clientHeight`, e quem rola é a **página**. *Sticky num
-contêiner que não rola não tem contra o que grudar.*
+`scrollHeight === clientHeight`, e quem rola é a **página**. _Sticky num
+contêiner que não rola não tem contra o que grudar._
 
 O conserto foi devolver a rolagem para quem já estava rolando (`overflow:
 visible` na coluna, em `store/StorePage.css`), com dois cuidados que andam

@@ -89,10 +89,7 @@ test('a lateral diz qual estabelecimento está sendo operado, embaixo da marca',
    * filial entra aqui — nem no texto, nem no atributo.
    */
   await expect(identificacao.locator('.estab__nome')).toHaveText('Pizzaria do Zé');
-  await expect(identificacao.locator('.estab__nome')).toHaveAttribute(
-    'title',
-    'Pizzaria do Zé',
-  );
+  await expect(identificacao.locator('.estab__nome')).toHaveAttribute('title', 'Pizzaria do Zé');
   await expect(identificacao).not.toContainText('Aldeota');
 
   // A cidade e quantas lojas o lojista enxerga — é isso que faz o bloco ler

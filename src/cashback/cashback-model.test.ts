@@ -218,7 +218,10 @@ describe('a origem da regra', () => {
 
   it('"ninguém configurou" é uma frase diferente de "desligado"', () => {
     const nenhuma = explicacaoDaOrigem(view('none'), 'filial');
-    const desligada = explicacaoDaOrigem({ source: 'branch', rule: regra({ enabled: false }) }, 'filial');
+    const desligada = explicacaoDaOrigem(
+      { source: 'branch', rule: regra({ enabled: false }) },
+      'filial',
+    );
     expect(nenhuma.titulo).not.toBe(desligada.titulo);
     expect(nenhuma.detalhe).toMatch(/ninguém está acumulando/i);
   });

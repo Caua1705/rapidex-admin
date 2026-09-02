@@ -93,7 +93,9 @@ export type BandsResult =
 export function bandsFromDraft(linhas: readonly BandDraft[]): BandsResult {
   const preenchidas = linhas.filter(
     (linha) =>
-      linha.maxDistanceKm.trim() !== '' || linha.timeMin.trim() !== '' || linha.timeMax.trim() !== '',
+      linha.maxDistanceKm.trim() !== '' ||
+      linha.timeMin.trim() !== '' ||
+      linha.timeMax.trim() !== '',
   );
 
   const bands: DeliveryTimeBandInput[] = [];
@@ -107,7 +109,10 @@ export function bandsFromDraft(linhas: readonly BandDraft[]): BandsResult {
     const min = parseMinutos(linha.timeMin);
     const max = parseMinutos(linha.timeMax);
     if (min === null || max === null || min < 0 || max < 0) {
-      return { ok: false, message: `Faixa até ${formatKm(km)} km: informe os dois tempos, em minutos inteiros.` };
+      return {
+        ok: false,
+        message: `Faixa até ${formatKm(km)} km: informe os dois tempos, em minutos inteiros.`,
+      };
     }
     if (min > max) {
       return {
@@ -123,7 +128,10 @@ export function bandsFromDraft(linhas: readonly BandDraft[]): BandsResult {
      * com as duas linhas na frente dele, em vez de um 409 depois de salvar.
      */
     if (bands.some((band) => Number(band.max_distance_km) === km)) {
-      return { ok: false, message: `Há duas faixas até ${formatKm(km)} km — cada distância só pode cair numa.` };
+      return {
+        ok: false,
+        message: `Há duas faixas até ${formatKm(km)} km — cada distância só pode cair numa.`,
+      };
     }
 
     bands.push({ max_distance_km: km, delivery_time_min: min, delivery_time_max: max });

@@ -249,9 +249,7 @@ test('não há faturamento por hora, e o pico de vendas não é inventado', asyn
 
   // A tabela equivalente do gráfico de dias continua sendo a única série de
   // DINHEIRO da tela — a de hora conta pedidos.
-  await expect(
-    page.getByRole('table', { name: 'Faturamento e pedidos por dia' }),
-  ).toBeAttached();
+  await expect(page.getByRole('table', { name: 'Faturamento e pedidos por dia' })).toBeAttached();
 });
 
 /* ==========================================================================

@@ -105,7 +105,10 @@ describe('o corpo do PATCH', () => {
    * "não imprimir" — em quem estava no meio de uma frase.
    */
   it('escrever sem escrever é erro, e não um vazio silencioso', () => {
-    const resultado = bodyFromDraft(rascunho({ footerMode: 'propria', footerText: '   ' }), gravado());
+    const resultado = bodyFromDraft(
+      rascunho({ footerMode: 'propria', footerText: '   ' }),
+      gravado(),
+    );
     expect(resultado.ok).toBe(false);
     if (!resultado.ok) expect(resultado.message).toMatch(/Não imprimir/);
   });

@@ -90,10 +90,10 @@ implementação: o que a distingue é que nada dela sobrevive à decisão.
 Uma proposta sem essa lista promete a rodada inteira, e a rodada inteira nunca
 cabe. Cada item de fora vem com o motivo, e os motivos legítimos são poucos:
 
-| Motivo                 | Exemplo                                                                                                                                |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **A rota não existe**  | não se inventa caminho — `rapidex-api` §3                                                                                              |
-| **É decisão sua**      | não se decide por você o que você deixou pendente de propósito                                                                         |
+| Motivo                 | Exemplo                                                                                                                                 |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **A rota não existe**  | não se inventa caminho — `rapidex-api` §3                                                                                               |
+| **É decisão sua**      | não se decide por você o que você deixou pendente de propósito                                                                          |
 | **É outro regime**     | as faixas de prazo saíram da barra de salvar da aba: `PUT` que substitui tudo, com outra permissão (`b65748f`)                          |
 | **É outra rodada**     | `3e7ad94` fechou o celular e deixou escrito: "fora do escopo, como combinado: o balão do gráfico de Desempenho e a Cozinha no telefone" |
 | **Não tem como saber** | dado que ninguém mede ainda — desenhar o zero afirmaria uma coisa que não se sabe (`68e3a8b`)                                           |

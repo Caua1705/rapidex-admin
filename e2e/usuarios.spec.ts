@@ -235,7 +235,9 @@ test('ninguém redefine a própria senha — a guarda que o backend não tem', a
   await expect(page.getByRole('link', { name: 'Trocar senha' })).toBeVisible();
 });
 
-test('desativar outra pessoa avisa que o efeito é imediato e grava só o campo', async ({ page }) => {
+test('desativar outra pessoa avisa que o efeito é imediato e grava só o campo', async ({
+  page,
+}) => {
   await entrar(page);
   await page.getByTestId('usuario-alternar-carla@pizzaria.com').click();
 

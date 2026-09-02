@@ -63,7 +63,9 @@ export function TemporaryPasswordDialog({
 
   return (
     <Modal
-      title={motivo === 'criado' ? `${usuario.name} está cadastrado` : `Nova senha de ${usuario.name}`}
+      title={
+        motivo === 'criado' ? `${usuario.name} está cadastrado` : `Nova senha de ${usuario.name}`
+      }
       onClose={onClose}
       dismissible={false}
       footer={
@@ -129,8 +131,8 @@ export function TemporaryPasswordDialog({
           </p>
           <p className="t-aux">
             No primeiro acesso o painel <strong>obriga a trocar</strong>. Até lá, a única tela que
-            abre para {usuario.name.split(' ')[0]} é a de escolher a senha nova — e depois disso
-            nem você conhece a senha dela.
+            abre para {usuario.name.split(' ')[0]} é a de escolher a senha nova — e depois disso nem
+            você conhece a senha dela.
           </p>
           {motivo === 'reset' ? (
             <p className="t-aux" data-testid="senha-nota-reset">

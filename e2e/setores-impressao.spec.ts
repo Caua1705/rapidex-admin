@@ -575,9 +575,7 @@ test('as vias vão de 0 a 5, sem herdar, e zero é uma escolha', async ({ page }
   });
 
   // E o que não mudou não é reenviado.
-  expect(
-    Object.keys(api.printSettingsPatches().at(-1)?.body ?? {}),
-  ).toHaveLength(1);
+  expect(Object.keys(api.printSettingsPatches().at(-1)?.body ?? {})).toHaveLength(1);
 });
 
 test('o balcão lê como a comanda sai, e não a edita', async ({ page }) => {
@@ -591,9 +589,7 @@ test('o balcão lê como a comanda sai, e não a edita', async ({ page }) => {
    * saíram duas vias?", e some o controle, não o dado.
    */
   await expect(page.getByTestId('print-copies-readonly')).toContainText('1 do cliente');
-  await expect(page.getByTestId('print-copies-readonly')).toContainText(
-    '1 da produção por setor',
-  );
+  await expect(page.getByTestId('print-copies-readonly')).toContainText('1 da produção por setor');
   await expect(page.getByTestId('print-copies-customer-pickup')).toHaveCount(0);
 
   await expect(page.getByTestId('print-footer-readonly')).toContainText(

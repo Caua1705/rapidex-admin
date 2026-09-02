@@ -141,10 +141,12 @@ function lerTabela(fonte) {
 /** As rotas que de propósito NÃO exigem papel — login, `me`, senha, stream. */
 function lerSemExigencia(fonte) {
   const bloco = recortarBloco(fonte, 'SEM_EXIGENCIA_DE_PAPEL');
-  return [...bloco.matchAll(/\(\s*"([A-Z]+)"\s*,\s*"([^"]+)"\s*\)/g)].map(([, metodo, caminho]) => ({
-    metodo,
-    caminho,
-  }));
+  return [...bloco.matchAll(/\(\s*"([A-Z]+)"\s*,\s*"([^"]+)"\s*\)/g)].map(
+    ([, metodo, caminho]) => ({
+      metodo,
+      caminho,
+    }),
+  );
 }
 
 /** O corpo de `NOME = { ... }`, sem comentários. */
@@ -213,7 +215,9 @@ if (rotas.length < 50) {
 const semConjunto = rotas.filter((rota) => !conjuntos[rota.conjunto]);
 if (semConjunto.length > 0) {
   console.error('papeis:generate: rotas apontando para conjunto que não existe:');
-  semConjunto.forEach((rota) => console.error(`  ${rota.metodo} ${rota.caminho} → ${rota.conjunto}`));
+  semConjunto.forEach((rota) =>
+    console.error(`  ${rota.metodo} ${rota.caminho} → ${rota.conjunto}`),
+  );
   process.exit(1);
 }
 

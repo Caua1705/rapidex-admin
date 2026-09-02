@@ -224,7 +224,11 @@ export function UserDialog({
         </Field>
 
         {rebaixandoASiMesmo ? (
-          <p className="alert alert--warn usuario__aviso" role="alert" data-testid="usuario-aviso-rebaixa">
+          <p
+            className="alert alert--warn usuario__aviso"
+            role="alert"
+            data-testid="usuario-aviso-rebaixa"
+          >
             <AlertIcon size={14} aria-hidden="true" />
             <span>
               Você está deixando de ser proprietário. Ao salvar, esta tela some para você — quem

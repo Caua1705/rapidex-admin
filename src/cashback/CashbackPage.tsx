@@ -246,8 +246,8 @@ export function CashbackPage() {
                 <div className="cashback__semana-head">
                   <h2 className="t-section">Percentual por dia</h2>
                   <p className="t-aux">
-                    Para mover o dia fraco. <strong>Dia em branco usa o percentual base</strong> — em
-                    branco não é zero.
+                    Para mover o dia fraco. <strong>Dia em branco usa o percentual base</strong> —
+                    em branco não é zero.
                   </p>
                 </div>
 

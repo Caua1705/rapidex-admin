@@ -614,7 +614,9 @@ export function readFilial(filiais: readonly FilialComparada[] | null): Insight 
 
   const comVariacao = filiais
     .map((filial) => ({ filial, variacao: variacaoDaFilial(filial) }))
-    .filter((item): item is { filial: FilialComparada; variacao: number } => item.variacao !== null);
+    .filter(
+      (item): item is { filial: FilialComparada; variacao: number } => item.variacao !== null,
+    );
 
   const subindo = comVariacao.filter((item) => item.variacao >= LIMIARES.variacaoEstavelPct);
   const caindo = comVariacao.filter((item) => item.variacao <= -LIMIARES.variacaoEstavelPct);
@@ -632,7 +634,8 @@ export function readFilial(filiais: readonly FilialComparada[] | null): Insight 
   }
 
   const maior = filiais[0];
-  if (!maior || maior.fatiaPct === null || maior.fatiaPct < LIMIARES.filialDominantePct) return null;
+  if (!maior || maior.fatiaPct === null || maior.fatiaPct < LIMIARES.filialDominantePct)
+    return null;
 
   return {
     id: 'filial-dominante',
