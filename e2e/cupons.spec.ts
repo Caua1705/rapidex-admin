@@ -517,12 +517,13 @@ test('campanha sem prazo: vai como null e volta lendo "sem prazo", ativa', async
   await page.getByLabel('Começa em').fill('2026-09-01');
 
   /*
-   * O PRAZO É LIMPO À MÃO, e isso conta uma coisa sobre a tela: o formulário
-   * NASCE com 'Termina em' preenchido com HOJE (`rascunhoNovo`). Deixar essa
-   * escolha como está foi decisão — ela é anterior a esta mudança e vale para
-   * todo cupom, com prazo ou sem. O que muda aqui é que agora dá para APAGAR.
+   * O PRAZO JÁ NASCE VAZIO — ninguém precisa apagar nada.
+   *
+   * O formulário abria com 'Termina em' preenchido com HOJE, herança de quando
+   * o campo era obrigatório: a campanha criada sem olhar terminava no dia em
+   * que nasceu, e a permanente exigia APAGAR um campo.
    */
-  await page.getByLabel('Termina em').fill('');
+  await expect(page.getByLabel('Termina em')).toHaveValue('');
 
   // E a dica é quem diz que vazio é permanente — sem ela, um campo de data em
   // branco lê como campo que falta preencher.

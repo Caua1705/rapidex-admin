@@ -52,7 +52,15 @@ export type GrupoDraft = {
   /** Texto, porque vem de um campo. Vira inteiro em `checkGrupo`. */
   minSelect: string;
   maxSelect: string;
-  sortOrder: number;
+  /**
+   * A posição do grupo — e ela pode ser NULA.
+   *
+   * `sort_order` é `number | null` no contrato. Ela é CARREGADA, não
+   * decidida aqui: o formulário edita nome e regras, e mexer na posição de
+   * um grupo que ninguém arrastou é a tela reordenando o cardápio por conta
+   * própria.
+   */
+  sortOrder: number | null;
 };
 
 export type OpcaoDraft = {
@@ -62,8 +70,15 @@ export type OpcaoDraft = {
   price: string;
 };
 
-/** Os valores que o backend usa quando o campo não vem: 0 a 1, opcional. */
-export function grupoVazio(): GrupoDraft {
+/**
+ * Os valores que o backend usa quando o campo não vem: 0 a 1, opcional.
+ *
+ * @param sortOrder A posição do grupo novo — normalmente quantos o produto já
+ * tem, para ele entrar no FIM. Sem isso todo grupo nascia com `0` e dois
+ * criados em seguida empatavam na primeira posição, com a ordem final
+ * decidida pelo banco.
+ */
+export function grupoVazio(sortOrder = 0): GrupoDraft {
   return {
     name: '',
     description: '',
@@ -71,7 +86,7 @@ export function grupoVazio(): GrupoDraft {
     isActive: true,
     minSelect: '0',
     maxSelect: '1',
-    sortOrder: 0,
+    sortOrder,
   };
 }
 
@@ -88,8 +103,16 @@ export function grupoDraftDe(group: ProductOptionGroup): GrupoDraft {
     isActive: group.is_active,
     minSelect: String(group.min_select),
     maxSelect: String(group.max_select),
-    // `sort_order` é `number | null` no contrato; nulo é o fim da lista, não NaN.
-    sortOrder: group.sort_order ?? 0,
+    /*
+     * A POSIÇÃO GRAVADA ATRAVESSA INTACTA, INCLUSIVE NULA.
+     *
+     * Aqui havia um `?? 0` com um comentário dizendo que nulo era "o fim da
+     * lista" — e zero é o COMEÇO. Editar o nome de um grupo sem posição o
+     * mandava para a frente do cardápio, sem ninguém ter arrastado nada, e o
+     * comentário garantia que a próxima pessoa não olharia. Mesma família do
+     * `new Date(null)`, que é a época e não `NaN`.
+     */
+    sortOrder: group.sort_order,
   };
 }
 
@@ -101,7 +124,7 @@ export type GrupoBody = {
   is_active: boolean;
   min_select: number;
   max_select: number;
-  sort_order: number;
+  sort_order: number | null;
 };
 
 export type OpcaoBody = {

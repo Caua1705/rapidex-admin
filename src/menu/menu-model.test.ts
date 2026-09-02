@@ -16,6 +16,7 @@ import {
   productSaleState,
   showsAvailabilityToggle,
   sortCategories,
+  sortProducts,
 } from './menu-model';
 
 function category(overrides: Partial<Category> = {}): Category {
@@ -84,12 +85,29 @@ describe('ordem das categorias', () => {
     expect(ordered.map((c) => c.id)).toEqual(['c2', 'c1', 'c3']);
   });
 
-  it('sort_order nulo vale zero em vez de sumir do fim da lista', () => {
+  /*
+   * ESTE CASO MUDOU DE FORMA, e o requisito dele continua de pé.
+   *
+   * Ele nasceu para prender uma coisa certa: a categoria sem `sort_order` NÃO
+   * PODE SUMIR nem embaralhar a lista — um comparador que devolvesse `NaN` faz
+   * exatamente isso, em silêncio. Para garantir isso, ele fixava o nulo em
+   * ZERO, e zero é a PRIMEIRA posição.
+   *
+   * O que se descobriu depois: o cardápio público ordena em SQL por
+   * `Category.sort_order.asc()`, sem `nulls_last()` explícito, e o padrão do
+   * Postgres para ASC é **NULLS LAST**. O painel mostrava em primeiro o que o
+   * cliente via em último.
+   *
+   * A asserção passou a ser o FIM da lista. O requisito original —
+   * "não some, não embaralha" — continua coberto, agora pelos dois casos
+   * abaixo dele.
+   */
+  it('sort_order nulo vai para o FIM, como o cardápio público faz', () => {
     const ordered = sortCategories([
       category({ id: 'c1', name: 'Zebra', sort_order: 5 }),
       category({ id: 'c2', name: 'Abacaxi', sort_order: null }),
     ]);
-    expect(ordered.map((c) => c.id)).toEqual(['c2', 'c1']);
+    expect(ordered.map((c) => c.id)).toEqual(['c1', 'c2']);
   });
 
   it('troca com a vizinha', () => {
@@ -318,5 +336,63 @@ describe('podeReordenarProdutos', () => {
 
   it('dá com a categoria inteira na mão e nenhum filtro', () => {
     expect(podeReordenarProdutos({ search: '   ', loaded: 12, total: 12 })).toBe(true);
+  });
+});
+
+/* ==========================================================================
+ * `sort_order` NULO — a mesma família do `new Date(null)`
+ *
+ * A coluna é ANULÁVEL no backend (`Mapped[int | None]`, com default 0 só do
+ * lado do Python: uma linha criada por SQL na mão fica com NULL). O painel
+ * fazia `sort_order ?? 0`, e zero é a PRIMEIRA posição.
+ *
+ * O cardápio público ordena em SQL por `Category.sort_order`, e o Postgres
+ * ordena `NULLS LAST` por padrão. Ou seja: a categoria sem posição aparecia em
+ * PRIMEIRO no painel e em ÚLTIMO para o cliente — as duas telas discordando
+ * sobre a mesma lista, em silêncio.
+ * ======================================================================= */
+
+describe('ordenação com `sort_order` nulo', () => {
+  const cat = (id: string, name: string, sort_order: number | null) =>
+    ({ id, name, sort_order, branch_id: 'f1', slug: id, is_active: true }) as Category;
+
+  it('a categoria sem posição vai para o FIM, como o Postgres faz', () => {
+    const ordenadas = sortCategories([
+      cat('c-sem', 'Sem posição', null),
+      cat('c-2', 'Segunda', 2),
+      cat('c-1', 'Primeira', 1),
+    ]);
+    expect(ordenadas.map((c) => c.id)).toEqual(['c-1', 'c-2', 'c-sem']);
+  });
+
+  /* Zero é uma posição de VERDADE, e continua sendo a primeira. */
+  it('posição zero não se confunde com posição ausente', () => {
+    const ordenadas = sortCategories([cat('c-sem', 'Sem', null), cat('c-zero', 'Zero', 0)]);
+    expect(ordenadas.map((c) => c.id)).toEqual(['c-zero', 'c-sem']);
+  });
+
+  it('duas sem posição desempatam pelo nome, como as outras', () => {
+    const ordenadas = sortCategories([cat('c-b', 'Beta', null), cat('c-a', 'Alfa', null)]);
+    expect(ordenadas.map((c) => c.id)).toEqual(['c-a', 'c-b']);
+  });
+
+  it('vale igual para produtos', () => {
+    const prod = (id: string, name: string, sort_order: number | null) =>
+      ({
+        id,
+        name,
+        sort_order,
+        branch_id: 'f1',
+        category_id: 'c1',
+        price: 1,
+        is_active: true,
+        is_available: true,
+      }) as Product;
+
+    const ordenados = sortProducts([
+      prod('p-sem', 'Sem posição', null),
+      prod('p-1', 'Primeiro', 1),
+    ]);
+    expect(ordenados.map((p) => p.id)).toEqual(['p-1', 'p-sem']);
   });
 });

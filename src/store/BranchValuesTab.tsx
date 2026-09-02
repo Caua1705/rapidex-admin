@@ -297,7 +297,19 @@ export function BranchValuesTab({
             rotulo="Valor da taxa"
             classeExtra="store-form__narrow"
             proprio={gravado.default_delivery_fee != null}
-            padrao={formatCurrency(padrao.default_delivery_fee ?? 0)}
+            /*
+              O `?? 0` QUE ESTAVA AQUI ERA CÓDIGO MORTO, e ele custou uma
+              investigação: `AdminRestaurantSettingsResponse.default_delivery_fee`
+              é `number` NÃO-ANULÁVEL. Quem é anulável é o `gravado` da FILIAL,
+              logo acima — é ele que distingue "própria" de "herdando".
+
+              Um `??` sobre valor que nunca é nulo diz ao leitor que o nulo é
+              possível, e foi exatamente essa leitura que me fez procurar um
+              defeito onde não havia. Ele sai para a linha ficar igual às
+              vizinhas (`min_order_value`, `service_fee_amount`), que são do
+              mesmo tipo e não o têm.
+            */
+            padrao={formatCurrency(padrao.default_delivery_fee)}
           >
             <input
               className="input tnum"

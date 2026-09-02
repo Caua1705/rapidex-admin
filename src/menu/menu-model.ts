@@ -162,21 +162,42 @@ export function showsAvailabilityToggle(product: Pick<Product, 'is_active'>): bo
   return isProductActive(product);
 }
 
+/**
+ * A POSIÇÃO AUSENTE VAI PARA O FIM, e não para o começo.
+ *
+ * `sort_order` é coluna ANULÁVEL no backend (`Mapped[int | None]`, com o
+ * default 0 só do lado do Python — uma linha criada por SQL na mão fica com
+ * NULL). O painel fazia `sort_order ?? 0`, e **zero é a PRIMEIRA posição**.
+ *
+ * O cardápio público ordena em SQL por `Category.sort_order, Product.sort_order,
+ * Product.name`, e o Postgres ordena **NULLS LAST** por padrão. Ou seja: a
+ * categoria sem posição aparecia em PRIMEIRO no painel e em ÚLTIMO para o
+ * cliente — duas telas discordando sobre a mesma lista, sem nada acusar.
+ *
+ * É a mesma família do `new Date(null)`, que é a época e não `NaN`: um nulo que
+ * vira um número VÁLIDO e se mistura aos de verdade. E o `??` não é acidente de
+ * digitação — é o que se escreve para calar o `strict` do TypeScript, que é
+ * justamente onde esta classe sobrevive ao typecheck.
+ */
+const FIM_DA_LISTA = Number.POSITIVE_INFINITY;
+
 /** Ordem de exibição: `sort_order` do backend e, no empate, o nome. */
 export function sortCategories(categories: readonly Category[]): Category[] {
   return [...categories].sort((a, b) => {
-    const orderA = a.sort_order ?? 0;
-    const orderB = b.sort_order ?? 0;
-    if (orderA !== orderB) return orderA - orderB;
+    const orderA = a.sort_order ?? FIM_DA_LISTA;
+    const orderB = b.sort_order ?? FIM_DA_LISTA;
+    // `Infinity - Infinity` é NaN, e um comparador que devolve NaN embaralha a
+    // lista em silêncio. Duas sem posição empatam e caem no desempate por nome.
+    if (orderA !== orderB) return orderA < orderB ? -1 : 1;
     return a.name.localeCompare(b.name, 'pt-BR');
   });
 }
 
 export function sortProducts(products: readonly Product[]): Product[] {
   return [...products].sort((a, b) => {
-    const orderA = a.sort_order ?? 0;
-    const orderB = b.sort_order ?? 0;
-    if (orderA !== orderB) return orderA - orderB;
+    const orderA = a.sort_order ?? FIM_DA_LISTA;
+    const orderB = b.sort_order ?? FIM_DA_LISTA;
+    if (orderA !== orderB) return orderA < orderB ? -1 : 1;
     return a.name.localeCompare(b.name, 'pt-BR');
   });
 }

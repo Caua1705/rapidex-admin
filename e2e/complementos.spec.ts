@@ -86,7 +86,13 @@ test('cria "Escolha o tamanho" — e ligar obrigatório sobe o mínimo sozinho',
         is_active: true,
         min_select: 1,
         max_select: 1,
-        sort_order: 0,
+        /*
+         * O GRUPO NOVO ENTRA NO FIM. O produto já tem dois grupos ('Ponto da
+         * carne' e 'Adicionais'), então o terceiro nasce na posição 2 — e não
+         * em 0, que é a PRIMEIRA e faria todo grupo novo pular para a frente
+         * do cardápio, com os criados em seguida empatados entre si.
+         */
+        sort_order: 2,
       },
     });
 

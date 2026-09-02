@@ -103,7 +103,7 @@ export function OrderLine({
       abreBloco={abreBloco}
       number={order.order_number}
       elapsedLabel={formatElapsed(order.created_at)}
-      elapsedMinutes={elapsedMinutes(order.created_at) ?? 0}
+      elapsedMinutes={elapsedMinutes(order.created_at)}
       windowMinutes={windowMinutes}
       timeLabel={formatTime(order.created_at)}
       customer={order.customer_name_snapshot}

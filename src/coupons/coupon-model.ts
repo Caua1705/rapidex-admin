@@ -549,12 +549,30 @@ export function contarArtes(grupos: readonly GrupoDeArtes[]): number {
  * ======================================================================= */
 
 /**
- * Campanha nova: começa hoje, dura o mês, e nasce ligada.
+ * Campanha nova: começa hoje, SEM PRAZO, e nasce ligada.
  *
  * NASCE PÚBLICA, que é o default do backend e a campanha que o lojista quase
  * sempre está criando. Abrir em "Privado" faria a opção segura ser a de menos
  * alcance — e uma campanha que ninguém vê é o defeito mais caro desta tela,
  * porque ela não acusa nada: some da vitrine em silêncio.
+ *
+ * ----------------------------------------------------------------------------
+ * O PRAZO NASCE VAZIO, E ELE NASCIA COM HOJE
+ * ----------------------------------------------------------------------------
+ *
+ * Herança de quando `valid_until` era obrigatório. Com ele anulável, "hoje"
+ * como padrão faz duas coisas ruins ao mesmo tempo:
+ *
+ *   1. **a campanha criada sem olhar termina no dia em que nasceu.** Um campo
+ *      pré-preenchido não é lido — é aceito;
+ *   2. **criar campanha permanente passava a exigir APAGAR um campo.**
+ *      Descobrir que dá para apagar é mais difícil que descobrir que dá para
+ *      preencher, e a forma mais comum (o frete grátis que a rede mantém o ano
+ *      inteiro) ficava atrás do gesto menos óbvio.
+ *
+ * O COMEÇO CONTINUA SENDO HOJE, e a assimetria é a mesma da validação: sem
+ * começo o backend não tem como decidir se a campanha já vale, e "agora" é uma
+ * resposta que a tela pode dar por ele. "Até quando" não é.
  */
 export function rascunhoNovo(hoje: string): CouponDraft {
   return {
@@ -566,7 +584,7 @@ export function rascunhoNovo(hoje: string): CouponDraft {
     visibility: 'public',
     targetSegment: '',
     validFrom: hoje,
-    validUntil: hoje,
+    validUntil: '',
     minOrderValue: '',
     maxDiscountAmount: '',
     totalUsageLimit: '',

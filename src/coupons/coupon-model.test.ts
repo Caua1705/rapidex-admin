@@ -528,3 +528,32 @@ describe('textoDaValidade', () => {
     expect(textoDaValidade(cupom({ valid_from: 'nada', valid_until: null }))).toBe('sem prazo');
   });
 });
+
+/*
+ * O PRAZO NASCE VAZIO — porque prazo é EXCEÇÃO, não padrão.
+ *
+ * `rascunhoNovo` preenchia "Termina em" com HOJE, herança de quando o campo era
+ * obrigatório. Com `valid_until` anulável, esse padrão faz duas coisas ruins ao
+ * mesmo tempo: a campanha que o lojista criar sem olhar termina no DIA em que
+ * nasceu, e criar uma campanha permanente exige APAGAR um campo — descobrir que
+ * dá para apagar é mais difícil que descobrir que dá para preencher.
+ */
+describe('o prazo da campanha nova', () => {
+  it('nasce VAZIO: sem prazo é o padrão, e prazo é a escolha', () => {
+    expect(rascunhoNovo('2026-09-01').validUntil).toBe('');
+  });
+
+  it('o começo continua sendo hoje, e isso não mudou', () => {
+    expect(rascunhoNovo('2026-09-01').validFrom).toBe('2026-09-01');
+  });
+
+  /* E o corpo que sai dele é a campanha permanente, sem ninguém apagar nada. */
+  it('salvar sem tocar no prazo cria uma campanha permanente', () => {
+    const corpo = bodyFrom(
+      { ...rascunhoNovo('2026-09-01'), templateId: 'arte-10', title: 'Dez' },
+      arte(),
+    );
+    expect(corpo?.valid_until).toBeNull();
+    expect(corpo?.valid_from).toBe('2026-09-01T00:00:00-03:00');
+  });
+});

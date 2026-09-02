@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import type { OptionGroupCreateBody, ProductOptionGroup } from '../api/types';
+import type { ProductOptionGroup } from '../api/types';
 import { Switch } from '../ds/Switch';
 import {
   GRUPO_DESCRICAO_MAX,
@@ -9,6 +9,7 @@ import {
   corpoDoGrupo,
   grupoDraftDe,
   grupoVazio,
+  type GrupoBody,
   type GrupoDraft,
 } from './option-groups';
 
@@ -37,18 +38,29 @@ import {
  */
 export function GrupoForm({
   inicial,
+  sortOrderNovo = 0,
   isSaving,
   onCancel,
   onSave,
 }: {
   /** Ausente = grupo novo. */
   inicial?: ProductOptionGroup;
+  /** A posição do grupo NOVO: quantos o produto já tem. Ignorado na edição. */
+  sortOrderNovo?: number;
   isSaving: boolean;
   onCancel: () => void;
-  onSave: (corpo: OptionGroupCreateBody) => void;
+  /**
+   * O corpo NA LINGUAGEM DESTE MÓDULO, e não a do contrato.
+   *
+   * `sort_order` sai daqui como `number | null` porque a EDIÇÃO precisa
+   * carregar o nulo gravado intacto. O contrato separa os dois casos — o
+   * `create` exige número, o `update` aceita nulo —, e quem adapta é o ponto
+   * de chamada, que sabe qual dos dois está fazendo.
+   */
+  onSave: (corpo: GrupoBody) => void;
 }) {
   const [draft, setDraft] = useState<GrupoDraft>(() =>
-    inicial ? grupoDraftDe(inicial) : grupoVazio(),
+    inicial ? grupoDraftDe(inicial) : grupoVazio(sortOrderNovo),
   );
   const [tocou, setTocou] = useState(false);
 

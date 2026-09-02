@@ -322,9 +322,24 @@ export function OptionGroupsSection({
       {podeEditar ? (
         editando === 'novo' ? (
           <GrupoForm
+            /* O grupo novo entra no FIM, como a opção nova entra no fim do grupo. */
+            sortOrderNovo={(grupos ?? []).length}
             isSaving={salvando}
             onCancel={() => setEditando(null)}
-            onSave={(corpo) => gravar(() => createOptionGroup(productId, corpo))}
+            onSave={(corpo) =>
+              gravar(() =>
+                createOptionGroup(productId, {
+                  ...corpo,
+                  /*
+                   * O `create` do contrato exige número, e aqui ele SEMPRE tem:
+                   * `grupoVazio(grupos.length)` o preenche. O `?? 0` é para o
+                   * compilador, não um buraco tapado — grupo novo não herda
+                   * posição de ninguém.
+                   */
+                  sort_order: corpo.sort_order ?? 0,
+                }),
+              )
+            }
           />
         ) : (
           <button

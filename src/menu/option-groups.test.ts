@@ -163,9 +163,19 @@ describe('grupoDraftDe', () => {
     });
   });
 
-  /* `sort_order` é `number | null` no contrato: nulo vira 0, não NaN. */
-  it('aguenta sort_order nulo', () => {
-    expect(grupoDraftDe(grupo({ sort_order: null })).sortOrder).toBe(0);
+  /*
+   * ESTE CASO MUDOU DE FORMA no mesmo dia em que foi escrito, e a lição é
+   * minha: ele dizia "nulo vira 0, não NaN" e prendia o `?? 0` do código.
+   *
+   * "Não vira NaN" era a preocupação certa; ZERO era a resposta errada — zero é
+   * a PRIMEIRA posição, e editar o nome de um grupo sem posição o mandava para
+   * a frente do cardápio. O nulo agora atravessa intacto, e o requisito
+   * original continua coberto: o que sai não é `NaN`.
+   */
+  it('sort_order nulo atravessa intacto — não vira 0 nem NaN', () => {
+    const draft = grupoDraftDe(grupo({ sort_order: null }));
+    expect(draft.sortOrder).toBeNull();
+    expect(Number.isNaN(draft.sortOrder as number)).toBe(false);
   });
 });
 
@@ -240,5 +250,47 @@ describe('regraDoGrupo', () => {
 
   it('o grupo desativado diz isso antes de tudo, porque é o que explica a tela', () => {
     expect(regraDoGrupo(grupo({ is_active: false }))).toContain('Desativado');
+  });
+});
+
+/* ==========================================================================
+ * `sort_order` DO GRUPO — dois defeitos meus, da mesma família do `?? 0`
+ * ======================================================================= */
+
+describe('a posição do grupo', () => {
+  /*
+   * O comentário dizia "nulo é o fim da lista" e o código escrevia `?? 0`, que
+   * é o COMEÇO. Editar o nome de um grupo sem posição o mandava para a frente
+   * da lista, sem ninguém ter arrastado nada — e o comentário garantia que a
+   * próxima pessoa não olharia.
+   */
+  it('editar um grupo sem posição não o move para a frente', () => {
+    const draft = grupoDraftDe(grupo({ sort_order: null }));
+    expect(draft.sortOrder).toBeNull();
+
+    const check = checkGrupo(draft);
+    expect(check.valid).toBe(true);
+    expect(check.valid === true && check.grupo.sort_order).toBeNull();
+  });
+
+  it('a posição gravada é preservada na edição', () => {
+    const draft = grupoDraftDe(grupo({ sort_order: 3 }));
+    const check = checkGrupo(draft);
+    expect(check.valid === true && check.grupo.sort_order).toBe(3);
+  });
+
+  /*
+   * E o grupo NOVO entra no fim, como a opção nova entra no fim do grupo.
+   * `grupoVazio()` fixava zero, então dois grupos criados em seguida nasciam
+   * empatados na primeira posição.
+   */
+  it('o grupo novo entra na posição que o produto passar', () => {
+    expect(grupoVazio(2).sortOrder).toBe(2);
+    const check = checkGrupo({ ...grupoVazio(2), name: 'Adicionais' });
+    expect(check.valid === true && check.grupo.sort_order).toBe(2);
+  });
+
+  it('sem posição passada, o grupo novo é o primeiro — que é o caso do produto vazio', () => {
+    expect(grupoVazio().sortOrder).toBe(0);
   });
 });

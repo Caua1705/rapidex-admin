@@ -126,7 +126,13 @@ export function OrderRow({
   number: number;
   /** "12 min", "1h20" — já formatado por quem sabe formatar. */
   elapsedLabel: string;
-  elapsedMinutes: number;
+  /**
+   * Minutos desde a entrada do pedido, ou `null` quando ele não tem hora.
+   *
+   * NULO NÃO É ZERO: zero é o pedido mais fresco possível, e desenharia a barra
+   * verde e vazia para um pedido cuja hora ninguém sabe. Ver `ds/maturation`.
+   */
+  elapsedMinutes: number | null;
   /** A janela de preparo da loja. Sem ela, a barra de maturação não aparece. */
   windowMinutes: number | null;
   /** A hora de entrada, "20:41". */

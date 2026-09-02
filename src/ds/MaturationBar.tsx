@@ -31,13 +31,13 @@ export function MaturationBar({
   elapsedMinutes,
   windowMinutes,
 }: {
-  elapsedMinutes: number;
+  /** Minutos desde a entrada. `null` = o pedido não tem hora — a barra some. */
+  elapsedMinutes: number | null;
   /** `tempo_estimado_max` da loja. Sem ele (0 ou nulo) a barra não existe. */
   windowMinutes: number | null;
 }) {
-  if (!windowMinutes || windowMinutes <= 0) return null;
-
   const razao = razaoDeMaturacao(elapsedMinutes, windowMinutes);
+  if (razao === null) return null;
 
   return (
     <span
