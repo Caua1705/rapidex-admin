@@ -731,6 +731,48 @@ Removido o `timezoneId` do `playwright.config.ts`, a guarda do navegador acusa
 Portão: `format:check 0` · `lint 0` · `typecheck 0` · `test 0` (**69 arquivos,
 1009 testes**) · `playwright` **271 passaram**, 4 pulados, 0 falharam.
 
+### 2.9 — `ERR_NO_BUFFER_SPACE`: conhecido, e por ora do AMBIENTE ⚠️
+
+**O que aconteceu.** Numa execução da suíte completa, um teste falhou com:
+
+```
+Error: page.goto: net::ERR_NO_BUFFER_SPACE at http://127.0.0.1:4173/loja
+   at abrirLoja (e2e/loja.spec.ts:33)
+```
+
+Foi em `loja.spec.ts:777` (`Marca grava no perfil do restaurante`), mas o
+arquivo e o teste **não importam**: o erro é do `page.goto`, antes de a tela
+existir. Ele podia cair em qualquer teste que navegasse naquele instante.
+
+**Por que NÃO é defeito do código:**
+
+| Observação                                                        | O que ela diz                |
+| ----------------------------------------------------------------- | ---------------------------- |
+| o teste sozinho: **verde** (884ms)                                | não é o teste                |
+| a suíte inteira, na execução seguinte: **276 passaram, 0 falhas** | não é a suíte                |
+| `ERR_NO_BUFFER_SPACE` é erro de **socket do Windows**             | não é do painel nem do falso |
+| ele apareceu **depois de ~15 suítes completas** na mesma sessão   | é acúmulo                    |
+
+`netstat` logo depois: **596 portas em TIME_WAIT**, contra uma faixa dinâmica de
+**16.384** (49152–65535). Não estava esgotado NAQUELE momento — mas a medição foi
+minutos depois do pico, e uma suíte de 280 testes sob 4 workers, com o falso
+interceptando milhares de requisições, sobe e desce milhares de sockets em
+minutos. O Windows segura cada um em `TIME_WAIT` por 120s por padrão.
+
+**Como distinguir da próxima vez.** Se voltar, o que separa ambiente de defeito:
+
+- **é ambiente** se: a mensagem for `ERR_NO_BUFFER_SPACE` / `ERR_NETWORK_CHANGED`
+  / `ECONNRESET` no `goto`, o teste passar sozinho, e a execução seguinte for
+  verde. O conserto é esperar, ou `--workers=2`;
+- **é OUTRA COISA** se aparecer numa **execução limpa** — primeira suíte da
+  sessão, com poucas portas em `TIME_WAIT`. Aí não é acúmulo, e o lugar de
+  procurar é o falso segurando conexão (foi o que o §2.0 consertou no SSE: o
+  handler ficava pendurado por 15s depois de o navegador fechar).
+
+**Não foi tratado como intermitente do portão** por isso: intermitente de código
+falha com o produto na tela; esta falha antes de a página carregar, e o
+diagnóstico está na camada de sockets do sistema, não no repositório.
+
 ---
 
 ## 3. Bloqueado por backend
@@ -738,15 +780,18 @@ Portão: `format:check 0` · `lint 0` · `typecheck 0` · `test 0` (**69 arquivo
 Herdado de `rodada-painel.md` §6 e de `auditoria.md` C.1 — **nada novo entrou
 nesta rodada**, e nada saiu.
 
-| Frente                             | O que falta do backend                                                                           |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **WhatsApp**                       | zero rotas. Sem `GET .../whatsapp` (o espelho de `print-agent`), nenhuma tela. Ver §6.1 anterior |
-| **Integrações**                    | zero rotas administráveis. `GET /admin/integrations` e `GET/PATCH /admin/payment-gateway`        |
-| **Criar filial**                   | não existe `POST /admin/branches`                                                                |
-| **Apagar categoria/produto/setor** | não existe `DELETE` em nenhuma das três                                                          |
-| **Logo do restaurante**            | `logo_path` existe no banco, mas só a vitrine pública o serve                                    |
-| **Nota fiscal**                    | não existe nem tabela                                                                            |
-| **Reordenar complemento**          | **NOVO NA LISTA:** `sort_order` é gravado, mas não há rota de `reorder` como a de categorias     |
+| Frente                              | O que falta do backend                                                                                                                                                                                                                                                                            |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **WhatsApp**                        | zero rotas. Sem `GET .../whatsapp` (o espelho de `print-agent`), nenhuma tela. Ver §6.1 anterior                                                                                                                                                                                                  |
+| **Integrações**                     | zero rotas administráveis. `GET /admin/integrations` e `GET/PATCH /admin/payment-gateway`                                                                                                                                                                                                         |
+| **Criar filial**                    | não existe `POST /admin/branches`                                                                                                                                                                                                                                                                 |
+| **Apagar categoria/produto/setor**  | não existe `DELETE` em nenhuma das três                                                                                                                                                                                                                                                           |
+| **Logo do restaurante**             | `logo_path` existe no banco, mas só a vitrine pública o serve                                                                                                                                                                                                                                     |
+| **Nota fiscal**                     | não existe nem tabela                                                                                                                                                                                                                                                                             |
+| **Reordenar complemento**           | **NOVO NA LISTA:** `sort_order` é gravado, mas não há rota de `reorder` como a de categorias                                                                                                                                                                                                      |
+| **Ordem do complemento na vitrine** | 🔴 `Product.option_groups` e `ProductOptionGroup.options` são `relationship(...)` SEM `order_by`, e o `selectinload` do `menu_repository` não ordena. O cliente vê os grupos em ordem ARBITRÁRIA, e o `sort_order` que o painel grava não tem efeito nenhum lá. Ver `painel-contra-vitrine.md` §2 |
+| **`is_main` nulo na vitrine**       | 🟠 o público usa `Branch.is_main.desc()` (NULLS FIRST) e o admin `.desc().nulls_last()`. A filial sem marcação encabeça a lista do cliente e fecha a do painel. Falta o `.nulls_last()` em `menu_repository:29`                                                                                   |
+| **`sort_order` do cupom**           | 🟠 a vitrine ordena as campanhas por ele, e o painel não tem como defini-lo — a ordem que o cliente vê só se muda em SQL na mão                                                                                                                                                                   |
 
 O último é o único acréscimo, e ele é pequeno: hoje reordenar grupo ou opção
 seria um PATCH por linha, contra o padrão de arrasto que o cardápio já tem.

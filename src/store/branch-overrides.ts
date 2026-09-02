@@ -161,8 +161,21 @@ export function bodyFromDraft(
     };
   }
 
-  // A faixa é conferida como o backend a confere: sobre a mescla. Um lado
-  // vazio aqui não é "sem faixa" — é o lado que continua vindo do restaurante.
+  /*
+   * A FAIXA É CONFERIDA SOBRE A MESCLA — e esta tela é MAIS ESTRITA que o
+   * backend, de propósito.
+   *
+   * Um lado vazio aqui não é "sem faixa": é o lado que continua vindo do
+   * restaurante, e é contra ELE que o outro tem de fechar.
+   *
+   * O backend mescla contra a COLUNA DA FILIAL, que é nula enquanto ela herda —
+   * e `_ensure_delivery_time_range` sai cedo quando um dos lados é nulo. Ou
+   * seja: uma filial que herda 30–50 pode gravar só `max = 20` e o backend
+   * aceita, deixando a loja com mínimo 30 herdado e máximo 20 próprio. Faixa
+   * impossível, 200, e nada acusa.
+   *
+   * Não "corrija" isto para bater com o backend: a diferença é o conserto.
+   */
   const faixa = checkEstimatedRange(
     estimatedMin.value ?? padrao.estimated_delivery_time_min ?? null,
     estimatedMax.value ?? padrao.estimated_delivery_time_max ?? null,

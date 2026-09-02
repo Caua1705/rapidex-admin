@@ -550,3 +550,40 @@ test('campanha sem prazo: vai como null e volta lendo "sem prazo", ativa', async
   await expect(linha).not.toContainText('Expirado');
   await expect(linha).not.toContainText('31/12');
 });
+
+/*
+ * ============================================================================
+ * O 409 NA EDIÇÃO — a metade que faltava
+ * ============================================================================
+ *
+ * O 409 do código repetido tinha teste na CRIAÇÃO e nenhum na edição, e as duas
+ * não são o mesmo caminho: no PATCH o backend valida a MESCLA do corpo com o
+ * que está gravado, não o corpo. Uma campanha existente que muda só o código
+ * pode colidir com outra que já existe há meses.
+ *
+ * É também a diferença que mais custa: na criação o lojista ainda não tem nada
+ * a perder; na edição ele está com uma campanha no ar e o formulário cheio.
+ */
+test('editar para um código que já existe: o 409 aparece e o formulário não some', async ({
+  page,
+}) => {
+  await entrar(page);
+
+  // A campanha de Natal existe e tem o código NATAL10; SETEMBRO é de outra.
+  await page.getByTestId('cupom-editar-NATAL10').click();
+  await page.getByLabel('Código', { exact: true }).fill('SETEMBRO');
+  await page.getByRole('button', { name: 'Salvar' }).click();
+
+  await expect(page.getByText(/já existe um cupom com este código/i)).toBeVisible();
+
+  /*
+   * O DIÁLOGO CONTINUA ABERTO, com o que foi digitado. Fechá-lo na recusa
+   * mandaria o lojista reabrir e redigitar — e a campanha continua no ar com o
+   * código velho, que é o estado que ele precisa ver para decidir.
+   */
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByLabel('Código', { exact: true })).toHaveValue('SETEMBRO');
+
+  // E nada foi gravado: a campanha continua com o código dela.
+  expect(api.coupons().find((c) => c.id === 'cupom-natal')?.code).toBe('NATAL10');
+});

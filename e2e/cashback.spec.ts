@@ -395,3 +395,44 @@ test('filial recusada pelo backend: a tela mostra a frase, e não diz que salvou
   // E continua herdando: nada foi gravado, e a tela não afirma o contrário.
   await expect(page.getByTestId('cashback-origem')).toContainText('Herdando a regra da rede');
 });
+
+/*
+ * A REGRA DA REDE RECUSADA — a última das quatro escritas de dinheiro sem
+ * nenhuma recusa exercitada.
+ *
+ * As validações do `AdminCashbackRuleUpsert` que a tela alcança já estão
+ * bloqueadas antes do envio (o teto de 30%, o dia repetido que a grade de sete
+ * linhas torna impossível). O que sobra é a classe que NENHUMA validação local
+ * cobre: o backend recusando por um motivo que o painel não conhece.
+ *
+ * O que se prova aqui não é o status: é que a tela mostra A FRASE do backend e
+ * NÃO diz que salvou — porque uma tela que anuncia sucesso sobre um 4xx manda o
+ * lojista de volta ao movimento com uma campanha que ele acha que ligou.
+ */
+test('regra da rede recusada pelo backend: a frase aparece e a barra não diz "salvo"', async ({
+  page,
+}) => {
+  await entrar(page);
+
+  /*
+   * SÓ O PUT. A mesma rota atende o GET que MONTA a tela — interceptar os dois
+   * deixaria a tela sem carregar, e o teste falharia esperando um campo que
+   * nunca apareceu, provando outra coisa.
+   */
+  await page.route('**/admin/cashback-rules', (route) => {
+    if (route.request().method() !== 'PUT') return route.fallback();
+    return route.fulfill({
+      status: 422,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'expiry_days deve ser maior que zero' }),
+    });
+  });
+
+  await page.getByTestId('cashback-enabled').click();
+  await page.getByTestId('cashback-default-percent').fill('5');
+  await page.getByTestId('cashback-min-redeem').fill('10');
+  await page.getByRole('button', { name: 'Salvar' }).click();
+
+  await expect(page.getByTestId('cashback-error')).toContainText('expiry_days');
+  await expect(page.getByText('Alterações salvas')).toHaveCount(0);
+});
