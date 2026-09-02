@@ -3990,6 +3990,32 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       }
       if (method === 'POST') {
         const body = request.postDataJSON() as Omit<PaymentMethod, 'id' | 'branch_id'>;
+
+        /*
+         * A FORMA REPETIDA É 409, e o falso não cobrava.
+         *
+         * `AdminSettingsService.create_payment_method` recusa a combinação
+         * (fluxo, tipo, bandeira) que a filial já tem, e a razão dele está no
+         * comentário: "duas linhas iguais apareceriam duas vezes no checkout do
+         * cliente, e desabilitar uma nao tiraria a outra da tela".
+         *
+         * É a recusa mais frequente desta tela — o lojista cadastra "Pix" e
+         * meses depois cadastra de novo — e sem ela o e2e ficava verde sobre uma
+         * tela que dá 409 na mão de quem opera.
+         */
+        const repetida = state.paymentMethods.some(
+          (entry) =>
+            entry.branch_id === branchId &&
+            entry.payment_flow === body.payment_flow &&
+            entry.method_type === body.method_type &&
+            (entry.brand ?? null) === (body.brand ?? null),
+        );
+        if (repetida) {
+          return json(route, 409, {
+            detail: 'Esta forma de pagamento já está cadastrada nesta filial',
+          });
+        }
+
         const created: PaymentMethod = {
           ...body,
           id: `pay-${state.paymentMethods.length + 1}-novo`,
@@ -4187,6 +4213,31 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       if (method === 'PATCH') {
         const body = request.postDataJSON() as Record<string, unknown>;
         state.branchPatches.push({ branchId: found.id, body });
+
+        /*
+         * A FAIXA DE FRETE, VALIDADA SOBRE A MESCLA — como o backend faz.
+         *
+         * `AdminBranchDeliveryRules` roda o `model_validator` sobre
+         * `{...gravado, ...corpo}`, e o docstring dele explica por quê: "mandar
+         * so `delivery_max_fee=5` para uma filial com minimo 8 e valido campo a
+         * campo e impossivel no conjunto".
+         *
+         * O 422 dele vem com `detail` de TEXTO (`"; ".join(...)`), e não a lista
+         * de validação do Pydantic — a tela precisa mostrar a frase, e o falso
+         * precisa mandá-la na forma certa para que isso seja provável.
+         *
+         * A tela AVISA quando o máximo fica abaixo do mínimo, mas não trava o
+         * salvamento: o aviso é do desenho, e é o backend quem recusa.
+         */
+        const mesclado = { ...found, ...body } as Record<string, unknown>;
+        const min = mesclado.delivery_min_fee;
+        const max = mesclado.delivery_max_fee;
+        if (typeof min === 'number' && typeof max === 'number' && max < min) {
+          return json(route, 422, {
+            detail: 'delivery_max_fee não pode ser menor que delivery_min_fee',
+          });
+        }
+
         Object.assign(found, body);
         return json(route, 200, found);
       }

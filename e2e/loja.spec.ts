@@ -905,3 +905,99 @@ test('no telefone, /loja é a LISTA das nove seções — e Operação está na 
   await page.getByTestId('store-lista-impressao').click();
   await expect(page).toHaveURL(/\/loja\/impressao$/);
 });
+
+/*
+ * ============================================================================
+ * AS RECUSAS DE QUEM MEXE EM DINHEIRO
+ * ============================================================================
+ *
+ * O levantamento das 46 escritas achou 37 exercitadas SÓ no caminho feliz. A
+ * ordem de ataque é dinheiro primeiro: uma tela que engole a recusa do backend
+ * e diz que salvou faz o lojista voltar ao movimento acreditando numa
+ * configuração que não existe.
+ *
+ * As duas daqui são as mais frequentes de Loja › Pagamento, e as duas vinham do
+ * backend sem nenhum teste — a primeira o falso nem sabia recusar.
+ */
+test('forma de pagamento repetida: a tela mostra o 409 e não some com o formulário', async ({
+  page,
+}) => {
+  await abrirLoja(page);
+  await escolherFilial(page);
+  await page.getByTestId('store-anchor-pagamento').click();
+
+  // "Pix" online já existe na filial — é o caso do lojista que cadastra de novo
+  // meses depois, sem lembrar.
+  await page.getByTestId('payment-add').click();
+  await escolher(page.getByTestId('payment-new-flow'), 'Online (pelo app)');
+  await escolher(page.getByTestId('payment-new-type'), 'Pix');
+  await page.getByTestId('payment-new-label').fill('Pix da maquininha');
+  await page.getByTestId('payment-new-save').click();
+
+  /*
+   * A FRASE DO BACKEND, e não "A requisição falhou (409)". O `detail` aqui é
+   * TEXTO, que `readDetailMessage` já sabia ler — o que faltava era alguém
+   * provar que ela chega à tela.
+   */
+  await expect(page.getByTestId('store-error')).toContainText('já está cadastrada nesta filial');
+
+  // E o formulário CONTINUA ABERTO com o que foi digitado: recusa não é motivo
+  // para o lojista redigitar.
+  await expect(page.getByTestId('payment-new-label')).toHaveValue('Pix da maquininha');
+  expect(api.paymentMethods().filter((entry) => entry.method_type === 'pix')).toHaveLength(1);
+});
+
+test('forma apagada por outra aba: o 404 vira frase, e a linha não finge que mudou', async ({
+  page,
+}) => {
+  await abrirLoja(page);
+  await escolherFilial(page);
+  await page.getByTestId('store-anchor-pagamento').click();
+
+  // Outra pessoa excluiu a forma enquanto esta aba estava aberta.
+  await page.route('**/admin/payment-methods/pay-dinheiro', (route) =>
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Forma de pagamento não encontrada.' }),
+    }),
+  );
+
+  await page.getByRole('switch', { name: 'Dinheiro: desativar' }).click();
+
+  await expect(page.getByTestId('store-error')).toContainText('não encontrada');
+  // O interruptor NÃO fica mostrando o estado que não foi gravado.
+  await expect(page.getByTestId('payment-method-pay-dinheiro').getByRole('switch')).toBeChecked();
+});
+
+/*
+ * A TERCEIRA ESCRITA DE DINHEIRO, e a mais sutil das três.
+ *
+ * `AdminBranchDeliveryRules` valida a faixa de frete sobre a MESCLA com o
+ * banco, e responde 422 com `detail` de TEXTO — não a lista de validação do
+ * Pydantic. A tela AVISA quando o máximo fica abaixo do mínimo, mas **não trava
+ * o salvamento**: o aviso é do desenho, e quem recusa é o backend.
+ *
+ * Ou seja: existe um caminho em que o lojista salva e o backend nega, e até
+ * agora ninguém tinha provado que a frase dele chega à tela.
+ */
+test('faixa de frete invertida: o 422 do backend vira frase, e a tela não diz que salvou', async ({
+  page,
+}) => {
+  await abrirLoja(page);
+  await escolherFilial(page);
+  await abrirSecao(page, 'entrega');
+
+  await page.getByTestId('delivery-min-fee').fill('8,00');
+  await page.getByTestId('delivery-max-fee').fill('5,00');
+
+  // A tela avisa por conta própria — e deixa salvar assim mesmo.
+  await expect(page.getByTestId('delivery-config-error')).toContainText('abaixo da mínima');
+
+  await page.getByTestId('store-save').click();
+
+  // A frase é a do backend, e não "A requisição falhou (422)".
+  await expect(page.getByTestId('store-error')).toContainText('delivery_max_fee');
+  // E a barra NÃO anuncia sucesso.
+  await expect(page.getByTestId('store-saved')).toHaveCount(0);
+});

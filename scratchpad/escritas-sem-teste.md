@@ -33,7 +33,8 @@ motivo de este documento contar as três medições em vez de só a última.
 
 ## O resultado
 
-**46 escritas. 2 sem nenhum teste. 37 exercitadas só no caminho feliz.**
+**46 escritas. 2 sem nenhum teste (consertadas). 37 exercitadas só no caminho
+feliz — 3 delas cobertas nesta rodada, 34 restantes.**
 
 ### As 2 que não tinham teste nenhum — CONSERTADAS nesta rodada
 
@@ -81,12 +82,32 @@ As nove que já têm recusa dublada, para servir de forma:
 | `POST /admin/categories`                  | 422 — nesta rodada |
 | `DELETE .../cashback-rules`               | 404                |
 
-**A priorização para a próxima rodada**, do mais caro ao menos: as escritas que
+### Atacadas nesta rodada — dinheiro primeiro
+
+Três, e as três precisaram do falso ficando MAIS ESTRITO, que é o padrão que
+esta rodada inteira repetiu:
+
+| Rota                                        | Recusa dublada | O que ela é                                                              |
+| ------------------------------------------- | -------------- | ------------------------------------------------------------------------ |
+| `POST /admin/branches/{id}/payment-methods` | **409**        | forma repetida (fluxo+tipo+bandeira). O falso não sabia recusar          |
+| `PATCH /admin/payment-methods/{id}`         | **404**        | forma apagada por outra aba enquanto esta estava aberta                  |
+| `PATCH /admin/branches/{id}`                | **422**        | faixa de frete invertida, validada sobre a MESCLA, com `detail` de TEXTO |
+
+A terceira é a mais sutil, e ela existe porque a tela **avisa e deixa salvar**:
+`checkDeliveryConfig` acusa "a taxa máxima está abaixo da mínima", mas
+`handleSave` não olha esse aviso. Existe um caminho em que o lojista salva e o
+backend nega — e até agora ninguém tinha provado que a frase dele chega à tela.
+
+O que os três provam, além do status: **a frase do backend aparece** (nunca "A
+requisição falhou (409)"), **o formulário não some** com o que foi digitado, e
+**a barra não anuncia sucesso**.
+
+**A priorização para o que sobra**, do mais caro ao menos: as escritas que
 mexem em dinheiro ou em cadastro que o cliente vê —
 `PATCH /admin/settings`, `PATCH /admin/restaurant`,
-`PATCH /admin/branches/{id}/settings`, `POST /admin/branches/{id}/payment-methods`,
-`PATCH /admin/payment-methods/{id}` e `PUT /admin/cashback-rules`. As de
-cardápio vêm depois: elas erram uma tela, não um valor cobrado.
+`PATCH /admin/branches/{id}/settings` e `PUT /admin/cashback-rules` — as três
+de forma de pagamento e a da filial saíram nesta rodada. As de cardápio vêm
+depois: elas erram uma tela, não um valor cobrado.
 
 ## Como refazer o levantamento
 
