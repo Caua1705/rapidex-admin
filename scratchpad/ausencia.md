@@ -13,7 +13,7 @@ o que já foi fechado está marcado no título de cada item, com o commit.
 | --- | ---------------------------------------------- | ------------------- |
 | 1   | o "ao vivo" que nunca é reavaliado             | **feito**           |
 | 2   | o agente de impressão fora de Loja › Impressão | **feito** `589cd94` |
-| 3   | o primeiro pedido do turno não apita           | aberto              |
+| 3   | o primeiro pedido do turno não apita           | **feito**           |
 | 4-8 | os cinco menores                               | anotados            |
 
 ## Como foi medido
@@ -109,7 +109,7 @@ A linha da comanda passou a trazer o estado do programa no MESMO clique que já
 carregava as vias — em paralelo e com `catch` próprio, para a leitura de apoio
 não levar junto o que o lojista veio ver.
 
-## 3. O primeiro pedido do turno não apita
+## 3. ~~O primeiro pedido do turno não apita~~ — FEITO
 
 `src/orders/useNewOrderSound.ts:44-48`
 
@@ -125,10 +125,22 @@ Com o áudio bloqueado, `play()` marca o estado, pede o `resume()` e **volta sem
 tocar**. O botão "Ativar som" aparece só _depois_ que um pedido já passou em
 silêncio.
 
-O cabeçalho do arquivo prevê exatamente o cenário — "um painel restaurado do
+O cabeçalho do arquivo previa exatamente o cenário — "um painel restaurado do
 localStorage e deixado numa TV pode nunca receber um clique" — e o alerta que
-falha nesse cenário é justamente o do **primeiro** pedido, que é o que ninguém
-está esperando. O aviso precisa nascer com a tela, não com a primeira perda.
+falhava nesse cenário era justamente o do **primeiro** pedido, que é o que
+ninguém está esperando.
+
+**Como ficou:** o hook lê `context.state` na montagem e escuta `statechange`. A
+mudança de fundo é a mesma dos outros dois itens desta lista — **o estado passou
+a ser observado, e não deduzido de uma tentativa que falhou**. De quebra, isso
+cobre o caso que ninguém tinha visto: alguns navegadores suspendem o áudio de
+uma aba escondida há horas, que é o dia a dia de um balcão, e a tela só
+descobriria no pedido seguinte.
+
+E **mudo vence bloqueado**: quem desligou o sino não é convidado a "ativar o
+som" — o sino cortado já explica o silêncio, e as duas mensagens juntas fariam o
+lojista apertar uma para descobrir que faltava a outra. A decisão sai pronta do
+hook, e não como dois fatos para cada tela combinar por conta.
 
 ## 4. Duas leituras de apoio que somem sem deixar rastro
 
