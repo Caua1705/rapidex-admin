@@ -129,7 +129,16 @@ export function fimDoDia(dia: string): string {
  * 23:59 de Fortaleza é 02:59 do dia SEGUINTE em UTC, e um painel que lesse a
  * data no fuso da máquina mostraria a campanha durando um dia a mais.
  */
-export function diaDaOperacao(iso: string): string {
+export function diaDaOperacao(iso: string | null | undefined): string {
+  /*
+   * NULO SAI ANTES DE VIRAR `Date`, e esta linha não é zelo.
+   *
+   * `new Date(null)` é a ÉPOCA (timestamp 0), não `NaN` — a guarda de
+   * `Number.isNaN` logo abaixo não o pega. Sem esta linha, um cupom sem prazo
+   * mostrava "31/12" (1969-12-31 no fuso da operação) como data final.
+   */
+  if (iso === null || iso === undefined || iso === '') return '';
+
   const data = new Date(iso);
   if (Number.isNaN(data.getTime())) return '';
   return new Intl.DateTimeFormat('en-CA', { timeZone: OPERATION_TIMEZONE }).format(data);
@@ -139,6 +148,30 @@ export function diaDaOperacao(iso: string): string {
 export function diaCurto(dia: string): string {
   const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dia);
   return partes ? `${partes[3]}/${partes[2]}` : '';
+}
+
+/**
+ * A validade da campanha em uma linha, para a coluna da lista.
+ *
+ * A COLUNA MONTAVA A FRASE SOZINHA (`{inicio} a {fim}`), e com `valid_until`
+ * anulável isso viraria **"01/08 a "** — o rabo solto que a mesma regra do
+ * motivo do cancelamento proíbe. Pior: `diaDaOperacao(null)` devolvia
+ * `1969-12-31`, então a campanha permanente anunciava terminar em 31/12.
+ *
+ * "sem prazo" SOZINHO não serve: ele perderia quando a campanha começou, que é
+ * a outra metade do que a coluna responde. Por isso a forma sem fim é
+ * **"desde 01/08 · sem prazo"** — as duas informações, na ordem em que se lê.
+ *
+ * Ela é função e não JSX porque é texto, e texto se testa sem montar tela.
+ */
+export function textoDaValidade(cupom: Coupon): string {
+  const inicio = diaCurto(diaDaOperacao(cupom.valid_from));
+  const fim = diaCurto(diaDaOperacao(cupom.valid_until));
+
+  if (inicio && fim) return `${inicio} a ${fim}`;
+  if (inicio) return `desde ${inicio} · sem prazo`;
+  // Sem começo legível também não se inventa data: o que sobra é o fato.
+  return fim ? `até ${fim}` : 'sem prazo';
 }
 
 /* ==========================================================================
@@ -390,10 +423,23 @@ export function situacaoDoCupom(cupom: Coupon, agora: Date = new Date()): Situac
 
   const instante = agora.getTime();
   const inicio = new Date(cupom.valid_from).getTime();
-  const fim = new Date(cupom.valid_until).getTime();
-
   if (Number.isFinite(inicio) && instante < inicio) return 'programado';
-  if (Number.isFinite(fim) && instante > fim) return 'expirado';
+
+  /*
+   * SEM PRAZO É CAMPANHA PERMANENTE, E A FALTA DESTA GUARDA CUSTOU CARO.
+   *
+   * `valid_until` passou a ser anulável no contrato. `new Date(null).getTime()`
+   * é **ZERO**, não `NaN`, e `Number.isFinite(0)` é verdadeiro — então
+   * `instante > fim` valia para qualquer agora, e a campanha que NUNCA acaba
+   * era a única que o painel dizia ter acabado.
+   *
+   * A conferência é do CAMPO, e não do número em que ele vira: é o campo que
+   * carrega a diferença entre "não tem prazo" e "tem um prazo ilegível".
+   */
+  if (cupom.valid_until !== null && cupom.valid_until !== undefined) {
+    const fim = new Date(cupom.valid_until).getTime();
+    if (Number.isFinite(fim) && instante > fim) return 'expirado';
+  }
 
   const limite = cupom.total_usage_limit;
   if (limite !== null && limite !== undefined && (cupom.total_usage_count ?? 0) >= limite) {
@@ -639,7 +685,15 @@ export function bodyFrom(rascunho: CouponDraft, arte: CouponTemplate): CouponCre
     title: rascunho.title.trim(),
     description: rascunho.description.trim() || null,
     valid_from: inicioDoDia(rascunho.validFrom),
-    valid_until: fimDoDia(rascunho.validUntil),
+    /*
+     * PRAZO EM BRANCO VAI COMO `null` EXPLÍCITO, e não some do corpo.
+     *
+     * O backend usa `exclude_unset=True` no PATCH: campo AUSENTE não mexe no
+     * prazo já gravado, e `null` é o que o TIRA. Omitir seria a tela oferecer
+     * "sem prazo" e a campanha continuar com o prazo velho — a versão desta
+     * família que ninguém vê, porque a tela mostra o que a pessoa pediu.
+     */
+    valid_until: rascunho.validUntil === '' ? null : fimDoDia(rascunho.validUntil),
     min_order_value: dinheiroOuNulo(rascunho.minOrderValue) ?? '0.00',
     max_discount_amount: aceitaTeto(tipo) ? dinheiroOuNulo(rascunho.maxDiscountAmount) : null,
     total_usage_limit: inteiroOuNulo(rascunho.totalUsageLimit),

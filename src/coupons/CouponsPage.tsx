@@ -11,11 +11,10 @@ import {
   arteDoCupom,
   artesDisponiveis,
   descontoDoCupom,
-  diaCurto,
-  diaDaOperacao,
   rascunhoDe,
   rascunhoNovo,
   situacaoDoCupom,
+  textoDaValidade,
   textoDeQuemVe,
   textoDeUso,
   textoDoCodigo,
@@ -170,11 +169,7 @@ export function CouponsPage() {
     ),
     desconto: descontoDoCupom(cupom),
     quemVe: <span className="tag cupons__tag">{textoDeQuemVe(cupom)}</span>,
-    validade: (
-      <span className="t-aux cupons__validade">
-        {diaCurto(diaDaOperacao(cupom.valid_from))} a {diaCurto(diaDaOperacao(cupom.valid_until))}
-      </span>
-    ),
+    validade: <span className="t-aux cupons__validade">{textoDaValidade(cupom)}</span>,
     usos: textoDeUso(cupom),
     situacao: (
       <span className="cupons__situacao">

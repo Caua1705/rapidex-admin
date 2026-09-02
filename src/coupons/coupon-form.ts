@@ -123,7 +123,19 @@ export function validarRascunho(rascunho: CouponDraft, arte: CouponTemplate | nu
   }
 
   if (rascunho.validFrom === '') campos.validFrom = 'Escolha quando a campanha começa.';
-  if (rascunho.validUntil === '') campos.validUntil = 'Escolha quando a campanha termina.';
+
+  /*
+   * O PRAZO FINAL DEIXOU DE SER OBRIGATÓRIO, e não é afrouxamento: `valid_until`
+   * passou a ser anulável no contrato, e campanha sem prazo é PERMANENTE — o
+   * cashback do cliente fiel, o frete grátis que a rede mantém o ano inteiro.
+   *
+   * O começo continua obrigatório, e a assimetria tem motivo: sem começo o
+   * backend não tem como decidir se a campanha já vale, e "agora" não é uma
+   * resposta que a tela possa dar por ele.
+   *
+   * A ordem só é conferida quando as DUAS existem: campanha sem fim não tem
+   * ordem a respeitar, que é o que o próprio `model_validator` do backend diz.
+   */
   if (
     rascunho.validFrom !== '' &&
     rascunho.validUntil !== '' &&

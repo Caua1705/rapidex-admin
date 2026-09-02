@@ -13,6 +13,7 @@ import {
   rascunhoDe,
   rascunhoNovo,
   situacaoDoCupom,
+  textoDaValidade,
   textoDeQuemVe,
   textoDeUso,
   textoDoCodigo,
@@ -442,5 +443,88 @@ describe('a arte que saiu do catálogo', () => {
   it('reconhece o cupom sem arte casada', () => {
     expect(arteDesativada(cupom({ coupon_template_id: 'sumiu' }), [arte()])).toBe(true);
     expect(arteDesativada(cupom({ coupon_template_id: 'arte-10' }), [arte()])).toBe(false);
+  });
+});
+
+/* ==========================================================================
+ * CAMPANHA SEM PRAZO — `valid_until` passou a ser anulável no contrato
+ *
+ * O backend mudou: cupom sem prazo é campanha PERMANENTE, não erro. O painel
+ * lia `valid_until` como obrigatório, e o pior não era o campo vazio na tela.
+ *
+ * `new Date(null).getTime()` é **ZERO**, não `NaN` — a época. `Number.isFinite(0)`
+ * é verdadeiro, então `instante > fim` era verdadeiro para qualquer agora, e
+ * uma campanha permanente aparecia como **EXPIRADA** na lista. A que nunca
+ * acaba era a única que o painel dizia ter acabado.
+ * ======================================================================= */
+
+describe('campanha sem prazo', () => {
+  it('NÃO expira: sem prazo é permanente, não vencida na época', () => {
+    const permanente = cupom({ valid_until: null });
+    expect(situacaoDoCupom(permanente, new Date('2030-01-01T12:00:00Z'))).toBe('ativo');
+  });
+
+  it('o campo ausente vale o mesmo que nulo', () => {
+    const semCampo = cupom();
+    delete (semCampo as { valid_until?: unknown }).valid_until;
+    expect(situacaoDoCupom(semCampo, new Date('2030-01-01T12:00:00Z'))).toBe('ativo');
+  });
+
+  /* O começo continua valendo: sem prazo não quer dizer "já começou". */
+  it('sem prazo, mas programada para depois, continua programada', () => {
+    const futura = cupom({ valid_from: '2030-06-01T03:00:00Z', valid_until: null });
+    expect(situacaoDoCupom(futura, new Date('2030-01-01T12:00:00Z'))).toBe('programado');
+  });
+
+  /* E o resto das regras não muda: o limite de uso ainda esgota. */
+  it('sem prazo ainda esgota quando o limite de uso estoura', () => {
+    const esgotada = cupom({ valid_until: null, total_usage_limit: 5, total_usage_count: 5 });
+    expect(situacaoDoCupom(esgotada, new Date('2030-01-01T12:00:00Z'))).toBe('esgotado');
+  });
+
+  it('`diaDaOperacao` devolve vazio para nulo, e não 1970', () => {
+    expect(diaDaOperacao(null)).toBe('');
+    expect(diaDaOperacao(undefined)).toBe('');
+  });
+
+  it('o formulário abre com o prazo VAZIO, que é como se diz "sem prazo"', () => {
+    expect(rascunhoDe(cupom({ valid_until: null })).validUntil).toBe('');
+  });
+
+  /*
+   * O CORPO MANDA `null` EXPLÍCITO, e não omite o campo.
+   *
+   * O backend usa `exclude_unset=True` no PATCH: campo AUSENTE não mexe no
+   * prazo que já está gravado, e `null` explícito é o que o TIRA. Omitir seria
+   * a tela oferecendo "sem prazo" e deixando a campanha com o prazo velho.
+   */
+  it('prazo em branco vai como null explícito no corpo', () => {
+    const corpo = bodyFrom({ ...rascunhoDe(cupom()), validUntil: '' }, arte());
+    expect(corpo).not.toBeNull();
+    expect(corpo && 'valid_until' in corpo).toBe(true);
+    expect(corpo?.valid_until).toBeNull();
+  });
+
+  it('com prazo, continua indo no último segundo do dia da operação', () => {
+    const corpo = bodyFrom({ ...rascunhoDe(cupom()), validUntil: '2026-09-30' }, arte());
+    expect(corpo?.valid_until).toBe('2026-09-30T23:59:59-03:00');
+  });
+});
+
+describe('textoDaValidade', () => {
+  it('com as duas pontas, é a faixa', () => {
+    expect(textoDaValidade(cupom())).toBe('01/08 a 31/08');
+  });
+
+  /*
+   * "01/08 a " com o rabo solto é pior que a frase curta — é a mesma regra do
+   * motivo do cancelamento. E "sem prazo" sozinho perderia quando ela começou.
+   */
+  it('sem prazo, diz desde quando vale', () => {
+    expect(textoDaValidade(cupom({ valid_until: null }))).toBe('desde 01/08 · sem prazo');
+  });
+
+  it('sem nenhuma data legível, não inventa nada', () => {
+    expect(textoDaValidade(cupom({ valid_from: 'nada', valid_until: null }))).toBe('sem prazo');
   });
 });

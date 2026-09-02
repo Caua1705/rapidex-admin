@@ -359,10 +359,21 @@ export function CouponDialog({
               />
             </Field>
 
+            {/*
+              O PRAZO FINAL DEIXOU DE SER OBRIGATÓRIO, e a dica é quem diz isso.
+
+              `valid_until` passou a ser anulável no contrato: campanha sem prazo
+              é PERMANENTE — o frete grátis que a rede mantém o ano inteiro. Sem
+              a frase, um campo de data em branco lê como campo que falta
+              preencher, e o lojista põe uma data qualquer para o botão destravar.
+
+              A dica diz as DUAS coisas, porque as duas são fáceis de errar: que
+              o último dia vale inteiro (é o defeito que `fimDoDia` conserta) e
+              que vazio é permanente.
+            */}
             <Field
               label="Termina em"
-              required
-              hint="O último dia vale inteiro, até 23h59."
+              hint="Em branco, a campanha não tem prazo. Com data, o último dia vale inteiro, até 23h59."
               error={erros.campos.validUntil ?? null}
             >
               <Input

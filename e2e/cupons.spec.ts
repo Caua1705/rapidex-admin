@@ -486,3 +486,66 @@ test('o atendente não chega à tela nem pelo endereço', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'Cupons' })).toHaveCount(0);
 });
+
+/*
+ * ============================================================================
+ * A CAMPANHA SEM PRAZO — `valid_until` virou anulável no contrato
+ * ============================================================================
+ *
+ * Cupom sem prazo é campanha PERMANENTE, não erro: o frete grátis que a rede
+ * mantém o ano inteiro. O painel lia o campo como obrigatório, e o pior não era
+ * o campo vazio na tela.
+ *
+ * `new Date(null)` é a ÉPOCA (timestamp 0), não `NaN`. `Number.isFinite(0)` é
+ * verdadeiro, então a comparação de expiração valia para qualquer agora, e a
+ * campanha que NUNCA acaba era a única que a lista dizia ter acabado — com
+ * "31/12" de prazo, que é 1969-12-31 lido no fuso da operação.
+ *
+ * ELE VAI E VOLTA NUM TESTE SÓ, e não por economia: uma fixture de campanha
+ * permanente na semente esbarraria na trava de "uma arte por campanha" (o falso
+ * a impõe, como o backend) e obrigaria a inventar uma arte só para ela.
+ * Criando pela tela, a mesma prova cobre a escrita e a leitura, e a semente
+ * continua sendo o que os outros vinte testes deste arquivo esperam.
+ */
+test('campanha sem prazo: vai como null e volta lendo "sem prazo", ativa', async ({ page }) => {
+  await entrar(page);
+  await page.getByTestId('cupons-nova').click();
+
+  await page.getByRole('radio', { name: /15% OFF/ }).check();
+  await page.getByLabel('Nome', { exact: false }).first().fill('Frete grátis da rede');
+  await page.getByLabel('Código', { exact: true }).fill('SEMPRE');
+  await page.getByLabel('Começa em').fill('2026-09-01');
+
+  /*
+   * O PRAZO É LIMPO À MÃO, e isso conta uma coisa sobre a tela: o formulário
+   * NASCE com 'Termina em' preenchido com HOJE (`rascunhoNovo`). Deixar essa
+   * escolha como está foi decisão — ela é anterior a esta mudança e vale para
+   * todo cupom, com prazo ou sem. O que muda aqui é que agora dá para APAGAR.
+   */
+  await page.getByLabel('Termina em').fill('');
+
+  // E a dica é quem diz que vazio é permanente — sem ela, um campo de data em
+  // branco lê como campo que falta preencher.
+  await expect(page.getByText('Em branco, a campanha não tem prazo')).toBeVisible();
+
+  // E o botão NÃO trava por causa dele: o prazo deixou de ser obrigatório.
+  await page.getByRole('button', { name: 'Criar campanha' }).click();
+
+  /*
+   * `null` EXPLÍCITO, e não o campo ausente. O backend usa `exclude_unset=True`
+   * no PATCH: campo ausente não mexe no prazo gravado, e `null` é o que o TIRA.
+   * `toHaveProperty` com null distingue os dois; `toMatchObject` não.
+   */
+  const corpo = api.couponBodies().at(-1);
+  expect(corpo?.body).toHaveProperty('valid_until', null);
+  expect(corpo?.body).toMatchObject({ valid_from: '2026-09-01T00:00:00-03:00' });
+
+  // E a volta: a linha lê a campanha permanente sem inventar data nem expirá-la.
+  const linha = page.getByRole('row', { name: /Frete grátis da rede/ });
+  await expect(linha).toContainText('sem prazo');
+  // "sem prazo" sozinho perderia desde quando ela vale — a outra metade da coluna.
+  await expect(linha).toContainText('desde 01/09');
+  await expect(linha).toContainText('Ativo');
+  await expect(linha).not.toContainText('Expirado');
+  await expect(linha).not.toContainText('31/12');
+});
