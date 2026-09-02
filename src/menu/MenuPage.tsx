@@ -697,6 +697,7 @@ export function MenuPage() {
           branchId={branchId}
           catalogPairing={catalogPairing}
           podeDefinirPreco={podeDefinirPreco}
+          podeEditarComplemento={pode('cardapio.editarComplemento')}
           onClose={() => setProductDraft(null)}
           onSave={menu.saveProduct}
           // A foto sobe por rota própria, sem passar por `saveProduct`: sem

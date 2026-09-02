@@ -1,17 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
-import { messageFromUnknownError } from '../api/errors';
-import { fetchProductDetail, setOptionActive } from '../api/menu';
-import type { Category, PrintSector, ProductOptionGroup } from '../api/types';
+import { fetchProductDetail } from '../api/menu';
+import type { Category, PrintSector } from '../api/types';
 import { Select } from '../ds/Select';
-import { formatCurrency } from '../orders/format';
 import { activeSectors, NO_SECTOR_LABEL, sectorLabelFor } from '../print-sectors/print-sectors';
 import { Modal } from '../ui/Modal';
 import { Switch } from '../ds/Switch';
 import { CatalogPairField } from './CatalogPairField';
 import { parsePriceInput } from './menu-model';
+import { OptionGroupsSection } from './OptionGroupsSection';
 import { ProductImageField } from './ProductImageField';
-import { blockingRequiredGroup, groupEmptiedByDeactivating } from './required-groups';
 import type { ProductDraft } from './useMenu';
 
 /**
@@ -23,9 +21,10 @@ import type { ProductDraft } from './useMenu';
  * fica travado em vez de sumir, para que o motivo apareça em vez de o controle
  * simplesmente não existir.
  *
- * Grupos de complemento aparecem só para leitura: eles têm rotas próprias
- * (`/admin/products/{id}/option-groups`, `/admin/option-groups/{id}`) e editá-los
- * aqui, junto do preço, misturaria dois salvamentos independentes num botão só.
+ * GRUPOS DE COMPLEMENTO DEIXARAM DE SER SÓ LEITURA, e continuam fora do
+ * "Salvar" deste diálogo: eles têm rotas próprias e cada formulário grava no
+ * próprio clique. Misturar os dois salvamentos num botão só faria "Salvar"
+ * significar duas coisas. Ver `OptionGroupsSection`.
  */
 export function ProductDialog({
   initial,
@@ -35,6 +34,7 @@ export function ProductDialog({
   branchId,
   catalogPairing,
   podeDefinirPreco,
+  podeEditarComplemento,
   onClose,
   onSave,
   onImageUploaded,
@@ -67,6 +67,14 @@ export function ProductDialog({
    * `catalogPairing`: este diálogo é montado em teste sem provider nenhum.
    */
   podeDefinirPreco: boolean;
+  /**
+   * O papel escreve complemento (`GERÊNCIA`)? Ler é `PESSOAS`.
+   *
+   * Vem como propriedade pelo mesmo motivo de `podeDefinirPreco`: este diálogo
+   * é montado em teste sem provider nenhum, e ler a sessão daqui transformaria
+   * "quem é você" numa exceção na montagem.
+   */
+  podeEditarComplemento: boolean;
   onClose: () => void;
   /** Devolve o id salvo — é o que permite pôr foto sem fechar. `null` é falha. */
   onSave: (draft: ProductDraft, price: number | null) => Promise<string | null>;
@@ -78,16 +86,7 @@ export function ProductDialog({
 }) {
   const [draft, setDraft] = useState(initial);
   const [saving, setSaving] = useState(false);
-  const [optionGroups, setOptionGroups] = useState<ProductOptionGroup[] | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  /** A opção que espera confirmação por tirar o item de venda. */
-  const [confirmando, setConfirmando] = useState<{
-    optionId: string;
-    optionName: string;
-    groupName: string;
-  } | null>(null);
-  const [alternando, setAlternando] = useState<string | null>(null);
-  const [erroOpcao, setErroOpcao] = useState<string | null>(null);
   /**
    * No item novo: o lojista pediu para pôr foto, então salvar NÃO fecha.
    *
@@ -118,12 +117,6 @@ export function ProductDialog({
    */
   const canSave = draft.name.trim().length > 0 && (!podeDefinirPreco || price !== null) && !saving;
 
-  const carregarDetalhe = useCallback(async (productId: string) => {
-    const detail = await fetchProductDetail(productId);
-    setOptionGroups(detail.option_groups ?? []);
-    setImageUrl(detail.image_url ?? null);
-  }, []);
-
   // Segue `draft.id` para também correr no item recém-criado: ele volta com
   // zero grupos e sem foto, e é esse vazio que a tela precisa mostrar.
   useEffect(() => {
@@ -135,13 +128,11 @@ export function ProductDialog({
       try {
         const detail = await fetchProductDetail(productId);
         if (cancelled) return;
-        setOptionGroups(detail.option_groups ?? []);
         setImageUrl(detail.image_url ?? null);
       } catch {
-        // Os complementos são informação de apoio: não conseguir lê-los não
-        // pode impedir a edição do nome e do preço, que é o que trouxe o
-        // lojista até aqui.
-        if (!cancelled) setOptionGroups([]);
+        // A foto é informação de apoio: não conseguir lê-la não pode impedir a
+        // edição do nome e do preço, que é o que trouxe o lojista até aqui. Os
+        // grupos de complemento têm leitura própria — ver `OptionGroupsSection`.
       }
     })();
 
@@ -149,55 +140,6 @@ export function ProductDialog({
       cancelled = true;
     };
   }, [draft.id]);
-
-  /**
-   * Liga/desliga uma opção de complemento.
-   *
-   * DEPOIS DO PATCH, RELÊ O PRODUTO. A resposta do PATCH é a OPÇÃO
-   * (`AdminOptionResponse`) e não diz nada sobre o produto — se a tela
-   * confiasse nela, o aviso de "saiu de venda" nunca apareceria, porque o
-   * dado que o carrega não está ali.
-   */
-  async function alternarOpcao(optionId: string, isActive: boolean) {
-    // `draft.id` pelo mesmo motivo de `isEdit`: depois de criar aqui, é ele que
-    // aponta para o item que existe.
-    const productId = draft.id;
-    if (!productId) return;
-
-    setAlternando(optionId);
-    setErroOpcao(null);
-    setConfirmando(null);
-    try {
-      await setOptionActive(optionId, isActive);
-      await carregarDetalhe(productId);
-    } catch (error) {
-      setErroOpcao(messageFromUnknownError(error));
-    } finally {
-      setAlternando(null);
-    }
-  }
-
-  /**
-   * O clique no interruptor da opção: às vezes pergunta antes.
-   *
-   * Só quando desativar ESTA opção deixa um grupo obrigatório sem nenhuma
-   * ativa. Perguntar em todo clique é o que ensina o lojista a confirmar sem
-   * ler — e é justamente este aviso que ele precisa ler.
-   */
-  function pedirAlternancia(optionId: string, optionName: string, isActive: boolean) {
-    if (!optionGroups) return;
-
-    if (!isActive) {
-      const grupo = groupEmptiedByDeactivating(optionGroups, optionId);
-      if (grupo) {
-        setConfirmando({ optionId, optionName, groupName: grupo.name });
-        return;
-      }
-    }
-    void alternarOpcao(optionId, isActive);
-  }
-
-  const grupoBloqueador = optionGroups ? blockingRequiredGroup(optionGroups) : null;
 
   /**
    * Salvar. FECHA, menos quando o lojista pediu a foto de um item novo.
@@ -222,45 +164,6 @@ export function ProductDialog({
       return;
     }
     onClose();
-  }
-
-  /*
-   * A CONFIRMAÇÃO É UM DIÁLOGO PRÓPRIO, e não um `confirm()` do navegador: o
-   * nativo não aceita a tipografia nem o tom do sistema, e some atrás da
-   * janela num segundo monitor — que é onde o painel costuma ficar no balcão.
-   */
-  if (confirmando) {
-    return (
-      <Modal
-        title="Isto tira o item de venda"
-        onClose={() => setConfirmando(null)}
-        footer={
-          <>
-            <button type="button" className="btn" onClick={() => setConfirmando(null)}>
-              Cancelar
-            </button>
-            <button
-              type="button"
-              className="btn btn--danger"
-              data-testid="confirm-deactivate-option"
-              onClick={() => void alternarOpcao(confirmando.optionId, false)}
-            >
-              Desativar mesmo assim
-            </button>
-          </>
-        }
-      >
-        <p className="t-body">
-          “{confirmando.optionName}” é a última opção ativa do grupo obrigatório “
-          {confirmando.groupName}”.
-        </p>
-        <p className="t-body">
-          Sem nenhuma opção nesse grupo, <strong>{draft.name}</strong> sai do cardápio do cliente e
-          os pedidos que já o tinham no carrinho são recusados. O item continua ativo aqui — ele só
-          não tem como ser vendido.
-        </p>
-      </Modal>
-    );
   }
 
   return (
@@ -470,79 +373,21 @@ export function ProductDialog({
           onWantsPhotoChange={setQuerFoto}
         />
 
-        {isEdit ? (
-          <section className="form__section">
-            <h3 className="form__section-title">Grupos de complemento</h3>
+        {/*
+          OS COMPLEMENTOS SÃO OUTRA COISA, E GRAVAM SOZINHOS.
 
-            {/*
-              POR QUE O ITEM SUMIU DO CARDÁPIO SEM NINGUÉM DESLIGÁ-LO. Um grupo
-              obrigatório sem nenhuma opção ativa tira o item de venda:
-              `is_active` continua ligado, `is_available` continua ligado, e o
-              cliente simplesmente não o vê. Sem esta faixa, a venda se perde
-              em silêncio.
-            */}
-            {grupoBloqueador ? (
-              <p className="alert alert--warn" data-testid="product-blocked-warning">
-                Este item está fora de venda: o grupo obrigatório “{grupoBloqueador.name}” está sem
-                nenhuma opção ativa. Reative uma opção dele para voltar ao cardápio.
-              </p>
-            ) : null}
+          Eles têm rotas próprias e cada formulário salva no próprio clique;
+          este diálogo tem UM "Salvar" e ele grava o PRODUTO. Misturar os dois
+          faria "Salvar" significar duas coisas — a razão continua a mesma de
+          quando a seção era só leitura, e é ela que a mantém num componente à
+          parte agora que ela edita. Ver `OptionGroupsSection`.
 
-            {optionGroups === null ? (
-              <p className="faint">Carregando…</p>
-            ) : optionGroups.length === 0 ? (
-              <p className="faint">Nenhum grupo de complemento neste item.</p>
-            ) : (
-              <ul className="groups">
-                {optionGroups.map((group) => (
-                  <li key={group.id} className="groups__item">
-                    <div className="groups__name">
-                      {group.name}
-                      <span className="faint">
-                        {' '}
-                        · {group.is_required ? 'obrigatório' : 'opcional'} · escolhe de{' '}
-                        {group.min_select} a {group.max_select}
-                        {group.is_active ? '' : ' · grupo desativado'}
-                      </span>
-                    </div>
-
-                    <ul className="groups__options">
-                      {(group.options ?? []).map((option) => (
-                        <li key={option.id} className="groups__option">
-                          <Switch
-                            hideLabel
-                            checked={option.is_active}
-                            disabled={alternando !== null}
-                            onChange={(isActive) =>
-                              pedirAlternancia(option.id, option.name, isActive)
-                            }
-                            label={`${option.name} ativa`}
-                          />
-                          <span className="groups__option-name">{option.name}</span>
-                          {option.additional_price > 0 ? (
-                            <span className="groups__option-price tnum faint">
-                              +{formatCurrency(option.additional_price)}
-                            </span>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            {erroOpcao ? (
-              <p className="alert alert--error" role="alert">
-                {erroOpcao}
-              </p>
-            ) : null}
-
-            <p className="field__hint">
-              Nome, preço e ordem dos complementos têm rotas próprias e não são editados junto do
-              preço do item.
-            </p>
-          </section>
+          Só na EDIÇÃO: o grupo precisa de um produto que já exista. Num item
+          novo o id nasce quando o lojista pede a foto, e aí `draft.id` passa a
+          valer — por isso a condição lê o rascunho, e não `initial`.
+        */}
+        {draft.id ? (
+          <OptionGroupsSection productId={draft.id} podeEditar={podeEditarComplemento} />
         ) : null}
       </div>
     </Modal>

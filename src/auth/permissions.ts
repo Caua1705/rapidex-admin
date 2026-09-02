@@ -87,6 +87,9 @@ export type Acao =
   | 'cardapio.trocarDisponibilidade'
   | 'cardapio.enviarFoto'
   | 'cardapio.editarComplemento'
+  | 'cardapio.criarGrupoDeComplemento'
+  | 'cardapio.editarGrupoDeComplemento'
+  | 'cardapio.criarOpcaoDeComplemento'
   | 'cardapio.criarCategoria'
   | 'cardapio.editarCategoria'
   | 'cardapio.reordenarCategorias'
@@ -222,7 +225,20 @@ const ROTA_DA_ACAO = {
   /* "Acabou a costela" é a ação mais frequente do turno, e é do balcão. */
   'cardapio.trocarDisponibilidade': 'PATCH /admin/products/{product_id}/availability',
   'cardapio.enviarFoto': 'POST /admin/products/{product_id}/image',
+  /*
+   * OS COMPLEMENTOS TÊM QUATRO ROTAS E UM SÓ PAPEL (GERÊNCIA), e mesmo assim
+   * são quatro chaves.
+   *
+   * Uma chave só, reusada, esconderia a assimetria que existe de verdade nesta
+   * família: **LER é PESSOAS e ESCREVER é GERÊNCIA.** O atendente abre o item e
+   * vê os grupos — é ele que precisa saber o que sai no papel —, e não pode
+   * criar nem editar nenhum. Com uma chave genérica, o dia em que o backend
+   * mover uma das quatro de papel passaria em silêncio.
+   */
   'cardapio.editarComplemento': 'PATCH /admin/options/{option_id}',
+  'cardapio.criarGrupoDeComplemento': 'POST /admin/products/{product_id}/option-groups',
+  'cardapio.editarGrupoDeComplemento': 'PATCH /admin/option-groups/{group_id}',
+  'cardapio.criarOpcaoDeComplemento': 'POST /admin/option-groups/{group_id}/options',
   'cardapio.criarCategoria': 'POST /admin/categories',
   'cardapio.editarCategoria': 'PATCH /admin/categories/{category_id}',
   'cardapio.reordenarCategorias': 'PATCH /admin/categories/reorder',

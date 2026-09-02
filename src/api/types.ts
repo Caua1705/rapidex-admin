@@ -574,3 +574,26 @@ export type CreateErrorReport = Schemas['CreateErrorReportRequest'];
  * ela reescreveria achando que perdeu.
  */
 export type ErrorReport = Schemas['ErrorReportResponse'];
+
+/**
+ * O corpo de criação de um grupo de complemento.
+ *
+ * As REGRAS dele não saem daqui: `min_select`/`max_select` são inteiros soltos
+ * no contrato, e a validação cruzada (máximo ≥ mínimo, obrigatório exige mínimo
+ * ≥ 1) mora num `model_validator` do Pydantic, que não vira schema. Ela está em
+ * `menu/option-groups.ts`, com a origem nomeada.
+ */
+export type OptionGroupCreateBody = Schemas['AdminOptionGroupCreate'];
+
+/** Todos os campos opcionais — mas o painel manda todos. Ver `option-groups.ts`. */
+export type OptionGroupUpdateBody = Schemas['AdminOptionGroupUpdate'];
+
+/**
+ * O corpo de criação de uma opção.
+ *
+ * `additional_price` entra como `number | string` e SAI como `number`
+ * (`AdminOptionResponse`). O painel manda número, que é como o `price` do
+ * produto atravessa no mesmo módulo — dois formatos de dinheiro no mesmo
+ * cardápio é como um dos dois começa a chegar errado.
+ */
+export type OptionCreateBody = Schemas['AdminOptionCreate'];

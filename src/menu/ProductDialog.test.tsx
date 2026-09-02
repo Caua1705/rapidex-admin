@@ -1,10 +1,14 @@
 /**
- * O aviso que impede o lojista de perder venda em silêncio.
+ * O diálogo do item: o que ele grava, e o que ele NÃO grava.
  *
- * Desativar a última opção ativa de um grupo obrigatório tira o item do
- * cardápio do cliente sem mexer em `is_active` nem em `is_available`. Estes
- * testes prendem as três partes do comportamento: perguntar antes, reler o
- * produto depois, e NÃO perguntar quando não há o que avisar.
+ * OS COMPLEMENTOS SAÍRAM DAQUI. Eles têm rotas próprias, gravam sozinhos e
+ * agora têm componente e teste próprios (`OptionGroupsSection`) — o que
+ * continua sendo deste arquivo é o produto: nome, preço, foto, e a diferença
+ * entre salvar-e-fechar e salvar-e-continuar.
+ *
+ * `listProductOptionGroups` continua no dublê porque a seção é montada DENTRO
+ * deste diálogo: sem ela, todo teste daqui quebraria por uma chamada de rede
+ * que não é o assunto dele.
  */
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -14,10 +18,11 @@ import type { ProductDetail, ProductOptionGroup } from '../api/types';
 
 vi.mock('../api/menu', () => ({
   fetchProductDetail: vi.fn(),
+  listProductOptionGroups: vi.fn(),
   setOptionActive: vi.fn(),
 }));
 
-import { fetchProductDetail, setOptionActive } from '../api/menu';
+import { fetchProductDetail, listProductOptionGroups } from '../api/menu';
 import { ProductDialog } from './ProductDialog';
 import type { ProductDraft } from './useMenu';
 
@@ -34,29 +39,6 @@ const draft: ProductDraft = {
   isAvailable: true,
   printSectorId: null,
 };
-
-function grupoPonto(
-  options: { id: string; name: string; is_active: boolean }[],
-): ProductOptionGroup {
-  return {
-    id: 'g-ponto',
-    product_id: 'prod-1',
-    name: 'Ponto da carne',
-    min_select: 1,
-    max_select: 1,
-    is_required: true,
-    sort_order: 0,
-    is_active: true,
-    options: options.map((o) => ({
-      id: o.id,
-      option_group_id: 'g-ponto',
-      name: o.name,
-      additional_price: 0,
-      sort_order: 0,
-      is_active: o.is_active,
-    })),
-  };
-}
 
 function detalhe(groups: ProductOptionGroup[]): ProductDetail {
   return {
@@ -81,6 +63,7 @@ function renderDialog(
   overrides: {
     onClose?: () => void;
     podeDefinirPreco?: boolean;
+    podeEditarComplemento?: boolean;
     onSave?: (draft: ProductDraft, price: number | null) => Promise<string | null>;
     onImageUploaded?: () => void;
   } = {},
@@ -106,6 +89,7 @@ function renderDialog(
         para o gerente tem teste próprio, mais abaixo.
       */
       podeDefinirPreco={overrides.podeDefinirPreco ?? true}
+      podeEditarComplemento={overrides.podeEditarComplemento ?? true}
       onClose={overrides.onClose ?? (() => {})}
       // Devolve o id salvo, e não um `true`: é o id que permite pôr foto sem
       // fechar o diálogo.
@@ -114,98 +98,6 @@ function renderDialog(
     />,
   );
 }
-
-describe('ProductDialog · opção que tira o item de venda', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('pergunta antes de desativar a ÚLTIMA opção ativa de um grupo obrigatório', async () => {
-    vi.mocked(fetchProductDetail).mockResolvedValue(
-      detalhe([grupoPonto([{ id: 'o-mal', name: 'Mal passado', is_active: true }])]),
-    );
-
-    renderDialog();
-    const interruptor = await screen.findByRole('switch', { name: /Mal passado ativa/ });
-    await userEvent.click(interruptor);
-
-    // Perguntou, e nomeou o grupo e o item — sem os dois nomes o aviso manda
-    // procurar em todos.
-    expect(await screen.findByText(/última opção ativa do grupo obrigatório/)).toBeInTheDocument();
-    expect(screen.getByText(/Ponto da carne/)).toBeInTheDocument();
-
-    // E não mexeu em nada antes de o lojista confirmar.
-    expect(setOptionActive).not.toHaveBeenCalled();
-  });
-
-  it('ao confirmar, desativa e RELÊ o produto', async () => {
-    vi.mocked(fetchProductDetail).mockResolvedValue(
-      detalhe([grupoPonto([{ id: 'o-mal', name: 'Mal passado', is_active: true }])]),
-    );
-    vi.mocked(setOptionActive).mockResolvedValue({} as never);
-
-    renderDialog();
-    await userEvent.click(await screen.findByRole('switch', { name: /Mal passado ativa/ }));
-
-    // Depois do PATCH o produto vem de novo com o grupo já vazio.
-    vi.mocked(fetchProductDetail).mockResolvedValue(
-      detalhe([grupoPonto([{ id: 'o-mal', name: 'Mal passado', is_active: false }])]),
-    );
-    await userEvent.click(screen.getByTestId('confirm-deactivate-option'));
-
-    expect(setOptionActive).toHaveBeenCalledWith('o-mal', false);
-
-    /*
-     * A RELEITURA É O PONTO. O PATCH devolve AdminOptionResponse, que não fala
-     * do produto — se a tela confiasse nessa resposta, o aviso abaixo nunca
-     * apareceria.
-     */
-    await waitFor(() => expect(fetchProductDetail).toHaveBeenCalledTimes(2));
-    expect(await screen.findByTestId('product-blocked-warning')).toHaveTextContent(/fora de venda/);
-  });
-
-  it('NÃO pergunta quando ainda sobra outra opção ativa', async () => {
-    vi.mocked(fetchProductDetail).mockResolvedValue(
-      detalhe([
-        grupoPonto([
-          { id: 'o-mal', name: 'Mal passado', is_active: true },
-          { id: 'o-ponto', name: 'Ao ponto', is_active: true },
-        ]),
-      ]),
-    );
-    vi.mocked(setOptionActive).mockResolvedValue({} as never);
-
-    renderDialog();
-    await userEvent.click(await screen.findByRole('switch', { name: /Mal passado ativa/ }));
-
-    // Foi direto: um diálogo que confirma tudo é um diálogo que ninguém lê.
-    await waitFor(() => expect(setOptionActive).toHaveBeenCalledWith('o-mal', false));
-    expect(screen.queryByText(/última opção ativa/)).not.toBeInTheDocument();
-  });
-
-  it('não pergunta ao REATIVAR uma opção', async () => {
-    vi.mocked(fetchProductDetail).mockResolvedValue(
-      detalhe([grupoPonto([{ id: 'o-mal', name: 'Mal passado', is_active: false }])]),
-    );
-    vi.mocked(setOptionActive).mockResolvedValue({} as never);
-
-    renderDialog();
-    await userEvent.click(await screen.findByRole('switch', { name: /Mal passado ativa/ }));
-
-    await waitFor(() => expect(setOptionActive).toHaveBeenCalledWith('o-mal', true));
-  });
-
-  it('mostra a faixa de fora de venda já ao abrir um item bloqueado', async () => {
-    vi.mocked(fetchProductDetail).mockResolvedValue(
-      detalhe([grupoPonto([{ id: 'o-mal', name: 'Mal passado', is_active: false }])]),
-    );
-
-    renderDialog();
-    expect(await screen.findByTestId('product-blocked-warning')).toHaveTextContent(
-      /Ponto da carne/,
-    );
-  });
-});
 
 /**
  * O bloco da foto está montado NOS DOIS diálogos.
@@ -223,6 +115,7 @@ describe('ProductDialog · opção que tira o item de venda', () => {
 describe('ProductDialog · o bloco da foto nos dois modos', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(listProductOptionGroups).mockResolvedValue([]);
   });
 
   it('no "Editar item", com o botão de escolher', async () => {
@@ -265,6 +158,7 @@ describe('ProductDialog · o bloco da foto nos dois modos', () => {
 describe('ProductDialog · salvar um item novo', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(listProductOptionGroups).mockResolvedValue([]);
   });
 
   const novo: ProductDraft = { ...draft, id: null };

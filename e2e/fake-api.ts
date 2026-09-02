@@ -29,6 +29,8 @@ type OrderDetail = Schemas['OrderDetailResponse'];
 type StreamEvent = Schemas['AdminOrderStreamEvent'];
 type Category = Schemas['AdminCategoryResponse'];
 type Product = Schemas['AdminProductResponse'];
+type AdminOptionGroup = Schemas['AdminOptionGroupResponse'];
+type AdminOption = Schemas['AdminOptionResponse'];
 type PrintSector = Schemas['PrintingSectorResponse'];
 type PrintAgentPrinter = Schemas['PrintAgentPrinterResponse'];
 type PrintTestRequest = Schemas['PrintTestRequest'];
@@ -312,6 +314,120 @@ function optionGroupsFixture() {
       ],
     },
   ];
+}
+
+/**
+ * OS GRUPOS DE COMPLEMENTO DO CARDÁPIO — e eles não existiam neste falso.
+ *
+ * O produto vinha com `option_groups: []` sempre, então a seção de complementos
+ * do diálogo do item nunca teve nada para desenhar — nem o interruptor de
+ * opção, que o painel JÁ tinha. Um pedaço de tela coberto por zero teste porque
+ * o dublê nunca o alimentou.
+ *
+ * Dois grupos, e cada um cobre um caso:
+ *
+ *   - **Ponto da carne** é obrigatório com duas opções ativas: é nele que se
+ *     edita regra e se acrescenta opção.
+ *   - **Adicionais** é opcional até 3, e prova que a frase da linha muda
+ *     ("até 3" contra "escolha 1").
+ *
+ * O `prod-7` (Onion rings) tem o grupo obrigatório VAZIO de opções ativas —
+ * é o item que sai de venda sozinho, e é o que faz a faixa de aviso aparecer.
+ */
+/**
+ * OS CAMINHOS DAS ROTAS DE COMPLEMENTO.
+ *
+ * No topo e não em linha: eles são lidos a cada requisição interceptada, e
+ * uma expressão recompilada por chamada num falso que atende centenas delas
+ * por teste é desperdício sem contrapartida.
+ */
+const RE_GRUPOS_DO_PRODUTO = /^\/admin\/products\/([^/]+)\/option-groups$/;
+const RE_GRUPO = /^\/admin\/option-groups\/([^/]+)$/;
+const RE_OPCOES_DO_GRUPO = /^\/admin\/option-groups\/([^/]+)\/options$/;
+const RE_OPCAO = /^\/admin\/options\/([^/]+)$/;
+function gruposIniciais(): Record<string, AdminOptionGroup[]> {
+  return {
+    'prod-1': [
+      {
+        id: 'grp-ponto',
+        product_id: 'prod-1',
+        name: 'Ponto da carne',
+        description: null,
+        is_required: true,
+        is_active: true,
+        min_select: 1,
+        max_select: 1,
+        sort_order: 0,
+        options: [
+          {
+            id: 'opt-mal',
+            option_group_id: 'grp-ponto',
+            name: 'Mal passado',
+            description: null,
+            additional_price: 0,
+            sort_order: 0,
+            is_active: true,
+          },
+          {
+            id: 'opt-ponto',
+            option_group_id: 'grp-ponto',
+            name: 'Ao ponto',
+            description: null,
+            additional_price: 0,
+            sort_order: 1,
+            is_active: true,
+          },
+        ],
+      },
+      {
+        id: 'grp-adicionais',
+        product_id: 'prod-1',
+        name: 'Adicionais',
+        description: null,
+        is_required: false,
+        is_active: true,
+        min_select: 0,
+        max_select: 3,
+        sort_order: 1,
+        options: [
+          {
+            id: 'opt-bacon',
+            option_group_id: 'grp-adicionais',
+            name: 'Bacon',
+            description: null,
+            additional_price: 5,
+            sort_order: 0,
+            is_active: true,
+          },
+        ],
+      },
+    ],
+    'prod-7': [
+      {
+        id: 'grp-molho',
+        product_id: 'prod-7',
+        name: 'Molho',
+        description: null,
+        is_required: true,
+        is_active: true,
+        min_select: 1,
+        max_select: 1,
+        sort_order: 0,
+        options: [
+          {
+            id: 'opt-barbecue',
+            option_group_id: 'grp-molho',
+            name: 'Barbecue',
+            description: null,
+            additional_price: 0,
+            sort_order: 0,
+            /* Desativada: é ela que tira o item de venda em silêncio. */
+            is_active: false,
+          },
+        ],
+      },
+    ],
+  };
 }
 
 /** Detalhe montado a partir do item da lista, para os dois nunca divergirem. */
@@ -1614,6 +1730,19 @@ export type FakeApi = {
   quebrarListagemDePedidos: () => void;
   /** Os relatos de erro que chegaram em `POST /admin/error-reports`. */
   errorReports: () => Record<string, unknown>[];
+  /**
+   * O corpo de cada escrita de grupo de complemento, na ordem.
+   *
+   * É AQUI que se prova que o PATCH leva o formulário INTEIRO: olhando só o
+   * grupo resultante, "mandou os sete campos" e "mandou só o que mudou" são
+   * indistinguíveis — e a diferença é o 422 que o backend devolve quando a
+   * mescla não fecha.
+   */
+  optionGroupBodies: () => { productId: string; body: unknown }[];
+  /** O corpo de cada opção criada, na ordem. */
+  optionBodies: () => { groupId: string; body: unknown }[];
+  /** Os grupos de um produto como o "banco" os tem agora. */
+  optionGroupsOf: (productId: string) => unknown[];
   /** Motivo gravado no cancelamento, para conferir o que a tela mandou. */
   cancelReasons: () => { orderId: string; reason: string }[];
   /**
@@ -2190,6 +2319,19 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      */
     categories: [...initialCategories(), ...copiaDoCardapio().categories],
     products: [...initialProducts(), ...copiaDoCardapio().products],
+    /** Os grupos de complemento por produto. Ver `gruposIniciais`. */
+    optionGroups: gruposIniciais() as Record<string, AdminOptionGroup[]>,
+    /**
+     * O corpo de cada escrita de grupo, na ordem.
+     *
+     * É AQUI que se prova que o PATCH leva o formulário INTEIRO: olhando só o
+     * grupo resultante, 'mandou os sete campos' e 'mandou só o que mudou' são
+     * indistinguíveis — e a diferença é o 422 que o backend devolve quando a
+     * mescla não fecha.
+     */
+    optionGroupBodies: [] as { productId: string; body: unknown }[],
+    /** O corpo de cada opção criada, na ordem. */
+    optionBodies: [] as { groupId: string; body: unknown }[],
     reorderCalls: [] as { branchId: string | undefined; categoryIds: string[] }[],
     productReorderCalls: [] as { categoryId: string; productIds: string[] }[],
     /** Ids cuja gravação de disponibilidade responde 500. Ver `failAvailability`. */
@@ -4294,6 +4436,130 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       return json(route, 200, { image_path: imagePath, image_url: found.image_url });
     }
 
+    /*
+     * ========================================================================
+     * OS COMPLEMENTOS — as quatro rotas, com a validação do backend dentro
+     * ========================================================================
+     *
+     * O falso não as tinha, e a de ligar/desligar opção também não: o produto
+     * vinha com `option_groups: []` sempre. Um pedaço de tela coberto por zero
+     * teste porque o dublê nunca o alimentou.
+     *
+     * ELE COBRA AS DUAS REGRAS CRUZADAS, e é por isso que ele vale: elas NÃO
+     * saem no /openapi.json (moram num `model_validator` do Pydantic), então um
+     * falso frouxo deixaria o painel mandar o que produção recusa — e o e2e
+     * ficaria verde contra uma tela que dá 422 na mão do lojista.
+     */
+    /**
+     * As duas regras cruzadas, na forma de quem chama.
+     *
+     * O tipo é frouxo de propósito: a criação manda tudo e a edição pode mandar
+     * qualquer subconjunto, e é a MESCLA que se valida nos dois casos.
+     */
+    function validarGrupo(corpo: {
+      min_select?: number | null;
+      max_select?: number | null;
+      is_required?: boolean | null;
+    }): string | null {
+      const min = Number(corpo.min_select ?? 0);
+      const max = Number(corpo.max_select ?? 1);
+      if (max < 1) return 'max_select precisa ser pelo menos 1';
+      if (max < min) return 'max_select não pode ser menor que min_select';
+      if (corpo.is_required === true && min < 1) {
+        return 'grupo obrigatório precisa de min_select maior que zero';
+      }
+      return null;
+    }
+
+    function acharGrupo(groupId: string): AdminOptionGroup | undefined {
+      return Object.values(state.optionGroups)
+        .flat()
+        .find((grupo) => grupo.id === groupId);
+    }
+
+    const gruposMatch = RE_GRUPOS_DO_PRODUTO.exec(path);
+    if (gruposMatch?.[1]) {
+      const productId = gruposMatch[1];
+      state.optionGroups[productId] ??= [];
+
+      if (method === 'GET') {
+        return json(route, 200, state.optionGroups[productId]);
+      }
+      if (method === 'POST') {
+        const corpo = request.postDataJSON() as Schemas['AdminOptionGroupCreate'];
+        const erro = validarGrupo(corpo);
+        if (erro) return json(route, 422, { detail: [{ loc: ['body'], msg: erro }] });
+
+        const criado: AdminOptionGroup = {
+          id: `grp-novo-${state.optionGroups[productId].length + 1}`,
+          product_id: productId,
+          description: null,
+          options: [],
+          ...corpo,
+        };
+        state.optionGroups[productId].push(criado);
+        state.optionGroupBodies.push({ productId, body: corpo });
+        return json(route, 201, criado);
+      }
+    }
+
+    const grupoMatch = RE_GRUPO.exec(path);
+    if (method === 'PATCH' && grupoMatch?.[1]) {
+      const alvo = acharGrupo(grupoMatch[1]);
+      if (!alvo) return json(route, 404, { detail: 'Grupo não encontrado.' });
+
+      const corpo = request.postDataJSON() as Schemas['AdminOptionGroupUpdate'];
+      /*
+       * A VALIDAÇÃO É SOBRE A MESCLA, como no backend. Um corpo parcial que
+       * ligasse `is_required` num grupo de `min_select: 0` é 422 — e é
+       * exatamente por isso que o painel manda o formulário inteiro.
+       */
+      const erro = validarGrupo({ ...alvo, ...corpo });
+      if (erro) return json(route, 422, { detail: [{ loc: ['body'], msg: erro }] });
+
+      state.optionGroupBodies.push({ productId: alvo.product_id, body: corpo });
+      Object.assign(alvo, corpo);
+      return json(route, 200, alvo);
+    }
+
+    const opcoesMatch = RE_OPCOES_DO_GRUPO.exec(path);
+    if (method === 'POST' && opcoesMatch?.[1]) {
+      const groupId = opcoesMatch[1];
+      const alvo = acharGrupo(groupId);
+      if (!alvo) return json(route, 404, { detail: 'Grupo não encontrado.' });
+
+      const corpo = request.postDataJSON() as Schemas['AdminOptionCreate'];
+      if (Number(corpo.additional_price ?? 0) < 0) {
+        return json(route, 422, {
+          detail: [{ loc: ['body', 'additional_price'], msg: 'não pode ser negativo' }],
+        });
+      }
+
+      const criada: AdminOption = {
+        id: `opt-nova-${(alvo.options ?? []).length + 1}`,
+        option_group_id: groupId,
+        description: null,
+        ...corpo,
+        additional_price: Number(corpo.additional_price ?? 0),
+      };
+      alvo.options = [...(alvo.options ?? []), criada];
+      state.optionBodies.push({ groupId, body: corpo });
+      return json(route, 201, criada);
+    }
+
+    const opcaoMatch = RE_OPCAO.exec(path);
+    if (method === 'PATCH' && opcaoMatch?.[1]) {
+      const optionId = opcaoMatch[1];
+      for (const grupo of Object.values(state.optionGroups).flat()) {
+        const opcao = (grupo.options ?? []).find((item) => item.id === optionId);
+        if (opcao) {
+          Object.assign(opcao, request.postDataJSON() as Record<string, unknown>);
+          return json(route, 200, opcao);
+        }
+      }
+      return json(route, 404, { detail: 'Opção não encontrada.' });
+    }
+
     const productMatch = /^\/admin\/products\/([^/]+)$/.exec(path);
     if (productMatch?.[1]) {
       const found = state.products.find((item) => item.id === productMatch[1]);
@@ -4394,6 +4660,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       state.quebrarListagem = true;
     },
     errorReports: () => state.errorReports,
+    optionGroupBodies: () => state.optionGroupBodies,
+    optionBodies: () => state.optionBodies,
+    optionGroupsOf: (productId) => state.optionGroups[productId] ?? [],
     cancelReasons: () => state.cancelReasons,
     cancelamentosRecusadosPorConfirmacao: () => state.cancelamentosRecusadosPorConfirmacao,
     settings: () => state.settings,

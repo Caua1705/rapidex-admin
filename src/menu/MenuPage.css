@@ -1232,3 +1232,81 @@
   font-size: var(--ta-size);
   line-height: var(--ta-line);
 }
+
+/* ==========================================================================
+ * OS FORMULÁRIOS DE COMPLEMENTO — a seção que deixou de ser só leitura
+ *
+ * ELES ABREM EM LINHA, e não numa janela. No celular o diálogo do item já É a
+ * tela; um segundo modal por cima empilharia duas armadilhas de foco e deixaria
+ * dois "fechar" com efeitos diferentes. Em linha é também o padrão que Loja ›
+ * Pagamento usa para "acrescentar uma coisa a uma lista" (`NewMethodForm`).
+ *
+ * O FUNDO É O DA SUPERFÍCIE, dentro de um item que já é `--surface-muted`: sem
+ * o degrau, o formulário aberto se confunde com a linha que ele está editando,
+ * e o lojista não sabe onde acaba o que ele digitou.
+ * ======================================================================= */
+
+.groups__form {
+  display: grid;
+  gap: var(--sp-8);
+  margin-top: var(--sp-8);
+  padding: var(--sp-12);
+  border-radius: var(--r-control);
+  background: var(--surface);
+}
+
+/* Mínimo e máximo lado a lado: são uma decisão só, lida da esquerda para a
+   direita. Empilhados, o "de 1 a 3" vira duas perguntas separadas. */
+.groups__form-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--sp-12);
+}
+
+.field--curto {
+  max-width: 7ch;
+}
+
+.groups__form-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--sp-8);
+}
+
+.groups__descricao {
+  margin: var(--sp-4) 0 0;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+}
+
+/*
+ * "Editar regras" e "Nova opção" são secundários DENTRO de uma lista: eles não
+ * competem com o "Salvar" do diálogo, que é o primário da tela inteira.
+ */
+.groups__editar {
+  flex: 0 0 auto;
+}
+
+.groups__nova-opcao {
+  margin-top: var(--sp-8);
+}
+
+/*
+ * A CONFIRMAÇÃO NASCE ONDE O DEDO ESTAVA — dentro do grupo, logo abaixo das
+ * opções. Antes ela trocava o conteúdo do diálogo inteiro para não empilhar
+ * modal sobre modal; em linha resolve melhor que os dois, porque o grupo e a
+ * opção de que ela fala continuam à vista.
+ */
+.groups__confirmar {
+  display: grid;
+  gap: var(--sp-8);
+  margin-top: var(--sp-8);
+}
+
+/* O "Novo grupo" fecha a seção, como o "Nova forma" fecha Loja › Pagamento. */
+.form__add {
+  justify-self: start;
+  margin-top: var(--sp-12);
+}

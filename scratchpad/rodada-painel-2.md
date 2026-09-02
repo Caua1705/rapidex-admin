@@ -468,6 +468,118 @@ testes) · `playwright` **264 passaram**, 4 pulados, 0 falharam.
 
 ---
 
+### 2.6 — Os complementos deixaram de ser leitura ✅
+
+Item 3 da auditoria (§f.3, §A.1, §C.2) — o maior dela, e o único que ela mediu
+em **dias** e não em horas.
+
+**O que existia:** o `ProductDialog` LISTAVA os grupos e deixava ligar/desligar
+uma opção que já existia. Não criava grupo, não criava opção, não mudava
+`is_required`, `min_select`, `max_select` nem o preço de um adicional. A seção
+terminava com a frase "nome, preço e ordem dos complementos têm rotas próprias e
+não são editados aqui". **As quatro rotas estavam prontas no backend desde
+antes.**
+
+Montar uma pizza com "Escolha o tamanho" (obrigatório, 1 de 1) e "Adicionais"
+(opcional, até 3) era um chamado para o suporte — e é o cardápio de qualquer
+pizzaria, hamburgueria ou açaí. O cardápio muda toda semana; a filial abre uma
+vez por ano.
+
+#### O buraco que a auditoria não tinha visto
+
+**O falso não servia NENHUMA das quatro — nem a de ligar/desligar opção, que o
+painel já chamava.** `GET /admin/products/{id}` devolvia `option_groups: []`
+sempre. Ou seja: o interruptor de opção, o aviso de "item fora de venda" e o
+diálogo de confirmação **existiam no código e nunca tinham sido exercitados por
+teste de ponta a ponta** — o dublê nunca os alimentou. É a mesma família do 428
+do §2.1: um falso que não tem o caso nunca acusa que a tela não o trata.
+
+#### As decisões, e a razão de cada uma
+
+**1. As regras cruzadas moram num módulo puro, e são escritas à mão.** Elas
+**não existem no `/openapi.json`**: o contrato publica `min_select` e
+`max_select` como inteiros soltos, e a validação está num `model_validator` do
+Pydantic, que não vira schema. São duas:
+
+- `max_select >= min_select`;
+- `is_required` exige `min_select >= 1` — o backend explica por quê: obrigatório
+  com mínimo zero faria o **pedido** ser recusado na criação, sem o cardápio
+  conseguir dizer o que falta escolher.
+
+**2. Ligar "obrigatório" SOBE o mínimo para 1 sozinho.** Não é a tela
+adivinhando: é ela escrevendo a consequência que o backend impõe **no momento em
+que a decisão é tomada**, em vez de recusar o formulário no clique de salvar com
+o campo culpado três linhas acima. Quem preenche não pensa em `min_select` —
+pensa em "o cliente TEM de escolher um tamanho". Desligar **não** desce de
+volta: o lojista pode querer "opcional, mas se escolher, escolhe pelo menos 2", e
+desfazer o número dele seria a tela apagando decisão que não é dela.
+
+**3. O PATCH leva o formulário INTEIRO.** O backend valida o **resultado da
+mescla** com o banco: um corpo que mandasse só `is_required: true` num grupo de
+`min_select: 0` voltaria 422 por causa de um campo que a tela nem mostrou.
+Mandando os sete, o que o painel validou é exatamente o que o backend vai
+validar — e some a classe "campo que sumiu do corpo do PATCH". O falso guarda o
+corpo porque **olhando só o grupo resultante, "mandou tudo" e "mandou só o que
+mudou" são indistinguíveis.**
+
+**4. A seção saiu do `ProductDialog`.** O diálogo tem UM "Salvar" e ele grava o
+PRODUTO; os complementos gravam sozinhos, no clique de cada formulário. O
+comentário original já dizia isso e estava certo — o que mudou é que a seção
+ficou grande demais para morar num arquivo que já cuida de nome, preço,
+categoria, setor e foto.
+
+**5. Os formulários abrem EM LINHA, não em diálogo.** No celular o
+`ProductDialog` é a tela inteira; um segundo modal por cima empilharia duas
+armadilhas de foco e dois "fechar" com efeitos diferentes. Em linha é o padrão
+que Loja › Pagamento já usa (`NewMethodForm`).
+
+**6. A confirmação de "isto tira o item de venda" virou EM LINHA também.** Antes
+ela **trocava o conteúdo do `ProductDialog` inteiro** — decisão boa, e pelo mesmo
+motivo. Com a seção fora do diálogo aquele truque saiu do alcance, e um `<Modal>`
+aninhado seria exatamente o que a versão anterior evitou. Em linha resolve melhor
+que os dois: ela nasce **onde o dedo estava**, com o grupo e a opção à vista.
+
+**7. O preço do adicional atravessa como NÚMERO.** O contrato aceita
+`number | string` na entrada e devolve `number`; quem decide é o vizinho, e o
+`price` do produto vai como número no mesmo módulo. Dois formatos de dinheiro no
+mesmo cardápio é como um dos dois começa a chegar errado.
+
+**8. A opção nova entra no FIM do grupo.** Sem passar a posição, toda opção
+nasceria com `sort_order: 0` e "Pequena, Média, Grande" viraria a ordem em que
+alguém as digitou em dias diferentes.
+
+#### Uma honestidade sobre o papel
+
+`GET` dos grupos é `PESSOAS` e as três escritas são `GERÊNCIA`, então a seção
+esconde os controles quando `podeEditar` é falso — com teste de componente.
+**Mas hoje o atendente não chega até lá:** abrir o diálogo do item exige
+`cardapio.editarProduto`, que também é `GERÊNCIA`. Os dois conjuntos são o mesmo.
+
+A guarda fica — ela está ligada ao mapa **gerado** (`papeis.ts`), então responde
+certo no dia em que uma das rotas mudar de papel. O que **não** se fez foi
+fingir e2e disso: um teste que loga como atendente e nunca acha o botão de
+editar passaria por 30 segundos de timeout, provando o oposto do nome dele. Ele
+foi escrito, viu-se que não podia rodar, e virou um comentário no arquivo
+dizendo por quê.
+
+#### O que ficou de fora, e é decisão
+
+- **Apagar grupo ou opção:** não existe `DELETE` no backend (auditoria C.1).
+  Desativar é o caminho, e o formulário o oferece com o nome certo.
+- **Reordenar grupos/opções por arrasto:** `sort_order` é gravado, mas não há
+  rota de `reorder` como a de categorias. Reordenar hoje seria um PATCH por
+  linha, e o cardápio tem o padrão de arrasto em outro lugar — frente própria.
+- **Editar uma opção existente** (nome, preço): `PATCH /admin/options/{id}`
+  aceita, e o painel só liga/desliga. Ficou de fora por tamanho, não por
+  impedimento — **é a próxima coisa natural deste arquivo**, e está anotada no
+  §5.
+
+Portão: `format:check 0` · `lint 0` · `typecheck 0` · `test 0` (**69 arquivos,
+1007 testes**, eram 67/978) · `playwright` **270 passaram**, 4 pulados, 0
+falharam (eram 264).
+
+---
+
 ## 3. Bloqueado por backend
 
 Herdado de `rodada-painel.md` §6 e de `auditoria.md` C.1 — nada novo até aqui.

@@ -20,12 +20,16 @@ import type {
   Category,
   CategoryCreate,
   CategoryUpdate,
+  OptionCreateBody,
+  OptionGroupCreateBody,
+  OptionGroupUpdateBody,
   Product,
   ProductCreate,
   ProductDetail,
   ProductImage,
   ProductListResponse,
   ProductOption,
+  ProductOptionGroup,
   ProductUpdate,
 } from './types';
 
@@ -224,6 +228,91 @@ export async function setProductAvailability(
     await apiClient.PATCH('/admin/products/{product_id}/availability', {
       params: { path: { product_id: productId } },
       body: { is_available: isAvailable },
+    }),
+  );
+}
+
+// --- grupos de complemento ------------------------------------------------
+
+/**
+ * ============================================================================
+ * AS QUATRO ROTAS QUE ESTAVAM PARADAS
+ * ============================================================================
+ *
+ * O painel LIA os grupos (eles vêm dentro de `GET /admin/products/{id}`) e só
+ * sabia ligar e desligar uma opção que já existia. Criar grupo, editar as
+ * regras dele e criar opção estavam prontas no backend e nunca tinham sido
+ * chamadas — e sem elas montar "Escolha o tamanho" e "Adicionais" era um
+ * chamado para o suporte, num cardápio que muda toda semana.
+ *
+ * LER É `PESSOAS`, ESCREVER É `GERÊNCIA` (ver `papeis.ts`). O atendente abre o
+ * item e vê os grupos; quem os monta é a gerência.
+ */
+
+/**
+ * Os grupos de um produto, pela rota própria.
+ *
+ * Ela existe além do que já vem no detalhe do produto, e é a que se usa DEPOIS
+ * de gravar: a resposta de `POST`/`PATCH` é o grupo, não o produto, e reler o
+ * produto inteiro para pegar a lista nova traria junto preço, foto e setor —
+ * campos que outra aba pode ter mudado no meio.
+ */
+export async function listProductOptionGroups(productId: string): Promise<ProductOptionGroup[]> {
+  return unwrap(
+    await apiClient.GET('/admin/products/{product_id}/option-groups', {
+      params: { path: { product_id: productId } },
+    }),
+  );
+}
+
+export async function createOptionGroup(
+  productId: string,
+  body: OptionGroupCreateBody,
+): Promise<ProductOptionGroup> {
+  return unwrap(
+    await apiClient.POST('/admin/products/{product_id}/option-groups', {
+      params: { path: { product_id: productId } },
+      body,
+    }),
+  );
+}
+
+/**
+ * Edita as regras do grupo.
+ *
+ * O CORPO LEVA O FORMULÁRIO INTEIRO, e o porquê está em
+ * `menu/option-groups.ts`: o backend valida o RESULTADO DA MESCLA com o que
+ * está no banco, então um corpo parcial pode ser recusado por causa de um campo
+ * que a tela nem mostrou.
+ */
+export async function updateOptionGroup(
+  groupId: string,
+  body: OptionGroupUpdateBody,
+): Promise<ProductOptionGroup> {
+  return unwrap(
+    await apiClient.PATCH('/admin/option-groups/{group_id}', {
+      params: { path: { group_id: groupId } },
+      body,
+    }),
+  );
+}
+
+/**
+ * Cria uma opção dentro do grupo.
+ *
+ * A resposta é a OPÇÃO, e ela NÃO traz o grupo atualizado — quem desenha a
+ * lista acrescenta a opção devolvida ao grupo que já tem em mãos, como
+ * `setOptionActive` faz. Reler o produto aqui seria uma segunda chamada para
+ * saber o que a primeira já respondeu.
+ */
+export async function createOption(
+  groupId: string,
+  body: OptionCreateBody,
+): Promise<ProductOption> {
+  return unwrap(
+    await apiClient.POST('/admin/option-groups/{group_id}/options', {
+      params: { path: { group_id: groupId } },
+      body,
     }),
   );
 }
