@@ -777,3 +777,84 @@ test('"Escolher…" abre os campos de data e o segmentado fica nele', async ({ p
   await expect(page.getByLabel('Data inicial')).toBeVisible();
   await expect(page.getByLabel('Data final')).toBeVisible();
 });
+
+/*
+ * ============================================================================
+ * A COMANDA DESTE PEDIDO — o que sai no papel
+ * ============================================================================
+ *
+ * O que estes três testes protegem, e nenhum deles é sobre desenho:
+ *
+ *   1. o bloco NÃO gasta requisição até o lojista pedir — o detalhe abre a cada
+ *      clique da lista, e no pico são dezenas por minuto;
+ *   2. a CONTAGEM de vias sobrevive ao agrupamento (cópia é entrada repetida no
+ *      contrato, e um `new Set` no caminho apagaria o número sem quebrar nada);
+ *   3. a tela nunca diz que a comanda FOI impressa — a rota não marca nada como
+ *      impresso, e a palavra no passado faria o lojista parar de procurar o
+ *      defeito na hora em que ela não saiu.
+ */
+test('a comanda não é buscada até o lojista pedir', async ({ page }) => {
+  await fazerLogin(page);
+
+  let chamadas = 0;
+  page.on('request', (req) => {
+    if (req.url().includes('/print-jobs')) chamadas += 1;
+  });
+
+  await page.getByTestId('order-card-1002').click();
+  const painel = page.getByTestId('order-panel');
+  await expect(painel.getByRole('heading', { name: 'Comanda' })).toBeVisible();
+
+  // Aberto o detalhe inteiro, e nada foi pedido ainda.
+  await expect(painel.getByText('Pizza Calabresa G')).toBeVisible();
+  expect(chamadas).toBe(0);
+
+  await painel.getByTestId('comanda-abrir').click();
+  await expect(painel.getByTestId('comanda-via').first()).toBeVisible();
+  expect(chamadas).toBe(1);
+});
+
+test('duas vias iguais são "2 vias", e não uma — a contagem é a informação', async ({ page }) => {
+  await fazerLogin(page);
+
+  await page.getByTestId('order-card-1002').click();
+  const painel = page.getByTestId('order-panel');
+  await painel.getByTestId('comanda-abrir').click();
+
+  /*
+   * O falso manda a via do cliente DUAS VEZES, como o backend faz (não existe
+   * campo `copies`). A tela agrupa em um bloco e escreve a contagem.
+   */
+  const vias = painel.getByTestId('comanda-via');
+  await expect(vias).toHaveCount(2);
+  await expect(vias.first()).toContainText('Cliente');
+  await expect(vias.first()).toContainText('2 vias');
+
+  // A via de produção vai para o setor, com a impressora dele.
+  await expect(vias.nth(1)).toContainText('Chapa · EPSON TM-T20');
+  await expect(vias.nth(1)).toContainText('1 via');
+  await expect(vias.nth(1)).toContainText('PICANHA NA CHAPA');
+});
+
+test('pagamento não confirmado: sai só a via do cliente, e a tela diz por quê', async ({
+  page,
+}) => {
+  await fazerLogin(page);
+
+  // 1001 é o pix pendente: o backend não gera ordem de preparo.
+  await page.getByTestId('order-card-1001').click();
+  const painel = page.getByTestId('order-panel');
+  await painel.getByTestId('comanda-abrir').click();
+
+  await expect(painel.getByTestId('comanda-aviso')).toContainText(
+    'depois que o pagamento confirma',
+  );
+  await expect(painel.getByTestId('comanda-via')).toHaveCount(1);
+
+  /*
+   * E ELA NÃO DIZ QUE IMPRIMIU. A rota não marca nada como impresso; afirmar o
+   * contrário é o pior desfecho possível para uma tela que existe justamente
+   * para o caso em que a comanda não saiu.
+   */
+  await expect(painel).not.toContainText(/impressa|foi impresso|comanda saiu/i);
+});

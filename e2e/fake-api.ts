@@ -801,6 +801,18 @@ function initialPrintAgents(): Record<string, FakePrintAgent> {
   return { [BRANCH_ID]: { secondsSinceLastSeen: 12, version: '1.4.2' } };
 }
 
+/**
+ * O pagamento já liberou a produção?
+ *
+ * Escrita aqui e não importada de `src/orders/order-status.ts` de propósito: o
+ * falso é o BACKEND, e um falso que importa a regra da tela não consegue provar
+ * que a tela lê a regra certa — ele concordaria com ela mesmo estando os dois
+ * errados. Os dois valores são os do backend (`paid` e `on_delivery`).
+ */
+function isAwaitingOnlinePaymentNoFalso(paymentStatus: string): boolean {
+  return !['paid', 'on_delivery'].includes(paymentStatus);
+}
+
 function initialPrinters(): Record<string, PrintAgentPrinter[]> {
   const agora = new Date().toISOString();
   return {
@@ -3021,6 +3033,65 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         created_at: new Date().toISOString(),
       });
       return json(route, 200, detailOf(item, historyOf(item)));
+    }
+
+    /*
+     * AS VIAS DE UM PEDIDO. Antes de `/admin/orders/{id}`, pelo mesmo motivo do
+     * `cancel` logo acima: o padrão genérico leria "print-jobs" como id.
+     *
+     * O FALSO REPRODUZ AS TRÊS RESPOSTAS QUE A TELA PRECISA SEPARAR, e é essa a
+     * razão de ele existir — as três são 200, e nenhuma é erro:
+     *
+     *   lista vazia         a filial zerou as duas contagens de via
+     *   só a do cliente     pagamento online ainda não confirmado: a via de
+     *                       produção é ordem de preparo e não é gerada
+     *   cliente + produção  o caso normal
+     *
+     * E A CÓPIA É ENTRADA REPETIDA, como no backend: a via do cliente sai DUAS
+     * VEZES na lista, com o mesmo conteúdo, porque não existe campo `copies`.
+     * É o que faz o teste cobrir o agrupamento de verdade em vez de cobrir uma
+     * lista que já vem com um item por bloco.
+     */
+    const printJobsMatch = /^\/admin\/orders\/([^/]+)\/print-jobs$/.exec(path);
+    if (method === 'GET' && printJobsMatch?.[1]) {
+      const item = findOrder(printJobsMatch[1]);
+      if (!item) return json(route, 404, { detail: 'Pedido não encontrado.' });
+
+      const cabeca = `PEDIDO #${item.order_number}\n${'-'.repeat(32)}\n`;
+      const viaDoCliente = {
+        type: 'customer',
+        sector_name: 'Cliente',
+        sector_id: null,
+        printer_name: null,
+        columns: 32,
+        font_size: 'normal',
+        content: `${cabeca}${item.customer_name_snapshot}\nTOTAL         R$ ${item.total}\n`,
+      };
+      const viaDaProducao = {
+        type: 'production',
+        sector_name: 'Chapa',
+        sector_id: 'setor-chapa',
+        printer_name: 'EPSON TM-T20',
+        columns: 32,
+        font_size: 'large',
+        content: `${cabeca}1x PICANHA NA CHAPA\n   ponto: mal passada\n`,
+      };
+
+      // A filial `sem-via` é a que zerou as duas contagens.
+      const jobs =
+        item.branch_id === 'sem-via'
+          ? []
+          : isAwaitingOnlinePaymentNoFalso(item.payment_status)
+            ? // Duas cópias da via do cliente — entrada repetida, sem `copies`.
+              [viaDoCliente, viaDoCliente]
+            : [viaDoCliente, viaDoCliente, viaDaProducao];
+
+      return json(route, 200, {
+        order_id: item.id,
+        order_number: item.order_number,
+        branch_id: item.branch_id,
+        jobs,
+      });
     }
 
     const detailMatch = /^\/admin\/orders\/([^/]+)$/.exec(path);
