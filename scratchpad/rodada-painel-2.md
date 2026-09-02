@@ -619,6 +619,118 @@ bordas. Passou a `9ch`.
 do PATCH) é o assunto do §2.6 e está resolvido pela raiz (o formulário inteiro);
 o 8 é o §2.1; o 11 é o §2.3.
 
+### 2.8 — O fuso, conferido em vez de afirmado ✅
+
+Três pedidos, e o terceiro achou um erro meu.
+
+#### (1) Os dois defeitos, provados nos DOIS sentidos
+
+Não basta a suíte passar no fuso de produção: o que se tinha de provar é que ela
+**não muda de resposta** com o fuso. Rodei a suíte inteira com o pino em três
+lugares, e depois **reintroduzi os dois defeitos** para ver o vermelho aparecer.
+
+| Pino do processo    | Código consertado | Com os dois defeitos de volta |
+| ------------------- | ----------------- | ----------------------------- |
+| `America/Fortaleza` | 1007 ✅           | 40 ✅ — **passa**             |
+| `UTC` (o do CI)     | 1007 ✅           | **2 falhas** ❌               |
+| `Asia/Tokyo` (+9)   | 1007 ✅           | **2 falhas** ❌               |
+
+A linha do meio é a resposta ao "é o tipo de conserto que passa num fuso e falha
+no outro": **com os defeitos, é exatamente isso que acontece** — verde em
+Fortaleza, vermelho em UTC e em Tóquio. Com o conserto, verde nos três.
+
+Os dois casos que caem: `a frase leva o horário de volta` (`notaDaPausa`) e
+`às 2h UTC de segunda, a loja ainda está no domingo` (`weekdayDaOperacao`).
+
+#### (2) O inventário de TODA formatação de data — 20 ocorrências
+
+| arquivo:linha                          | o que é             | `timeZone`                              |
+| -------------------------------------- | ------------------- | --------------------------------------- |
+| `coupons/coupon-model.ts:135`          | Intl.DateTimeFormat | **SIM**                                 |
+| `customers/customer-model.ts:32`       | Intl.DateTimeFormat | **SIM**                                 |
+| `orders/format.ts:17`                  | Intl.DateTimeFormat | **SIM**                                 |
+| `orders/format.ts:23`                  | Intl.DateTimeFormat | **SIM**                                 |
+| `orders/format.ts:38`                  | Intl.DateTimeFormat | **SIM**                                 |
+| `orders/format.ts:164`                 | Intl.DateTimeFormat | **SIM**                                 |
+| `orders/order-filters.ts:63`           | Intl.DateTimeFormat | **SIM**                                 |
+| `performance/cancellation-hours.ts:92` | Intl.DateTimeFormat | **SIM**                                 |
+| `performance/insights.ts:142`          | Intl.DateTimeFormat | **SIM**                                 |
+| `performance/report-model.ts:277`      | Intl.DateTimeFormat | **SIM**                                 |
+| `store/business-hours.ts:59`           | Intl.DateTimeFormat | **SIM**                                 |
+| `store/operation-state.ts:71`          | Intl.DateTimeFormat | **SIM**                                 |
+| `performance/insights.ts:182`          | toLocaleString      | n/a — número                            |
+| `performance/PerformancePage.tsx:1349` | toLocaleString      | n/a — número                            |
+| `performance/product-quadrants.ts:92`  | toLocaleString      | n/a — número                            |
+| `performance/report-model.ts:95`       | toLocaleString      | n/a — número                            |
+| `reviews/review-model.ts:223`          | toLocaleString      | n/a — número                            |
+| `performance/insights.ts:154`          | `getUTCDay`         | âncora meio-dia UTC, lida em UTC        |
+| `performance/report-model.ts:245`      | `toISOString`       | entrada é sempre meio-dia UTC           |
+| `store/business-hours.ts:36`           | `getDay`            | `backendWeekday`, a conversão declarada |
+
+**Doze formatadores de data, os doze com `timeZone` explícito. Nada a
+consertar.** Os cinco `toLocaleString` são de número (porcentagem, moeda, nota
+média) e não têm fuso. As três últimas não formatam nada — leem — e as três
+estavam certas e documentadas.
+
+**Os pontos cegos que conferi à mão, porque `grep` não os alcança:** nenhuma
+biblioteca de data (sem `date-fns`/`dayjs`/`luxon`); nenhum ISO fatiado na mão
+além do `isoDay`; nenhum campo `*_at` renderizado cru em JSX; `input type="date"`
+e `type="time"` devolvem texto sem fuso, que é a forma segura; `savedAt` do
+`SaveBar` é gatilho, não hora exibida; e `formatAgo` do `PrintingTab` é tempo
+DECORRIDO, que é diferença e não tem fuso.
+
+#### (3) A ferramenta, porque conferir à mão não escala
+
+`check-fuso.mjs` só via formatador. Ganhou três coisas, e cada uma foi **provada
+vermelha antes**:
+
+1. **As LEITURAS de fuso local** (`getHours`, `getDate`, `getDay`, `toISOString`,
+   `getUTC*`). Elas não são sempre erradas, então a saída é uma **fuga declarada
+   no lugar** — `// fuso-ok: <razão>` —, e não uma lista de arquivos dentro do
+   script. Lista por caminho envelhece calada: o arquivo é renomeado e a isenção
+   passa a cobrir outra coisa. A busca sobe pelo BLOCO de comentário inteiro,
+   porque a razão de `backendWeekday` leva três linhas para ser dita.
+2. **O "agora" entregue a quem lê no fuso local.** Foi um **buraco da minha
+   primeira versão**: `backendWeekday(new Date())` não tem `.getDay()` no lugar
+   da chamada — a leitura mora dentro da função isenta. Reintroduzi o defeito 2 e
+   a ferramenta **não o viu**. Agora vê.
+3. **Cegar comentários antes de casar.** A regra nova acusou
+   `business-hours.ts:45`, que é o **comentário explicando o defeito**. Um portão
+   que acusa a documentação do próprio defeito ensina, em uma tarde, a desligar o
+   portão.
+
+**A prova final, uma por vez:**
+
+| Defeito reintroduzido                  | `check-fuso`                      |
+| -------------------------------------- | --------------------------------- |
+| `notaDaPausa` sem `timeZone`           | ❌ acusa `operation-state.ts:125` |
+| `usePrepRange` perguntando ao aparelho | ❌ acusa `usePrepRange.ts:37`     |
+| nenhum                                 | ✅ verde                          |
+
+#### (4) O pino, e um erro meu que estava commitado
+
+**`src/zz-tz-probe.test.ts` foi commitado por engano em `8c85416`** — a sonda
+descartável que usei para descobrir que o `TZ` do shell não chega ao worker.
+Um arquivo de diagnóstico com `expect(1).toBe(1)` dentro da suíte de 1007 casos.
+
+Ele foi **substituído** pela guarda que faltava, que é o que o item 3 pedia:
+
+- `src/fuso-do-portao.test.ts` — três casos. O primeiro lê o fuso resolvido, o
+  segundo a variável, e **o terceiro lê o RELÓGIO** (`23h30 UTC → getHours() ===
+20`). Os dois primeiros leem o que o processo DIZ de si; o terceiro lê o que
+  ele FAZ, e é ele que pegaria um `TZ` presente mas não aplicado.
+- `e2e/fuso-do-portao.spec.ts` — a mesma dupla no navegador, com a nota de que
+  o `timezoneId` **não chega aos handlers de `page.route`**, que rodam no Node.
+
+**Provado nos dois sentidos:** removido o `process.env.TZ` do `vite.config.ts`,
+dois dos três casos ficam vermelhos (o terceiro passa, porque São Paulo tem o
+mesmo deslocamento de Fortaleza hoje — que é a razão de serem três e não um).
+Removido o `timezoneId` do `playwright.config.ts`, a guarda do navegador acusa
+`Received: "America/Sao_Paulo"`.
+
+Portão: `format:check 0` · `lint 0` · `typecheck 0` · `test 0` (**69 arquivos,
+1009 testes**) · `playwright` **271 passaram**, 4 pulados, 0 falharam.
+
 ---
 
 ## 3. Bloqueado por backend

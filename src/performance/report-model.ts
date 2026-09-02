@@ -241,7 +241,16 @@ export function previousRange(range: { startDate: string; endDate: string }): {
   return { startDate: isoDay(inicioAnterior), endDate: isoDay(fimAnterior) };
 }
 
+/**
+ * O dia AAAA-MM-DD de um instante ancorado ao MEIO-DIA UTC.
+ *
+ * Os únicos `timestamp` que chegam aqui saem de `Date.parse(`${dia}T12:00:00Z`)`
+ * mais um número inteiro de dias — e meio-dia UTC ± N dias continua sendo
+ * meio-dia UTC, longe das duas bordas. Passar `Date.now()` para cá daria o dia
+ * UTC, que às 22h em Fortaleza já é o de amanhã.
+ */
 function isoDay(timestamp: number): string {
+  // fuso-ok: a entrada é sempre meio-dia UTC — ver o bloco acima.
   return new Date(timestamp).toISOString().slice(0, 10);
 }
 

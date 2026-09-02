@@ -33,6 +33,9 @@ export const WEEKDAYS: readonly { weekday: number; label: string; short: string 
  * porque o número existe nos dois lados e nenhum dos dois reclama.
  */
 export function backendWeekday(date: Date): number {
+  // fuso-ok: converte a NUMERAÇÃO de uma data que quem chama já escolheu, e
+  // responde no fuso dela. Para "que dia é hoje" use `weekdayDaOperacao` logo
+  // abaixo — foi essa distinção que custou o prazo de preparo do dia errado.
   return (date.getDay() + 6) % 7;
 }
 

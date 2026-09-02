@@ -151,6 +151,8 @@ export function weekdayName(day: string): string | null {
 function weekdayIndex(day: string): number | null {
   const anchor = Date.parse(`${day}T12:00:00Z`);
   if (Number.isNaN(anchor)) return null;
+  // fuso-ok: a âncora é MEIO-DIA UTC e a leitura é UTC — os dois lados no mesmo
+  // fuso, então nenhum deslocamento é possível. Ver o bloco de `weekdayFormatter`.
   return new Date(anchor).getUTCDay();
 }
 
