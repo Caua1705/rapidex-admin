@@ -1757,21 +1757,21 @@ export type FakeApi = {
   branchSettingsCalls: () => { branchId: string; body: Record<string, unknown> }[];
   /** As sobrescritas que a filial tem agora. Chave ausente = herdando. */
   overridesOf: (branchId: string) => Record<string, unknown>;
-  /** Empurra um pedido novo pelo SSE, como se outro cliente tivesse comprado. */
-  pushNewOrder: (item: OrderListItem) => void;
   /**
-   * Espera o navegador pendurar a conexão do SSE.
+   * Empurra um pedido novo pelo SSE, como se outro cliente tivesse comprado.
    *
-   * `pushNewOrder` antes disso é um evento que nasce atrás do cursor da conexão
-   * que ainda vai chegar — ou seja, um evento que não é entregue a ninguém. O
-   * teste passava por sorte, quando a conexão vencia a corrida contra a linha
+   * ELE ESPERA A CONEXÃO DA TELA ATUAL, e é por isso que é assíncrono — o
+   * `await` não é decoração. Um evento empurrado antes de a conexão chegar ao
+   * handler nasce ATRÁS do cursor dela e não é entregue a ninguém; o teste
+   * passava por sorte, quando a conexão vencia a corrida contra a linha
    * seguinte do teste.
    *
-   * Esperar `conn--live` na tela NÃO resolveria: este falso segura a resposta
-   * do SSE até haver o que mandar, então o `onopen` do EventSource — e portanto
-   * o "Tempo real" da barra — só acontece DEPOIS do primeiro evento.
+   * A espera mora AQUI, e não numa chamada que o teste precisa lembrar de
+   * escrever antes, porque a versão anterior era exatamente isso — e a regra
+   * que só existe na cabeça de quem escreve o teste é a regra que o próximo
+   * esquece. Ver `esperarConexaoDaTelaAtual`.
    */
-  waitForStream: () => Promise<void>;
+  pushNewOrder: (item: OrderListItem) => Promise<void>;
   /** Muda o status por fora da tela, como faria outro atendente. */
   setStatusFromAnotherUser: (orderId: string, status: string) => void;
   /** Faz toda chamada autenticada responder 401 (sessão expirada). */
@@ -2107,14 +2107,30 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     /** Append-only: cada conexão SSE lê a partir do próprio cursor. */
     streamLog: [] as StreamEvent[],
     /**
-     * Quantas conexões SSE estão PENDURADAS agora, esperando evento.
+     * QUANTOS BILHETES DE STREAM JÁ SAÍRAM — e ele é o número da geração.
      *
-     * Ele existe por causa de uma corrida real: `serveStream` marca o cursor no
-     * instante em que a conexão CHEGA ao handler, então um evento empurrado
-     * antes disso nasce atrás do cursor e nunca é entregue. O teste precisa
-     * poder esperar a conexão existir antes de empurrar — ver `waitForStream`.
+     * Toda conexão SSE do painel é precedida por um `POST /stream-ticket`, e o
+     * bilhete viaja na query da conexão (`useOrderStream.openStream`). Então o
+     * número do bilhete diz de QUAL tentativa aquela conexão é, sem depender da
+     * ordem em que os handlers do Playwright rodam.
      */
-    streamConnections: 0,
+    streamTickets: 0,
+    /**
+     * As gerações das conexões SSE penduradas AGORA.
+     *
+     * Uma contagem simples não bastava, e o defeito era este: ao sair de
+     * /pedidos para /cozinha, a conexão da tela ANTERIOR continua pendurada
+     * neste falso por até 15s — o navegador fechou o EventSource, mas o handler
+     * não fica sabendo. Uma contagem `> 0` se satisfazia com esse cadáver, o
+     * teste empurrava o evento, e a conexão da tela NOVA só então chegava ao
+     * handler, marcando o cursor JÁ ADIANTE do evento. Resultado: ninguém
+     * recebia nada e o cartão nunca aparecia.
+     *
+     * Guardando a geração de cada uma, "existe conexão viva" vira "existe
+     * conexão do bilhete mais recente", que é a pergunta que o teste faz de
+     * verdade.
+     */
+    streamVivas: [] as number[],
     eventId: 0,
     /*
      * O CARDÁPIO DAS DUAS LOJAS VIVE NO MESMO "BANCO", como no Postgres de
@@ -2409,6 +2425,42 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
   }
 
   /**
+   * O número do bilhete que abriu esta conexão, lido da query.
+   *
+   * Sem bilhete na URL — o que não acontece com o painel, mas acontece se
+   * alguém apontar um EventSource na mão para o falso — vale a geração
+   * corrente: é a leitura mais generosa, e ela nunca torna a conexão inútil.
+   */
+  function geracaoDoBilhete(url: string): number {
+    const bilhete = new URL(url).searchParams.get('ticket') ?? '';
+    const numero = Number(bilhete.slice(bilhete.lastIndexOf('-') + 1));
+    return Number.isFinite(numero) && numero > 0 ? numero : state.streamTickets;
+  }
+
+  /**
+   * Espera existir uma conexão SSE DA TELA ATUAL pendurada no falso.
+   *
+   * "Da tela atual" é o que a versão anterior não sabia perguntar: ela contava
+   * conexões, e a conexão da tela anterior conta como uma por até 15s depois de
+   * o navegador tê-la fechado. Ver `state.streamVivas`.
+   *
+   * Esperar `conn--live` na tela NÃO resolveria: este falso segura a resposta
+   * do SSE até haver o que mandar, então o `onopen` do EventSource — e portanto
+   * o "Tempo real" da barra — só acontece DEPOIS do primeiro evento.
+   *
+   * O limite de 10s é rede de segurança, não expectativa: se ele estourar, o
+   * evento vai para o vazio e o teste falha na asserção seguinte, que é onde a
+   * mensagem é útil. Falhar aqui só trocaria um erro claro por um obscuro.
+   */
+  async function esperarConexaoDaTelaAtual() {
+    const limite = Date.now() + 10_000;
+    while (!state.stopped && Date.now() < limite) {
+      if (state.streamVivas.includes(state.streamTickets)) return;
+      await sleep(20);
+    }
+  }
+
+  /**
    * Segura a resposta do SSE até o teste empurrar um evento.
    *
    * Fulfill imediato faria o EventSource receber corpo vazio, fechar e
@@ -2422,13 +2474,30 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
    * compartilhada era ELE quem consumia o evento que a Cozinha esperava.
    */
   async function serveStream(route: Route) {
+    /*
+     * A GERAÇÃO VEM DO BILHETE NA QUERY, não de ler `state.streamTickets` aqui.
+     *
+     * Ler o contador agora seria supor que o handler desta conexão roda antes
+     * de o próximo bilhete sair — que é exatamente o tipo de suposição de
+     * ordem que criou o defeito que este código conserta. O bilhete já viajou
+     * junto com a conexão; ele não pode chegar trocado.
+     */
+    const geracao = geracaoDoBilhete(route.request().url());
     const cursor = state.streamLog.length;
     const limite = Date.now() + 15_000;
-    state.streamConnections += 1;
-    while (state.streamLog.length === cursor && !state.stopped && Date.now() < limite) {
+    state.streamVivas.push(geracao);
+    while (
+      state.streamLog.length === cursor &&
+      !state.stopped &&
+      Date.now() < limite &&
+      // SUPERADA: saiu bilhete novo, então esta conexão é de uma tela que o
+      // navegador já deixou para trás. Continuar pendurada seria ocupar o
+      // lugar da conexão viva por até 15s — que era metade do defeito.
+      geracao === state.streamTickets
+    ) {
       await sleep(50);
     }
-    state.streamConnections -= 1;
+    state.streamVivas.splice(state.streamVivas.indexOf(geracao), 1);
 
     const frames = state.streamLog.slice(cursor).map((event) => {
       state.eventId += 1;
@@ -2966,7 +3035,19 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     }
 
     if (method === 'POST' && path === '/admin/orders/stream-ticket') {
-      return json(route, 200, { ticket: 'ticket-de-mentira', expires_in_seconds: 30 });
+      /*
+       * O BILHETE É NUMERADO, e não uma constante.
+       *
+       * No backend ele é de uso único; aqui o número é o que amarra a conexão
+       * que vai chegar à tentativa que a pediu — ver `state.streamTickets`.
+       * Com um bilhete fixo, duas conexões seriam indistinguíveis e a corrida
+       * de `serveStream` não teria como ser desfeita.
+       */
+      state.streamTickets += 1;
+      return json(route, 200, {
+        ticket: `ticket-de-mentira-${state.streamTickets}`,
+        expires_in_seconds: 30,
+      });
     }
 
     if (method === 'GET' && path === '/admin/orders/stream') {
@@ -4220,13 +4301,8 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     },
     prepTimeOf: (branchId) => state.prepTime[branchId] ?? null,
     makeOrder: order,
-    async waitForStream() {
-      const limite = Date.now() + 10_000;
-      while (state.streamConnections === 0 && !state.stopped && Date.now() < limite) {
-        await sleep(20);
-      }
-    },
-    pushNewOrder(item) {
+    async pushNewOrder(item) {
+      await esperarConexaoDaTelaAtual();
       state.orders.unshift(item);
       state.streamLog.push({
         type: 'order.created',

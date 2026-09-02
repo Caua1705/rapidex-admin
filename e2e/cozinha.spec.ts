@@ -70,10 +70,9 @@ test('o cartão conta a espera e acende quando passa do preparo da filial', asyn
   await expect(page.getByTestId('kitchen-wait-1003')).toHaveText('25 min');
   await expect(page.getByTestId('kitchen-card-1003')).toHaveAttribute('data-wait', 'due');
 
-  // A conexão do SSE precisa EXISTIR antes do empurrão: ver `waitForStream`.
-  await api.waitForStream();
-
-  api.pushNewOrder(
+  // O `await` espera a conexão do SSE existir antes de gravar o evento — ver
+  // `esperarConexaoDaTelaAtual` em `fake-api.ts`.
+  await api.pushNewOrder(
     api.makeOrder({
       id: 'ord-3001',
       order_number: 3001,
@@ -202,12 +201,15 @@ test('pedido novo aceito chega sozinho pelo SSE', async ({ page }) => {
   /*
    * E A COLUNA CARREGADA TAMBÉM NÃO BASTA: ela prova que a LISTA chegou, não
    * que o SSE já está pendurado. Um evento empurrado antes disso nasce atrás do
-   * cursor da conexão que ainda vai chegar e não é entregue a ninguém — era o
-   * que fazia este teste falhar de vez em quando sob carga. Ver `waitForStream`.
+   * cursor da conexão que ainda vai chegar e não é entregue a ninguém.
+   *
+   * ESTE TESTE É O QUE PEGOU O DEFEITO, e o motivo de ser o único é que só ele
+   * empurra um evento logo depois de TROCAR DE TELA: a conexão de /pedidos fica
+   * pendurada no falso por até 15s depois de o navegador tê-la fechado, e era
+   * ELA que satisfazia a espera antiga, no lugar da conexão da Cozinha. Ver
+   * `state.streamVivas` em `fake-api.ts`.
    */
-  await api.waitForStream();
-
-  api.pushNewOrder(
+  await api.pushNewOrder(
     api.makeOrder({
       id: 'ord-2001',
       order_number: 2001,

@@ -343,9 +343,7 @@ test('pedido com pagamento parado desce para o bloco, sem sair do quadro', async
   await page.getByTestId('orders-period-last7').click();
   await expect(page.getByTestId('order-card-1001')).toBeVisible();
 
-  await api.waitForStream();
-
-  api.pushNewOrder(
+  await api.pushNewOrder(
     api.makeOrder({
       id: 'ord-1011',
       order_number: 1011,
@@ -396,7 +394,8 @@ test('pedido novo chega sozinho pelo SSE', async ({ page }) => {
   await expect(page.getByTestId('order-card-1002')).toBeVisible();
 
   /*
-   * ESPERA A CONEXÃO DO SSE EXISTIR ANTES DE EMPURRAR O EVENTO.
+   * O `await` ESPERA A CONEXÃO DO SSE EXISTIR ANTES DE GRAVAR O EVENTO, e por
+   * isso ele não é decoração.
    *
    * O quadro pinta antes de o SSE conectar, e um evento empurrado nesse vão
    * nasce atrás do cursor da conexão que ainda vai chegar: ele não é entregue a
@@ -406,11 +405,9 @@ test('pedido novo chega sozinho pelo SSE', async ({ page }) => {
    *
    * Esperar "Tempo real" na barra não serviria: o falso segura a resposta do
    * SSE até haver o que mandar, então o estado só vira "live" DEPOIS do
-   * primeiro evento. Ver `waitForStream` em `fake-api.ts`.
+   * primeiro evento. Ver `esperarConexaoDaTelaAtual` em `fake-api.ts`.
    */
-  await api.waitForStream();
-
-  api.pushNewOrder(
+  await api.pushNewOrder(
     api.makeOrder({
       id: 'ord-1010',
       order_number: 1010,
