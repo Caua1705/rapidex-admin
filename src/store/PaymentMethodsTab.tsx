@@ -7,6 +7,7 @@ import { Select } from '../ds/Select';
 import { PAYMENT_METHOD_LABELS } from '../orders/format';
 import { Switch } from '../ds/Switch';
 import { PlusIcon } from '../ds/icons';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { usePaymentMethods } from './usePaymentMethods';
 
 const FLOW_LABELS: Record<PaymentFlow, string> = {
@@ -41,6 +42,14 @@ const METHOD_TYPES: readonly PaymentMethodType[] = [
 export function PaymentMethodsTab({ branchId }: { branchId: string }) {
   const payment = usePaymentMethods(branchId);
   const [isAdding, setIsAdding] = useState(false);
+  /**
+   * A forma que o lojista pediu para excluir, esperando a confirmação.
+   *
+   * A FORMA INTEIRA E NÃO O ID: o diálogo precisa do rótulo para NOMEAR o que
+   * vai sumir ("Excluir a forma Pix?"). Um "tem certeza?" sem o nome do objeto
+   * é o diálogo que a pessoa aprende a confirmar sem ler.
+   */
+  const [aExcluir, setAExcluir] = useState<PaymentMethod | null>(null);
   /*
    * `earns_cashback` é do DONO mesmo aqui, onde a rota é da GERÊNCIA — quem
    * decide é o CORPO, não o caminho. Ver `podeDefinirCashback`.
@@ -75,7 +84,7 @@ export function PaymentMethodsTab({ branchId }: { branchId: string }) {
           onToggleCashback={(method, earns) =>
             void payment.update(method.id, { earns_cashback: earns })
           }
-          onRemove={(method) => void payment.remove(method.id)}
+          onRemove={setAExcluir}
         />
       </section>
 
@@ -92,9 +101,56 @@ export function PaymentMethodsTab({ branchId }: { branchId: string }) {
           onToggleCashback={(method, earns) =>
             void payment.update(method.id, { earns_cashback: earns })
           }
-          onRemove={(method) => void payment.remove(method.id)}
+          onRemove={setAExcluir}
         />
       </section>
+
+      {/*
+        ====================================================================
+        EXCLUIR PEDIA CONFIRMAÇÃO, E NÃO PEDIA NADA
+        ====================================================================
+
+        Era `onRemove={(method) => void payment.remove(method.id)}` — DELETE
+        direto no clique. Apagar "Pix" derrubava a forma de pagamento da vitrine
+        na hora, e desfazer é recadastrar.
+
+        E O PIOR DELE NÃO É A FALTA DO DIÁLOGO: é que a dois controles de
+        distância, na MESMA linha, existe um interruptor que faz a versão
+        REVERSÍVEL da mesma coisa. Um que se desfaz e um que não se desfaz, lado
+        a lado, numa lista operada com o polegar. É exatamente o desenho que o
+        rodapé do pedido desfez ("o destrutivo fica do lado do aceitar") e que
+        continuava inteiro aqui.
+
+        Por isso o corpo do diálogo APONTA A CHAVE em vez de só avisar: na maior
+        parte das vezes em que alguém aperta "Excluir", o que queria era parar de
+        oferecer aquela forma hoje — e isso a chave faz, e desfaz.
+      */}
+      {aExcluir ? (
+        <ConfirmDialog
+          title={`Excluir a forma "${aExcluir.label}"?`}
+          confirmLabel="Excluir a forma"
+          sendingLabel="Excluindo…"
+          cancelLabel="Manter a forma"
+          isSending={payment.pendingIds.includes(aExcluir.id)}
+          errorMessage={payment.errorMessage}
+          onClose={() => setAExcluir(null)}
+          onConfirm={() => {
+            void payment.remove(aExcluir.id).then((deuCerto) => {
+              if (deuCerto) setAExcluir(null);
+            });
+          }}
+          data-testid="payment-remove-confirm"
+        >
+          <p className="saida__consequencia">
+            Ela sai da vitrine na hora, e o cliente deixa de poder escolhê-la. Para trazê-la de
+            volta é preciso cadastrar de novo.
+          </p>
+          <p className="saida__consequencia">
+            Se você só quer parar de oferecer <strong>agora</strong>, use a chave ao lado do botão:
+            ela desliga a forma sem apagar o cadastro, e religar é um toque.
+          </p>
+        </ConfirmDialog>
+      ) : null}
 
       {isAdding ? (
         <NewMethodForm

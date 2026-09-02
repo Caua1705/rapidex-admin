@@ -110,6 +110,28 @@ test('a filial com regra própria oferece voltar a herdar, e volta mesmo', async
 
   await page.getByTestId('cashback-apagar').click();
 
+  /*
+   * ELE ERA UM DELETE DIRETO NO CLIQUE, e o rótulo honesto ("voltar a herdar")
+   * era justamente o que escondia o problema: uma frase gentil não é um aviso
+   * de que não há volta. A regra própria da filial — percentual, teto, dias e
+   * formas de pagamento que geram — é apagada no servidor, e desfazer é
+   * redigitar tudo. Numa tela cujo próprio aviso diz que isto mexe em
+   * faturamento no mesmo minuto.
+   */
+  const confirmacao = page.getByRole('dialog');
+  await expect(confirmacao).toContainText('Voltar a herdar a regra da rede?');
+  await expect(confirmacao).toContainText('é apagada');
+  // Nada aconteceu ainda: a filial continua com a regra dela.
+  await expect(page.getByTestId('cashback-default-percent')).toHaveValue('12');
+
+  // Sair preserva, e o botão diz o que preserva.
+  await confirmacao.getByRole('button', { name: 'Manter a regra própria' }).click();
+  await expect(page.getByTestId('cashback-origem')).toContainText('regra própria');
+  await expect(page.getByTestId('cashback-default-percent')).toHaveValue('12');
+
+  await page.getByTestId('cashback-apagar').click();
+  await page.getByTestId('cashback-apagar-confirm-confirmar').click();
+
   // Depois do 204 a tela RECARREGA em vez de adivinhar: quem diz o que passou a
   // valer é a resposta, e ela devolve a regra da rede.
   await expect(page.getByTestId('cashback-origem')).toContainText('Herdando a regra da rede');

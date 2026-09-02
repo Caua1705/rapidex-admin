@@ -512,9 +512,54 @@ test('formas de pagamento: cria, desativa e exclui — sem trocar fluxo nem tipo
     label: 'Débito na maquininha',
   });
 
+  // Excluir passa por confirmação — ver o teste logo abaixo para o porquê.
   await page.getByTestId('payment-remove-pay-dinheiro').click();
+  await page.getByTestId('payment-remove-confirm-confirmar').click();
   await expect(page.getByTestId('payment-method-pay-dinheiro')).toHaveCount(0);
   expect(api.paymentMethods().some((entry) => entry.id === 'pay-dinheiro')).toBe(false);
+});
+
+/*
+ * ============================================================================
+ * EXCLUIR UMA FORMA DE PAGAMENTO ERA UM DELETE NO CLIQUE
+ * ============================================================================
+ *
+ * `onRemove={(method) => void payment.remove(method.id)}`, sem diálogo nenhum.
+ * Apagar "Pix" derrubava a forma da vitrine na hora, e desfazer é recadastrar.
+ *
+ * E O PIOR NÃO É A FALTA DO DIÁLOGO: a dois controles de distância, na MESMA
+ * linha, existe um interruptor que faz a versão REVERSÍVEL da mesma coisa. Um
+ * que se desfaz e um que não se desfaz, lado a lado, numa lista operada com o
+ * polegar — o desenho que o rodapé do pedido desfez e que continuava inteiro
+ * aqui.
+ */
+test('excluir uma forma de pagamento pergunta antes, e aponta a chave reversível', async ({
+  page,
+}) => {
+  await abrirLoja(page);
+  await escolherFilial(page);
+  await page.getByTestId('store-anchor-pagamento').click();
+
+  await page.getByTestId('payment-remove-pay-pix').click();
+
+  // O clique não apagou nada: abriu a pergunta, e ela NOMEIA a forma.
+  const confirmacao = page.getByRole('dialog');
+  await expect(confirmacao).toContainText('Excluir a forma "Pix"?');
+  expect(api.paymentMethods().some((entry) => entry.id === 'pay-pix')).toBe(true);
+
+  // A alternativa reversível está escrita, e é o que a maioria queria fazer.
+  await expect(confirmacao).toContainText('use a chave ao lado do botão');
+
+  // Sair preserva a forma, e o botão diz isso em vez de "Cancelar".
+  await confirmacao.getByRole('button', { name: 'Manter a forma' }).click();
+  await expect(page.getByTestId('payment-method-pay-pix')).toBeVisible();
+  expect(api.paymentMethods().some((entry) => entry.id === 'pay-pix')).toBe(true);
+
+  // E confirmando, aí sim.
+  await page.getByTestId('payment-remove-pay-pix').click();
+  await page.getByTestId('payment-remove-confirm-confirmar').click();
+  await expect(page.getByTestId('payment-method-pay-pix')).toHaveCount(0);
+  expect(api.paymentMethods().some((entry) => entry.id === 'pay-pix')).toBe(false);
 });
 
 /* ==========================================================================

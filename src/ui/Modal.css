@@ -76,3 +76,92 @@
     padding-inline: var(--sp-16);
   }
 }
+
+/* ==========================================================================
+ * O CORPO DE UM DIÁLOGO DE SAÍDA — "isto não tem volta"
+ *
+ * ELE MUDOU DE CASA, e o motivo é o segundo dono. Estas classes nasceram em
+ * `OrderDetailPanel.css` quando os únicos diálogos assim eram os do pedido, e o
+ * comentário de lá dizia o certo para a época: a folha da coluna é a que sempre
+ * está carregada quando aqueles dois podem existir.
+ *
+ * Deixou de ser verdade. `ui/ConfirmDialog` usa as mesmas classes em Loja ›
+ * Pagamento e em Cashback, telas que não carregam a coluna de pedidos — e um
+ * estilo que só funciona porque OUTRA tela por acaso está no mesmo pacote é o
+ * defeito esperando o dia em que alguém dividir o bundle.
+ *
+ * `Modal.css` é a folha certa agora: ela está carregada sempre que QUALQUER um
+ * destes diálogos pode existir, porque todos são `<Modal>`.
+ * ======================================================================= */
+
+.saida {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+}
+
+/*
+ * O AVISO É A PRIMEIRA COISA, e ele fala com a voz do estado — não é um
+ * `.alert--error`, porque nada deu errado ainda: é a consequência do botão que
+ * a pessoa está prestes a apertar.
+ */
+.saida__aviso {
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-semibold);
+}
+
+/*
+ * O QUE ACONTECE DEPOIS, logo abaixo do aviso e em voz normal. O aviso diz o
+ * TAMANHO ("não pode ser desfeita"); esta diz a COISA (o pedido vai para o
+ * histórico, a cozinha não recebe nada). Em vermelho as duas, a segunda roubaria
+ * o alarme da primeira.
+ */
+.saida__consequencia {
+  /* O vão da coluna é 12; puxar 8 deixa os 4 de "dentro do mesmo bloco". */
+  margin: calc(var(--sp-8) * -1) 0 0;
+  color: var(--ink-2);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+}
+
+/*
+ * A LINHA DE APOIO DA ÁREA DE TEXTO: o que acontece com o motivo à esquerda, o
+ * contador à direita. Eles dividem a mesma linha porque qualificam o MESMO
+ * campo — empilhados, viravam duas notas soltas embaixo de uma caixa.
+ */
+.saida__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-12);
+  margin-top: calc(var(--sp-8) * -1);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+}
+
+.saida__meta .tnum,
+.saida__meta > :last-child {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.saida__erro {
+  color: var(--danger);
+  font-weight: var(--w-medium);
+}
+
+/*
+ * A SEGUNDA CONSEQUÊNCIA NÃO PUXA PARA CIMA.
+ *
+ * O `margin-top` negativo de `.saida__consequencia` existe para colá-la no
+ * aviso — os dois são um bloco só. Duas seguidas são um PARÁGRAFO seguido de
+ * outro, e a segunda com a mesma puxada ficaria a 4px da primeira, lendo como
+ * uma linha quebrada. Isto aparece em `ConfirmDialog`, onde a segunda frase é a
+ * alternativa reversível ("use a chave ao lado").
+ */
+.saida__consequencia + .saida__consequencia {
+  margin-top: 0;
+}

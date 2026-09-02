@@ -40,15 +40,15 @@ A auditoria (§f) escolheu três, e ela **discorda** da lista da rodada anterior
 Esta rodada faz as três na ordem dela, e enfia duas coisas no meio pelo motivo
 que está escrito em cada uma.
 
-| #   | Item                                                      | Classe do enunciado | Estado |
-| --- | --------------------------------------------------------- | ------------------- | ------ |
-| 0   | `cozinha.spec.ts:195` — o SSE, vermelho no portão de base | portão              | ✅     |
-| 1   | `detail` objeto + o diálogo do 428 do cancelamento        | (a) e (b)           | ✅     |
-| 2   | `ErrorBoundary` + `POST /admin/error-reports`             | (b) e (c)           | ✅     |
-| 3   | §3 do enunciado — a varredura de teste dependente de hora | portão              | ✅     |
-| 4   | §2 do enunciado — a intermitente de `loja.spec.ts:166`    | portão              | ⬜     |
-| 5   | D.3 — as duas ações destrutivas sem confirmação           | (b)                 | ⬜     |
-| 6   | Complementos deixarem de ser leitura (4 rotas paradas)    | (c)                 | ⬜     |
+| #   | Item                                                      | Classe do enunciado | Estado            |
+| --- | --------------------------------------------------------- | ------------------- | ----------------- |
+| 0   | `cozinha.spec.ts:195` — o SSE, vermelho no portão de base | portão              | ✅                |
+| 1   | `detail` objeto + o diálogo do 428 do cancelamento        | (a) e (b)           | ✅                |
+| 2   | `ErrorBoundary` + `POST /admin/error-reports`             | (b) e (c)           | ✅                |
+| 3   | §3 do enunciado — a varredura de teste dependente de hora | portão              | ✅                |
+| 4   | §2 do enunciado — a intermitente de `loja.spec.ts:166`    | portão              | ⚠️ não reproduziu |
+| 5   | D.3 — as duas ações destrutivas sem confirmação           | (b)                 | ✅                |
+| 6   | Complementos deixarem de ser leitura (4 rotas paradas)    | (c)                 | ⬜                |
 
 **Por que 3 e 4 entram antes de 5 e 6, e não no fim:** eles são o portão. Um
 portão que muda de resposta conforme a hora não protege os itens 5 e 6 — ele os
@@ -374,6 +374,97 @@ do SSE saiu do teste e virou estrutura no `pushNewOrder` (§2.0).
 Portão: `format:check 0` · `lint 0` (**agora com `check-fuso`**) · `typecheck 0`
 · `test 0` (**67 arquivos, 978 testes**) · `playwright` **263 passaram**, 4
 pulados, 0 falharam.
+
+---
+
+### 2.4 — §2: a intermitente do §9.4 — NÃO REPRODUZIU ⚠️
+
+`loja.spec.ts:166` (`o interruptor do cabeçalho vale nas outras seções`). O §9.4
+a viu falhar **1 em 4** execuções da suíte inteira, sem a mensagem na mão.
+
+**O que rodei, com os artefatos preservados:**
+
+| Execução                         | Resultado                            |
+| -------------------------------- | ------------------------------------ |
+| `loja.spec.ts --repeat-each=20`  | **620 passaram, 0 falharam** (7 min) |
+| suíte inteira × 4, sob 4 workers | 263 · 263 · **262+1** · 263          |
+
+A falha da 3ª rodada **não é ela**: foi `loja.spec.ts:476` (formas de pagamento),
+e foi **minha** — a árvore já tinha a confirmação de exclusão do §2.5 e o teste
+ainda não. Reproduzida isolada e verde depois do teste atualizado. Fica
+registrado porque é o tipo de coincidência que vira conclusão errada: um vermelho
+no arquivo certo, na hora certa, e que não tem nada a ver.
+
+**Hipótese de por que ela sumiu, e ela NÃO é prova.** O §2.0 mudou o falso do
+SSE: antes, cada conexão de tela anterior ficava pendurada num handler do
+`page.route` por **até 15 segundos** depois de o navegador tê-la fechado.
+`abrirLoja` navega três vezes por teste, e `loja.spec.ts` tem dezenas de testes
+sob 4 workers — muitos handlers pendurados ao mesmo tempo. Agora eles são
+**ceifados no bilhete seguinte**. Isso alivia a pressão de rotas pendentes, que é
+o tipo de coisa de que uma intermitente sob carga se alimenta.
+
+**Mas eu não a vi vermelha, então não afirmo que consertei.**
+
+**Quarentena? Não — e é decisão, não omissão.** Quarentena tira um teste do
+portão, e este guarda uma regra viva (o interruptor do cabeçalho opera a filial
+exibida, e some em Operação). Tirá-lo com base em **zero** falhas observadas
+nesta rodada trocaria um risco hipotético por um buraco real de cobertura. **Não
+aumentei timeout**, como o enunciado mandou.
+
+**Para quem retomar:** ela fica como intermitente CONHECIDA e NÃO REPRODUZIDA. Se
+voltar, o caminho é a suíte inteira em laço com `--trace=on` — não o arquivo
+isolado, que 620 execuções já mostraram ser insuficiente.
+
+---
+
+### 2.5 — D.3: as duas ações destrutivas que não perguntavam nada ✅
+
+**Vermelho visto antes**, e nos dois:
+
+- `loja.spec.ts:476` quebrou no instante em que a confirmação entrou — o teste
+  antigo clicava em "Excluir" e esperava a linha sumir. É a prova de que o clique
+  apagava direto.
+- `cashback.spec.ts:99` idem.
+
+**Nasceu `ui/ConfirmDialog`**, e os dois diálogos do pedido **não** o usam de
+propósito: eles não perguntam, eles **colhem** — o motivo é o dado que faltaria
+depois, e um campo com validação própria não cabe num "tem certeza?". Aqui não há
+dado a colher; falta só o segundo de pausa entre o dedo e a consequência.
+
+Três regras que ele carrega:
+
+1. **`children` é obrigatório.** Um diálogo que só diz "Tem certeza?" vira o
+   gesto de dois cliques que a pessoa aprende a fazer sem ler — custa um clique e
+   não previne nada. O que faz a confirmação valer é a frase que diz **o que vai
+   acontecer** e **o que fazer em vez disso**.
+2. **O botão diz o VERBO, nunca "Confirmar".** "Confirmar" ao lado de "Cancelar"
+   é a pior dupla possível em português, porque "Cancelar" tanto pode ser fechar
+   o diálogo quanto cancelar a coisa. A saída se chama pelo que **preserva**:
+   "Manter a forma", "Manter a regra própria".
+3. **O erro fica dentro e o diálogo não fecha com ele** — mesma regra do
+   cancelamento do pedido.
+
+**Loja › Pagamento.** O corpo **aponta a chave** em vez de só avisar, e é o ponto:
+a dois controles de distância, na mesma linha, existe um interruptor que faz a
+versão REVERSÍVEL da mesma coisa. Na maior parte das vezes em que alguém aperta
+"Excluir", o que queria era parar de oferecer aquela forma hoje.
+
+**Cashback.** O rótulo sempre foi honesto ("Voltar a herdar a regra da rede") — e
+era isso que escondia o problema: **frase gentil não é aviso de que não há
+volta.** O corpo diz o que some (percentual, teto, dias, formas que geram) e o
+que passa a valer.
+
+**Uma casa trocada, e ela não é arrumação:** as classes `.saida*` moravam em
+`OrderDetailPanel.css`, e o comentário de lá dizia o certo para a época — a folha
+da coluna é a que sempre está carregada quando os diálogos do pedido podem
+existir. Deixou de ser verdade: `ConfirmDialog` as usa em Loja e em Cashback,
+telas que não carregam aquela coluna. **Estilo que só funciona porque OUTRA tela
+por acaso está no mesmo pacote é o defeito esperando o dia em que alguém dividir
+o bundle.** Foram para `Modal.css`, carregada sempre que qualquer um dos três
+pode existir.
+
+Portão: `format:check 0` · `lint 0` · `typecheck 0` · `test 0` (67 arquivos, 978
+testes) · `playwright` **264 passaram**, 4 pulados, 0 falharam.
 
 ---
 

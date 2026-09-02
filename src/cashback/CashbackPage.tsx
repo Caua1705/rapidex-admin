@@ -9,6 +9,7 @@ import { Switch } from '../ds/Switch';
 import { Tabs } from '../ds/Tabs';
 import { branchName } from '../layout/branch-heading';
 import { SaveBar } from '../store/SaveBar';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import {
   explicacaoDaOrigem,
   percentuaisIncomuns,
@@ -65,6 +66,14 @@ import './CashbackPage.css';
  */
 export function CashbackPage() {
   const [escopo, setEscopo] = useState<EscopoDaRegra>('rede');
+  /**
+   * O diálogo de "voltar a herdar" está aberto.
+   *
+   * Booleano e não o objeto, ao contrário do de Pagamento: aqui só existe uma
+   * sobrescrita por vez — a desta filial —, e o diálogo já sabe qual é pelo
+   * cabeçalho da tela.
+   */
+  const [confirmandoHeranca, setConfirmandoHeranca] = useState(false);
   const { pode } = usePermissoes();
   const { branchId, branch, isAutoResolved, hasChoice } = useResolvedBranch();
 
@@ -153,11 +162,25 @@ export function CashbackPage() {
                 {escopo === 'filial' &&
                 regra.view?.source === 'branch' &&
                 pode('cashback.apagarSobrescrita') ? (
+                  /*
+                    ERA UM DELETE DIRETO NO CLIQUE.
+
+                    O RÓTULO SEMPRE FOI HONESTO sobre o efeito — "voltar a
+                    herdar" diz o que acontece —, e era justamente isso que
+                    escondia o problema: uma frase gentil não é um aviso de que
+                    não há volta. A regra própria da filial (o percentual, o
+                    teto, os dias, as formas de pagamento que geram) é apagada no
+                    servidor, e desfazer é redigitar tudo.
+
+                    E ele fica ao lado do formulário que a pessoa está editando,
+                    numa tela cujo próprio aviso diz que isto mexe em faturamento
+                    no mesmo minuto.
+                  */
                   <button
                     type="button"
                     className="btn btn--sm btn--ghost-danger"
                     disabled={regra.isSaving}
-                    onClick={() => void regra.apagarSobrescrita()}
+                    onClick={() => setConfirmandoHeranca(true)}
                     data-testid="cashback-apagar"
                   >
                     Voltar a herdar a regra da rede
@@ -323,6 +346,33 @@ export function CashbackPage() {
           </>
         )}
       </div>
+
+      {confirmandoHeranca ? (
+        <ConfirmDialog
+          title="Voltar a herdar a regra da rede?"
+          confirmLabel="Apagar e herdar"
+          sendingLabel="Apagando…"
+          cancelLabel="Manter a regra própria"
+          isSending={regra.isSaving}
+          errorMessage={regra.errorMessage}
+          onClose={() => setConfirmandoHeranca(false)}
+          onConfirm={() => {
+            void regra.apagarSobrescrita().then((deuCerto) => {
+              if (deuCerto) setConfirmandoHeranca(false);
+            });
+          }}
+          data-testid="cashback-apagar-confirm"
+        >
+          <p className="saida__consequencia">
+            A regra desta loja — o percentual, o teto, os dias e as formas de pagamento que geram
+            cashback — é apagada. Para tê-la de volta é preciso digitar tudo outra vez.
+          </p>
+          <p className="saida__consequencia">
+            A partir do próximo pedido vale a regra da rede, que pode ser diferente desta — e o
+            valor creditado ao cliente muda no mesmo minuto.
+          </p>
+        </ConfirmDialog>
+      ) : null}
     </>
   );
 }
