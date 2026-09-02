@@ -5130,11 +5130,8 @@ export interface components {
        * Format: date-time
        */
       valid_from: string;
-      /**
-       * Valid Until
-       * Format: date-time
-       */
-      valid_until: string;
+      /** Valid Until */
+      valid_until?: string | null;
       visibility: components['schemas']['CouponVisibility'];
     };
     /** CouponClaimRequest */
@@ -5207,11 +5204,8 @@ export interface components {
        * Format: date-time
        */
       valid_from: string;
-      /**
-       * Valid Until
-       * Format: date-time
-       */
-      valid_until: string;
+      /** Valid Until */
+      valid_until?: string | null;
       /** @default public */
       visibility: components['schemas']['CouponVisibility'];
     };
@@ -5644,11 +5638,8 @@ export interface components {
       state: components['schemas']['CustomerCouponState'];
       /** Title */
       title: string;
-      /**
-       * Valid Until
-       * Format: date-time
-       */
-      valid_until: string;
+      /** Valid Until */
+      valid_until?: string | null;
     };
     /**
      * CustomerCouponState
