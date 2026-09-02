@@ -45,11 +45,11 @@ achou e que é da mesma família do item 1** (`print-jobs`).
 Mora em **`/loja/impressao`** (`src/store/PrintingTab.tsx`, 822 linhas), não em
 rota de primeiro nível. As três perguntas do enunciado estão respondidas:
 
-| Pergunta do enunciado         | Onde está                                                  |
-| ----------------------------- | ---------------------------------------------------------- |
+| Pergunta do enunciado           | Onde está                                                                   |
+| ------------------------------- | --------------------------------------------------------------------------- |
 | conectado agora, e desde quando | `agentState` / `agentLabel` / `formatAgo` em `print-sectors/print-agent.ts` |
-| quais impressoras ele enxerga | `listPrintAgentPrinters` → `GET /admin/branches/{id}/printers` |
-| comanda de teste              | `requestPrintTest` → `POST /admin/branches/{id}/print-test` |
+| quais impressoras ele enxerga   | `listPrintAgentPrinters` → `GET /admin/branches/{id}/printers`              |
+| comanda de teste                | `requestPrintTest` → `POST /admin/branches/{id}/print-test`                 |
 
 Rotas confirmadas no `openapi.json` do backend (checkout irmão
 `../pedeaqui_back`), não supostas.
@@ -105,7 +105,8 @@ Ver §6. Não há uma única rota. Nenhuma tela foi escrita.
 
 ### Item 6 — Auditoria
 
-Ver §7. Feita, sem commit de código.
+Feita, em `scratchpad/auditoria.md`. Sem commit de código, como o enunciado
+pediu. Os três primeiros consertos que ela recomenda estão no §7 deste arquivo.
 
 ---
 
@@ -113,15 +114,15 @@ Ver §7. Feita, sem commit de código.
 
 Fonte: `src/orders/order-actions.ts` + `order-status.ts`.
 
-| Estado             | Avanço (primário, laranja, 1 só) | Saída (destrutiva, 1 só, sempre confirma) |
-| ------------------ | -------------------------------- | ----------------------------------------- |
-| `pending`          | Aceitar pedido → `accepted`      | **Recusar pedido** → `rejected` (`PATCH /status`) |
-| `accepted`         | Iniciar preparo → `preparing`    | Cancelar pedido (`PATCH /cancel`, GERENCIA) |
-| `preparing`        | Marcar como pronto → `ready`     | Cancelar pedido                            |
-| `ready` (delivery) | Enviar para entrega → `out_for_delivery` | Cancelar pedido                    |
-| `ready` (retirada) | Concluir pedido → `completed`    | Cancelar pedido                            |
-| `out_for_delivery` | Concluir pedido → `completed`    | Cancelar pedido                            |
-| terminais          | — (nenhum)                       | — (nenhum)                                 |
+| Estado             | Avanço (primário, laranja, 1 só)         | Saída (destrutiva, 1 só, sempre confirma)         |
+| ------------------ | ---------------------------------------- | ------------------------------------------------- |
+| `pending`          | Aceitar pedido → `accepted`              | **Recusar pedido** → `rejected` (`PATCH /status`) |
+| `accepted`         | Iniciar preparo → `preparing`            | Cancelar pedido (`PATCH /cancel`, GERENCIA)       |
+| `preparing`        | Marcar como pronto → `ready`             | Cancelar pedido                                   |
+| `ready` (delivery) | Enviar para entrega → `out_for_delivery` | Cancelar pedido                                   |
+| `ready` (retirada) | Concluir pedido → `completed`            | Cancelar pedido                                   |
+| `out_for_delivery` | Concluir pedido → `completed`            | Cancelar pedido                                   |
+| terminais          | — (nenhum)                               | — (nenhum)                                        |
 
 Três regras que o mapa carrega e que não são óbvias:
 
@@ -141,36 +142,36 @@ Papéis de `admin_users.role`: `owner`, `manager`, `attendant`, `print_agent`.
 
 Conjuntos, lidos de `admin_scope.py` do backend (não transcritos à mão):
 
-| Conjunto             | Papéis                                        |
-| -------------------- | --------------------------------------------- |
-| `SOMENTE_DONO`       | owner                                         |
-| `GERENCIA`           | owner, manager                                |
-| `PESSOAS`            | owner, manager, attendant                     |
-| `AGENTE_DE_IMPRESSAO`| print_agent                                   |
-| `PESSOAS_E_AGENTE`   | owner, manager, attendant, print_agent        |
+| Conjunto              | Papéis                                 |
+| --------------------- | -------------------------------------- |
+| `SOMENTE_DONO`        | owner                                  |
+| `GERENCIA`            | owner, manager                         |
+| `PESSOAS`             | owner, manager, attendant              |
+| `AGENTE_DE_IMPRESSAO` | print_agent                            |
+| `PESSOAS_E_AGENTE`    | owner, manager, attendant, print_agent |
 
 O que cada um alcança, por tela:
 
-| Tela / seção         | owner | manager | attendant | print_agent |
-| -------------------- | ----- | ------- | --------- | ----------- |
-| Entrar no painel     | ✅    | ✅      | ✅        | ⛔ recusado |
-| Pedidos              | ✅    | ✅      | ✅        | —           |
-| — cancelar pedido    | ✅    | ✅      | ⛔        | —           |
-| Cozinha              | ✅    | ✅      | ✅        | —           |
-| Cardápio (ver/esgotar)| ✅   | ✅      | ✅        | —           |
-| — preço do produto   | ✅    | ⛔¹     | ⛔        | —           |
-| Clientes             | ✅    | ✅      | ⛔        | —           |
-| Desempenho           | ✅    | ✅²     | ⛔        | —           |
-| Avaliações           | ✅    | ✅      | ⛔        | —           |
-| Cupons (ver)         | ✅    | ✅      | ⛔        | —           |
-| — criar/editar cupom | ✅    | ⛔      | ⛔        | —           |
-| Cashback (ver)       | ✅    | ✅      | ⛔        | —           |
-| — gravar regra       | ✅    | ⛔      | ⛔        | —           |
-| Usuários             | ✅    | ⛔      | ⛔        | —           |
-| Loja › Operação      | ✅    | ✅      | ✅        | —           |
-| Loja › Impressão     | ✅    | ✅      | ✅³       | —           |
-| Loja › Marca/Geral/Valores | ✅ | ⛔     | ⛔        | —           |
-| Loja › Filial/Horários/Entrega/Pagamento | ✅ | ✅ | ⛔     | —           |
+| Tela / seção                             | owner | manager | attendant | print_agent |
+| ---------------------------------------- | ----- | ------- | --------- | ----------- |
+| Entrar no painel                         | ✅    | ✅      | ✅        | ⛔ recusado |
+| Pedidos                                  | ✅    | ✅      | ✅        | —           |
+| — cancelar pedido                        | ✅    | ✅      | ⛔        | —           |
+| Cozinha                                  | ✅    | ✅      | ✅        | —           |
+| Cardápio (ver/esgotar)                   | ✅    | ✅      | ✅        | —           |
+| — preço do produto                       | ✅    | ⛔¹     | ⛔        | —           |
+| Clientes                                 | ✅    | ✅      | ⛔        | —           |
+| Desempenho                               | ✅    | ✅²     | ⛔        | —           |
+| Avaliações                               | ✅    | ✅      | ⛔        | —           |
+| Cupons (ver)                             | ✅    | ✅      | ⛔        | —           |
+| — criar/editar cupom                     | ✅    | ⛔      | ⛔        | —           |
+| Cashback (ver)                           | ✅    | ✅      | ⛔        | —           |
+| — gravar regra                           | ✅    | ⛔      | ⛔        | —           |
+| Usuários                                 | ✅    | ⛔      | ⛔        | —           |
+| Loja › Operação                          | ✅    | ✅      | ✅        | —           |
+| Loja › Impressão                         | ✅    | ✅      | ✅³       | —           |
+| Loja › Marca/Geral/Valores               | ✅    | ⛔      | ⛔        | —           |
+| Loja › Filial/Horários/Entrega/Pagamento | ✅    | ✅      | ⛔        | —           |
 
 ¹ **Não é regra de rota.** `PATCH /admin/products/{id}` é da GERÊNCIA, mas o
 campo `price` é do dono — **quem decide é o CORPO**. Mora à mão em
@@ -221,11 +222,11 @@ diz **o que sai**, que é a pergunta que o suporte responde por telefone hoje.
 
 Três estados da lista `jobs` que a tela precisa separar, e nenhum é erro:
 
-| `jobs`                    | O que significa                                              |
-| ------------------------- | ------------------------------------------------------------ |
-| vazia                     | a filial zerou as duas contagens de via desse tipo de pedido |
-| só `type: 'customer'`     | pagamento online ainda não confirmado — via de produção não é gerada, é a mesma regra do "aguardando pagamento, não preparar" |
-| cliente + produção        | o caso normal                                                 |
+| `jobs`                | O que significa                                                                                                               |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| vazia                 | a filial zerou as duas contagens de via desse tipo de pedido                                                                  |
+| só `type: 'customer'` | pagamento online ainda não confirmado — via de produção não é gerada, é a mesma regra do "aguardando pagamento, não preparar" |
+| cliente + produção    | o caso normal                                                                                                                 |
 
 **Cópia é ENTRADA REPETIDA, não campo `copies`.** Duas vias do cliente chegam
 como dois itens idênticos em sequência. A tela agrupa para exibir ("2 vias"),
@@ -266,12 +267,12 @@ cujo estado o painel não sabe ler.
 **Zero rotas de integração administrável.** O que existe e poderia ser
 confundido com isso:
 
-| Candidato                              | Por que não é a tela de Integrações                    |
-| -------------------------------------- | ------------------------------------------------------ |
-| `GET /restaurants/{slug}/payment-config`| É a **API pública da vitrine** (sem autenticação). O painel não usa `/restaurants/*` — skill `rapidex-api` §4.3. |
-| `POST /payments/webhooks/{provider}`    | Gateway → backend. O painel não tem o que ler nem gravar aqui. |
-| Impressora                              | Já tem tela: **Loja › Impressão**. Duplicá-la em Integrações é dois lugares para o mesmo estado. |
-| Formas de pagamento                     | Já tem tela: **Loja › Pagamento**. É catálogo de meios, não credencial de gateway. |
+| Candidato                                | Por que não é a tela de Integrações                                                                              |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `GET /restaurants/{slug}/payment-config` | É a **API pública da vitrine** (sem autenticação). O painel não usa `/restaurants/*` — skill `rapidex-api` §4.3. |
+| `POST /payments/webhooks/{provider}`     | Gateway → backend. O painel não tem o que ler nem gravar aqui.                                                   |
+| Impressora                               | Já tem tela: **Loja › Impressão**. Duplicá-la em Integrações é dois lugares para o mesmo estado.                 |
+| Formas de pagamento                      | Já tem tela: **Loja › Pagamento**. É catálogo de meios, não credencial de gateway.                               |
 
 **Para o painel fechar, o backend precisa de:**
 
