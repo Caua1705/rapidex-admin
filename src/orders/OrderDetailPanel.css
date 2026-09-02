@@ -493,6 +493,79 @@
 }
 
 /* ==========================================================================
+ * A COMANDA DESTE PEDIDO — o fac-símile da bobina
+ * ======================================================================= */
+
+/*
+ * UMA VIA. Ela é um bloco de papel dentro do painel, e é assim que ela tem de
+ * PARECER: fundo próprio, fio de contorno, e o texto grudado nele — não é mais
+ * uma linha de rótulo/valor da lista acima.
+ */
+.comanda {
+  margin-top: var(--sp-12);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface-muted);
+}
+
+/*
+ * O CABEÇALHO DA VIA: para onde ela vai, e quantas saem.
+ *
+ * Setor à esquerda e contagem à direita, na mesma leitura por coluna do resto
+ * do painel — com dois setores empilhados, o olho desce pelas contagens sem
+ * reler os nomes.
+ */
+.comanda__cabeca {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-12);
+  padding: var(--sp-8) var(--sp-12);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.comanda__destino {
+  color: var(--ink);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-weight: var(--w-strong);
+}
+
+.comanda__copias {
+  color: var(--ink-3);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * O PAPEL.
+ *
+ * `--font-comanda` é a única família monoespaçada do painel, e o token traz o
+ * porquê: `content` já vem quebrado em `columns` caracteres pelo backend, com o
+ * alinhamento feito com espaços. Numa fonte de largura variável isto deixa de
+ * ser a comanda que sai no papel e vira um texto parecido com ela.
+ *
+ * `white-space: pre` e NÃO `pre-wrap`: reembrulhar é exatamente o que
+ * destruiria a coluna. Quando a via for mais larga que o painel — 48 colunas
+ * num telefone —, ela ROLA na horizontal, dentro do próprio bloco. É a mesma
+ * decisão de tabela larga: quem rola é o conteúdo, nunca a página.
+ */
+.comanda__papel {
+  margin: 0;
+  padding: var(--sp-12);
+  overflow-x: auto;
+  color: var(--ink);
+  font-family: var(--font-comanda);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  white-space: pre;
+  tab-size: 2;
+}
+
+/* ==========================================================================
  * QUANDO A TELA APERTA
  * ======================================================================= */
 

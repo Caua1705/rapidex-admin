@@ -4,6 +4,7 @@ import type {
   Branch,
   OrderDetail,
   OrderListResponse,
+  OrderPrintJobs,
   OrderStatusCountsResponse,
   PrepTimeResponse,
   StreamTicket,
@@ -60,6 +61,28 @@ export async function fetchStatusCounts(filters: OrderFilters): Promise<OrderSta
 export async function fetchOrderDetail(orderId: string): Promise<OrderDetail> {
   return unwrap(
     await apiClient.GET('/admin/orders/{order_id}', {
+      params: { path: { order_id: orderId } },
+    }),
+  );
+}
+
+/**
+ * As vias deste pedido, já formatadas para a bobina.
+ *
+ * MORA AQUI, E NÃO EM `print-agent.ts`, apesar do assunto: o caminho é
+ * `/admin/orders/{id}/…`, o backend a etiqueta em "admin orders", e quem a
+ * chama é o detalhe do pedido. `print-agent.ts` é sobre a MÁQUINA da filial —
+ * está ligada, o que ela enxerga, manda um teste —, e este é um recurso do
+ * PEDIDO. Guiar-se pelo assunto em vez do recurso é como uma rota de pedido
+ * acabaria num arquivo que a tela de pedidos não importa.
+ *
+ * REPETIR ESTE GET É BARATO E É O DESENHO: a rota não marca nada como impresso,
+ * de propósito, porque reimprimir é a operação mais comum do balcão. Não há
+ * cache a inventar aqui.
+ */
+export async function fetchOrderPrintJobs(orderId: string): Promise<OrderPrintJobs> {
+  return unwrap(
+    await apiClient.GET('/admin/orders/{order_id}/print-jobs', {
       params: { path: { order_id: orderId } },
     }),
   );

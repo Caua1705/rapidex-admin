@@ -344,6 +344,32 @@ export type PrintTestRequest = Schemas['PrintTestRequest'];
  */
 export type PrintTestResult = Schemas['PrintTestResponse'];
 
+// --- as vias de UM pedido -------------------------------------------------
+
+/**
+ * As bobinas de um pedido, na ordem em que devem sair.
+ *
+ * ELA NÃO É HISTÓRICO DE IMPRESSÃO, e a diferença é a tela inteira: a rota não
+ * marca nada como impresso — reimprimir é a operação mais comum do balcão, e
+ * por isso ela é um GET repetível. Quem lê isto pode dizer O QUE SAI; não pode
+ * dizer que saiu.
+ *
+ * `jobs` VAZIA é resposta legítima (a filial zerou as duas contagens), e a
+ * lista com só a via do cliente também (pagamento online ainda não confirmado
+ * não gera ordem de preparo). Ver `orders/print-jobs.ts`.
+ */
+export type OrderPrintJobs = Schemas['OrderPrintJobsResponse'];
+
+/**
+ * Uma bobina, já quebrada em `columns` colunas pelo backend.
+ *
+ * **CÓPIA É ENTRADA REPETIDA, não um campo `copies`**: duas vias do cliente
+ * chegam como dois itens idênticos em sequência. O contrato explica por quê —
+ * não existe atualização remota do agente, e um campo novo não seria lido pelas
+ * instalações que já estão em campo.
+ */
+export type PrintJob = Schemas['PrintJobResponse'];
+
 // --- cashback -----------------------------------------------------------
 
 /**

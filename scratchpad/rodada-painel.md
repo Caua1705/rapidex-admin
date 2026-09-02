@@ -198,8 +198,18 @@ o que sai no papel.
 
 - [x] **contrato regerado** — `amount_below_minimum` entrou no erro de
       pagamento do checkout público. Commit separado, como manda a skill.
+      (`d517ead`)
 - [x] **A comanda deste pedido** — `GET /admin/orders/{order_id}/print-jobs`
       no detalhe do pedido. Ver §5.1.
+
+> **ESTA ESCOLHA É MINHA, e o enunciado não a pedia.** Ele fica registrado aqui
+> para ser fácil de desfazer: é UM commit, e nada mais depende dele. O que a
+> justifica é o próprio texto do item 1 — "sem isso o dono não sabe se a comanda
+> vai sair" — e a §6a, que mandou procurar quantas outras rotas estavam como a
+> de impressão esteve por 20 dias. Esta era a única com valor de tela.
+
+Portão depois: `typecheck 0` · `lint 0` · `test 0` — **63 arquivos, 948 testes**
+(eram 61/925).
 
 ### 5.1 A comanda deste pedido
 

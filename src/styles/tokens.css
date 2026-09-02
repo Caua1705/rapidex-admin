@@ -326,6 +326,37 @@
     'IBM Plex Sans Variable', 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   /*
+   * ==========================================================================
+   * A ÚNICA FAMÍLIA MONOESPAÇADA DO PAINEL — e ela não é tipografia de tela
+   * ==========================================================================
+   *
+   * `check-design-tokens.mjs` proíbe família monoespaçada em todo `.css`, e a
+   * proibição continua valendo: o painel é UMA letra, IBM Plex Sans, e a mono
+   * já esteve aqui uma vez (JetBrains Mono em tempo, dinheiro e nº de pedido) e
+   * saiu porque dava à tela o ar de placa de equipamento.
+   *
+   * ESTE TOKEN NÃO REABRE AQUELA PORTA, e o teste para saber se um uso futuro
+   * se qualifica é curto: **o texto foi diagramado FORA do painel, em colunas
+   * de caractere, por outro programa?**
+   *
+   * O único caso que passa hoje é a COMANDA. `PrintJobResponse.content` vem do
+   * backend já quebrado em `columns` caracteres, com o alinhamento feito à
+   * base de espaços — é isso que a bobina térmica recebe. Numa fonte de
+   * largura variável, `2x PICANHA        R$ 89,90` deixa de alinhar, e a tela
+   * passa a mostrar uma comanda que não é a que sai no papel. O lojista abre
+   * esse bloco justamente para conferir o papel: uma prévia que não confere é
+   * pior que nenhuma.
+   *
+   * Ou seja: aqui a mono não é escolha de estilo, é a condição para o conteúdo
+   * ser verdadeiro. Onde ela for escolha de estilo, a regra de sempre vale.
+   *
+   * A LISTA COMEÇA EM `ui-monospace` para pegar a mono do sistema (SF Mono no
+   * mac, Cascadia no Windows) em vez de baixar uma fonte só para este bloco —
+   * a família aqui não carrega identidade nenhuma, e não deve carregar.
+   * ======================================================================= */
+  --font-comanda: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', 'DejaVu Sans Mono', monospace;
+
+  /*
    * 1. Título de página. 22px e não 24: numa tela cujo primeiro pedido tem de
    * começar a 52px do topo, o título divide a linha com o filtro, e 24px
    * empurrava a linha para 60px. O peso 600 (e não 700) é a Plex — ela é mais

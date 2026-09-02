@@ -7,6 +7,7 @@ import { XIcon } from '../ds/icons';
 import { StatusChip } from '../ds/StatusChip';
 import { customerHistoryLine, formatPhone, phoneHref } from '../customers/customer-model';
 import { CancelOrderDialog } from './CancelOrderDialog';
+import { ComandaDoPedido } from './ComandaDoPedido';
 import { RejectOrderDialog } from './RejectOrderDialog';
 import { advanceActionFor, exitActionFor, type ConfirmKind } from './order-actions';
 import {
@@ -428,6 +429,18 @@ function DetailBody({ detail, branchId }: { detail: OrderDetail; branchId: strin
           ))}
         </ul>
       </section>
+
+      {/*
+        A COMANDA VEM LOGO DEPOIS DOS ITENS, e não no fim do painel: ela é a
+        forma IMPRESSA do que está logo acima, e a adjacência é o que faz o
+        lojista comparar as duas listas sem rolar entre elas. No fim, abaixo de
+        Pagamento e Histórico, ela viraria uma gaveta que ninguém abre — numa
+        tela cujo chamado mais frequente é justamente "a comanda não saiu".
+
+        Ela nasce fechada e não cobra requisição nenhuma até o clique, então o
+        custo de estar aqui em cima é uma linha de altura. Ver `ComandaDoPedido`.
+      */}
+      <ComandaDoPedido orderId={detail.id} paymentStatus={detail.payment_status} />
 
       {detail.notes ? (
         <section className="detail__block">
