@@ -116,7 +116,7 @@ empurrão tinham o mesmo defeito latente, sem a janela para acioná-lo.
 **360 passaram**. Suíte inteira: **256 passaram, 4 pulados, 0 falharam**.
 
 Portão: `format:check 0` · `lint 0` · `typecheck 0` · `test 0` (63 arquivos, 948
-testes) · `playwright` 256/4/0. Commit `aad060a`.
+testes) · `playwright` 256/4/0. Commit `e4b76c1`.
 
 (vazio: nada feito ainda além da leitura e do portão de base)
 
@@ -648,7 +648,7 @@ lidos sem pipe. Sete commits, um por item, todos com push.
 
 | #   | Item                                                       | Commit    |
 | --- | ---------------------------------------------------------- | --------- |
-| 0   | o falso dava o evento do SSE à conexão da tela anterior    | `aad060a` |
+| 0   | o falso dava o evento do SSE à conexão da tela anterior    | `e4b76c1` |
 | 1   | o 428 do cancelamento, e o `detail` objeto                 | `39bbd19` |
 | 2   | a borda de erro e o relato                                 | `defde3b` |
 | 3   | o fuso do portão, e os dois defeitos de produto atrás dele | `8c85416` |
