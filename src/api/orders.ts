@@ -103,7 +103,16 @@ export async function updateOrderStatus(
         // histórico do pedido.
         header: { 'Idempotency-Key': crypto.randomUUID() },
       },
-      // `confirm_prepared_order: false` — ver `cancelOrder` logo abaixo.
+      /*
+       * `confirm_prepared_order: false` FIXO, e aqui isso é DEFINITIVO.
+       *
+       * Esta rota também aceita `status: 'cancelled'` e também exige a
+       * confirmação — mas o painel nunca cancela por aqui: `exitActionFor`
+       * manda o cancelamento pela rota própria (`cancelOrder`), que é onde o
+       * motivo é obrigatório e onde o diálogo de confirmação vive. O único
+       * destino destrutivo que passa por aqui é `rejected`, e recusar um
+       * pedido pendente nunca precisa de confirmação de comida feita.
+       */
       body: { status, confirm_prepared_order: false, ...(note ? { note } : {}) },
     }),
   );
@@ -117,7 +126,21 @@ export async function updateOrderStatus(
  * trabalho já feito, e sem o motivo gravado ninguém depois consegue dizer se
  * foi o cliente que desistiu ou a cozinha que não deu conta.
  */
-export async function cancelOrder(orderId: string, reason: string): Promise<OrderDetail> {
+export async function cancelOrder(
+  orderId: string,
+  reason: string,
+  /**
+   * O SEGUNDO CLIQUE, e ele só vem do lojista.
+   *
+   * O padrão é `false` e continua sendo: mandar `true` sem alguém ter
+   * confirmado seria o painel afirmando, por conta própria, que o lojista sabe
+   * que a comida já foi feita — em toda cozinha, para todo cancelamento. É
+   * exatamente o que o campo existe para impedir. Quem o passa é
+   * `OrderDetailPanel.handleCancel`, e só depois de o diálogo ter mostrado a
+   * frase que o backend mandou no 428.
+   */
+  confirmPreparedOrder = false,
+): Promise<OrderDetail> {
   return unwrap(
     await apiClient.PATCH('/admin/orders/{order_id}/cancel', {
       params: {
@@ -128,22 +151,16 @@ export async function cancelOrder(orderId: string, reason: string): Promise<Orde
         header: { 'Idempotency-Key': crypto.randomUUID() },
       },
       /*
-       * `confirm_prepared_order: false`, E ELE É UM PENDENTE, não uma decisão
-       * fechada.
+       * O PRIMEIRO ENVIO VAI COM `false`, E É ASSIM QUE SE DESCOBRE.
        *
-       * O campo entrou no contrato junto com a visibilidade do cupom. A partir
-       * de `preparing`, cancelar sem ele responde **428 `confirmation_required`**
-       * — que o próprio contrato diz não ser erro: "o painel abre o diálogo de
-       * confirmação e reenvia". Esse diálogo AINDA NÃO EXISTE, então hoje o
-       * lojista vê a mensagem do 428 e o cancelamento não acontece.
-       *
-       * `false` explícito é o que preserva o comportamento de antes e falha
-       * FECHADO: mandar `true` daqui seria o painel afirmando, por conta
-       * própria, que o lojista sabe que a comida já foi feita — em toda
-       * cozinha, para todo cancelamento, sem ninguém ter confirmado nada. É
-       * exatamente o que o campo existe para impedir.
+       * A partir de `preparing`, cancelar sem confirmação responde **428
+       * `confirmation_required`** — que o próprio contrato diz não ser erro:
+       * "o painel abre o diálogo de confirmação e reenvia". O painel não
+       * adivinha se este pedido precisa de confirmação: ele manda `false`,
+       * e o 428 é a resposta que abre o diálogo. Ver
+       * `orders/cancel-confirmation.ts`.
        */
-      body: { reason, confirm_prepared_order: false },
+      body: { reason, confirm_prepared_order: confirmPreparedOrder },
     }),
   );
 }

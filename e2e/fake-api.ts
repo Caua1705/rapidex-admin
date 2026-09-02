@@ -1594,6 +1594,14 @@ export type FakeApi = {
   failAvailability: (productId: string) => void;
   /** Motivo gravado no cancelamento, para conferir o que a tela mandou. */
   cancelReasons: () => { orderId: string; reason: string }[];
+  /**
+   * Quantos 428 de confirmação o falso devolveu.
+   *
+   * Ele prova que o painel PASSOU pelo diálogo, e não que mandou
+   * `confirm_prepared_order: true` de saída — o pedido acaba `cancelled` nos
+   * dois casos, e a tela sozinha não separa os dois.
+   */
+  cancelamentosRecusadosPorConfirmacao: () => number;
   /** Apaga a faixa base da filial: o próximo ajuste responde 409. */
   clearPrepTimeBase: (branchId: string) => void;
   /** Fecha a filial: qualquer ajuste responde 409 de loja fechada. */
@@ -2114,6 +2122,15 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      * número do bilhete diz de QUAL tentativa aquela conexão é, sem depender da
      * ordem em que os handlers do Playwright rodam.
      */
+    /**
+     * Quantas vezes o falso respondeu 428 pedindo confirmação.
+     *
+     * O teste precisa dele para provar que o painel PASSOU pelo diálogo em vez
+     * de ter mandado `true` de saída: o pedido acaba `cancelled` nos dois
+     * casos, e sem este contador a asserção de tela não distingue os dois — que
+     * é a diferença entre pedir confirmação e não pedir.
+     */
+    cancelamentosRecusadosPorConfirmacao: 0,
     streamTickets: 0,
     /**
      * As gerações das conexões SSE penduradas AGORA.
@@ -3090,7 +3107,10 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       const item = findOrder(cancelMatch[1]);
       if (!item) return json(route, 404, { detail: 'Pedido não encontrado.' });
 
-      const body = request.postDataJSON() as { reason?: string };
+      const body = request.postDataJSON() as {
+        reason?: string;
+        confirm_prepared_order?: boolean;
+      };
       const reason = (body.reason ?? '').trim();
       // Mesma validação do backend: 3 a 300 caracteres, 422 fora disso.
       if (reason.length < 3 || reason.length > 300) {
@@ -3101,6 +3121,39 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       if (isTerminal(item.status)) {
         return json(route, 409, {
           detail: `"${ROTULOS[item.status]}" é um estado final e não muda mais.`,
+        });
+      }
+
+      /*
+       * O 428 DE COMIDA JÁ FEITA — e ele existe aqui por uma razão que a
+       * auditoria nomeou: **um falso que nunca devolve 428 nunca acusa que o
+       * painel não sabe lê-lo.** Ele foi o buraco estrutural desta suíte: o
+       * cancelamento a partir de `preparing` não funcionava em produção e os
+       * 251 testes de e2e ficavam verdes, porque o falso é escrito por nós.
+       *
+       * A forma do corpo é a do backend, letra por letra
+       * (`AdminOrderService._ensure_cancellation_confirmed`): `detail` é um
+       * OBJETO com `code`, `message` e `order_status`. Devolver `detail` de
+       * texto aqui deixaria o teste verde contra um painel que não sabe ler o
+       * objeto — que é exatamente o defeito consertado nesta rodada.
+       *
+       * Os três estados são os `PREPARED_ORDER_STATUSES` do backend. E a
+       * checagem vem DEPOIS do 409 de estado final pela mesma ordem de lá:
+       * pedido já cancelado não pede confirmação de novo.
+       */
+      if (
+        !body.confirm_prepared_order &&
+        ['preparing', 'ready', 'out_for_delivery'].includes(item.status)
+      ) {
+        state.cancelamentosRecusadosPorConfirmacao += 1;
+        return json(route, 428, {
+          detail: {
+            code: 'confirmation_required',
+            message:
+              'Este pedido já está em produção. Cancelar agora não devolve o custo da ' +
+              'comida para o restaurante. Confirme para continuar.',
+            order_status: item.status,
+          },
         });
       }
 
@@ -4232,6 +4285,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     },
     imageUploads: () => state.imageUploads,
     cancelReasons: () => state.cancelReasons,
+    cancelamentosRecusadosPorConfirmacao: () => state.cancelamentosRecusadosPorConfirmacao,
     settings: () => state.settings,
     settingsPatches: () => state.settingsPatches,
     profile: () => state.profile,

@@ -98,7 +98,7 @@ async function renderizarPainel() {
         `dangerouslySetInnerHTML` esquecido aparecer.
       */
       podeCancelar
-      onCancelOrder={async () => true}
+      onCancelOrder={async () => ({ kind: 'cancelado' })}
       actionErrorMessage={null}
     />,
   );

@@ -43,7 +43,7 @@ que está escrito em cada uma.
 | #   | Item                                                      | Classe do enunciado | Estado |
 | --- | --------------------------------------------------------- | ------------------- | ------ |
 | 0   | `cozinha.spec.ts:195` — o SSE, vermelho no portão de base | portão              | ✅     |
-| 1   | `detail` objeto + o diálogo do 428 do cancelamento        | (a) e (b)           | ⬜     |
+| 1   | `detail` objeto + o diálogo do 428 do cancelamento        | (a) e (b)           | ✅     |
 | 2   | `ErrorBoundary` + `POST /admin/error-reports`             | (b) e (c)           | ⬜     |
 | 3   | §3 do enunciado — a varredura de teste dependente de hora | portão              | ⬜     |
 | 4   | §2 do enunciado — a intermitente de `loja.spec.ts:166`    | portão              | ⬜     |
@@ -119,6 +119,76 @@ Portão: `format:check 0` · `lint 0` · `typecheck 0` · `test 0` (63 arquivos,
 testes) · `playwright` 256/4/0. Commit `aad060a`.
 
 (vazio: nada feito ainda além da leitura e do portão de base)
+
+---
+
+### 2.1 — O 428 do cancelamento: o pedido em produção voltou a poder ser cancelado ✅
+
+Item 1 da auditoria (§f.1 e §B.1). **A partir de "Iniciar preparo", o pedido não
+podia mais ser cancelado pelo painel** — nem por dono, nem por gerente — e a
+mensagem que o lojista lia era `A requisição falhou (428)`. Valia para
+`preparing`, `ready` e `out_for_delivery`: a maior parte da vida de um pedido.
+
+**Vermelho visto antes, nas três camadas:**
+
+| Camada  | O que foi visto vermelho                                                                                                                                                    |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| unidade | `readDetailMessage({detail:{...}})` → `expected null`; `buildApiError(428, …)` → `'A requisição falhou (428).'`                                                             |
+| unidade | `cancel-confirmation.test.ts` inteiro, com o módulo ainda inexistente                                                                                                       |
+| e2e     | `cancelar exige motivo e grava o que foi escrito` — o teste que JÁ EXISTIA, no #1003 que está em preparo, ficou vermelho no instante em que o falso passou a devolver o 428 |
+
+A terceira linha é a que importa mais: **o e2e ficava verde contra um painel que
+não conseguia cancelar.** Esse é o buraco estrutural que a auditoria nomeou —
+o e2e fala com `fake-api.ts`, que é escrito por nós, e um falso que nunca
+devolve 428 nunca acusa que o painel não sabe lê-lo.
+
+**As quatro peças:**
+
+1. **`readDetailMessage` aprendeu `detail` como OBJETO.** É a metade de uma
+   linha da auditoria, e ela sozinha já troca o número HTTP pela frase em
+   português que o backend manda pronta. Depois do ramo da lista de validação
+   de propósito: aquela também é objeto para o `typeof`, e é o `Array.isArray`
+   que impede um `detail` de validação mal formado de cair aqui.
+2. **`orders/cancel-confirmation.ts`** — novo, puro, 7 casos. Ele confere o
+   `code === 'confirmation_required'` em vez de presumir do 428: um 428 de
+   outra precondição futura não é coisa que o lojista resolva clicando de novo.
+   `order_status` ausente **não** invalida a confirmação — ele só escolhe a
+   palavra do título, e recusar o 428 inteiro por falta de um texto deixaria o
+   pedido sem poder ser cancelado, que é o defeito de origem.
+3. **O desfecho deixou de ser booleano.** São três: `cancelado`,
+   `precisa-confirmar`, `falhou`. O do meio **não vira `actionError`** — pintar
+   de vermelho a barra do painel diria que algo quebrou, quando o que houve foi
+   o backend fazendo uma pergunta.
+4. **O diálogo ganhou um segundo passo, em vez de um segundo diálogo.** Três
+   motivos, e todos estão escritos no arquivo: o motivo já foi escrito (um
+   diálogo novo o descartaria ou o esconderia), no celular este diálogo é a
+   tela inteira (dois modais = duas armadilhas de foco e dois "fechar"), e é a
+   mesma pergunta ficando mais cara — não outro assunto.
+
+**O texto do aviso é o do BACKEND**, e o painel escreve só o título. O backend
+sabe o que o cancelamento custa e essa regra muda lá sem o painel ser
+reimplantado; o que ele não tem como saber é a palavra da tela. `order_status`
+serve exatamente a isso: a mensagem dele é a mesma para os três estados, e
+**"já saiu para entrega"** muda a decisão — a comida não está só feita, está na
+rua com o entregador.
+
+**A outra metade da prova, e sem ela a primeira não vale:** um painel que
+mostrasse o passo dois SEMPRE também passaria nos testes acima. Por isso há um
+e2e do pedido em `accepted` cancelando **num clique só**, com
+`cancelamentosRecusadosPorConfirmacao() === 0` — a segunda pergunta vem do
+backend, e não de um `if` de status escrito na tela.
+
+**Fora do conserto, uma coisa que estava marcada como pendente e não era:**
+`updateOrderStatus` manda `confirm_prepared_order: false` fixo, e isso é
+**definitivo**, não um pendente. Aquela rota aceita `status: 'cancelled'`, mas o
+painel nunca cancela por ela — `exitActionFor` manda o cancelamento pela rota
+própria. O único destino destrutivo que passa por lá é `rejected`, e recusar
+pedido pendente nunca precisa de confirmação de comida feita. O comentário
+passou a dizer isso.
+
+Portão: `format:check 0` · `lint 0` · `typecheck 0` · `test 0` (**64 arquivos,
+958 testes**, eram 63/948) · `playwright` **259 passaram**, 4 pulados, 0
+falharam (eram 256).
 
 ---
 

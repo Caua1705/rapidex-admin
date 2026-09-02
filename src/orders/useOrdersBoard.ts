@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { messageFromUnknownError } from '../api/errors';
 import { cancelOrder, fetchStatusCounts, listOrders, updateOrderStatus } from '../api/orders';
+import { readCancelConfirmation, type CancelOutcome } from './cancel-confirmation';
 import type { OrderListItem, OrderStreamEvent } from '../api/types';
 import { defaultFilters, orderMatchesFilters, type OrdersFilterState } from './order-filters';
 import { listItemFromDetail } from './order-mapping';
@@ -165,18 +166,31 @@ export function useOrdersBoard() {
    *
    * Mesmo tratamento do `changeOrderStatus` — o backend devolve o pedido já
    * cancelado e o quadro aplica isso na hora, sem recarregar a lista inteira.
+   *
+   * O DESFECHO NÃO É BOOLEANO porque o backend tem três respostas, e a do meio
+   * não é falha: a partir de `preparing`, cancelar sem `confirm` responde 428
+   * pedindo o segundo clique. Ver `cancel-confirmation.ts`.
    */
   const cancelOrderWithReason = useCallback(
-    async (orderId: string, reason: string): Promise<boolean> => {
+    async (orderId: string, reason: string, confirm = false): Promise<CancelOutcome> => {
       setActionError(null);
       try {
-        const detail = await cancelOrder(orderId, reason);
+        const detail = await cancelOrder(orderId, reason, confirm);
         commitOrders(upsertOrder(ordersRef.current, listItemFromDetail(detail)));
         scheduleCountsRefresh();
-        return true;
+        return { kind: 'cancelado' };
       } catch (error) {
+        /*
+         * O 428 NÃO VIRA `actionError`. Ele não é erro, e pintá-lo de vermelho
+         * na barra do painel diria ao lojista que alguma coisa quebrou —
+         * quando o que aconteceu é que o backend fez uma pergunta. Quem a
+         * mostra é o diálogo, e a resposta dela é o segundo envio.
+         */
+        const confirmation = readCancelConfirmation(error);
+        if (confirmation) return { kind: 'precisa-confirmar', confirmation };
+
         setActionError({ orderId, message: messageFromUnknownError(error) });
-        return false;
+        return { kind: 'falhou' };
       }
     },
     [commitOrders, scheduleCountsRefresh],

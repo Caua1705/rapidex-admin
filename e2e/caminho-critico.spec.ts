@@ -537,6 +537,15 @@ test('cancelar exige motivo e grava o que foi escrito', async ({ page }) => {
   await expect(confirmar).toBeEnabled();
   await confirmar.click();
 
+  /*
+   * O #1003 ESTÁ EM PREPARO, então o backend responde 428 e pede o segundo
+   * clique. O teste passa por ele aqui porque este é o caminho de verdade de um
+   * pedido nesse estado — parar antes seria provar o cancelamento de um pedido
+   * que este painel não tem. O passo dois em si é provado abaixo, em "o pedido
+   * em produção pede o segundo clique".
+   */
+  await confirmacao.getByTestId('confirm-cancel-prepared').click();
+
   await expect
     .poll(() => api.cancelReasons())
     .toEqual([{ orderId: 'ord-1003', reason: 'Cliente desistiu por telefone.' }]);
@@ -566,6 +575,117 @@ test('cancelar recusado pelo backend mostra o erro sem fechar a confirmação', 
   await expect(confirmacao.getByTestId('cancel-error')).toContainText('estado final');
   // Continua aberta: o lojista precisa ver o que aconteceu antes de sair.
   await expect(confirmacao).toBeVisible();
+});
+
+/*
+ * ============================================================================
+ * O 428 DO CANCELAMENTO DE PEDIDO EM PRODUÇÃO
+ * ============================================================================
+ *
+ * A PARTIR DE "INICIAR PREPARO", O PEDIDO NÃO PODIA MAIS SER CANCELADO PELO
+ * PAINEL. Nem por dono, nem por gerente. Cliente ligava desistindo às 20h10, a
+ * comida estava na chapa, e a única saída era o suporte. Valia para
+ * `preparing`, `ready` e `out_for_delivery` — a maior parte da vida de um
+ * pedido.
+ *
+ * E O E2E FICAVA VERDE. Este é o buraco ESTRUTURAL que a auditoria nomeou: o
+ * e2e fala com `fake-api.ts`, que é escrito por nós, e um falso que nunca
+ * devolve 428 nunca acusa que o painel não sabe lê-lo. O falso passou a
+ * devolvê-lo, com o corpo do backend letra por letra.
+ */
+test('o pedido em produção pede o segundo clique, com a frase que o backend mandou', async ({
+  page,
+}) => {
+  await fazerLogin(page);
+  await page.getByTestId('order-card-1003').click();
+  await page.getByTestId('order-panel').getByTestId('change-status-cancelled').click();
+
+  const confirmacao = page.getByRole('dialog');
+  await confirmacao.getByLabel('Motivo do cancelamento').fill('Cliente desistiu por telefone.');
+  await confirmacao.getByTestId('confirm-cancel').click();
+
+  // O backend recusou o primeiro envio, e o diálogo virou a segunda pergunta.
+  await expect.poll(() => api.cancelamentosRecusadosPorConfirmacao()).toBe(1);
+  await expect(confirmacao.getByTestId('cancel-confirmation')).toBeVisible();
+
+  /*
+   * A FRASE É A DO BACKEND, E O NÚMERO NÃO APARECE.
+   *
+   * Antes desta rodada, `readDetailMessage` só sabia ler `detail` como texto
+   * ou como lista de validação; o objeto do 428 caía fora e o lojista lia
+   * "A requisição falhou (428)" — um número HTTP no lugar de uma frase que o
+   * backend já tinha mandado pronta em português.
+   */
+  await expect(confirmacao).toContainText('Cancelar agora não devolve o custo da comida');
+  await expect(page.locator('body')).not.toContainText('A requisição falhou');
+  await expect(page.locator('body')).not.toContainText('428');
+
+  // O título é a única coisa que o painel escreve, e ele usa `order_status`.
+  await expect(confirmacao).toContainText('A comida já está sendo feita');
+
+  // O MOTIVO SOBREVIVEU: um diálogo novo o teria descartado.
+  await expect(confirmacao.getByLabel('Motivo do cancelamento')).toHaveValue(
+    'Cliente desistiu por telefone.',
+  );
+  // E nada foi cancelado ainda.
+  expect(api.cancelReasons()).toHaveLength(0);
+
+  await confirmacao.getByTestId('confirm-cancel-prepared').click();
+
+  await expect
+    .poll(() => api.cancelReasons())
+    .toEqual([{ orderId: 'ord-1003', reason: 'Cliente desistiu por telefone.' }]);
+  await expect(page.getByTestId('order-card-1003')).toHaveCount(0);
+});
+
+/*
+ * O `order_status` do 428 existe para ESTA diferença: a mensagem do backend é
+ * a mesma para os três estados ("já está em produção"), e "já saiu para
+ * entrega" muda a decisão — a comida não está só feita, ela está na rua.
+ */
+test('o pedido que já saiu para entrega diz isso no título, e não "está sendo feita"', async ({
+  page,
+}) => {
+  await fazerLogin(page);
+  api.setStatusFromAnotherUser('ord-1003', 'out_for_delivery');
+  await page.reload();
+
+  await page.getByTestId('order-card-1003').click();
+  await page.getByTestId('order-panel').getByTestId('change-status-cancelled').click();
+
+  const confirmacao = page.getByRole('dialog');
+  await confirmacao.getByLabel('Motivo do cancelamento').fill('Cliente não estava em casa.');
+  await confirmacao.getByTestId('confirm-cancel').click();
+
+  await expect(confirmacao).toContainText('O pedido já saiu para entrega');
+  await expect(confirmacao).not.toContainText('A comida já está sendo feita');
+});
+
+/*
+ * A OUTRA METADE DA PROVA, e sem ela a de cima não vale: um painel que
+ * mostrasse o passo dois SEMPRE também passaria nos testes acima. O que se
+ * prova aqui é que a segunda pergunta vem do BACKEND, e não de um `if` de
+ * status escrito na tela.
+ */
+test('o pedido aceito, que a cozinha não começou, cancela num clique só', async ({ page }) => {
+  await fazerLogin(page);
+  api.setStatusFromAnotherUser('ord-1002', 'accepted');
+  await page.reload();
+
+  await page.getByTestId('order-card-1002').click();
+  await page.getByTestId('order-panel').getByTestId('change-status-cancelled').click();
+
+  const confirmacao = page.getByRole('dialog');
+  await confirmacao.getByLabel('Motivo do cancelamento').fill('Cliente desistiu por telefone.');
+  await confirmacao.getByTestId('confirm-cancel').click();
+
+  await expect
+    .poll(() => api.cancelReasons())
+    .toEqual([{ orderId: 'ord-1002', reason: 'Cliente desistiu por telefone.' }]);
+  // Nenhum 428: a cozinha não tinha gasto nada, e o painel não inventou uma
+  // pergunta que o backend não fez.
+  expect(api.cancelamentosRecusadosPorConfirmacao()).toBe(0);
+  await expect(page.getByTestId('order-card-1002')).toHaveCount(0);
 });
 
 /*

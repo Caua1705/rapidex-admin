@@ -10,6 +10,7 @@ import { CancelOrderDialog } from './CancelOrderDialog';
 import { ComandaDoPedido } from './ComandaDoPedido';
 import { RejectOrderDialog } from './RejectOrderDialog';
 import { advanceActionFor, exitActionFor, type ConfirmKind } from './order-actions';
+import type { CancelConfirmation, CancelOutcome } from './cancel-confirmation';
 import {
   ORDER_TYPE_LABELS,
   PAYMENT_METHOD_LABELS,
@@ -75,7 +76,7 @@ export function OrderDetailPanel({
    * cancelamento.
    */
   onChangeStatus: (orderId: string, status: string, note?: string) => Promise<boolean>;
-  /** Devolve true quando o backend aceitou o cancelamento. */
+  /** Devolve o desfecho do cancelamento — que tem TRÊS valores, não dois. */
   /**
    * "Cancelar" existe para este papel.
    *
@@ -85,7 +86,12 @@ export function OrderDetailPanel({
    * daqui transformaria "quem é você" numa exceção na montagem.
    */
   podeCancelar: boolean;
-  onCancelOrder: (orderId: string, reason: string) => Promise<boolean>;
+  /**
+   * O `confirm` é o SEGUNDO clique do 428, e ele nunca sai daqui sozinho: só
+   * é `true` depois de o diálogo ter mostrado ao lojista a frase que o backend
+   * mandou. Ver `cancel-confirmation.ts`.
+   */
+  onCancelOrder: (orderId: string, reason: string, confirm?: boolean) => Promise<CancelOutcome>;
   actionErrorMessage: string | null;
 }) {
   const [detail, setDetail] = useState<OrderDetail | null>(null);
@@ -98,6 +104,15 @@ export function OrderDetailPanel({
    */
   const [confirmando, setConfirmando] = useState<ConfirmKind | null>(null);
   const [isConfirmando, setIsConfirmando] = useState(false);
+  /**
+   * O 428 do cancelamento de pedido em produção, quando ele chega.
+   *
+   * Não nulo = o diálogo está no passo dois e o próximo envio vai com
+   * `confirm_prepared_order: true`. Ele é o ÚNICO lugar onde esse `true`
+   * nasce, e é o que garante que ninguém o mande sem o lojista ter lido a
+   * frase.
+   */
+  const [confirmacaoDoPreparo, setConfirmacaoDoPreparo] = useState<CancelConfirmation | null>(null);
   // Muda de valor para forçar o recarregamento do detalhe após uma transição.
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -112,6 +127,9 @@ export function OrderDetailPanel({
     setDetail(null);
     setLoadError(null);
     setConfirmando(null);
+    // Trocar de pedido zera a pergunta: a confirmação era sobre AQUELE pedido,
+    // e mantê-la abriria o passo dois de um pedido que ninguém tentou cancelar.
+    setConfirmacaoDoPreparo(null);
 
     void (async () => {
       try {
@@ -135,13 +153,32 @@ export function OrderDetailPanel({
     if (changed) setReloadToken((token) => token + 1);
   }
 
+  /**
+   * O cancelamento, que pode precisar de DOIS envios.
+   *
+   * O primeiro vai com `confirm = false`, sempre — o painel não adivinha se
+   * este pedido exige confirmação, ele pergunta ao backend mandando. Se a
+   * resposta for o 428, o diálogo vira o passo dois e o clique seguinte cai
+   * aqui de novo, agora com a confirmação na mão.
+   *
+   * O DIÁLOGO NÃO FECHA no meio: fechá-lo e reabri-lo perderia o motivo já
+   * escrito, e piscar duas janelas para a mesma pergunta é como se aperta o
+   * botão errado no meio do movimento.
+   */
   async function handleCancel(reason: string) {
     if (!orderId) return;
     setIsConfirmando(true);
-    const cancelled = await onCancelOrder(orderId, reason);
+    const desfecho = await onCancelOrder(orderId, reason, confirmacaoDoPreparo !== null);
     setIsConfirmando(false);
-    if (cancelled) {
+
+    if (desfecho.kind === 'precisa-confirmar') {
+      setConfirmacaoDoPreparo(desfecho.confirmation);
+      return;
+    }
+
+    if (desfecho.kind === 'cancelado') {
       setConfirmando(null);
+      setConfirmacaoDoPreparo(null);
       setReloadToken((token) => token + 1);
     }
   }
@@ -323,7 +360,11 @@ export function OrderDetailPanel({
           orderNumber={detail.order_number}
           isSending={isConfirmando}
           errorMessage={actionErrorMessage}
-          onClose={() => setConfirmando(null)}
+          confirmation={confirmacaoDoPreparo}
+          onClose={() => {
+            setConfirmando(null);
+            setConfirmacaoDoPreparo(null);
+          }}
           onConfirm={(reason) => void handleCancel(reason)}
         />
       ) : null}

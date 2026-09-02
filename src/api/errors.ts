@@ -1,11 +1,20 @@
 /**
  * Transforma qualquer falha da API numa frase que dá para mostrar na tela.
  *
- * O backend responde erro de três formas diferentes:
+ * O backend responde erro de QUATRO formas diferentes:
  *   - HTTPException      -> { "detail": "texto" }
  *   - erro de validação  -> { "detail": [{ "loc": [...], "msg": "texto" }] }
+ *   - detail TIPADO      -> { "detail": { "code": ..., "message": "texto" } }
  *   - erro de pagamento  -> { "error": { "message": "texto" } }
  * e ainda existe o caso de não ter resposta nenhuma (internet caiu).
+ *
+ * A TERCEIRA FORMA FALTAVA AQUI, e o preço dela foi alto: o 428 do
+ * cancelamento de pedido em produção manda `detail` como objeto, com uma
+ * `message` que o backend descreve como "pronta para ser mostrada no diálogo
+ * de confirmação do painel". Sem ela, o objeto caía fora dos formatos
+ * conhecidos e o lojista lia "A requisição falhou (428)" — um número HTTP no
+ * lugar da frase em português que já vinha pronta. Ver
+ * `orders/cancel-confirmation.ts`.
  *
  * Sem isso a tela mostraria "[object Object]", que é o que acontece quando se
  * joga o corpo do erro direto num elemento. As mensagens de 409 da máquina de
@@ -50,6 +59,20 @@ export function readDetailMessage(body: unknown): string | null {
       .map((item) => (typeof item.msg === 'string' ? item.msg : null))
       .filter((msg): msg is string => msg !== null);
     if (messages.length > 0) return messages.join('; ');
+  }
+
+  /*
+   * `detail` COMO OBJETO — o envelope tipado do FastAPI.
+   *
+   * Depois da lista de validação de propósito: aquela também é um objeto para o
+   * `typeof`, e é o `Array.isArray` aqui que impede um `detail` de validação
+   * mal formado (sem `msg` em item nenhum) de cair neste ramo e sair sem
+   * mensagem.
+   */
+  const detail = record.detail;
+  if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
+    const message = (detail as Record<string, unknown>).message;
+    if (typeof message === 'string' && message.trim() !== '') return message;
   }
 
   const nested = record.error;
