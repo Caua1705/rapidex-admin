@@ -315,9 +315,34 @@ test('pedido com pagamento online não confirmado fica destacado e travado', asy
  *
  * O 1001 fica de controle no mesmo quadro: ele também é Pix pendente, mas de
  * quatro minutos — ainda pode ser pago, e continua onde o lojista decide.
+ *
+ * ----------------------------------------------------------------------------
+ * POR QUE ESTE TESTE TROCA O PERÍODO ANTES DE EMPURRAR O PEDIDO
+ * ----------------------------------------------------------------------------
+ *
+ * O quadro abre em "hoje" (`defaultFilters`), e o pedido deste teste tem NOVENTA
+ * MINUTOS. Rodando a suíte entre 00:00 e 01:30 na hora da operação, noventa
+ * minutos atrás é ONTEM: `orderMatchesFilters` recusa o evento do SSE, o
+ * `status-counts` do falso aplica o mesmo recorte, e o teste falhava com o
+ * cartão ausente e o badge em 2 — sem nada de errado no bloco, que é o que ele
+ * existe para provar. Foi assim que ele quebrou às 01:14.
+ *
+ * Sete dias cobrem a virada em qualquer hora do dia. O que o teste afirma não
+ * muda: `groupIntoLanes` decide a faixa por status e por pagamento, nunca por
+ * período, e o 1001 de quatro minutos continua no quadro como controle.
+ *
+ * O CORTE DE TRINTA MINUTOS EM SI NÃO SE PROVA AQUI — ele é aritmética com
+ * `now` injetado, e `board-lanes.test.ts` já o cobre dos dois lados da fronteira
+ * sem depender de que horas são. O que só este teste alcança é o DESENHO: que o
+ * cartão nasce no bloco, que ele não fica também em "Novos", e que o badge
+ * continua somando os dois.
  */
 test('pedido com pagamento parado desce para o bloco, sem sair do quadro', async ({ page }) => {
   await fazerLogin(page);
+
+  await page.getByTestId('orders-period-last7').click();
+  await expect(page.getByTestId('order-card-1001')).toBeVisible();
+
   await api.waitForStream();
 
   api.pushNewOrder(
