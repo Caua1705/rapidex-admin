@@ -598,3 +598,112 @@ test('o balcão lê como a comanda sai, e não a edita', async ({ page }) => {
   await expect(page.getByTestId('print-footer-mode-herda')).toHaveCount(0);
   await expect(page.getByTestId('store-save-bar')).toHaveCount(0);
 });
+
+/*
+ * ============================================================================
+ * A COMANDA QUE NÃO SAI — a terceira camada das escritas
+ * ============================================================================
+ *
+ * Depois do dinheiro e do "a loja vende", vem esta: uma recusa engolida aqui
+ * faz o PEDIDO ENTRAR e a cozinha não ficar sabendo. O lojista configura o
+ * setor, a tela diz que gravou, e a via não sai — e ele descobre pelo cliente
+ * ligando para perguntar do pedido.
+ */
+
+test('setor criado por outra aba: o 409 aparece e o nome digitado fica', async ({ page }) => {
+  await fazerLogin(page);
+  await abrirAbaImpressao(page);
+
+  /*
+   * O PAINEL JÁ CONFERE DUPLICATA — mas contra a lista que ELE carregou.
+   * Quando outra aba cria o setor no meio, a conferência local não tem como
+   * saber, e quem recusa é o backend. É a única forma de este 409 chegar à
+   * tela, e é a realista: duas pessoas configurando a mesma loja.
+   */
+  await page.route('**/admin/branches/*/printing-sectors', (route) => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    return route.fulfill({
+      status: 409,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Já existe um setor com esse nome nesta filial' }),
+    });
+  });
+
+  await page.getByTestId('print-sector-new-name').fill('Confeitaria');
+  await page.getByTestId('print-sector-create').click();
+
+  await expect(page.getByTestId('store-error')).toContainText('Já existe um setor com esse nome');
+  // O nome fica no campo: recusa não é motivo para o lojista redigitar.
+  await expect(page.getByTestId('print-sector-new-name')).toHaveValue('Confeitaria');
+});
+
+test('setor apagado por outra aba: o 404 aparece e a linha não mostra o nome novo', async ({
+  page,
+}) => {
+  await fazerLogin(page);
+  await abrirAbaImpressao(page);
+
+  const chapa = page.getByTestId('print-sector-sec-chapa');
+  await expect(chapa).toContainText('Chapa');
+
+  await page.route('**/admin/printing-sectors/sec-chapa', (route) =>
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Setor de impressão não encontrado' }),
+    }),
+  );
+
+  await page.getByTestId('print-sector-rename-sec-chapa').click();
+  await page.getByTestId('print-sector-rename-input').fill('Chapa quente');
+  await page.getByTestId('print-sector-rename-save').click();
+
+  await expect(page.getByTestId('store-error')).toContainText('não encontrado');
+
+  /*
+   * A EDIÇÃO CONTINUA ABERTA COM O TEXTO, e isso é o certo: fechá-la na recusa
+   * mostraria a linha com o nome VELHO e nenhuma explicação do que aconteceu —
+   * o lojista leria como se a mudança tivesse sido descartada por ele mesmo.
+   */
+  await expect(page.getByTestId('print-sector-rename-input')).toHaveValue('Chapa quente');
+
+  // E nada foi gravado: o setor continua com o nome que existe de verdade.
+  expect(api.printSectors().find((s) => s.id === 'sec-chapa')?.name).toBe('Chapa');
+});
+
+/*
+ * A RECUSA MAIS ESPECÍFICA DESTA FAMÍLIA, e a auditoria já a nomeava:
+ * **setor é POR FILIAL, produto é da filial dele.** O backend responde
+ * **400 "O setor de impressão é de outra filial"**, e é a recusa que chega
+ * quando a filial do cabeçalho muda entre abrir o diálogo e salvar.
+ *
+ * O que se prova aqui é o pior desfecho: o produto salva o NOME e o PREÇO por
+ * uma rota, e o setor por outra. Se a segunda falhar em silêncio, o diálogo
+ * fecha, a tela mostra o item salvo, e a comanda continua saindo no setor
+ * errado — ou não saindo.
+ */
+test('setor de outra filial: o 400 chega à tela e o diálogo não fecha em silêncio', async ({
+  page,
+}) => {
+  await fazerLogin(page);
+  await page.getByRole('link', { name: 'Cardápio' }).click();
+  await escolherFilial(page);
+
+  await page.route('**/admin/products/*/printing-sector', (route) =>
+    route.fulfill({
+      status: 400,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'O setor de impressão é de outra filial' }),
+    }),
+  );
+
+  /* X-Salada não tem setor: apontá-lo para a Chapa é a mudança natural, e é
+     ela que dispara a rota própria do setor. */
+  await page.getByRole('button', { name: 'Editar X-Salada' }).click();
+  await escolher(page.getByTestId('product-print-sector'), 'Chapa');
+  await page.getByRole('button', { name: 'Salvar' }).click();
+
+  await expect(page.getByText('O setor de impressão é de outra filial')).toBeVisible();
+  // Nada de setor foi gravado.
+  expect(api.productSectorCalls()).toHaveLength(0);
+});

@@ -39,7 +39,8 @@ motivo de este documento contar as três medições em vez de só a última.
 | ---------------------------------------- | --------- | ---------------- |
 | primeira medição                         | 2         | 37               |
 | depois das escritas de dinheiro          | 0         | 32               |
-| depois de "o que decide se a loja vende" | 0         | **25**           |
+| depois de "o que decide se a loja vende" | 0         | 25               |
+| depois de "a comanda que não sai"        | 0         | **22**           |
 
 > **A régua subcontava, duas vezes.** Ela lia só o que o FALSO serviu, e uma
 > recusa dublada com `page.route` nunca chega lá — eram 6 invisíveis. Corrigida
@@ -144,9 +145,14 @@ pelo painel — ele monta uma faixa por dia, de uma grade fixa de sete.
 mexem em dinheiro ou em cadastro que o cliente vê —
 as 25 restantes, na ordem:
 
-1. **A comanda que não sai** — `print-settings`, `printing-sectors` (criar e
-   editar), `printing-sector` de produto e de categoria, `print-test`. O
-   pedido entra e a cozinha não fica sabendo.
+1. ~~**A comanda que não sai**~~ — feitas: `printing-sectors` (o 409 de nome
+   repetido criado por OUTRA aba, que a conferência local não tem como ver),
+   `printing-sectors/{id}` (o 404 de setor apagado no meio) e
+   `products/{id}/printing-sector` (o **400 "é de outra filial"**, que a
+   auditoria já nomeava: setor é POR FILIAL, e o produto salva nome e preço por
+   uma rota e o setor por outra — se a segunda falhar calada, o diálogo fecha e
+   a comanda sai no setor errado). Sobram `print-settings`, `printing-sector`
+   de categoria e `print-test`.
 2. **Cardápio** — produto, categoria, complemento, reordenação, foto. Erra uma
    tela, não um valor cobrado.
 3. **Equipe e conta** — `updateAdminUser`, `resetAdminUserPassword`,
