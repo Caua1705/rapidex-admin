@@ -1,0 +1,24 @@
+# O FIM DA LINHA É LF NO REPOSITÓRIO, E TAMBÉM NA CÓPIA DE TRABALHO.
+#
+# `format:check` é o PRIMEIRO `run` do job `verificar`, e passo que falha
+# derruba o job — `lint`, `typecheck`, `test` e `build` não chegam a rodar.
+# Ele é o portão mais barato que este repositório tem, e no Windows ele estava
+# VERMELHO EM 272 ARQUIVOS sem que uma linha de código estivesse errada.
+#
+# A causa: `core.autocrlf=true` (o padrão do Git for Windows) escreve CRLF na
+# cópia de trabalho, e o `endOfLine: "lf"` do Prettier recusa cada um desses
+# arquivos. O índice sempre esteve em LF, então o CI no Linux via verde — e o
+# desenvolvedor no Windows via 272 arquivos vermelhos que ele não mexeu.
+#
+# ISSO É PIOR QUE UM PORTÃO FECHADO: um portão que grita todo dia é um portão
+# que ninguém lê. Foi assim que os 41 arquivos de `2f1be6d` ficaram semanas sem
+# ser notados, e é assim que os próximos ficariam.
+#
+# `eol=lf` faz o checkout escrever LF em qualquer sistema. A cópia de trabalho
+# passa a ser igual ao índice, e `npm run format:check` no Windows passa a
+# dizer a mesma coisa que o CI diz.
+* text=auto eol=lf
+
+# As imagens não têm fim de linha para normalizar, e deixar o Git adivinhar
+# num .png é como se corrompe um binário.
+*.png binary
