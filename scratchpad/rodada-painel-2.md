@@ -829,7 +829,9 @@ O que continua de pé, em ordem de valor:
    coisa mais barata que sobrou.
 2. **`useOrderStream`: conexão aberta que parou de entregar** (auditoria D.5).
    Um relógio de "sem evento há N minutos" fecharia o único buraco de tempo real
-   que sobrou.
+   que sobrou. Ele é o **item 1 de `ausencia.md`** — a varredura atrás das falhas
+   cujo sintoma é nada acontecer. São oito, listadas e ainda não consertadas, com
+   o que foi conferido e descartado junto.
 3. **Teste de componente para as telas grandes** (auditoria "o que passaria
    despercebido" §2). Eram 91 `.tsx` para 8 testes de tela; hoje são 11, e as
    telas grandes (`OrdersPage`, `MenuPage`, `UsersPage`) continuam sem.
