@@ -294,16 +294,53 @@ confundido com isso:
 ## 7. AUDITORIA (item 6)
 
 Escrita em `scratchpad/auditoria.md` para não afogar este arquivo, que é o de
-retomada. **Nenhum conserto foi feito nela** — só lista.
+retomada. **Nenhum conserto de produto foi feito nela** — só lista.
+
+**A exceção, e ela está justificada lá (E.0):** `npm run format:check` estava
+**vermelho em 41 arquivos**, e ele é o **primeiro `run`** do job `verificar` no
+CI. Passo que falha derruba o job, então `lint`, `typecheck`, `test` e `build`
+**não estavam rodando no CI**. Isso não é achado de produto: é o portão, e o
+enunciado manda entregar item verde. Consertado em `2f1be6d`, sozinho, com só a
+saída do próprio Prettier dentro.
+
+Os três primeiros consertos que a auditoria recomenda, e ela **discorda** da
+lista da rodada:
+
+1. **Ler `detail` como objeto + o diálogo do 428.** Hoje, a partir de "Iniciar
+   preparo", o pedido **não pode mais ser cancelado pelo painel** — e o lojista
+   lê "A requisição falhou (428)". Metade do conserto é uma linha.
+2. **`ErrorBoundary` + `POST /admin/error-reports`.** Não existe nenhum dos dois;
+   qualquer exceção de render é tela branca, muda, sem nada chegando ao suporte.
+3. **Complemento deixar de ser leitura.** Quatro rotas paradas; sem elas, montar
+   "Escolha o tamanho" e "Adicionais" é SQL na mão.
 
 ---
 
 ## 8. Onde parei
 
+Tudo o que era possível nesta rodada está feito. **A única frente aberta é o que
+depende de backend** (§6.1 e §6.2) e o que a auditoria recomenda e não conserta.
+
 - [x] §0 leitura, branch, portão verde na base
-- [x] §2 conferência dos itens 1–4
-- [x] contrato regerado, commit separado
-- [x] §5.1 a comanda deste pedido
+- [x] §2 conferência dos itens 1–4 (todos já existiam na `dev`)
+- [x] contrato regerado, commit separado — `d517ead`
+- [x] §5.1 a comanda deste pedido — `c9b80df`
+- [x] auditoria inteira — `1d516b8`
+- [x] portão destravado (`format:check`) — `2f1be6d`
+- [x] skills e `CLAUDE.md` — `9d35870`
 - [x] §6 bloqueios escritos com o que o backend precisa devolver
-- [x] §7 auditoria
-- [x] skill do repositório e `CLAUDE.md` atualizados
+
+### Se esta sessão for retomada
+
+Leia este arquivo e `auditoria.md` ANTES de qualquer coisa, e continue do que
+eles dizem — não da memória.
+
+O próximo trabalho natural é o **item 1 da lista da auditoria** (o 428 do
+cancelamento). Ele é conserto pontual já diagnosticado, com o arquivo e a linha
+identificados, então **não precisa passar pela skill `proposta`** — o que a
+skill dispensa é justamente isso. Os itens 2 e 3 são frentes novas e precisam.
+
+### O portão, no fim da rodada
+
+`format:check 0` · `lint 0` · `typecheck 0` · `test 0` — **63 arquivos, 948
+testes** (a base tinha 61/925). Lidos sem pipe.
