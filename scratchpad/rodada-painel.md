@@ -340,7 +340,97 @@ cancelamento). Ele é conserto pontual já diagnosticado, com o arquivo e a linh
 identificados, então **não precisa passar pela skill `proposta`** — o que a
 skill dispensa é justamente isso. Os itens 2 e 3 são frentes novas e precisam.
 
-### O portão, no fim da rodada
+---
 
-`format:check 0` · `lint 0` · `typecheck 0` · `test 0` — **63 arquivos, 948
-testes** (a base tinha 61/925). Lidos sem pipe.
+## 9. A SESSÃO SEGUINTE — o que o §8 não sabia
+
+> A sessão do §8 morreu com o computador suspendendo. Ela deixou **trabalho não
+> commitado** que o próprio §8 não menciona, e **duas linhas do portão que ela
+> nunca leu**. É por isso que "onde parei" se confere no `git status`, e não só
+> no que o arquivo afirma.
+
+### 9.1 O que estava na árvore, sem commit
+
+`e2e/caminho-critico.spec.ts` e `e2e/fake-api.ts` tinham 152 linhas novas: o
+e2e da comanda do §5.1, escrito e **nunca rodado**. Conferido contra o
+componente (os `data-testid`, os textos de `avisoDeVias`, os pedidos 1001 e
+1002 do falso), rodado, verde. Commit `639cdbe`.
+
+### 9.2 O PORTÃO NÃO ESTAVA VERDE — e o §8 dizia que estava
+
+O §8 reporta `format:check · lint · typecheck · test`. O CLAUDE.md tem **cinco**
+linhas, e a quinta é `npx playwright test`. **Ela nunca foi rodada na rodada
+inteira.** Rodada agora, na árvore limpa e sem as minhas mudanças, ela estava
+**vermelha**.
+
+**`pedido com pagamento parado desce para o bloco` quebrava depois da
+meia-noite.** O quadro abre em "hoje" e o pedido do teste tem noventa minutos:
+entre 00:00 e 01:30 na hora da operação, noventa minutos atrás é ONTEM.
+`orderMatchesFilters` recusa o evento do SSE, `pedidosFiltrados` aplica o mesmo
+recorte no `status-counts` do falso, e o teste falha com o cartão ausente e o
+badge em 2. Quebrou às 01:14; passava todas as outras horas do dia.
+
+**O produto está certo.** Pedido de ontem não pertence a um quadro filtrado por
+hoje. Errado estava o teste, que pedia um pedido velho a uma tela que só mostra
+os de hoje. O teste passou a abrir em "7 dias", que cobre a virada em qualquer
+hora — e o comentário passou a dizer que **o corte de trinta minutos não se
+prova ali**: é aritmética com `now` injetado, e `board-lanes.test.ts` já a cobre
+dos dois lados. Commit `6eb77c5`.
+
+### 9.3 O `format:check` gritava 272 arquivos no Windows
+
+O §7 conta que ele estava vermelho em 41 arquivos e que ninguém tinha reparado.
+Nesta máquina ele acusava **272** — o repositório quase inteiro —, e **nenhuma
+linha de código estava errada**: `core.autocrlf=true` escreve CRLF na cópia de
+trabalho e o `endOfLine: "lf"` do Prettier recusa cada arquivo. O índice sempre
+esteve em LF (`git ls-files --eol` dizia `i/lf w/crlf` em tudo), então o CI no
+Linux via verde o tempo todo.
+
+**Isso é pior que um portão fechado.** O CLAUDE.md manda rodar `npm run format`
+antes de commitar; seguindo isso aqui, o portão pedia para reescrever 272
+arquivos — e é assim que os 41 do §7 passaram semanas sem ser notados. Um
+portão que grita todo dia é um portão que ninguém lê.
+
+`.gitattributes` com `* text=auto eol=lf` faz o checkout escrever LF em qualquer
+sistema. `git add --renormalize .` **não mexeu em nenhum arquivo** — o índice já
+estava certo; o commit muda o que o checkout escreve, não o que está gravado.
+Commit `68c508d`.
+
+> **Para quem retomar num clone antigo:** o `.gitattributes` só vale a partir do
+> próximo checkout. Se o `format:check` ainda gritar o repositório inteiro,
+> rode `git rm -r --cached . && git reset --hard` **com a árvore limpa** — é o
+> que renormaliza os arquivos em disco, e ele não muda conteúdo nenhum.
+
+### 9.4 Uma falha intermitente que NÃO foi resolvida
+
+`loja.spec.ts:166` (`o interruptor do cabeçalho vale nas outras seções`) falhou
+**uma vez em quatro** execuções da suíte inteira, sob os 4 workers. Passa
+sozinho e passou nas outras três. **Não tenho a mensagem do erro** — a saída foi
+truncada e o `test-results/` foi limpo pela execução seguinte.
+
+O que já foi descartado: `useBranchOperation.toggle` **não** é otimista (ele
+`await`ia a resposta e adota a linha que o backend devolveu), então a corrida
+óbvia — afirmar o estado do falso antes de o PATCH chegar — não explica. Fica
+registrado como intermitente conhecido, não como resolvido. Quem retomar:
+rodar `npx playwright test e2e/loja.spec.ts --repeat-each=20` é o caminho mais
+curto para pegá-la com a mensagem na mão.
+
+### 9.5 Os itens do enunciado, na ordem pedida
+
+Reconferidos, e o §2 continua valendo: **Impressão (1), ajustes de pedido (2),
+os dois campos de SQL na mão (3) e papéis (4) já estão na `dev`** — a evidência
+por item está no §2, arquivo e função. **Telas que faltam (5) seguem bloqueadas
+pelo backend** (§6.1 e §6.2: zero rotas de WhatsApp, zero de integração
+administrável). **A auditoria (6) está em `auditoria.md`**, e nada nela foi
+consertado nesta sessão — a lista dela continua de pé, e o item 1 (o 428 do
+cancelamento) continua sendo o próximo trabalho natural.
+
+### O portão, no fim desta sessão
+
+Lidos sem pipe, e **os cinco desta vez**:
+
+`format:check 0` · `lint 0` · `typecheck 0` · `test 0` (**63 arquivos, 948
+testes**) · `playwright` **256 passaram, 4 pulados, 0 falharam**.
+
+O `format:check` agora é verde **por estar certo**, e não por não ter sido
+rodado: era ele que acusava 272 arquivos antes do `.gitattributes`.
