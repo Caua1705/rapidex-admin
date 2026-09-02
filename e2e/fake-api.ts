@@ -1112,7 +1112,20 @@ const VALORES_ANTERIORES = ['420.00', '1400.00', '10.00', '0.00', '880.50', '124
  * pelo intervalo que recebe, e é isso que ela imita com dois valores possíveis.
  */
 function reportDays(inicio: string, fim: string): Schemas['SalesByDayItem'][] {
-  const hoje = Date.parse(`${new Date().toISOString().slice(0, 10)}T12:00:00Z`);
+  /*
+   * "HOJE" AQUI É O DIA DA OPERAÇÃO, e era o dia UTC.
+   *
+   * Este handler roda no NODE do Playwright, e o `timezoneId` do config vale
+   * para o navegador, não para cá — então as duas metades do teste contavam o
+   * dia em fusos diferentes. Das 21h à meia-noite em Fortaleza, o UTC já virou
+   * e este `hoje` ficava um dia à frente do que o painel mandou na query.
+   *
+   * O limiar abaixo é de DOIS dias, então um dia de folga sobrava e nada
+   * quebrava — mas é folga, não margem: um período que terminasse ontem já
+   * escolheria a série errada depois das 21h. Contar no fuso certo custa a
+   * mesma linha.
+   */
+  const hoje = Date.parse(`${OPERATION_DAY.format(new Date())}T12:00:00Z`);
   const fimDoPeriodo = Date.parse(`${fim}T12:00:00Z`);
   const anterior = Number.isFinite(fimDoPeriodo) && hoje - fimDoPeriodo >= 2 * 86_400_000;
 
@@ -3356,7 +3369,21 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       // preparo mora nela. Devolver só o par de números deixaria o falso mais
       // frouxo que o backend, e o painel passaria aqui e falharia em produção.
       const saved = state.prepTime[branchId] as { min: number; max: number };
-      const hoje = (new Date().getDay() + 6) % 7;
+      /*
+       * O DIA DA SEMANA DA OPERAÇÃO, e não o do Node.
+       *
+       * Este handler roda no Node do Playwright, onde o `timezoneId` do config
+       * não chega — ele vale para o navegador. Sem isto, o falso escolheria a
+       * linha de segunda enquanto o painel (que agora lê por
+       * `weekdayDaOperacao`) pediria a de domingo, e nas três horas entre 21h
+       * e a meia-noite os dois discordariam.
+       *
+       * Hoje nada quebraria: o falso injeta o MESMO prazo em todas as sete
+       * linhas (ver o GET de business-hours). É por isso que a folga existe, e
+       * é exatamente o tipo de folga que some quando alguém dá a um dia um
+       * prazo diferente para testar outra coisa.
+       */
+      const hoje = (new Date(`${OPERATION_DAY.format(new Date())}T12:00:00Z`).getUTCDay() + 6) % 7;
       const row = (state.businessHours[branchId] ?? []).find((entry) => entry.weekday === hoje);
       return json(route, 200, {
         id: row?.id ?? `${branchId}-h-${hoje}`,

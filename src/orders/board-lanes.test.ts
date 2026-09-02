@@ -44,15 +44,34 @@ function pixPendente(id: string, payment_status = 'pending'): OrderListItem {
   };
 }
 
+/*
+ * O RELÓGIO ENTRA EM TODA CHAMADA, inclusive nas que "não usam" o relógio.
+ *
+ * `groupIntoLanes` chama `isPagamentoParado`, que compara `created_at` com o
+ * agora. Os fixtures abaixo têm `payment_status: 'on_delivery'`, que não está em
+ * `PAGAMENTOS_QUE_PODEM_PARAR` — então hoje o relógio não muda a resposta, e
+ * essas quatro chamadas passavam sem injetar nada.
+ *
+ * ELAS ESTAVAM CERTAS POR ACIDENTE DO FIXTURE, e não por construção. Trocar
+ * aquele `on_delivery` por `pending` — uma linha, num arquivo de fixture, por
+ * um motivo qualquer — faria as quatro passarem a depender de `Date.now()`
+ * contra um `created_at` de 2026-08-07 escrito à mão. Passariam hoje, e
+ * mudariam de resposta numa máquina com o relógio antes daquela data.
+ *
+ * Injetar custa uma palavra e tira o teste do alcance do relógio para sempre.
+ */
 describe('groupIntoLanes', () => {
   it('põe cada pedido na faixa que responde pela pergunta dele', () => {
-    const grouped = groupIntoLanes([
-      orderWithStatus('a', 'pending'),
-      orderWithStatus('b', 'accepted'),
-      orderWithStatus('c', 'preparing'),
-      orderWithStatus('d', 'ready'),
-      orderWithStatus('e', 'out_for_delivery'),
-    ]);
+    const grouped = groupIntoLanes(
+      [
+        orderWithStatus('a', 'pending'),
+        orderWithStatus('b', 'accepted'),
+        orderWithStatus('c', 'preparing'),
+        orderWithStatus('d', 'ready'),
+        orderWithStatus('e', 'out_for_delivery'),
+      ],
+      minutosDepois(1),
+    );
 
     expect(grouped.novos?.map((order) => order.id)).toEqual(['a']);
     expect(grouped.preparo?.map((order) => order.id)).toEqual(['b', 'c']);
@@ -61,12 +80,15 @@ describe('groupIntoLanes', () => {
 
   /* O quadro é o turno. O que já acabou é consulta e mora na outra aba. */
   it('não mostra no quadro o que é histórico', () => {
-    const grouped = groupIntoLanes([
-      orderWithStatus('a', 'pending'),
-      orderWithStatus('b', 'completed'),
-      orderWithStatus('c', 'cancelled'),
-      orderWithStatus('d', 'rejected'),
-    ]);
+    const grouped = groupIntoLanes(
+      [
+        orderWithStatus('a', 'pending'),
+        orderWithStatus('b', 'completed'),
+        orderWithStatus('c', 'cancelled'),
+        orderWithStatus('d', 'rejected'),
+      ],
+      minutosDepois(1),
+    );
 
     expect(grouped.novos?.map((order) => order.id)).toEqual(['a']);
     expect(Object.values(grouped).flat()).toHaveLength(1);
@@ -74,12 +96,12 @@ describe('groupIntoLanes', () => {
 
   // Backend novo com painel velho: o pedido não pode simplesmente sumir.
   it('não perde pedido com status desconhecido', () => {
-    const grouped = groupIntoLanes([orderWithStatus('a', 'em_disputa')]);
+    const grouped = groupIntoLanes([orderWithStatus('a', 'em_disputa')], minutosDepois(1));
     expect(grouped.novos?.map((order) => order.id)).toEqual(['a']);
   });
 
   it('devolve uma lista para cada bloco desenhado, mesmo vazia', () => {
-    const grouped = groupIntoLanes([]);
+    const grouped = groupIntoLanes([], minutosDepois(1));
     BOARD_BLOCKS.forEach((lane) => expect(grouped[lane.key]).toEqual([]));
   });
 });

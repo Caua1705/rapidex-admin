@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { fetchBusinessHours } from '../api/store';
-import { backendWeekday, prepTimeForDay } from '../store/business-hours';
+import { prepTimeForDay, weekdayDaOperacao } from '../store/business-hours';
 import type { PrepRange } from './prep-time';
 
 /**
@@ -34,7 +34,8 @@ export function usePrepRange(branchId: string): { range: PrepRange | null; isLoa
       try {
         const hours = await fetchBusinessHours(branchId);
         if (cancelled) return;
-        setRange(prepTimeForDay(hours, backendWeekday(new Date())));
+        // O DIA É O DA LOJA, não o do aparelho — ver `weekdayDaOperacao`.
+        setRange(prepTimeForDay(hours, weekdayDaOperacao()));
       } catch {
         if (!cancelled) setRange(null);
       } finally {

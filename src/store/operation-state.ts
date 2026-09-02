@@ -1,4 +1,5 @@
 import type { BranchOperation } from '../api/types';
+import { OPERATION_TIMEZONE } from '../orders/format';
 
 /**
  * POR QUE ESTA FILIAL NÃO ESTÁ RECEBENDO PEDIDO — a resposta em uma palavra.
@@ -61,6 +62,18 @@ export function situacaoDaFilial(linha: BranchOperation | null): SituacaoOperaca
  *
  * `agora` entra como parâmetro para o teste não depender do relógio da máquina.
  */
+/**
+ * A hora no fuso da OPERAÇÃO, como todo o resto do painel — ver `notaDaPausa`.
+ *
+ * Fora da função de propósito: `Intl.DateTimeFormat` é caro de construir, e
+ * esta frase é desenhada uma vez por filial em cada repintura da lista.
+ */
+const horaDaOperacao = new Intl.DateTimeFormat('pt-BR', {
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: OPERATION_TIMEZONE,
+});
+
 export function pausaAtiva(linha: BranchOperation | null, agora = new Date()): Date | null {
   if (!linha?.delivery_paused_until) return null;
   const ate = new Date(linha.delivery_paused_until);
@@ -85,12 +98,31 @@ export function pausaAtiva(linha: BranchOperation | null, agora = new Date()): D
  *
  * O motivo entra só quando existe: "Entrega pausada até 20:30 ·" com o rabo
  * solto é pior que a frase curta.
+ *
+ * ============================================================================
+ * A HORA É A DA OPERAÇÃO, E ELA NÃO ERA
+ * ============================================================================
+ *
+ * Esta linha era `toLocaleTimeString('pt-BR', { hour, minute })` — **sem
+ * `timeZone`**, ou seja, no fuso do NAVEGADOR. Era o único formatador de hora
+ * do painel sem fuso fixado; todos os outros passam `OPERATION_TIMEZONE`.
+ *
+ * O QUE ISSO ERA NA LOJA: o lojista pausa a entrega até as 20:30. Num aparelho
+ * com o fuso errado — o tablet de balcão em modo quiosque que ninguém
+ * configurou, o notebook trazido de outro estado —, a linha dizia "Pausada até
+ * 23:30". Três horas de mentira sobre quando a entrega volta, no único estado
+ * que se desfaz sozinho e cujo único sintoma é a ausência de pedido.
+ *
+ * O TESTE ESCONDIA. Ele injetava o `agora` (certo) mas não o fuso, e na máquina
+ * de quem o escreveu (UTC-3) o código errado produzia a string certa. Quem
+ * achou foi a varredura do fuso: com o relógio do teste apontado para UTC —
+ * que é o do runner do CI — ele ficou vermelho.
  */
 export function notaDaPausa(linha: BranchOperation | null, agora = new Date()): string | null {
   const ate = pausaAtiva(linha, agora);
   if (!ate) return null;
 
-  const hora = ate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const hora = horaDaOperacao.format(ate);
   const motivo = linha?.delivery_pause_reason?.trim();
   return motivo ? `Pausada até ${hora} · ${motivo}` : `Pausada até ${hora}`;
 }

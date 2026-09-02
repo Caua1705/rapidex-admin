@@ -12,6 +12,7 @@
  * loja abrir no dia errado, então a lista de rótulos abaixo é a única fonte.
  */
 import type { BusinessHour, BusinessHourInput } from '../api/types';
+import { OPERATION_TIMEZONE } from '../orders/format';
 
 /** Segunda a domingo, na ordem em que a grade aparece na tela. */
 export const WEEKDAYS: readonly { weekday: number; label: string; short: string }[] = [
@@ -33,6 +34,30 @@ export const WEEKDAYS: readonly { weekday: number; label: string; short: string 
  */
 export function backendWeekday(date: Date): number {
   return (date.getDay() + 6) % 7;
+}
+
+/**
+ * Que dia da semana é HOJE para a LOJA — e não para o aparelho.
+ *
+ * `backendWeekday(new Date())` responde no fuso do navegador, e era assim que o
+ * painel lia o dia. Num aparelho com o fuso errado — o tablet de balcão em modo
+ * quiosque, o notebook trazido de outro estado — o painel lê a linha de horário
+ * do dia ERRADO: mostra o prazo de preparo de terça numa segunda, e a diferença
+ * é silenciosa porque os dois números existem e nenhum dos dois reclama.
+ *
+ * É a mesma armadilha do `notaDaPausa`, e a mesma da linha 2 do CLAUDE.md com
+ * uma volta a mais: lá o perigo era 0 = segunda contra 0 = domingo; aqui é QUAL
+ * dia, antes ainda de numerá-lo.
+ *
+ * A conta passa pelo TEXTO da data no fuso da operação e não por uma soma de
+ * horas: `America/Fortaleza` não tem horário de verão hoje, mas somar três
+ * horas na mão é a linha que ninguém revisita no dia em que isso mudar.
+ */
+export function weekdayDaOperacao(now: Date = new Date()): number {
+  // 'en-CA' dá AAAA-MM-DD; construir a data com "T12:00:00Z" a põe no meio do
+  // dia, longe das duas bordas em que um erro de uma hora viraria outro dia.
+  const diaLocal = new Intl.DateTimeFormat('en-CA', { timeZone: OPERATION_TIMEZONE }).format(now);
+  return backendWeekday(new Date(`${diaLocal}T12:00:00Z`));
 }
 
 /**

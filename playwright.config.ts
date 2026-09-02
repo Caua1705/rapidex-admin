@@ -10,6 +10,20 @@ export default defineConfig({
   use: {
     baseURL: 'http://127.0.0.1:4173',
     trace: 'on-first-retry',
+    /*
+     * O NAVEGADOR DO TESTE VIVE NO FUSO DA OPERAÇÃO — ver o comentário longo em
+     * `vite.config.ts`.
+     *
+     * Sem isto, o navegador herda o fuso da máquina: UTC-3 no desenvolvedor,
+     * UTC no runner do CI. Três horas de diferença numa suíte cujo produto conta
+     * o dia em `America/Fortaleza`, e cuja falha mais recente
+     * (`6eb77c5`) foi exatamente um teste que quebrava entre 00:00 e 01:30.
+     *
+     * Fixar o fuso não conserta teste que depende da HORA CORRENTE — isso é
+     * outra coisa e está tratado caso a caso. O que ele fecha é a metade em que
+     * a resposta mudava conforme a máquina.
+     */
+    timezoneId: 'America/Fortaleza',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   // O e2e roda contra o build de produção servido pelo `vite preview`.

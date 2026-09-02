@@ -45,7 +45,7 @@ que está escrito em cada uma.
 | 0   | `cozinha.spec.ts:195` — o SSE, vermelho no portão de base | portão              | ✅     |
 | 1   | `detail` objeto + o diálogo do 428 do cancelamento        | (a) e (b)           | ✅     |
 | 2   | `ErrorBoundary` + `POST /admin/error-reports`             | (b) e (c)           | ✅     |
-| 3   | §3 do enunciado — a varredura de teste dependente de hora | portão              | ⬜     |
+| 3   | §3 do enunciado — a varredura de teste dependente de hora | portão              | ✅     |
 | 4   | §2 do enunciado — a intermitente de `loja.spec.ts:166`    | portão              | ⬜     |
 | 5   | D.3 — as duas ações destrutivas sem confirmação           | (b)                 | ⬜     |
 | 6   | Complementos deixarem de ser leitura (4 rotas paradas)    | (c)                 | ⬜     |
@@ -262,6 +262,118 @@ importa é a conexão intermitente, e é ele que o teste usa agora.
 Portão: `format:check 0` · `lint 0` · `typecheck 0` · `test 0` (**66 arquivos,
 974 testes**, eram 64/958) · `playwright` **263 passaram**, 4 pulados, 0
 falharam (eram 259).
+
+---
+
+### 2.3 — §3: a varredura do relógio, e os dois defeitos de PRODUTO que ela achou ✅
+
+O enunciado chamou este item de o mais valioso da rodada, e ele foi — mas não
+pelo motivo esperado. **A varredura atrás de teste dependente de hora achou dois
+defeitos de produto que os testes estavam escondendo.**
+
+#### A lista completa, por classe
+
+**Classe 1 — teste que lê `new Date()` / `Date.now()` sem injeção**
+
+`grep` por `new Date()` e `Date.now()` em `src/**/*.test.ts*`: **zero**. E isso
+não bastava. O risco de verdade não é o teste escrever `Date.now()`; é o teste
+**chamar uma função de produção que tem `now` com valor padrão** e não passar
+nada — o `grep` vê uma chamada normal.
+
+Escrevi uma varredura que **conta os argumentos de topo** de cada chamada
+(respeitando parênteses, colchetes e literais) para 15 funções com `now`
+injetável. **Quatro achados**, todos `groupIntoLanes` em `board-lanes.test.ts`.
+
+Eles estavam **certos por acidente do fixture**: `groupIntoLanes` chama
+`isPagamentoParado`, e os pedidos do teste têm `payment_status: 'on_delivery'`,
+que não está em `PAGAMENTOS_QUE_PODEM_PARAR`. Trocar aquele `on_delivery` por
+`pending` — uma linha, por um motivo qualquer — faria as quatro passarem a
+comparar `Date.now()` com um `created_at` de 2026-08-07 escrito à mão.
+Injetados. A varredura devolve **0** agora.
+
+**Classe 2 — fuso. Aqui é onde estava tudo.**
+
+🔴 **Nenhum dos dois portões fixava o fuso.** A máquina do desenvolvedor é
+`America/Sao_Paulo` (UTC-3) e o runner do CI é `ubuntu-latest`, que é **UTC**.
+Três horas de desacordo entre as duas metades do portão, sem nada fixando
+nenhuma delas — e o painel inteiro conta o dia em `America/Fortaleza`.
+
+Nada estava vermelho por causa disso, e **é exatamente esse o problema**: um
+teste que muda de resposta conforme QUEM o roda não é portão, é dado.
+
+Fixado nos dois: `process.env.TZ` em `vite.config.ts` (em `process.env` e não em
+`test.env` porque `Date` e `Intl` leem o TZ ao nascer do processo) e
+`timezoneId` em `playwright.config.ts`.
+
+> **Uma nota de método:** meu primeiro experimento — rodar com `TZ=Asia/Tokyo`
+> no shell — deu verde e eu quase o registrei como prova. Ele era **inválido**:
+> uma sonda mostrou `ENVTZ= undefined` dentro do worker, ou seja, o `TZ` do Git
+> Bash não chega ao processo do Vitest no Windows. A prova que vale foi apontar
+> **o próprio pino** para UTC e rodar a suíte inteira.
+
+🔴 **Com o pino em UTC — o fuso do CI — um teste ficou vermelho:**
+`operation-state.test.ts` › "a frase leva o horário de volta". E ele estava
+vermelho **pelo motivo certo**, porque escondia um defeito de produto:
+
+> `notaDaPausa` formatava o fim da pausa com
+> `toLocaleTimeString('pt-BR', { hour, minute })` — **sem `timeZone`**. Era o
+> ÚNICO formatador de data do `src/` sem fuso declarado; todos os outros passam
+> `OPERATION_TIMEZONE`.
+>
+> **Na loja:** o lojista pausa a entrega até as 20:30. Num aparelho com o fuso
+> errado — o tablet de balcão em modo quiosque, o notebook trazido de outro
+> estado — a linha dizia "Pausada até 23:30". Três horas de mentira sobre
+> quando a entrega volta, no único estado do painel que se desfaz sozinho e
+> cujo único sintoma é a ausência de pedido.
+>
+> O teste injetava o `agora` (certo) mas não o fuso, e na máquina de quem o
+> escreveu o código errado produzia a string certa.
+
+🔴 **E o pino ESCONDE essa classe.** Com o processo em UTC-3, o código errado
+volta a produzir a string certa e nenhum teste acende. Um teste não alcança
+isto — só uma regra que olhe o **código**. Daí `scripts/check-fuso.mjs`, ligado
+ao `npm run lint` ao lado dos outros três. **Provado vermelho** com o defeito
+reintroduzido e verde com o conserto, antes de ser ligado.
+
+🔴 **Segundo defeito de produto, mesma família, achado pela mesma varredura:**
+`usePrepRange` lia o dia da semana com `backendWeekday(new Date())` — o dia do
+**aparelho**. Painel num fuso errado lê a linha de horário do dia errado e
+mostra o prazo de preparo de terça numa segunda. É a armadilha nº 2 do
+`CLAUDE.md` com uma volta a mais: lá o perigo era `0 = segunda` contra
+`0 = domingo`; aqui é **qual** dia, antes ainda de numerá-lo. Nasceu
+`weekdayDaOperacao()`, com três casos — um deles no instante que separa os dois
+donos de "hoje" (2h UTC de segunda ainda é domingo à noite na loja).
+
+🟠 **Duas leituras de relógio no falso que o `timezoneId` NÃO alcança.** Os
+handlers de `page.route` rodam no **Node** do Playwright, e o `timezoneId` vale
+para o navegador. `reportDays` e o dia da semana do PATCH de prep-time contavam
+"hoje" em UTC enquanto o painel contava em Fortaleza. Nenhum quebrava hoje — o
+limiar de `reportDays` é de dois dias e o falso injeta o mesmo prazo nas sete
+linhas —, mas as duas margens são **folga, não projeto**: some assim que alguém
+der a um dia um prazo diferente. Os dois passaram a contar pelo `OPERATION_DAY`.
+
+**Classe 3 — virada de dia**
+
+| Teste                                         | Veredito                                                                                                                                         |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `caminho-critico` · pagamento parado          | já consertado em `6eb77c5` (o de 00:00–01:30)                                                                                                    |
+| `cozinha.spec.ts:85` · "1h30"                 | **não** depende do dia: a Cozinha filtra por STATUS, sem recorte de data. A margem de 30s é de tempo decorrido, e é documentada no próprio teste |
+| `fake-api` · cancelamentos de três dias atrás | já contava por `OPERATION_DAY`                                                                                                                   |
+
+**Classe 4 — espera por tempo em vez de condição**
+
+**Uma ocorrência no repositório inteiro**, e ela fica: `capturas.spec.ts:57`,
+`waitForTimeout(350)` antes de tirar a foto. É o único uso legítimo — não há
+condição a esperar, só a pintura assentando —, e o arquivo é **pulado no portão**
+(`test.skip(!LIGADO)`, só roda com `CAPTURAS=1`). Uma foto 350ms adiantada sai
+um pouco diferente; nenhuma asserção depende dela.
+
+E o **quinto** portão ganhou uma classe inteira a menos nesta rodada: a espera
+do SSE saiu do teste e virou estrutura no `pushNewOrder` (§2.0).
+
+Portão: `format:check 0` · `lint 0` (**agora com `check-fuso`**) · `typecheck 0`
+· `test 0` (**67 arquivos, 978 testes**) · `playwright` **263 passaram**, 4
+pulados, 0 falharam.
 
 ---
 

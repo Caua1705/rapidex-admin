@@ -8,6 +8,7 @@ import {
   prepTimeForDay,
   validateWeek,
   weekFromResponse,
+  weekdayDaOperacao,
   weekPayload,
   WEEKDAYS,
   type DayDraft,
@@ -172,6 +173,47 @@ describe('backendWeekday', () => {
     // Sábado, 2026-08-15.
     const sabado = backendWeekday(new Date(2026, 7, 15));
     expect(WEEKDAYS.find((day) => day.weekday === sabado)?.short).toBe('Sáb');
+  });
+});
+
+/*
+ * ============================================================================
+ * QUE DIA É HOJE PARA A LOJA — e por que "hoje" tem dois donos
+ * ============================================================================
+ *
+ * `backendWeekday(new Date())` responde no fuso do APARELHO, e era assim que a
+ * barra de pedidos lia o prazo de preparo do dia. Num tablet de balcão em modo
+ * quiosque com o fuso errado, o painel lê a linha de horário do dia errado — e
+ * o erro é silencioso, porque os dois dias existem e nenhum dos dois reclama.
+ *
+ * Os casos abaixo escrevem o instante em UTC de propósito: só assim eles medem
+ * a CONVERSÃO, e não o fuso em que o processo de teste por acaso está rodando.
+ */
+describe('weekdayDaOperacao', () => {
+  it('meio-dia é o mesmo dia nos dois fusos, e serve de âncora', () => {
+    // 2026-08-09 é domingo. Meio-dia UTC é 09:00 em Fortaleza: domingo lá também.
+    expect(weekdayDaOperacao(new Date('2026-08-09T12:00:00Z'))).toBe(6);
+  });
+
+  /*
+   * A HORA QUE SEPARA OS DOIS DONOS DE "HOJE".
+   *
+   * 02:00 UTC de segunda ainda é 23:00 de DOMINGO em Fortaleza (UTC-3). A loja
+   * está no domingo — o turno de domingo à noite não acabou — e o aparelho em
+   * UTC já virou a segunda.
+   */
+  it('às 2h UTC de segunda, a loja ainda está no domingo', () => {
+    const instante = new Date('2026-08-10T02:00:00Z');
+    expect(weekdayDaOperacao(instante)).toBe(6); // domingo, para a loja
+    // E é isto que a leitura antiga respondia num aparelho em UTC:
+    expect((instante.getUTCDay() + 6) % 7).toBe(0); // segunda, para o aparelho
+  });
+
+  it('percorre a semana inteira sem pular nem repetir', () => {
+    const semana = Array.from({ length: 7 }, (_, offset) =>
+      weekdayDaOperacao(new Date(`2026-08-${10 + offset}T12:00:00Z`)),
+    );
+    expect(semana).toEqual([0, 1, 2, 3, 4, 5, 6]);
   });
 });
 
