@@ -326,3 +326,72 @@ test('o gerente lê quais formas ficam fora da campanha, sem poder mudar', async
   // em nove linhas de dez é ruído.
   await expect(page.getByTestId('payment-method-pay-pix')).not.toContainText('cashback');
 });
+
+/*
+ * ============================================================================
+ * SALVAR A REGRA DA FILIAL — a escrita que NENHUM teste exercitava
+ * ============================================================================
+ *
+ * O levantamento dos caminhos de escrita (46 rotas, medidas pelo que o falso
+ * serviu na suíte inteira) achou duas sem um único teste, e esta é uma delas.
+ * Os três `PUT` de cashback que a suíte disparava eram todos do escopo
+ * RESTAURANTE; `PUT /admin/branches/{id}/cashback-rules` nunca tinha sido
+ * chamado por teste nenhum.
+ *
+ * É a mesma forma do defeito que o app do cliente teve hoje: a tela dizia o que
+ * ia acontecer, o botão existia, e a escrita não era exercitada por ninguém.
+ * O teste de cima ("a filial que herda avisa que salvar CRIA uma sobrescrita")
+ * conferia o AVISO e parava antes do clique — que é onde o defeito moraria.
+ */
+test('salvar na filial CRIA a sobrescrita, e o corpo vai com o escopo dela', async ({ page }) => {
+  api.setCashbackRestaurantRule(regraDaRede());
+  await entrar(page);
+
+  await page.getByTestId('cashback-escopo-filial').click();
+  await expect(page.getByTestId('cashback-origem')).toContainText('Herdando a regra da rede');
+
+  await page.getByTestId('cashback-default-percent').fill('7');
+  await page.getByRole('button', { name: 'Salvar' }).click();
+
+  // O PUT foi para o escopo FILIAL, e não para o da rede.
+  await expect.poll(() => api.cashbackPuts().at(-1)?.escopo).toBe('filial');
+  expect(api.cashbackPuts().at(-1)?.body).toMatchObject({ default_percent: '7.00' });
+
+  // E a tela relê: a filial deixou de herdar.
+  await expect(page.getByTestId('cashback-origem')).toContainText('regra própria');
+});
+
+/*
+ * A RECUSA, e ela é a metade que o levantamento chama de "a mesma bomba".
+ *
+ * `AdminCashbackService._get_branch` responde 404 "Filial não encontrada"
+ * quando a filial não existe ou quando o papel não a alcança. O falso passou a
+ * cobrar isso — antes ele aceitava qualquer id, mais frouxo que o backend.
+ *
+ * O que se prova aqui não é o 404: é que a tela MOSTRA A FRASE do backend em
+ * vez de dizer que salvou.
+ */
+test('filial recusada pelo backend: a tela mostra a frase, e não diz que salvou', async ({
+  page,
+}) => {
+  api.setCashbackRestaurantRule(regraDaRede());
+  await entrar(page);
+  await page.getByTestId('cashback-escopo-filial').click();
+
+  // A filial some do "banco" entre abrir a tela e salvar — é o que acontece
+  // quando outra pessoa a desativa, ou quando o papel perde o alcance dela.
+  await page.route('**/admin/branches/*/cashback-rules', (route) =>
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Filial não encontrada' }),
+    }),
+  );
+
+  await page.getByTestId('cashback-default-percent').fill('9');
+  await page.getByRole('button', { name: 'Salvar' }).click();
+
+  await expect(page.getByTestId('cashback-error')).toContainText('Filial não encontrada');
+  // E continua herdando: nada foi gravado, e a tela não afirma o contrário.
+  await expect(page.getByTestId('cashback-origem')).toContainText('Herdando a regra da rede');
+});

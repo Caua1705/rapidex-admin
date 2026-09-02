@@ -3652,6 +3652,22 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     if (cashbackMatch?.[1]) {
       const branchId = cashbackMatch[1];
       if (method === 'GET') return json(route, 200, regraDaFilial(branchId));
+      /*
+       * A FILIAL PRECISA EXISTIR — e o falso não cobrava isso.
+       *
+       * `AdminCashbackService._get_branch` responde **404 "Filial não
+       * encontrada"** quando a filial não existe OU quando o papel não a
+       * alcança (`ensure_branch_allowed`). Aceitar qualquer id aqui é o falso
+       * sendo MAIS FROUXO QUE O BACKEND, que é o defeito que a skill
+       * `rapidex-api` §4.10 descreve: o e2e fica verde sobre uma tela que dá
+       * 404 na mão do lojista.
+       *
+       * Vale para os três métodos, e por isso vem antes deles.
+       */
+      if (!state.branches.some((item) => item.id === branchId)) {
+        return json(route, 404, { detail: 'Filial não encontrada' });
+      }
+
       if (method === 'PUT') {
         const body = request.postDataJSON() as Record<string, unknown>;
         state.cashbackPuts.push({ escopo: 'filial', body });
@@ -4249,6 +4265,27 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         return json(route, 422, {
           detail: [{ loc: ['body', 'branch_id'], msg: 'Field required', type: 'missing' }],
         });
+      }
+
+      /*
+       * `name`: `min_length=1, max_length=120` no Pydantic, e o /openapi.json
+       * publica `string` seco (skill `rapidex-api` §4.8). Sem esta linha o
+       * falso aceita o que produção recusa.
+       */
+      const nome = String(body.name ?? '').trim();
+      if (nome === '' || nome.length > 120) {
+        return json(route, 422, {
+          detail: [{ loc: ['body', 'name'], msg: 'de 1 a 120 caracteres', type: 'value_error' }],
+        });
+      }
+
+      /*
+       * A FILIAL PRECISA EXISTIR E SER ALCANÇÁVEL. O comentário do próprio
+       * schema do backend diz: "quem esta preso a uma filial e mandar outra
+       * recebe 404, pela mesma regra de `AdminScope.ensure_branch_allowed`".
+       */
+      if (!state.branches.some((item) => item.id === body.branch_id)) {
+        return json(route, 404, { detail: 'Filial não encontrada' });
       }
 
       const created: Category = {

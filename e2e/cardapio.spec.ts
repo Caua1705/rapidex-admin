@@ -16,7 +16,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { installFakeApi, LOGIN_EMAIL, LOGIN_PASSWORD, type FakeApi } from './fake-api';
-import { escolher, FAKE_BRANCH, FAKE_BRANCH_2 } from './seletor';
+import { escolher, escolherFilial, FAKE_BRANCH, FAKE_BRANCH_2 } from './seletor';
 import { branchName } from '../src/layout/branch-heading';
 
 let api: FakeApi;
@@ -475,4 +475,69 @@ test('sem escolha guardada, o tema segue o sistema', async ({ page }) => {
   await abrirCardapio(page);
 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+});
+
+/*
+ * ============================================================================
+ * CRIAR CATEGORIA — a segunda escrita que NENHUM teste exercitava
+ * ============================================================================
+ *
+ * O levantamento dos 46 caminhos de escrita do painel, medido pelo que o falso
+ * serviu na suíte inteira, achou duas rotas sem um único teste. Esta é a outra:
+ * `POST /admin/categories` nunca tinha sido chamado por teste nenhum, apesar de
+ * o botão existir na barra de categorias desde sempre.
+ *
+ * É a forma exata do defeito que o app do cliente teve hoje — 422 em toda
+ * tentativa de salvar, e ninguém pegou porque nenhum teste exercitava a
+ * escrita.
+ */
+test('criar categoria manda a FILIAL no corpo, e a nova entra na barra', async ({ page }) => {
+  await abrirCardapio(page);
+  await escolherFilial(page);
+
+  await page.getByRole('button', { name: 'Nova categoria' }).click();
+  await page.getByLabel('Nome da categoria').fill('Sobremesas');
+  await page.getByRole('button', { name: 'Salvar' }).click();
+
+  /*
+   * `branch_id` NO CORPO, e é o campo que não pode faltar: o backend o declara
+   * obrigatório e sem padrão, porque cair na filial padrão criaria a categoria
+   * numa loja que o lojista não escolheu — e ele só descobriria pelo cardápio
+   * público da outra.
+   */
+  await expect
+    .poll(() => api.categories().find((item) => item.name === 'Sobremesas')?.branch_id)
+    .toBe(FAKE_BRANCH.id);
+
+  // A nova entra na barra sem recarregar: o id vem da resposta do POST.
+  const nova = api.categories().find((item) => item.name === 'Sobremesas');
+  await expect(page.getByTestId(`category-select-${nova?.id}`)).toContainText('Sobremesas');
+});
+
+/*
+ * A RECUSA. `AdminCategoryCreate.name` é `min_length=1, max_length=120` no
+ * Pydantic e sai como `string` seco no /openapi.json — o falso passou a cobrar
+ * o teto, porque um dublê mais frouxo que o backend deixa o e2e verde sobre uma
+ * tela que dá 422 na mão do lojista.
+ *
+ * O que se prova aqui não é o 422: é que a tela MOSTRA a frase e NÃO fecha o
+ * diálogo, deixando o nome digitado onde ele está.
+ */
+test('categoria recusada pelo backend: a tela diz o motivo e não perde o que foi digitado', async ({
+  page,
+}) => {
+  await abrirCardapio(page);
+  await escolherFilial(page);
+
+  await page.getByRole('button', { name: 'Nova categoria' }).click();
+  const nomeLongo = 'S'.repeat(121);
+  await page.getByLabel('Nome da categoria').fill(nomeLongo);
+  await page.getByRole('button', { name: 'Salvar' }).click();
+
+  await expect(page.getByRole('alert')).toContainText('120 caracteres');
+
+  // O diálogo continua aberto, com o texto: o lojista corrige, não redigita.
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByLabel('Nome da categoria')).toHaveValue(nomeLongo);
+  expect(api.categories().some((item) => item.name === nomeLongo)).toBe(false);
 });
