@@ -769,6 +769,12 @@ minutos. O Windows segura cada um em `TIME_WAIT` por 120s por padrão.
   procurar é o falso segurando conexão (foi o que o §2.0 consertou no SSE: o
   handler ficava pendurado por 15s depois de o navegador fechar).
 
+**VOLTOU, e a assinatura confirma o diagnóstico.** Segunda ocorrência na mesma
+sessão, em OUTRO teste (`desempenho.spec.ts:143`), também no `page.goto`, também
+depois de muitas suítes. Teste diferente, mesma assinatura, execução não-limpa —
+é exatamente o que a tabela acima chama de ambiente. Se aparecer numa primeira
+suíte de sessão, aí a leitura muda.
+
 **Não foi tratado como intermitente do portão** por isso: intermitente de código
 falha com o produto na tela; esta falha antes de a página carregar, e o
 diagnóstico está na camada de sockets do sistema, não no repositório.

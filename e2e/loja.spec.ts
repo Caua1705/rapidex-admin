@@ -1040,3 +1040,132 @@ test('as formas aparecem na ordem do cliente, e não em ordem alfabética', asyn
     linhas.indexOf('payment-method-pay-voucher'),
   );
 });
+
+/*
+ * ============================================================================
+ * O QUE DECIDE SE A LOJA VENDE — a camada depois do dinheiro
+ * ============================================================================
+ *
+ * A priorização do levantamento dizia "dinheiro primeiro". Depois dele vem
+ * ESTA camada, e ela merece a segunda posição por um motivo específico: uma
+ * recusa engolida aqui não erra um número na tela — ela faz o lojista acreditar
+ * que a loja está aberta quando ela não está.
+ *
+ * E o sintoma disso é a AUSÊNCIA de pedido, que não acende alarme nenhum. É o
+ * mesmo formato do defeito da pausa esquecida, e o mesmo do app do cliente que
+ * não salvava endereço: a tela afirma um estado que o servidor recusou.
+ *
+ * As quatro rotas desta camada — `store-status`, `order-types`,
+ * `delivery-pause` e o PUT dos horários — passam pelo mesmo `_get_branch` do
+ * backend, que responde **404 "Filial não encontrada"** quando ela some ou
+ * quando o papel deixa de alcançá-la. É a recusa realista: outra pessoa
+ * desativou a filial, ou o dono restringiu o gerente a outra loja.
+ */
+test('abrir a loja recusado: o interruptor VOLTA, e a linha diz o motivo', async ({ page }) => {
+  await abrirLoja(page);
+
+  const aldeota = page.getByTestId(`operation-row-${FAKE_BRANCH.id}`);
+  await expect(aldeota).toHaveAttribute('data-open', 'true');
+
+  await page.route(`**/admin/branches/${FAKE_BRANCH.id}/store-status`, (route) =>
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Filial não encontrada' }),
+    }),
+  );
+
+  await aldeota.getByRole('switch', { name: `Aberta: ${FAKE_BRANCH.display_name}` }).click();
+
+  /*
+   * O QUE ESTE TESTE GUARDA: o interruptor não pode ficar mostrando "fechada".
+   * `useBranchOperation` só adota a linha que o backend DEVOLVEU — nunca a que
+   * ele pediu —, e é isso que impede a tela de afirmar um estado que não
+   * existe. Um toggle otimista aqui deixaria a loja "fechada" na tela e aberta
+   * no mundo, e o lojista só descobriria pelos pedidos que continuam entrando.
+   */
+  await expect(aldeota).toContainText('Filial não encontrada');
+  await expect(aldeota).toHaveAttribute('data-open', 'true');
+  expect(api.operation(FAKE_BRANCH.id)?.is_open).toBe(true);
+});
+
+test('desligar a entrega recusado: a chave volta e a outra filial não se mexe', async ({
+  page,
+}) => {
+  await abrirLoja(page);
+
+  await page.route(`**/admin/branches/${FAKE_BRANCH.id}/order-types`, (route) =>
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Filial não encontrada' }),
+    }),
+  );
+
+  await page.getByTestId(`operation-accepts_delivery-${FAKE_BRANCH.id}`).click();
+
+  const aldeota = page.getByTestId(`operation-row-${FAKE_BRANCH.id}`);
+  await expect(aldeota).toContainText('Filial não encontrada');
+  expect(api.operation(FAKE_BRANCH.id)?.accepts_delivery).toBe(true);
+
+  // E o erro é DA LINHA, não da tela: a outra loja continua operável.
+  await expect(page.getByTestId(`operation-row-${FAKE_BRANCH_2.id}`)).not.toContainText(
+    'Filial não encontrada',
+  );
+});
+
+test('pausar a entrega recusado: a linha não anuncia uma pausa que não existe', async ({
+  page,
+}) => {
+  await abrirLoja(page);
+
+  await page.route(`**/admin/branches/${FAKE_BRANCH.id}/delivery-pause`, (route) =>
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Filial não encontrada' }),
+    }),
+  );
+
+  await page.getByTestId(`operation-pause-${FAKE_BRANCH.id}`).click();
+  const dialogo = page.getByRole('dialog');
+  await dialogo.getByTestId('pause-preset-60').click();
+  await dialogo.getByTestId('confirm-pause').click();
+
+  /*
+   * O ERRO APARECE DENTRO DO DIÁLOGO, e ele NÃO fecha: o lojista precisa ler o
+   * que aconteceu antes de sair, e fechar aqui leria como pausa aplicada.
+   */
+  await expect(dialogo).toContainText('Filial não encontrada');
+  await expect(dialogo).toBeVisible();
+  // Nenhuma pausa gravada, e a linha não escreve "Pausada até…".
+  expect(api.operation(FAKE_BRANCH.id)?.deliveryPausedUntil ?? null).toBeNull();
+});
+
+test('salvar a semana recusado: a barra não diz "salvo" e a grade não mente', async ({ page }) => {
+  await abrirLoja(page);
+  await escolherFilial(page);
+  await abrirSecao(page, 'horarios');
+
+  await page.route(`**/admin/branches/${FAKE_BRANCH.id}/business-hours`, (route) => {
+    if (route.request().method() !== 'PUT') return route.fallback();
+    return route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Filial não encontrada' }),
+    });
+  });
+
+  /*
+   * O PUT SUBSTITUI A SEMANA INTEIRA. Uma recusa engolida aqui é a pior desta
+   * camada: o lojista fecha a segunda-feira, a tela diz "salvo", e a loja
+   * continua abrindo — com o sintoma aparecendo só no pedido que entra num dia
+   * que ele acha que está fechado.
+   */
+  await page.getByRole('switch', { name: 'Segunda-feira: fechar' }).click();
+  await page.getByTestId('store-save').click();
+
+  await expect(page.getByTestId('store-error')).toContainText('Filial não encontrada');
+  await expect(page.getByTestId('store-saved')).toHaveCount(0);
+  expect(api.hoursPuts()).toHaveLength(0);
+});

@@ -378,15 +378,26 @@ test('filial recusada pelo backend: a tela mostra a frase, e não diz que salvou
   await entrar(page);
   await page.getByTestId('cashback-escopo-filial').click();
 
-  // A filial some do "banco" entre abrir a tela e salvar — é o que acontece
-  // quando outra pessoa a desativa, ou quando o papel perde o alcance dela.
-  await page.route('**/admin/branches/*/cashback-rules', (route) =>
-    route.fulfill({
+  /*
+   * A filial some do "banco" entre abrir a tela e salvar — é o que acontece
+   * quando outra pessoa a desativa, ou quando o papel perde o alcance dela.
+   *
+   * SÓ O PUT, e a primeira versão deste teste não filtrava: a mesma rota atende
+   * o GET que MONTA a tela. Ele passou algumas vezes por sorte — o GET da
+   * filial chegava antes de o `page.route` estar registrado — e falhou na suíte
+   * completa, esperando 30s por um campo que nunca ia aparecer.
+   *
+   * Uma intermitente que eu mesmo escrevi, e o portão a pegou. Filtrar pelo
+   * método tira a corrida em vez de escondê-la.
+   */
+  await page.route('**/admin/branches/*/cashback-rules', (route) => {
+    if (route.request().method() !== 'PUT') return route.fallback();
+    return route.fulfill({
       status: 404,
       contentType: 'application/json',
       body: JSON.stringify({ detail: 'Filial não encontrada' }),
-    }),
-  );
+    });
+  });
 
   await page.getByTestId('cashback-default-percent').fill('9');
   await page.getByRole('button', { name: 'Salvar' }).click();

@@ -33,8 +33,20 @@ motivo de este documento contar as três medições em vez de só a última.
 
 ## O resultado
 
-**46 escritas. 2 sem nenhum teste (consertadas). 37 exercitadas só no caminho
-feliz — 3 delas cobertas nesta rodada, 34 restantes.**
+**46 escritas. 0 sem nenhum teste. 25 exercitadas só no caminho feliz.**
+
+| Momento                                  | sem teste | só caminho feliz |
+| ---------------------------------------- | --------- | ---------------- |
+| primeira medição                         | 2         | 37               |
+| depois das escritas de dinheiro          | 0         | 32               |
+| depois de "o que decide se a loja vende" | 0         | **25**           |
+
+> **A régua subcontava, duas vezes.** Ela lia só o que o FALSO serviu, e uma
+> recusa dublada com `page.route` nunca chega lá — eram 6 invisíveis. Corrigida
+> a primeira vez, ela ainda procurava o padrão só entre **aspas simples**, e os
+> testes que montam a rota com o id da filial usam **crase** — mais 4
+> invisíveis. Um número que subconta é pior que nenhum: ele manda refazer
+> trabalho já feito.
 
 ### As 2 que não tinham teste nenhum — CONSERTADAS nesta rodada
 
@@ -102,12 +114,50 @@ O que os três provam, além do status: **a frase do backend aparece** (nunca "A
 requisição falhou (409)"), **o formulário não some** com o que foi digitado, e
 **a barra não anuncia sucesso**.
 
+### A segunda camada: o que decide se a loja VENDE
+
+Depois do dinheiro vem esta, e ela merece a segunda posição por um motivo
+específico: **uma recusa engolida aqui não erra um número na tela — ela faz o
+lojista acreditar que a loja está aberta quando ela não está.** E o sintoma
+disso é a AUSÊNCIA de pedido, que não acende alarme nenhum.
+
+As quatro passam pelo mesmo `_get_branch` do backend, que responde **404
+"Filial não encontrada"** quando ela some ou quando o papel deixa de alcançá-la
+— outra pessoa desativou a filial, ou o dono restringiu o gerente a outra loja.
+
+| Rota                       | O que o teste prende                                           |
+| -------------------------- | -------------------------------------------------------------- |
+| `PATCH .../store-status`   | o interruptor **VOLTA** — a tela não afirma um estado recusado |
+| `PATCH .../order-types`    | a chave volta, e o erro é **da linha**: a outra filial opera   |
+| `PATCH .../delivery-pause` | o diálogo **não fecha**, e nenhuma pausa é anunciada           |
+| `PUT .../business-hours`   | a barra não diz "salvo", e o PUT nem sai                       |
+
+O primeiro é o que mais importa: `useBranchOperation` só adota a linha que o
+backend **devolveu**, nunca a que ele pediu. Um toggle otimista deixaria a loja
+"fechada" na tela e aberta no mundo.
+
+**As recusas de horário que NÃO entraram, e por quê:** `faixas se sobrepõem`,
+`não misture faixa fechada com aberta` e `mais de N períodos` são inalcançáveis
+pelo painel — ele monta uma faixa por dia, de uma grade fixa de sete.
+
 **A priorização para o que sobra**, do mais caro ao menos: as escritas que
 mexem em dinheiro ou em cadastro que o cliente vê —
-`PATCH /admin/settings`, `PATCH /admin/restaurant`,
-`PATCH /admin/branches/{id}/settings` e `PUT /admin/cashback-rules` — as três
-de forma de pagamento e a da filial saíram nesta rodada. As de cardápio vêm
-depois: elas erram uma tela, não um valor cobrado.
+as 25 restantes, na ordem:
+
+1. **A comanda que não sai** — `print-settings`, `printing-sectors` (criar e
+   editar), `printing-sector` de produto e de categoria, `print-test`. O
+   pedido entra e a cozinha não fica sabendo.
+2. **Cardápio** — produto, categoria, complemento, reordenação, foto. Erra uma
+   tela, não um valor cobrado.
+3. **Equipe e conta** — `updateAdminUser`, `resetAdminUserPassword`,
+   `changePassword`. `createAdminUser` já tem o 409.
+4. **O resto** — `delivery-time-bands`, `restaurant`, `settings`,
+   `stream-ticket`, os dois DELETE.
+
+E uma nota de método para quem seguir: várias recusas do backend são
+**inalcançáveis pelo painel**, porque a tela valida antes. Isso não é buraco —
+é a tela fazendo o trabalho dela. O que se procura é o caminho em que o backend
+recusa e o painel **não sabia**.
 
 ## Como refazer o levantamento
 
