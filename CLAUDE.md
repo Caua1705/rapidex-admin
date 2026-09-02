@@ -36,7 +36,7 @@ Ao terminar qualquer alteração na `dev`, devolver esse link.
 
 ```bash
 npm run format:check   # PRIMEIRO passo do CI — ver o aviso abaixo
-npm run lint           # ESLint + tokens + contraste + hash da CSP
+npm run lint           # ESLint + tokens + contraste + hash da CSP + fuso
 npm run typecheck
 npm test
 npx playwright test    # e2e, com a API inteira dublada em e2e/fake-api.ts
@@ -76,7 +76,7 @@ As duas leem o repositório do backend, nesta ordem: `RAPIDEX_OPENAPI` /
 Rode as duas **antes** de escrever a chamada, não depois. E **commite o diff de
 contrato separado** da tela que o motivou.
 
-## Três coisas que já custaram caro
+## Quatro coisas que já custaram caro
 
 1. **O cardápio é da FILIAL.** `listCategories`/`listProducts` exigem `branchId`
    na assinatura porque a leitura sem recorte devolve o cardápio de cada loja
@@ -85,6 +85,12 @@ contrato separado** da tela que o motivou.
    conversão tem um lugar só: `backendWeekday()`.
 3. **`unit_price_snapshot` JÁ inclui os adicionais.** Somar
    `additional_price_snapshot` faz o painel discordar do que o cliente pagou.
+4. **O dia é o da LOJA, não o do aparelho.** A operação conta em
+   `America/Fortaleza`. "Que dia é hoje" é `weekdayDaOperacao()`, e todo
+   formatador de data declara `timeZone` — `npm run lint` cobra isso, porque o
+   pino de fuso do portão ESCONDE essa classe de defeito em vez de acusá-la.
+   Custou duas mentiras de três horas na tela: a hora em que a entrega volta e o
+   prazo de preparo do dia.
 
 ## Onde ficam os documentos de rodada
 

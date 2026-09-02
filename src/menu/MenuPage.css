@@ -1264,8 +1264,14 @@
   gap: var(--sp-12);
 }
 
+/*
+ * O CAMPO CURTO AINDA É UM ALVO DE DEDO. 9ch e não 7: o `.input` gasta 12px de
+ * cada lado em `padding-inline`, e com 7ch sobravam ~25px de texto — "10"
+ * encostava nas bordas. A altura vem do sistema (44px no toque, `--field-h-touch`);
+ * a largura é o que esta regra não pode estrangular.
+ */
 .field--curto {
-  max-width: 7ch;
+  max-width: 9ch;
 }
 
 .groups__form-acoes {

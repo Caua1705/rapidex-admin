@@ -580,13 +580,98 @@ falharam (eram 264).
 
 ---
 
+---
+
+### 2.7 — A passagem da `revisao` sobre a rodada inteira ✅
+
+Os onze itens da skill, lidos contra os sete commits.
+
+**Item 9 — a varredura de rota parada.** O número mudou:
+
+| Quando           | Rotas `/admin` chamadas |
+| ---------------- | ----------------------- |
+| Auditoria (§a)   | **73 de 82**            |
+| Fim desta rodada | **79 de 82**            |
+
+As três que sobram são **exatamente os falsos positivos conhecidos**:
+`GET /admin/orders/stream` (é `EventSource`, não passa pelo `openapi-fetch`) e
+os dois `print-agent` (é a MÁQUINA falando, não o painel). **Zero lacunas, zero
+rotas inventadas.** As seis que entraram: as quatro de complemento,
+`POST /admin/error-reports` e `GET /admin/products/{id}/option-groups`.
+
+**Item 6 — dinheiro, e uma observação que fica anotada em vez de virar mudança
+silenciosa.** `additional_price` atravessa como **número**, e a skill manda
+perguntar "como é que o campo ao lado está indo?". O vizinho é o `price` do
+produto, que também vai como número, e o contrato tipa os dois como
+`number | string`. **Estão consistentes, e é isso que a regra pede.**
+
+O que fica escrito: se a forma de número for um dia errada para dinheiro aqui,
+ela é errada para os DOIS — e trocar só o novo criaria a divergência que a regra
+existe para impedir. É rodada própria, com o e2e do preço do produto junto.
+
+**Item 5 — alvo de 44px.** Os controles novos usam `.btn`/`.btn--sm` e `.input`,
+que o sistema já estica no toque (`--tap-mobile`, `--field-h-touch`). O único
+que precisou de ajuste foi meu: `.field--curto` estava em `7ch`, e com os 24px
+de `padding-inline` do `.input` sobravam ~25px de texto — "10" encostava nas
+bordas. Passou a `9ch`.
+
+**Itens 1, 2, 3, 4, 7, 8, 10:** conferidos, sem achado. O item 2 (campo que some
+do PATCH) é o assunto do §2.6 e está resolvido pela raiz (o formulário inteiro);
+o 8 é o §2.1; o 11 é o §2.3.
+
+---
+
 ## 3. Bloqueado por backend
 
-Herdado de `rodada-painel.md` §6 e de `auditoria.md` C.1 — nada novo até aqui.
+Herdado de `rodada-painel.md` §6 e de `auditoria.md` C.1 — **nada novo entrou
+nesta rodada**, e nada saiu.
+
+| Frente                             | O que falta do backend                                                                           |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **WhatsApp**                       | zero rotas. Sem `GET .../whatsapp` (o espelho de `print-agent`), nenhuma tela. Ver §6.1 anterior |
+| **Integrações**                    | zero rotas administráveis. `GET /admin/integrations` e `GET/PATCH /admin/payment-gateway`        |
+| **Criar filial**                   | não existe `POST /admin/branches`                                                                |
+| **Apagar categoria/produto/setor** | não existe `DELETE` em nenhuma das três                                                          |
+| **Logo do restaurante**            | `logo_path` existe no banco, mas só a vitrine pública o serve                                    |
+| **Nota fiscal**                    | não existe nem tabela                                                                            |
+| **Reordenar complemento**          | **NOVO NA LISTA:** `sort_order` é gravado, mas não há rota de `reorder` como a de categorias     |
+
+O último é o único acréscimo, e ele é pequeno: hoje reordenar grupo ou opção
+seria um PATCH por linha, contra o padrão de arrasto que o cardápio já tem.
 
 ---
 
 ## 4. Onde parei
 
-Início da rodada. Portão de base verde nas quatro primeiras linhas; a quinta
-(e2e) estava rodando quando este arquivo foi criado.
+**Tudo o que esta rodada se propôs está feito**, e os cinco portões estão verdes
+lidos sem pipe. Sete commits, um por item, todos com push.
+
+| #   | Item                                                       | Commit    |
+| --- | ---------------------------------------------------------- | --------- |
+| 0   | o falso dava o evento do SSE à conexão da tela anterior    | `aad060a` |
+| 1   | o 428 do cancelamento, e o `detail` objeto                 | `39bbd19` |
+| 2   | a borda de erro e o relato                                 | `defde3b` |
+| 3   | o fuso do portão, e os dois defeitos de produto atrás dele | `8c85416` |
+| 4/5 | a intermitente (não reproduziu) + as duas confirmações     | `50f7e27` |
+| 6   | os complementos deixaram de ser leitura                    | `650ec31` |
+| 7   | a revisão, e as skills com as armadilhas novas             | (este)    |
+
+### Se esta sessão for retomada
+
+Leia este arquivo, `auditoria.md` e `rodada-painel.md` antes de qualquer coisa.
+O que continua de pé, em ordem de valor:
+
+1. **Editar uma opção existente** (nome e preço). `PATCH /admin/options/{id}`
+   aceita, e o painel só liga/desliga. É a continuação natural do §2.6 e a
+   coisa mais barata que sobrou.
+2. **`useOrderStream`: conexão aberta que parou de entregar** (auditoria D.5).
+   Um relógio de "sem evento há N minutos" fecharia o único buraco de tempo real
+   que sobrou.
+3. **Teste de componente para as telas grandes** (auditoria "o que passaria
+   despercebido" §2). Eram 91 `.tsx` para 8 testes de tela; hoje são 11, e as
+   telas grandes (`OrdersPage`, `MenuPage`, `UsersPage`) continuam sem.
+4. **O fake conferido contra o contrato** (auditoria §4). O falso agora é
+   tipado nas rotas novas (`Schemas['AdminOptionGroupCreate']` etc.), o que é um
+   começo — mas as antigas continuam com objeto literal.
+5. **A intermitente do §9.4**, se ela voltar: suíte inteira em laço com
+   `--trace=on`, não o arquivo isolado.

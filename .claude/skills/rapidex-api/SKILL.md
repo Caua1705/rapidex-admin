@@ -1,6 +1,6 @@
 ---
 name: rapidex-api
-description: Convenções de integração com a API do Rapidex — contrato gerado, o que fazer quando a rota não existe, e as armadilhas que o typecheck NÃO pega (dia da semana 0=segunda, preço com adicional já embutido, escopo de filial pelo token, cópia como entrada repetida que não se deve deduplicar, a regra que só está na descrição da rota e não no schema, e o erro cujo `detail` é objeto — a tela mostra o número HTTP no lugar da frase que o backend mandou). Leia ANTES de escrever qualquer tela, hook ou função que consuma rota, e antes de mexer em src/api/. Também aplicável ao ler um campo novo de uma resposta, ao montar um filtro por data ou por dia da semana, ao decidir o que fazer com um 4xx, e ao investigar bug de valor errado na tela.
+description: Convenções de integração com a API do Rapidex — contrato gerado, o que fazer quando a rota não existe, e as armadilhas que o typecheck NÃO pega (dia da semana 0=segunda, preço com adicional já embutido, escopo de filial pelo token, cópia como entrada repetida que não se deve deduplicar, a regra que só está na descrição da rota e não no schema, a validação cruzada que o Pydantic faz e o /openapi.json NÃO publica, o PATCH validado sobre a MESCLA com o banco, o falso do e2e mais frouxo que o backend, e o erro cujo `detail` é objeto — a tela mostra o número HTTP no lugar da frase que o backend mandou). Leia ANTES de escrever qualquer tela, hook ou função que consuma rota, e antes de mexer em src/api/. Também aplicável ao ler um campo novo de uma resposta, ao montar um filtro por data ou por dia da semana, ao decidir o que fazer com um 4xx, e ao investigar bug de valor errado na tela.
 ---
 
 # Integração com a API do Rapidex
@@ -156,11 +156,30 @@ deslocada em um, o ano inteiro, até alguém tentar comprar num domingo fechado.
 A ordem da grade na tela é segunda→domingo, igual à do backend, e a lista
 `WEEKDAYS` do mesmo arquivo é a **única** fonte de rótulo de dia.
 
-**Não confunda com o fuso.** Data (não dia da semana) é outro assunto: a
-operação roda em `America/Fortaleza` (`OPERATION_TIMEZONE`, em
-`src/orders/format.ts`) e os filtros `start_date`/`end_date` são AAAA-MM-DD no
-dia **da operação**, não no do navegador. Quem monta filtro por data usa
-`src/orders/order-filters.ts`.
+### E há uma SEGUNDA volta: qual dia, antes ainda de numerá-lo
+
+`backendWeekday(date)` converte a numeração — e responde no fuso de quem lhe
+entrega a data. `backendWeekday(new Date())` é, portanto, **o dia do
+APARELHO**, e era assim que a barra de pedidos lia o prazo de preparo do dia.
+
+Num tablet de balcão em modo quiosque com o fuso errado, ou num notebook trazido
+de outro estado, o painel lê a linha de horário do **dia errado**: mostra o prazo
+de terça numa segunda. E o erro é silencioso pelo mesmo motivo do primeiro — os
+dois dias existem, e nenhum dos dois reclama.
+
+**Hoje "que dia é hoje" tem função própria:** `weekdayDaOperacao()`, no mesmo
+arquivo. Ela passa pelo TEXTO da data no fuso da operação e só então numera.
+`backendWeekday` continua existindo para converter uma data que você JÁ tem.
+
+**A regra curta:** data conhecida → `backendWeekday`. "Hoje" → `weekdayDaOperacao`.
+
+**E o fuso, em geral.** A operação roda em `America/Fortaleza`
+(`OPERATION_TIMEZONE`, em `src/orders/format.ts`) e os filtros
+`start_date`/`end_date` são AAAA-MM-DD no dia **da operação**, não no do
+navegador. Quem monta filtro por data usa `src/orders/order-filters.ts`. E todo
+formatador de data em `src/` declara `timeZone` — `npm run lint` cobra isso
+(`scripts/check-fuso.mjs`), porque o pino de fuso do portão ESCONDE esta classe
+de defeito em vez de acusá-la. Ver `revisao` §11.
 
 ## 4.2 `unit_price_snapshot` já inclui os adicionais
 
@@ -366,15 +385,22 @@ devolve. São dois minutos, e é onde mora metade do que a tela precisa dizer.
 validação do Pydantic** e `{ error: { message } }`. Uma quarta forma existe no
 contrato: **`detail` como OBJETO**.
 
-**O caso vivo, ainda não consertado (2026-09-02).**
+**O caso, consertado em 2026-09-02 — e ele custou semanas de vida assim.**
 `PATCH /admin/orders/{id}/cancel` a partir de `preparing` responde **428** com
 `{ detail: { code, message, order_status } }`, e o contrato avisa que isso **não
 é erro**: "o painel abre o diálogo de confirmação e reenvia". O `message` vem
 "pronta para ser mostrada no diálogo de confirmação do painel".
 
-`readDetailMessage` devolve `null` para objeto, e o lojista lê
+`readDetailMessage` devolvia `null` para objeto, e o lojista lia
 **"A requisição falhou (428)."** Efeito: a partir de "Iniciar preparo", o pedido
-não pode mais ser cancelado pelo painel.
+não podia mais ser cancelado pelo painel — nem por dono, nem por gerente.
+
+Hoje `readDetailMessage` lê `detail.message` quando `detail` é objeto (depois
+do ramo da lista de validação de propósito: aquela também é objeto para o
+`typeof`, e é o `Array.isArray` que separa as duas), e o segundo clique mora
+em `orders/cancel-confirmation.ts`. **O que fica de aviso é o resto:** o 428
+respondia isso desde que entrou no contrato, e nada no repositório ficava
+vermelho — ver §4.10.
 
 **A regra:** um status 4xx que o contrato descreve como "não é erro, o painel
 faz X" é uma **funcionalidade escrita como resposta HTTP**. Tratá-lo como falha
@@ -383,6 +409,94 @@ genérica não perde a mensagem — perde a funcionalidade.
 Ao escrever consumo de rota nova, confira no contrato se ela declara 4xx com
 schema PRÓPRIO (qualquer coisa que não seja `HTTPValidationError`). Se declara,
 esse caminho precisa de tratamento nomeado, e o `catch` genérico não serve.
+
+---
+
+## 4.8 A validação que NÃO VIRA SCHEMA — Pydantic tem duas metades
+
+`npm run api:generate` traz tudo o que o `/openapi.json` publica. Ele **não traz
+o que o Pydantic valida fora do schema**, e são duas coisas distintas:
+
+**(a) Os limites de campo.** `Field(min_length=1, max_length=4000)` vira
+`"type": "string"` seco em várias rotas do Rapidex. O painel recebe `string` e
+não sabe o teto.
+
+**(b) As regras CRUZADAS.** `@model_validator(mode="after")` não tem
+representação em JSON Schema. Elas somem inteiras.
+
+**Os casos vivos, e cada um com o preço:**
+
+| Onde                                 | A regra que só existe no Pydantic                                 | O que custa não conferir                                                                         |
+| ------------------------------------ | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `AdminOptionGroupFields`             | `max_select >= min_select`; `is_required` exige `min_select >= 1` | 422 depois de o lojista preencher seis campos, com a mensagem do Pydantic em inglês              |
+| `CreateErrorReportRequest`           | `description` 1–4000, `error_log` **20000**, `screen` 200         | 422 **na tela de relatar o erro** — a última porta que restava, e a pilha do React passa dos 20k |
+| `CancelOrderRequest.reason`          | 3–300                                                             | já era conhecido: `orders/cancel-reason.ts`                                                      |
+| `AdminOptionCreate.additional_price` | `ge=0`                                                            | preço negativo recusado no clique                                                                |
+
+**A decisão do repositório, e ela é a mesma sempre:** o número é escrito à mão,
+**num lugar só**, com a ORIGEM NOMEADA no comentário — a classe do Pydantic de
+onde ele saiu. Isso **não** contraria "nada de contrato se escreve à mão",
+porque isto não é contrato: é o que o contrato não publica. Os três lugares
+onde isso mora hoje: `orders/cancel-reason.ts`, `erro/error-report.ts` e
+`menu/option-groups.ts`.
+
+E conferir na tela não é desconfiança do backend: é o lojista ver o limite
+**antes** de clicar, e a mensagem sair em português.
+
+**Como achar:** abra a classe no `src/schemas/` do backend e leia os
+`Field(...)` e os `@model_validator`. `grep -n "model_validator" -A 20` na
+classe do corpo que você vai mandar leva trinta segundos.
+
+---
+
+## 4.9 O PATCH é validado sobre a MESCLA, e por isso ele leva o formulário inteiro
+
+Uma rota de edição do Rapidex pode validar o **resultado da mescla** com o que
+está no banco, e não o corpo que chegou. `AdminOptionGroupUpdate` é assim: os
+sete campos são opcionais, e o `model_validator` roda sobre `{...gravado,
+...corpo}`.
+
+**A consequência, e ela é contraintuitiva:** um PATCH "mínimo" — só o campo que
+mudou — pode ser **recusado por causa de um campo que a tela nem mostrou**.
+Ligar `is_required: true` num grupo cujo `min_select` gravado é `0` é 422, e o
+corpo enviado não tem nada de errado nele.
+
+**A regra:** quando a rota valida a mescla, o painel manda **o formulário
+inteiro**. Assim o que ele validou é exatamente o que o backend vai validar, e
+some junto a classe do item 2 da `revisao` ("campo que some no corpo do PATCH").
+
+Isso **não** contradiz o `null` explícito de `§5 · null que é escolha`: lá o
+assunto é o SIGNIFICADO de cada valor; aqui é QUANTOS campos vão. Um formulário
+que representa a coisa inteira manda a coisa inteira, com os `null` que ela
+tiver.
+
+**E o teste precisa provar o corpo, não o resultado.** Olhando só o objeto
+gravado, "mandou os sete campos" e "mandou só o que mudou" são
+indistinguíveis — por isso `e2e/fake-api.ts` guarda `optionGroupBodies`, como já
+guardava `adminUserBodies` pelo motivo inverso.
+
+---
+
+## 4.10 O falso não pode ser mais frouxo que o backend
+
+`e2e/fake-api.ts` é escrito por nós, e é essa a força e o buraco dele. **Um
+dublê que não tem o caso nunca acusa que a tela não o trata.**
+
+Aconteceu três vezes, e as três foram achadas nesta rodada:
+
+- **o 428 do cancelamento** — o falso nunca o devolvia, e 251 testes de e2e
+  ficavam verdes sobre um painel que não conseguia cancelar pedido em produção;
+- **os grupos de complemento** — `GET /admin/products/{id}` devolvia
+  `option_groups: []` sempre, então o interruptor de opção, o aviso de "item
+  fora de venda" e o diálogo de confirmação **existiam no código e nunca tinham
+  sido exercitados**;
+- **as validações cruzadas** — um falso que aceitasse `max_select < min_select`
+  deixaria o painel mandar o que produção recusa.
+
+**A regra, ao acrescentar rota ao falso:** reproduza **os erros que ela
+responde**, com o corpo do backend letra por letra, e **as validações que ela
+cobra**. Um falso que só sabe o caminho feliz transforma o e2e num teste de que
+a tela desenha, não de que ela funciona.
 
 ---
 

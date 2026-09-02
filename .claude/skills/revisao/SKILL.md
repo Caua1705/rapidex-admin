@@ -1,6 +1,6 @@
 ---
 name: revisao
-description: Checklist de revisão de código do Admin Rapidex — os dez defeitos que já chegaram à mão do lojista aqui e que nenhuma ferramenta acusa: estado que diverge entre telas, campo que some do corpo do PATCH, permissão que existe na tela e não na rota, controle preso ao `:hover` (invisível no toque), alvo menor que 44px, dinheiro que atravessa como número quando o vizinho vai como string, barra de salvar que não gruda, erro cujo `detail` é objeto (a tela mostra o número HTTP no lugar da frase), rota que o backend entregou e o painel nunca chamou, e achado que saiu de contagem de `grep` sem ser conferido. Leia ao revisar diff, PR ou rodada antes de dar por pronta, e ao terminar qualquer alteração em `src/`. Não substitui `npm run lint`/`typecheck`/`test` — é o que sobra depois deles.
+description: Checklist de revisão de código do Admin Rapidex — os onze defeitos que já chegaram à mão do lojista aqui e que nenhuma ferramenta acusa: estado que diverge entre telas, campo que some do corpo do PATCH, permissão que existe na tela e não na rota, controle preso ao `:hover` (invisível no toque), alvo menor que 44px, dinheiro que atravessa como número quando o vizinho vai como string, barra de salvar que não gruda, erro cujo `detail` é objeto (a tela mostra o número HTTP no lugar da frase), rota que o backend entregou e o painel nunca chamou, achado que saiu de contagem de `grep` sem ser conferido, e o portão que muda de resposta conforme quem o roda (fuso não fixado, relógio real dentro do teste, virada de dia). Leia ao revisar diff, PR ou rodada antes de dar por pronta, e ao terminar qualquer alteração em `src/`. Não substitui `npm run lint`/`typecheck`/`test` — é o que sobra depois deles.
 ---
 
 # Revisão de código do Admin Rapidex
@@ -8,7 +8,7 @@ description: Checklist de revisão de código do Admin Rapidex — os dez defeit
 O `typecheck` diz que os tipos batem. O `lint` diz que a cor saiu de um token e
 que o contraste passa. O `test` diz que a função devolve o que a asserção pede.
 
-**Nenhum dos três pegou um só dos dez defeitos abaixo.** Todos compilaram,
+**Nenhum dos três pegou um só dos onze defeitos abaixo.** Todos compilaram,
 passaram, subiram, e apareceram na tela de quem estava no balcão. Esta lista é
 o que se lê com o olho depois que as ferramentas ficam verdes — e ela não é
 genérica: cada item tem o caso real, com o commit, e o arquivo onde o conserto
@@ -26,6 +26,9 @@ Ordem de leitura, em quatro grupos que custam igual:
   testes passam, e quem descobre é o lojista.
 - **10 — o defeito é de quem revisa.** Achado que saiu de contagem e não foi
   conferido no arquivo.
+- **11 — o portão mente conforme QUEM o roda.** Fuso não fixado, relógio real
+  dentro do teste, virada de dia. Ele fechava esta lista como "a décima primeira
+  ainda não tem nome"; ela tem, e o nome é relógio.
 
 ---
 
@@ -420,6 +423,109 @@ calibrar quanto confiar no resto dela.
 
 ---
 
+---
+
+# 11. O portão que muda de resposta conforme QUEM o roda
+
+**A pergunta:** este teste dá a mesma resposta na minha máquina e no runner do
+CI? E daqui a três horas?
+
+Este item era o que fechava a lista com "a décima primeira ainda não tem nome".
+Ela tem, e o nome é **relógio** — em três formas, com um defeito de PRODUTO
+escondido atrás de cada uma.
+
+## 11.1 O fuso não estava fixado em portão nenhum
+
+`vite.config.ts` e `playwright.config.ts` não diziam nada sobre fuso. A máquina
+do desenvolvedor é `America/Sao_Paulo` (UTC-3) e o runner é `ubuntu-latest`, que
+é **UTC**. **Três horas de desacordo entre as duas metades do portão**, num
+painel cujo produto conta o dia em `America/Fortaleza`.
+
+Nada estava vermelho por causa disso, e **é exatamente esse o problema**: um
+teste que muda de resposta conforme quem o roda não é portão, é dado. Hoje ele
+passa nos dois; o primeiro que dependesse do fuso passaria na máquina de quem o
+escreveu e falharia no CI — ou, pior, o contrário.
+
+O fuso agora é fixado nos dois (`process.env.TZ` no config do Vitest, e não
+`test.env`: `Date` e `Intl` leem o TZ ao nascer do processo; `timezoneId` no do
+Playwright).
+
+## 11.2 O que o pino REVELOU — e ele é de produto
+
+Apontando o pino para UTC — o fuso do CI — a suíte ficou vermelha em um teste:
+`notaDaPausa` formatava o fim da pausa da entrega com
+`toLocaleTimeString('pt-BR', { hour, minute })`, **sem `timeZone`**. Era o único
+formatador de data do `src/` sem fuso declarado; todos os outros passam
+`OPERATION_TIMEZONE`.
+
+**Na loja:** o lojista pausa a entrega até as 20:30. Num aparelho com o fuso
+errado — o tablet de balcão em modo quiosque, o notebook trazido de outro estado
+— a linha dizia "Pausada até 23:30". Três horas de mentira sobre quando a
+entrega volta, no único estado do painel que se desfaz sozinho e cujo único
+sintoma é a ausência de pedido.
+
+**O teste escondia:** ele injetava o `agora` (certo) mas não o fuso, e na máquina
+de quem o escreveu o código errado produzia a string certa.
+
+A segunda, da mesma família: `usePrepRange` lia o dia da semana com
+`backendWeekday(new Date())` — o dia do **aparelho**. Painel num fuso errado lê
+a linha de horário do dia errado. Hoje é `weekdayDaOperacao()`.
+
+## 11.3 E o pino ESCONDE essa mesma classe — por isso ela virou lint
+
+Com o processo em UTC-3, o código errado volta a produzir a string certa e
+nenhum teste acende. **Teste nenhum alcança isto**: só uma regra que olhe o
+CÓDIGO. `scripts/check-fuso.mjs` roda no `npm run lint` e recusa qualquer
+`Intl.DateTimeFormat` / `toLocaleTimeString` / `toLocaleDateString` em `src/` sem
+`timeZone`. (`toLocaleString` de NÚMERO não entra: porcentagem e nota média não
+têm fuso.)
+
+## 11.4 O falso roda no NODE, e o `timezoneId` não chega nele
+
+Os handlers de `page.route` rodam no processo do Playwright, não no navegador.
+`timezoneId` vale para o navegador — então as duas metades do e2e podem contar o
+dia em fusos diferentes. Duas leituras do falso contavam "hoje" em UTC enquanto
+o painel contava em Fortaleza. Nenhuma quebrava, mas as margens eram **folga, não
+projeto**: some assim que alguém der a um dia um valor diferente.
+
+## 11.5 A varredura, e por que `grep` não basta
+
+O risco não é o teste escrever `Date.now()` — em `src/**/*.test.ts*` isso dá
+**zero**. É o teste **chamar uma função de produção que tem `now` com valor
+padrão** e não passar nada: o `grep` vê uma chamada normal.
+
+O que pega é **contar os argumentos de topo** de cada chamada às funções com
+relógio injetável (`groupIntoLanes`, `isPagamentoParado`, `readWait`,
+`formatElapsed`, `situacaoDoCupom`, `pausaAtiva`, `formatSince`,
+`todayInOperationTimezone`, `daysAgoInOperationTimezone`, `prepTimeForDay`, …).
+Achou quatro, todas em `board-lanes.test.ts`, todas **certas por acidente do
+fixture**: os pedidos tinham `payment_status: 'on_delivery'`, que não está em
+`PAGAMENTOS_QUE_PODEM_PARAR`. Trocar aquele valor por `pending` — uma linha —
+faria as quatro passarem a comparar `Date.now()` com um `created_at` de 2026
+escrito à mão.
+
+## 11.6 As outras duas formas
+
+**Virada de dia.** Um teste que pede um pedido de 90 minutos atrás a uma tela
+filtrada por "hoje" falha entre 00:00 e 01:30, e passa nas outras 22 horas
+(`6eb77c5`). O produto estava certo; o teste é que pedia um pedido de ontem a
+um quadro de hoje.
+
+**Espera por tempo em vez de condição.** Há **um** `waitForTimeout` no
+repositório, e ele fica: antes de tirar a foto, no arnês de capturas, que é
+pulado no portão. Não há condição a esperar, só a pintura assentando. Qualquer
+outro `waitForTimeout` é uma condição que alguém não soube nomear.
+
+**No diff, procure:** teste que chama função de relógio sem passar o `now`;
+`toLocale*` de data sem `timeZone`; `new Date(ano, mes, dia)` num teste (isso é
+meia-noite LOCAL, e o dia muda de fuso para fuso); `waitForTimeout`; e um
+handler de falso que leia `new Date()` para decidir o que responder.
+
+**A pergunta que fecha, de novo:** o que nesta rodada só apareceria depois de
+uma semana em produção — ou às 00:30 de um sábado, na máquina de outra pessoa?
+
+---
+
 # Como se roda a revisão
 
 As ferramentas primeiro — elas eliminam o que não vale o olho:
@@ -487,11 +593,24 @@ Toque e tela:
 - [ ] Todo `sticky` novo tem um ancestral que de fato rola, conferido em altura
       de telefone?
 
+Relógio:
+
+- [ ] Nenhum teste chama função com `now` injetável sem injetar o `now`
+      — conferido contando ARGUMENTOS, não por `grep`?
+- [ ] Todo formatador de data novo declara `timeZone`? (`npm run lint` cobra.)
+- [ ] Nenhum `waitForTimeout` novo — a espera é por CONDIÇÃO?
+- [ ] Nenhum handler de falso decide o que responder lendo `new Date()` no fuso
+      do Node?
+
 Método:
 
 - [ ] Todo achado meu que saiu de contagem de `grep` foi conferido no arquivo?
 - [ ] O portão foi lido SEM pipe, `format:check` incluído?
+- [ ] Todo experimento que "deu verde" foi conferido quanto a TER RODADO? (Um
+      `TZ=…` no shell não chega ao worker do Vitest no Windows: o teste passou
+      porque a variável nunca chegou, e o verde não provava nada.)
 
 E, por último, a pergunta que fecha: **o que nesta rodada só apareceria depois
-de uma semana em produção?** Os dez itens acima são as respostas que já foram
-dadas. A décima primeira ainda não tem nome.
+de uma semana em produção — ou às 00:30 de um sábado, na máquina de outra
+pessoa?** Os onze itens acima são as respostas que já foram dadas. A décima
+segunda ainda não tem nome.

@@ -500,6 +500,95 @@ Cardápio) e balão ancorado (o ajuste de preparo, o balão do gráfico) usam
 no meio da barra** — foi exatamente o que aconteceu com `.prep__popover` antes
 desta rodada.
 
+### Confirmação de ação sem desfazer
+
+`ui/ConfirmDialog` é a pergunta de uma ação que não tem volta e **não pede nada
+em troca**. Os dois diálogos do pedido (`CancelOrderDialog`,
+`RejectOrderDialog`) **não** o usam, e é decisão: eles não perguntam, eles
+**colhem** — o motivo é o dado que faltaria depois, e um campo com validação
+própria não cabe num "tem certeza?".
+
+Três regras, e cada uma tem um caso atrás:
+
+**1. O corpo é OBRIGATÓRIO.** Um diálogo que só diz "Tem certeza?" com Sim e
+Não vira o gesto de dois cliques que a pessoa aprende a fazer sem ler: custa um
+clique e não previne nada. O que faz a confirmação valer é a frase que diz **o
+que vai acontecer** e **o que fazer em vez disso**, quando existe alternativa
+reversível.
+
+**2. Aponte a alternativa reversível quando ela existe, e ela costuma existir a
+dois controles de distância.** Em Loja › Pagamento, "Excluir" ficava na mesma
+linha de um interruptor que faz a versão que se desfaz. Um que se desfaz e um
+que não se desfaz, lado a lado, numa lista operada com o polegar — o mesmo
+desenho que o rodapé do pedido desfez. O corpo do diálogo diz: "se você só quer
+parar de oferecer agora, use a chave ao lado".
+
+**3. O botão diz o VERBO, e a saída diz o que PRESERVA.** "Confirmar" ao lado de
+"Cancelar" é a pior dupla possível em português, porque "Cancelar" tanto pode
+ser fechar o diálogo quanto cancelar a coisa. "Excluir a forma" / "Manter a
+forma"; "Apagar e herdar" / "Manter a regra própria".
+
+**Rótulo honesto não é aviso.** "Voltar a herdar a regra da rede" descrevia o
+efeito com precisão, e era justamente isso que escondia o problema: uma frase
+gentil não diz que não há volta.
+
+**E o erro fica DENTRO do diálogo, que não fecha com ele:** recusada a ação, a
+pessoa precisa ler o que aconteceu antes de sair.
+
+### Confirmação DENTRO de uma lista: em linha, não em janela
+
+Quando a pergunta é sobre um item de uma lista que a pessoa está olhando, a
+confirmação nasce **onde o dedo estava** — em linha, colada no item — e não num
+retângulo que esconde aquilo de que ela fala.
+
+É o caso de "desativar esta opção tira o item do cardápio", em
+`menu/OptionGroupsSection`. Antes ela TROCAVA o conteúdo do diálogo do item
+inteiro, pelo motivo certo (modal sobre modal empilha duas armadilhas de foco e
+dois "fechar" com efeitos diferentes, e no celular o diálogo é a tela). Com a
+seção fora do diálogo aquele truque saiu do alcance, e em linha resolve melhor
+que os dois.
+
+**Formulário de "acrescentar à lista" segue a mesma regra:** ele abre EM LINHA
+(`NewMethodForm` em Loja › Pagamento, os formulários de grupo e de opção no
+Cardápio), nunca como diálogo sobre diálogo.
+
+### A tela de erro, e o que ela não pode ler
+
+`erro/ErrorBoundary` + `erro/ErroDaTela` são a rede que o painel não tinha:
+qualquer exceção de render dava tela branca, muda, sem "recarregar" e sem nada
+chegando ao suporte.
+
+**O fallback não lê NADA que possa estar quebrado** — sem `useSession`, sem
+`useNavigate`, sem hook de dado. Um fallback que quebra é a tela branca de
+volta, agora sem saída, e o que acabou de quebrar pode ser justamente o provider
+que ele iria consultar. Pela mesma razão as saídas são `window.location` e não o
+roteador.
+
+**Sem eufemismo e sem culpa.** "Ops, algo deu errado!" faz a pessoa duvidar se
+foi ela que errou. O que ela precisa saber é: não foi você, nenhum pedido sumiu,
+e há o que fazer agora.
+
+**Ela é montada duas vezes.** Na raiz (dentro do `ThemeProvider`, para a tela de
+erro herdar o tema — uma tela clara estourando na cozinha às 22h em cima de um
+painel escuro é agressão gratuita em cima de um problema) e **dentro do
+`AppShell`, em volta do conteúdo da rota**, com `key={pathname}`: um defeito no
+Cardápio deixa a lateral e as outras seções de pé.
+
+### A folha de estilo mora onde a classe é USADA, não onde ela nasceu
+
+`.saida*` (o corpo dos diálogos de saída) morava em `OrderDetailPanel.css`, e o
+comentário de lá dizia o certo para a época: a folha da coluna é a que sempre
+está carregada quando aqueles diálogos podem existir.
+
+Deixou de ser verdade quando `ui/ConfirmDialog` passou a usar as mesmas classes
+em Loja e em Cashback — telas que não carregam a coluna de pedidos. **Estilo que
+só funciona porque OUTRA tela por acaso está no mesmo pacote é o defeito
+esperando o dia em que alguém dividir o bundle.** Elas foram para `Modal.css`,
+que está carregada sempre que qualquer um dos três diálogos existe.
+
+**A pergunta, ao dar um segundo dono a uma classe:** a folha em que ela mora
+está carregada em TODAS as telas que a usam — ou só na primeira?
+
 ### Avisos e estados
 
 `.alert--info` / `--warn` / `--error`: sem moldura, porque o wash já é a
