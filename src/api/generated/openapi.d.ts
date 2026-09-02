@@ -6461,7 +6461,8 @@ export interface components {
       | 'payment_rejected'
       | 'login_required'
       | 'card_token_required'
-      | 'saved_card_not_found';
+      | 'saved_card_not_found'
+      | 'amount_below_minimum';
     /**
      * PaymentErrorDetail
      * @description O `detail` quando a cobranca nao pode ser criada.
@@ -11899,7 +11900,7 @@ export interface operations {
           'application/json': components['schemas']['StartPaymentResponse'];
         };
       };
-      /** @description Cobranca de cartao sem o token do navegador */
+      /** @description Cobranca de cartao que nao pode ser criada como pedida: sem o token do navegador, ou com o total abaixo do minimo do gateway */
       400: {
         headers: {
           [name: string]: unknown;
