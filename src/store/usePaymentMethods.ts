@@ -9,14 +9,7 @@ import {
   type PaymentMethodCreateBody,
 } from '../api/store';
 import type { PaymentMethod, PaymentMethodUpdate } from '../api/types';
-
-/** As formas de pagamento da filial, na ordem em que o cliente as vê. */
-function sortMethods(methods: readonly PaymentMethod[]): PaymentMethod[] {
-  return [...methods].sort((a, b) => {
-    if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
-    return a.label.localeCompare(b.label, 'pt-BR');
-  });
-}
+import { ordemDoCliente } from './payment-order';
 
 export function usePaymentMethods(branchId: string) {
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
@@ -40,7 +33,7 @@ export function usePaymentMethods(branchId: string) {
     void (async () => {
       try {
         const loaded = await listPaymentMethods(branchId);
-        if (!cancelled) setMethods(sortMethods(loaded));
+        if (!cancelled) setMethods(ordemDoCliente(loaded));
       } catch (error) {
         if (!cancelled) setErrorMessage(messageFromUnknownError(error));
       } finally {
@@ -75,7 +68,7 @@ export function usePaymentMethods(branchId: string) {
       setErrorMessage(null);
       try {
         const created = await createPaymentMethod(branchId, body);
-        setMethods((current) => sortMethods([...current, created]));
+        setMethods((current) => ordemDoCliente([...current, created]));
         return true;
       } catch (error) {
         setErrorMessage(messageFromUnknownError(error));
@@ -99,7 +92,7 @@ export function usePaymentMethods(branchId: string) {
       try {
         const updated = await updatePaymentMethod(methodId, patch);
         setMethods((current) =>
-          sortMethods(current.map((method) => (method.id === methodId ? updated : method))),
+          ordemDoCliente(current.map((method) => (method.id === methodId ? updated : method))),
         );
         return true;
       } catch (error) {

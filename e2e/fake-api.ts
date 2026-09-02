@@ -856,6 +856,26 @@ function initialPaymentMethods(branchId: string): PaymentMethod[] {
       requires_gateway: false,
       sort_order: 1,
     },
+    {
+      /*
+       * A TERCEIRA FORMA EXISTE PARA A ORDEM, e ela é o par discriminante.
+       *
+       * Ela empata em `sort_order` com a do dinheiro e está no MESMO fluxo, e o
+       * rótulo dela vem ANTES na ordem alfabética enquanto o id vem DEPOIS. É a
+       * única forma de um teste separar "o painel usa a ordem do cliente" de "o
+       * painel ordena por rótulo" — com rótulos e ids que concordam, os dois
+       * desenhos dão a mesma lista e o teste não prova nada.
+       */
+      id: 'pay-voucher',
+      branch_id: branchId,
+      payment_flow: 'delivery',
+      method_type: 'meal_voucher',
+      label: 'Alelo refeição',
+      enabled: true,
+      earns_cashback: false,
+      requires_gateway: false,
+      sort_order: 1,
+    },
   ];
 }
 

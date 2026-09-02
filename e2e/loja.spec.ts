@@ -1001,3 +1001,42 @@ test('faixa de frete invertida: o 422 do backend vira frase, e a tela não diz q
   // E a barra NÃO anuncia sucesso.
   await expect(page.getByTestId('store-saved')).toHaveCount(0);
 });
+
+/*
+ * ============================================================================
+ * A ORDEM DAS FORMAS É A DO CLIENTE — e ela não era
+ * ============================================================================
+ *
+ * O painel não é uma segunda opinião sobre a ordem: ele mostra ao lojista o que
+ * o cliente vai encontrar no checkout. Quando as duas listas discordam, cada
+ * uma parece certa sozinha e ninguém tem como notar.
+ *
+ * `branch_repository.list_enabled_payment_methods` — a consulta do checkout —
+ * ordena por `payment_flow, sort_order, id`, e a listagem do painel usa
+ * EXATAMENTE a mesma. O painel desempatava por RÓTULO, e como toda forma nasce
+ * com `sort_order: 0` (é assim que a tela as cria, e não há como reordená-las),
+ * TODAS empatam: o desempate decidia a lista inteira.
+ */
+test('as formas aparecem na ordem do cliente, e não em ordem alfabética', async ({ page }) => {
+  await abrirLoja(page);
+  await escolherFilial(page);
+  await page.getByTestId('store-anchor-pagamento').click();
+
+  /*
+   * "Alelo refeição" vem ANTES de "Dinheiro" no alfabeto e DEPOIS pelo id — o
+   * par existe no falso justamente para separar os dois desenhos.
+   */
+  const naEntrega = page.getByTestId('payment-method-pay-dinheiro');
+  const alelo = page.getByTestId('payment-method-pay-voucher');
+  await expect(naEntrega).toBeVisible();
+  await expect(alelo).toBeVisible();
+
+  const linhas = await page
+    .locator('[data-testid^="payment-method-pay-"]')
+    .evaluateAll((nodes) => nodes.map((n) => n.getAttribute('data-testid')));
+
+  // Dinheiro ANTES de Alelo: é a ordem do checkout. Alfabético seria o inverso.
+  expect(linhas.indexOf('payment-method-pay-dinheiro')).toBeLessThan(
+    linhas.indexOf('payment-method-pay-voucher'),
+  );
+});
