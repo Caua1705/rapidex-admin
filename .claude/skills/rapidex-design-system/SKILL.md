@@ -89,7 +89,9 @@ gradiente decorativo, blur, sombra pesada ou cartão para toda informação.
 neo-grotesca neutra por definição não tem defeito e não tem voz; a Plex tem osso
 de grotesca de engenharia sem virar sotaque, e é ela que faz a mesma escala ler
 como INSTRUMENTO. `eslint.config.js` barra qualquer outra família no `.tsx`;
-`scripts/check-design-tokens.mjs` barra família monoespaçada em qualquer `.css`.
+`scripts/check-design-tokens.mjs` barra família monoespaçada em qualquer `.css`
+— com uma exceção nomeada, `--font-comanda`, que é fac-símile de papel e não
+tipografia de tela (o teste para uma segunda está em "Tipografia", logo abaixo).
 
 Cinco níveis, e só cinco. Cada classe declara corpo, entrelinha, peso,
 espacejamento e tinta juntos — meia definição é como um nível vira quatro
@@ -127,6 +129,35 @@ Regras:
   decorrido e nº de pedido. Contagem numa frase ("12 itens") não leva.
 - **A Cozinha é a única exceção de corpo** (`--k-num` 34, `--k-item` 18), e o
   motivo é físico — ver "Cozinha" mais abaixo.
+- **A COMANDA é a única exceção de FAMÍLIA** (`--font-comanda`), e ela não é
+  tipografia de tela. Ver logo abaixo.
+
+### A única monoespaçada, e o teste para uma segunda
+
+A proibição continua valendo: o painel é uma letra só, e a mono já esteve aqui
+(JetBrains Mono em tempo, dinheiro e nº de pedido) e saiu porque dava à tela o
+ar de placa de equipamento. `--font-comanda` (em `tokens.css`) não reabre essa
+porta, e o teste para saber se um uso futuro se qualifica é uma pergunta:
+
+> **O texto foi diagramado FORA do painel, em colunas de caractere, por outro
+> programa?**
+
+O único caso que passa hoje é o fac-símile da bobina em `ComandaDoPedido`:
+`PrintJobResponse.content` vem do backend **já quebrado em `columns`
+caracteres**, com o alinhamento feito à base de espaços — é literalmente o que a
+impressora térmica recebe. Numa fonte de largura variável,
+`2x PICANHA        R$ 89,90` deixa de alinhar, e a tela passa a mostrar uma
+comanda que **não é a que sai no papel**. O lojista abre aquele bloco justamente
+para conferir o papel: uma prévia que não confere é pior que nenhuma.
+
+Ou seja: ali a mono é **condição de o conteúdo ser verdadeiro**, não escolha de
+estilo. Onde ela for escolha de estilo — "código fica bonito em mono", "número
+alinha melhor" —, a regra de sempre vale, e `.tnum` já resolve o segundo caso.
+
+Duas amarras que vêm junto e não são opcionais: o `<pre>` leva
+`white-space: pre` (nunca `pre-wrap` — reembrulhar destrói a coluna) e
+`overflow-x: auto` no próprio bloco, porque 48 colunas não cabem num telefone e
+**quem rola é o conteúdo, nunca a página**.
 
 ## Espaçamento
 

@@ -1,6 +1,6 @@
 ---
 name: rapidex-api
-description: Convenções de integração com a API do Rapidex — contrato gerado, o que fazer quando a rota não existe, e as armadilhas que o typecheck NÃO pega (dia da semana 0=segunda, preço com adicional já embutido, escopo de filial pelo token). Leia ANTES de escrever qualquer tela, hook ou função que consuma rota, e antes de mexer em src/api/. Também aplicável ao ler um campo novo de uma resposta, ao montar um filtro por data ou por dia da semana, e ao investigar bug de valor errado na tela.
+description: Convenções de integração com a API do Rapidex — contrato gerado, o que fazer quando a rota não existe, e as armadilhas que o typecheck NÃO pega (dia da semana 0=segunda, preço com adicional já embutido, escopo de filial pelo token, cópia como entrada repetida que não se deve deduplicar, a regra que só está na descrição da rota e não no schema, e o erro cujo `detail` é objeto — a tela mostra o número HTTP no lugar da frase que o backend mandou). Leia ANTES de escrever qualquer tela, hook ou função que consuma rota, e antes de mexer em src/api/. Também aplicável ao ler um campo novo de uma resposta, ao montar um filtro por data ou por dia da semana, ao decidir o que fazer com um 4xx, e ao investigar bug de valor errado na tela.
 ---
 
 # Integração com a API do Rapidex
@@ -122,8 +122,13 @@ segundos vale mais que a tela inteira escrita contra uma rota imaginária.
 
 # 4. As armadilhas que o typecheck não pega
 
-As quatro abaixo compilam. Os tipos batem. O número na tela é que está
-errado — ou a lista vem duas vezes.
+As sete abaixo compilam. Os tipos batem. O número na tela é que está errado —
+ou a lista vem duas vezes, ou a tela afirma uma coisa que ninguém conferiu.
+
+As quatro primeiras são sobre o VALOR (dia, preço, escopo, recorte). As três
+últimas são sobre o SIGNIFICADO: o que a repetição de uma linha quer dizer
+(4.5), o que a prosa da rota diz e o schema não (4.6), e o erro que o painel não
+sabe ler (4.7).
 
 ## 4.1 Dia da semana: o backend conta 0 = segunda, o JS conta 0 = domingo
 
@@ -289,6 +294,97 @@ erradas produzem um relatório menor do que devia, sem erro em tela nenhuma:
 E o rascunho de edição sai de `productDraftFrom` (`menu-model.ts`): o corpo do
 PATCH manda `catalog_key` sempre, então um rascunho montado à mão que esqueça a
 chave **desfaz o pareamento de um item porque alguém corrigiu o preço dele**.
+
+---
+
+## 4.5 Cópia é ENTRADA REPETIDA, e deduplicar apaga a informação
+
+`GET /admin/orders/{order_id}/print-jobs` devolve as vias de um pedido. A
+filial que pediu **duas** vias do cliente recebe **dois itens idênticos, um
+atrás do outro** — não existe campo `copies`.
+
+O motivo está no contrato e é bom: **não existe atualização remota do agente de
+impressão.** Ele é um `.exe` instalado à mão na máquina do balcão, e uma versão
+nova é uma visita por loja. Repetindo a entrada, a mudança vale hoje em toda
+instalação já em campo, inclusive nas anteriores à revisão que a criou.
+
+Isso obriga a tela a fazer duas coisas opostas ao mesmo tempo:
+
+- **agrupar para EXIBIR** — três blocos de texto idênticos empilhados são lidos
+  como defeito do painel, não como "saem três vias";
+- **NUNCA deduplicar a CONTAGEM** — "2 vias" é a informação, e é a única
+  resposta ao lojista que ligou perguntando por que gastou o dobro de bobina.
+
+`agruparVias()` (`orders/print-jobs.ts`) faz as duas, e agrupa só o que é
+**consecutivo**: as vias vêm "na ordem em que devem sair", e juntar duas iguais
+separadas por uma terceira reordenaria a bobina na tela — que é exatamente o que
+o lojista está conferindo quando abre aquilo.
+
+**O padrão, para além deste caso:** um `new Set(...)` ou um `uniqBy` no caminho
+de uma lista do backend compila, não quebra teste nenhum, e some com um número
+que alguém precisa. Antes de deduplicar, pergunte se a repetição é ruído ou é o
+dado.
+
+---
+
+## 4.6 Leia a DESCRIÇÃO da rota, não só o schema dela
+
+O nome e a forma de uma rota descrevem o que ela devolve. O que ela **significa**
+está na prosa que o backend escreveu — e no Rapidex essa prosa costuma trazer a
+regra de negócio inteira.
+
+**O caso que originou esta seção.** `print-jobs` parece histórico de impressão:
+tem `order_id`, tem uma lista de vias, tem setor e impressora. Não é. A descrição
+diz, com todas as letras:
+
+> A rota nao marca nada como impresso. Reimprimir e a operacao mais comum do
+> balcao (papel picotou, comanda molhou), e ela precisa ser um simples GET
+> repetido.
+
+Uma tela escrita contra o schema teria escrito **"comanda impressa"**. E essa
+palavra, no passado, faria o lojista parar de procurar o defeito exatamente no
+momento em que a comanda não saiu — que é o pior desfecho possível para uma tela
+que existe para o contrário.
+
+Três perguntas que só a descrição responde, e todas mudam a tela:
+
+| Pergunta                                    | Exemplo real                                                                                       |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| A resposta vazia é erro ou é resposta?      | `jobs: []` = a filial zerou as contagens. Não é falha de carregamento.                             |
+| A resposta PARCIAL tem significado próprio? | só `type: 'customer'` = pagamento online não confirmou, a via de produção é ordem de preparo       |
+| O 202/428 quer dizer o quê?                 | `print-test` responde 202 = **enfileirado**, não impresso (por isso `agent_is_online` na resposta) |
+
+**Na prática:** antes de escrever a tela, leia
+`d.paths['<rota>'].<método>.description` e a `description` de cada schema que ela
+devolve. São dois minutos, e é onde mora metade do que a tela precisa dizer.
+
+---
+
+## 4.7 Erro com `detail` estruturado — o painel mostra o número, não a frase
+
+`api/errors.ts` sabe ler `detail` como **string**, `detail` como **lista de
+validação do Pydantic** e `{ error: { message } }`. Uma quarta forma existe no
+contrato: **`detail` como OBJETO**.
+
+**O caso vivo, ainda não consertado (2026-09-02).**
+`PATCH /admin/orders/{id}/cancel` a partir de `preparing` responde **428** com
+`{ detail: { code, message, order_status } }`, e o contrato avisa que isso **não
+é erro**: "o painel abre o diálogo de confirmação e reenvia". O `message` vem
+"pronta para ser mostrada no diálogo de confirmação do painel".
+
+`readDetailMessage` devolve `null` para objeto, e o lojista lê
+**"A requisição falhou (428)."** Efeito: a partir de "Iniciar preparo", o pedido
+não pode mais ser cancelado pelo painel.
+
+**A regra:** um status 4xx que o contrato descreve como "não é erro, o painel
+faz X" é uma **funcionalidade escrita como resposta HTTP**. Tratá-lo como falha
+genérica não perde a mensagem — perde a funcionalidade.
+
+Ao escrever consumo de rota nova, confira no contrato se ela declara 4xx com
+schema PRÓPRIO (qualquer coisa que não seja `HTTPValidationError`). Se declara,
+esse caminho precisa de tratamento nomeado, e o `catch` genérico não serve.
+
+---
 
 ---
 
@@ -468,3 +564,15 @@ E a leitura que nenhuma ferramenta faz por você:
 - [ ] Se a tela salva horários ou reordena categorias, mandei a lista
       **completa**?
 - [ ] Se alguma rota faltou, eu **avisei** em vez de adivinhar o caminho?
+- [ ] Li a `description` da rota e a de cada schema que ela devolve — e a tela
+      não afirma nada que a rota não confirme?
+- [ ] Se a resposta traz lista, eu sei se a repetição nela é ruído ou é o dado?
+- [ ] A rota declara algum 4xx com schema PRÓPRIO? Se declara, esse caminho tem
+      tratamento nomeado, e não um `catch` genérico que mostra o número?
+
+E a que vale para a rodada inteira, não para a tela:
+
+- [ ] Rodei a varredura de **rota que o backend entregou e o painel nunca
+      chamou** (a receita está no item 9 da skill `revisao`)? Metade do que se
+      pediria como tela nova já tem rota pronta esperando — e a outra metade não
+      tem rota nenhuma.

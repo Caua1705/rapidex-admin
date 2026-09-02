@@ -1,6 +1,6 @@
 ---
 name: revisao
-description: Checklist de revisão de código do Admin Rapidex — os sete defeitos que já chegaram à mão do lojista aqui e que nenhuma ferramenta acusa: estado que diverge entre telas, campo que some do corpo do PATCH, permissão que existe na tela e não na rota, controle preso ao `:hover` (invisível no toque), alvo menor que 44px, dinheiro que atravessa como número quando o vizinho vai como string, e barra de salvar que não gruda. Leia ao revisar diff, PR ou rodada antes de dar por pronta, e ao terminar qualquer alteração em `src/`. Não substitui `npm run lint`/`typecheck`/`test` — é o que sobra depois deles.
+description: Checklist de revisão de código do Admin Rapidex — os dez defeitos que já chegaram à mão do lojista aqui e que nenhuma ferramenta acusa: estado que diverge entre telas, campo que some do corpo do PATCH, permissão que existe na tela e não na rota, controle preso ao `:hover` (invisível no toque), alvo menor que 44px, dinheiro que atravessa como número quando o vizinho vai como string, barra de salvar que não gruda, erro cujo `detail` é objeto (a tela mostra o número HTTP no lugar da frase), rota que o backend entregou e o painel nunca chamou, e achado que saiu de contagem de `grep` sem ser conferido. Leia ao revisar diff, PR ou rodada antes de dar por pronta, e ao terminar qualquer alteração em `src/`. Não substitui `npm run lint`/`typecheck`/`test` — é o que sobra depois deles.
 ---
 
 # Revisão de código do Admin Rapidex
@@ -8,15 +8,24 @@ description: Checklist de revisão de código do Admin Rapidex — os sete defei
 O `typecheck` diz que os tipos batem. O `lint` diz que a cor saiu de um token e
 que o contraste passa. O `test` diz que a função devolve o que a asserção pede.
 
-**Nenhum dos três pegou um só dos sete defeitos abaixo.** Todos compilaram,
+**Nenhum dos três pegou um só dos dez defeitos abaixo.** Todos compilaram,
 passaram, subiram, e apareceram na tela de quem estava no balcão. Esta lista é
 o que se lê com o olho depois que as ferramentas ficam verdes — e ela não é
 genérica: cada item tem o caso real, com o commit, e o arquivo onde o conserto
 mora hoje.
 
-Ordem de leitura: **1 a 3 fazem o painel mentir sobre dado; 4 a 7 fazem o
-painel ficar inutilizável para quem está de pé, com o dedo, no meio do turno.**
-Os dois grupos custam igual.
+Ordem de leitura, em quatro grupos que custam igual:
+
+- **1 a 3 — o painel mente sobre dado.** Estado que diverge, campo que some do
+  corpo, permissão que a rota não tem.
+- **4 a 7 — o painel fica inutilizável para quem está de pé, com o dedo, no
+  meio do turno.**
+- **8 e 9 — a funcionalidade não existe, e nada fica vermelho.** O erro que o
+  painel não sabe ler e a rota que ele nunca chamou. Estes dois são os mais
+  caros justamente porque não deixam rastro: o `typecheck` está feliz, os
+  testes passam, e quem descobre é o lojista.
+- **10 — o defeito é de quem revisa.** Achado que saiu de contagem e não foi
+  conferido no arquivo.
 
 ---
 
@@ -293,6 +302,124 @@ documento é mais alto que a tela.
 
 ---
 
+# 8. Erro cujo `detail` é um OBJETO — a mensagem vira um número HTTP
+
+**A pergunta:** esta rota responde algum erro com `detail` estruturado? Se
+responde, o painel está mostrando a frase que o backend escreveu, ou o código
+HTTP?
+
+`readDetailMessage` (`api/errors.ts`) sabe ler três formas de erro: `detail`
+como **string**, `detail` como **lista de validação do Pydantic**, e
+`{ error: { message } }`. Uma quarta forma existe no contrato e ele não a
+conhece: **`detail` como objeto**, com `code`, `message` e mais campos. Objeto
+não é string e não é array, então as três leituras falham, e o painel cai em
+`fallbackMessageFor(status)` — que escreve "A requisição falhou (428)".
+
+**O caso real — o cancelamento que não acontece.**
+`PATCH /admin/orders/{id}/cancel` a partir de `preparing` responde **428** com
+`{ detail: { code, message, order_status } }`, e o contrato diz com todas as
+letras que **isso não é erro**: "o painel abre o diálogo de confirmação e
+reenvia". O `message` vem, nas palavras do backend, "pronta para ser mostrada no
+diálogo de confirmação do painel".
+
+O painel manda `confirm_prepared_order: false` fixo, não tem o segundo diálogo,
+e mostra ao lojista **"A requisição falhou (428)."** Efeito prático: a partir do
+momento em que alguém aperta "Iniciar preparo", o pedido não pode mais ser
+cancelado pelo painel — nem por dono, nem por gerente.
+
+**Por que nenhuma ferramenta pega:** o `typecheck` confere o corpo da resposta
+de SUCESSO. O corpo de erro é `unknown` — é dado, não tipo. E o e2e fala com
+`e2e/fake-api.ts`, escrito por nós: **um dublê que nunca devolve 428 nunca
+acusa que o painel não sabe lê-lo.** É a forma mais barata de um portão de mil
+casos ficar verde sobre um defeito.
+
+**O padrão maior, e ele vale além do 428:** um status de erro que o contrato
+descreve como "não é erro, o painel faz X" é uma **funcionalidade escrita como
+resposta HTTP**. Ler isso como falha genérica não perde a mensagem: perde a
+funcionalidade inteira.
+
+**No diff, procure:** rota nova cujo contrato declare 4xx com schema próprio
+(não `HTTPValidationError`); qualquer `409`, `422`, `428`, `402` com `detail`
+que não seja `string`; um `catch` que joga tudo em `messageFromUnknownError`
+sem olhar `error.status`.
+
+---
+
+# 9. Rota que o backend entregou e o painel nunca chamou
+
+**A pergunta:** o que existe no contrato e não é chamado por ninguém?
+
+Este não é defeito de código — é defeito de ATENÇÃO, e é o mais caro da lista
+porque não deixa rastro nenhum. Nada fica vermelho. O `typecheck` está feliz, o
+`lint` está feliz, os testes passam. A funcionalidade simplesmente não existe, e
+o lojista liga para o suporte.
+
+**Os casos reais:**
+
+| Rota                                          | Ficou parada                                                                                   |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `GET/POST/PATCH` de `option-groups` (4 rotas) | semanas — complemento é só leitura no painel, e montar "Escolha o tamanho" virou SQL na mão    |
+| `GET /admin/orders/{id}/print-jobs`           | ~20 dias — o lojista não via o que sai no papel                                                |
+| `POST /admin/error-reports`                   | desde que entrou — e o painel não tem `ErrorBoundary`, então a tela branca não chega a ninguém |
+
+**A varredura, e ela leva trinta segundos:**
+
+```bash
+grep -rn "apiClient\.\(GET\|POST\|PATCH\|PUT\|DELETE\)" src/api/*.ts \
+  | sed "s/.*apiClient\.\([A-Z]*\)(\s*'\([^']*\)'.*/\1 \2/" | sort -u > /tmp/usadas.txt
+
+node -e "
+const d=require('../pedeaqui_back/openapi.json'), fs=require('fs');
+const back=new Set(Object.entries(d.paths).flatMap(([p,o])=>p.startsWith('/admin')
+  ? Object.keys(o).filter(m=>'get post patch put delete'.includes(m)).map(m=>m.toUpperCase()+' '+p) : []));
+const usadas=new Set(fs.readFileSync('/tmp/usadas.txt','utf8').split('\n').map(s=>s.trim()).filter(Boolean));
+console.log('NAO USADAS:'); [...back].filter(r=>!usadas.has(r)).sort().forEach(r=>console.log(' ',r));
+console.log('INVENTADAS:'); [...usadas].filter(r=>!back.has(r)).sort().forEach(r=>console.log(' ',r));
+"
+```
+
+**Os cinco falsos positivos conhecidos**, que aparecem toda vez e não são
+lacuna: `GET /admin/orders/stream` (é `EventSource`, não passa pelo
+`openapi-fetch`), `POST /admin/print-agent/heartbeat` e
+`POST /admin/print-agent/printers` (é a MÁQUINA falando, não o painel), e as
+rotas do agente que o painel nunca deve chamar. O resto é para explicar.
+
+**Rode isto ao começar uma rodada, não ao terminar.** Metade do que se pediria
+como "tela nova" já tem rota pronta esperando, e a outra metade não tem rota
+nenhuma — e as duas descobertas mudam o que vale a pena propor.
+
+---
+
+# 10. Contagem de `grep` não é achado — é onde olhar
+
+**A pergunta:** este número saiu de uma contagem de ocorrência de palavra? Então
+abra os arquivos antes de escrever a conclusão.
+
+Não é defeito do painel: é defeito de quem revisa, e por isso está aqui.
+
+**O caso real, cometido nesta auditoria.** Uma varredura por
+`isLoading|Carregando|Spinner` acusou **cinco páginas sem estado de
+carregamento**, incluindo o `LoginPage` — "o lojista aperta Entrar no 3G e nada
+muda". Abrindo os arquivos: `LoginPage` tem `submitting`, escreve "Entrando…" e
+desabilita o botão; `StoreIndexPage` e `StoreSectionPage` não carregam nada
+(são o roteador das seções); `ComingSoonPage` não tem o que carregar. **As cinco
+estavam certas.** O grep é que não conhecia o nome da variável.
+
+Refeita com os nomes que o repositório de fato usa
+(`isSending|isSaving|submitting|Salvando|Enviando|disabled=`), as onze abas de
+Loja e os dez diálogos têm todos algum estado.
+
+**O custo do erro é assimétrico, e é por isso que ele vale um item:** um falso
+NEGATIVO deixa um defeito passar; um falso POSITIVO manda consertar uma tela que
+não está quebrada, e isso custa uma rodada inteira. Achado que sai de contagem e
+não é conferido no arquivo **não entra na lista**.
+
+**E quando um achado seu não sobreviver à conferência, deixe-o escrito, riscado
+e com o motivo.** Uma revisão que só mostra o que confirmou não deixa ninguém
+calibrar quanto confiar no resto dela.
+
+---
+
 # Como se roda a revisão
 
 As ferramentas primeiro — elas eliminam o que não vale o olho:
@@ -304,7 +431,7 @@ npm run lint        # ESLint + tokens + contraste + hash da CSP
 npx playwright test # o caminho de ponta a ponta
 ```
 
-Depois a leitura, na ordem dos sete itens. E, para uma rodada visual, as fotos:
+Depois a leitura, na ordem dos dez itens. E, para uma rodada visual, as fotos:
 
 ```bash
 CAPTURAS=1 npx playwright test e2e/capturas.spec.ts --workers=1
@@ -314,6 +441,17 @@ As imagens saem em `capturas/` (ignorada pelo git) e são para **olhar**. Duas
 coisas que elas **não** cobrem, e que precisam de navegador na mão: `@media
 (hover: none)` (item 4 — o arnês roda em `Desktop Chrome`) e a rolagem de um
 documento mais alto que a tela (item 7).
+
+**E, ANTES de tudo isso, a varredura do item 9** — o que o backend entregou e
+o painel nunca chamou. Ela é a única que muda o que vale a pena fazer na rodada,
+então ela vem primeiro, não por último.
+
+> **Leia o `format:check` também, e leia-o SEM pipe.** Ele é o PRIMEIRO passo
+> do job `verificar` no CI, e passo que falha derruba o job: `lint`,
+> `typecheck`, `test` e `build` não chegam a rodar. Em 2026-09-02 ele estava
+> vermelho em 41 arquivos e ninguém tinha reparado — um portão de mil casos
+> atrás de uma porta fechada protege exatamente nada. Um `| tail` engole o
+> código de saída e reproduz o mesmo silêncio de propósito.
 
 ## O que uma revisão não faz
 
@@ -337,6 +475,9 @@ Estado e dado:
 - [ ] Toda rota que substitui recebeu a lista **completa**?
 - [ ] Todo botão novo tem papel, e nenhum corpo carrega campo de outro papel?
 - [ ] Todo valor de dinheiro atravessa do mesmo jeito que o vizinho?
+- [ ] Alguma rota deste diff responde 4xx com `detail` que não seja string? A
+      tela mostra a frase do backend, ou o número HTTP?
+- [ ] Rodei a varredura de rota parada, e sei explicar cada sobra?
 
 Toque e tela:
 
@@ -346,6 +487,11 @@ Toque e tela:
 - [ ] Todo `sticky` novo tem um ancestral que de fato rola, conferido em altura
       de telefone?
 
+Método:
+
+- [ ] Todo achado meu que saiu de contagem de `grep` foi conferido no arquivo?
+- [ ] O portão foi lido SEM pipe, `format:check` incluído?
+
 E, por último, a pergunta que fecha: **o que nesta rodada só apareceria depois
-de uma semana em produção?** Os sete itens acima são as respostas que já foram
-dadas. A oitava ainda não tem nome.
+de uma semana em produção?** Os dez itens acima são as respostas que já foram
+dadas. A décima primeira ainda não tem nome.

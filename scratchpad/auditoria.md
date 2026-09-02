@@ -263,6 +263,41 @@ Para a lista não parecer que só há defeito:
 
 ## e) O estado do portão
 
+### 🔴 E.0 — O portão estava FECHADO, e ninguém tinha reparado
+
+O achado mais desconfortável desta seção, porque ele invalida em parte tudo o
+que ela mede.
+
+`npm run format:check` é o **primeiro** `run` do job `verificar` no
+`.github/workflows/ci.yml`. Ele estava **vermelho em 41 arquivos** no head da
+`dev`. Passo que falha derruba o job e os seguintes **não rodam** — ou seja,
+`lint`, `typecheck`, `test` e `build` **não estavam sendo executados pelo CI**.
+
+Não é deriva de versão: o `prettier` está travado em **3.9.6** no
+`package-lock.json` há vários commits (conferido em cinco commits do lock, todos
+3.9.6). São 41 arquivos que entraram sem passar pelo `npm run format` — a maior
+parte estourando o `printWidth: 100` em assinatura de função e em literal de
+texto longo.
+
+**Este foi consertado** (`2f1be6d`), à parte da auditoria, porque não é achado de
+produto: é o portão, e o enunciado desta rodada manda entregar item verde. A
+mudança é só a saída do próprio Prettier — nenhuma linha de comportamento.
+
+**O que ele ensina, e vale mais que o conserto:** os 948 testes e os 251 de e2e
+desta seção são reais e passam **na máquina de quem roda**. O que não estava
+acontecendo era ninguém rodá-los automaticamente. Um portão de 1.199 casos atrás
+de um passo de formatação quebrado protege exatamente nada.
+
+**Duas coisas a decidir, e nenhuma é minha:**
+
+1. O CI só dispara em `push` para `main` e em `pull_request`. Se o trabalho vai
+   direto para a `dev` sem PR, **nada roda até a hora do merge na `main`** — que
+   é o pior momento possível para descobrir. Acrescentar `dev` à lista de `push`
+   custa uma linha.
+2. `format:check` como PRIMEIRO passo é o que transforma um espaço em branco no
+   coveiro de todo o resto. Ele deveria ser o ÚLTIMO, ou rodar em job próprio,
+   em paralelo.
+
 ### Os números
 
 | Camada                           | Arquivos | Casos   |
@@ -332,6 +367,11 @@ silencioso, e é justamente a que está protegida. `insights.test.ts` sozinho te
 Se fosse meu, nesta ordem — e ela **discorda** da lista da rodada, que pedia
 WhatsApp e Integrações. As duas estão bloqueadas por falta de backend, e nenhuma
 delas é sobre um pedido que está na chapa agora.
+
+> **A zero, que já foi feita:** destravar o CI (E.0). Ela não entra na contagem
+> porque não é escolha — com o portão fechado, nenhuma das três abaixo pode ser
+> feita com confiança. Falta a decisão de fazer o CI rodar na `dev` também, que
+> é uma linha e não é minha.
 
 ### 1. Ler `detail` como objeto, e o diálogo do cancelamento em produção
 
