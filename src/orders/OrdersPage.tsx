@@ -16,6 +16,7 @@ import {
   historyOrders,
   type BoardView,
 } from './board-lanes';
+import { AvisoDoAgente } from '../print-sectors/AvisoDoAgente';
 import { PageBar } from '../ds/PageBar';
 import { Tabs } from '../ds/Tabs';
 import { OrderBlock } from './OrderBlock';
@@ -36,7 +37,7 @@ const ABAS = [
 ] as const satisfies readonly { key: BoardView; label: string }[];
 
 export function OrdersPage() {
-  const { activeBranchId } = useSession();
+  const { activeBranchId, branches } = useSession();
   const { pode } = usePermissoes();
   const board = useOrdersBoard();
   const sound = useNewOrderSound();
@@ -358,6 +359,17 @@ export function OrdersPage() {
             Sem conexão com o servidor. Pedidos novos não vão aparecer sozinhos até a rede voltar.
           </p>
         ) : null}
+
+        {/*
+          A COMANDA QUE PAROU DE SAIR — ver `AvisoDoAgente`. Ela fica DEPOIS do
+          aviso de conexão porque as duas falam de coisas diferentes e a de cima
+          é mais grave: sem stream, o pedido não chega nem à tela.
+        */}
+        <AvisoDoAgente
+          branches={branches}
+          activeBranchId={activeBranchId}
+          className="orders__alert"
+        />
 
         {/*
           A LISTA É O CONTAINER DE CONSULTA (`container-type: inline-size`), e é

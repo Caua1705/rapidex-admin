@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useSession } from '../auth/session-context';
+import { AvisoDoAgente } from '../print-sectors/AvisoDoAgente';
 import { useOrderStream } from '../orders/useOrderStream';
 import { stageOf } from '../orders/order-status';
 import { usePrepRange } from '../orders/usePrepRange';
@@ -102,6 +103,17 @@ export function KitchenPage() {
           Sem conexão com o servidor. Pedidos novos não vão aparecer sozinhos até a rede voltar.
         </p>
       ) : null}
+
+      {/*
+        A MESMA FAIXA DE PEDIDOS, e o mesmo componente: a cozinha é onde a
+        comanda de produção deveria estar saindo, e é a tela em que ninguém vai
+        conferir Loja › Impressão no meio do serviço.
+      */}
+      <AvisoDoAgente
+        branches={branches}
+        activeBranchId={activeBranchId}
+        className="kitchen__alert"
+      />
 
       <div className="kitchen__board">
         {KITCHEN_COLUMNS.map((column) => {

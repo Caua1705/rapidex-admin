@@ -7,21 +7,16 @@ import {
   requestPrintTest,
 } from '../api/print-agent';
 import type { PrintAgentPrinter, PrintAgentStatus, PrintTestRequest } from '../api/types';
+import { INTERVALO_DO_AGENTE_MS } from './print-agent';
 
-/**
- * De quanto em quanto tempo o painel repergunta.
+/*
+ * A CADÊNCIA MORA EM `print-agent.ts`, e não mais aqui.
  *
- * O agente bate ponto a cada 30 segundos e o backend o considera no ar por 90
- * (três batidas perdidas). Reler no mesmo passo da batida é o que mantém a
- * linha honesta: no pior caso a tela afirma "Rodando agora" por até 30 segundos
- * depois de o programa cair, e nunca por mais que isso.
- *
- * MAIS RÁPIDO NÃO SERVIRIA PARA NADA — a resposta não muda entre duas batidas —
- * e mais devagar traz de volta o defeito que este bloco existe para não ter:
- * uma tela de balcão afirmando um estado velho, que é pior do que não afirmar
- * estado nenhum.
+ * Ela deixou de ser de uma tela quando a faixa de Pedidos e de Cozinha passou a
+ * ler a mesma rota (`useAgentesDasFiliais`): duas constantes de 30 segundos em
+ * dois arquivos divergiriam no dia em que a janela do backend mudasse, e a
+ * divergência apareceria como uma tela avisando antes da outra.
  */
-const INTERVALO_MS = 30_000;
 
 export type PrintTestOutcome = {
   /** O que foi escolhido, escrito, para a frase de retorno nomear o destino. */
@@ -111,7 +106,7 @@ export function usePrintAgent(branchId: string) {
 
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible') void ler();
-    }, INTERVALO_MS);
+    }, INTERVALO_DO_AGENTE_MS);
 
     // Voltar para a aba relê na hora: o intervalo sozinho deixaria até 30
     // segundos de estado velho na tela justamente no instante em que alguém

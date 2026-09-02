@@ -1,3 +1,4 @@
+import { linhaDaComanda } from '../print-sectors/print-agent';
 import { agruparVias, avisoDeVias, destinoDaVia, rotuloDeCopias } from './print-jobs';
 import { useOrderPrintJobs } from './useOrderPrintJobs';
 
@@ -55,9 +56,15 @@ import { useOrderPrintJobs } from './useOrderPrintJobs';
  */
 export function ComandaDoPedido({
   orderId,
+  branchId,
   paymentStatus,
 }: {
   orderId: string;
+  /**
+   * A filial DO PEDIDO, e não a do seletor do topo: quem imprime é o computador
+   * daquela loja. Com "todas as filiais" escolhidas, o seletor não diz qual é.
+   */
+  branchId: string;
   /**
    * O `payment_status` cru, não um booleano.
    *
@@ -66,7 +73,10 @@ export function ComandaDoPedido({
    */
   paymentStatus: string;
 }) {
-  const { vias, isLoading, errorMessage, aberto, abrir, fechar } = useOrderPrintJobs(orderId);
+  const { vias, agente, isLoading, errorMessage, aberto, abrir, fechar } = useOrderPrintJobs(
+    orderId,
+    branchId,
+  );
 
   return (
     <section className="detail__block">
@@ -83,13 +93,17 @@ export function ComandaDoPedido({
             Ver o que sai no papel
           </button>
           {/*
-            A LINHA DE APOIO DIZ O LIMITE ANTES DO CLIQUE, e não depois.
-            Quem abre isto está procurando "a comanda saiu?"; saber já aqui que
-            a resposta é outra pergunta evita o clique que decepciona.
+            A LINHA DE APOIO DIZ O QUE O CLIQUE ENTREGA, e não um endereço.
+
+            Ela dizia: "se o papel não saiu, confira o programa em Loja ›
+            Impressão". Estava correta e era um recado para ir buscar a resposta
+            noutra tela — escrito na tela onde a resposta cabia, e endereçada a
+            uma seção de configuração que só abre quem JÁ desconfia. Hoje o
+            clique traz as duas metades da resposta: o que foi mandado imprimir
+            e como está a máquina que imprime.
           */}
           <p className="detail__cliente-historico">
-            O painel mostra o que o sistema manda imprimir. Se o papel não saiu, confira o programa
-            em Loja › Impressão.
+            O painel mostra o que o sistema mandou imprimir, e como está o programa que imprime.
           </p>
         </>
       ) : null}
@@ -108,7 +122,19 @@ export function ComandaDoPedido({
       ) : null}
 
       {aberto && vias && !isLoading ? (
-        <ComandaCarregada jobs={vias.jobs} paymentStatus={paymentStatus} onFechar={fechar} />
+        <>
+          {/*
+            O ESTADO DO PROGRAMA, EM PRIMEIRO LUGAR — antes do papel.
+
+            Quem abriu isto quer saber se a comanda saiu. As vias respondem o
+            que foi MANDADO; esta linha responde se havia máquina para receber,
+            que é a metade que faltava e que mandava o lojista para outra tela.
+          */}
+          <p className="detail__cliente-historico" data-testid="comanda-programa">
+            {linhaDaComanda(agente)}
+          </p>
+          <ComandaCarregada jobs={vias.jobs} paymentStatus={paymentStatus} onFechar={fechar} />
+        </>
       ) : null}
     </section>
   );

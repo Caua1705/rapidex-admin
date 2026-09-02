@@ -6,8 +6,15 @@ vermelha, não vê erro no console, não tem o que contar para o suporte. Ele
 percebe porque _nada aconteceu_: o pedido não entrou, o papel não saiu, o som
 não tocou.
 
-Este arquivo é a varredura atrás das **irmãs** dessa falha. É **lista, não
-conserto** — a ordem de execução vem depois.
+Este arquivo é a varredura atrás das **irmãs** dessa falha. Nasceu como lista;
+o que já foi fechado está marcado no título de cada item, com o commit.
+
+| #   | Item                                           | Estado              |
+| --- | ---------------------------------------------- | ------------------- |
+| 1   | o "ao vivo" que nunca é reavaliado             | aberto              |
+| 2   | o agente de impressão fora de Loja › Impressão | **feito** `589cd94` |
+| 3   | o primeiro pedido do turno não apita           | aberto              |
+| 4-8 | os cinco menores                               | anotados            |
 
 ## Como foi medido
 
@@ -49,7 +56,7 @@ Precisa conferir antes se a rota manda comentário de _keep-alive_ — sem isso,
 "N minutos sem evento" numa madrugada de domingo é silêncio legítimo, e o
 rótulo mentiria para o outro lado.
 
-## 2. O agente de impressão cair é invisível fora de Loja › Impressão
+## 2. ~~O agente de impressão cair é invisível fora de Loja › Impressão~~ — FEITO (`589cd94`)
 
 `src/store/PrintingTab.tsx:90` é o **único** consumidor de `usePrintAgent` no
 painel inteiro.
@@ -60,10 +67,25 @@ devolve `agent_is_online` de propósito (`src/api/types.ts:342`). Nada disso
 aparece em **Pedidos** nem em **Cozinha** — as duas telas onde o lojista está
 quando a comanda deveria estar saindo.
 
-`src/orders/ComandaDoPedido.tsx:88` chega a escrever _"Se o papel não saiu,
-confira o programa em Loja › Impressão"_. Está certo, e é tarde: essa frase só é
-lida por quem **já foi procurar**. O programa caiu às 19h, e ninguém soube até o
-primeiro cliente reclamar.
+`src/orders/ComandaDoPedido.tsx:88` chegava a escrever _"Se o papel não saiu,
+confira o programa em Loja › Impressão"_. Estava certo, e era tarde: essa frase
+só é lida por quem **já foi procurar**. O programa caiu às 19h, e ninguém soube
+até o primeiro cliente reclamar.
+
+**Como ficou:** `print-sectors/AvisoDoAgente.tsx`, um componente para as duas
+telas. Três decisões que valem para a próxima faixa que alguém for escrever:
+
+- **só `offline` acende.** "Nunca instalado" é configuração, não incidente — a
+  loja sem impressora veria a faixa todo dia e ela viraria papel de parede;
+- **leitura que não voltou não afirma nada.** Filial sem resposta sai da conta,
+  em vez de virar "nenhuma comanda está saindo" numa piscada de wi-fi. É o item
+  6 desta lista aplicado antes de cometê-lo;
+- **as filiais são as que a tela MOSTRA**, não a resolvida: com "todas", são
+  todas, e a faixa nomeia qual parou.
+
+A linha da comanda passou a trazer o estado do programa no MESMO clique que já
+carregava as vias — em paralelo e com `catch` próprio, para a leitura de apoio
+não levar junto o que o lojista veio ver.
 
 ## 3. O primeiro pedido do turno não apita
 

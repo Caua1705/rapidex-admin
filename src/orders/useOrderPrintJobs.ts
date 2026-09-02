@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { messageFromUnknownError } from '../api/errors';
 import { fetchOrderPrintJobs } from '../api/orders';
-import type { OrderPrintJobs } from '../api/types';
+import { fetchPrintAgentStatus } from '../api/print-agent';
+import type { OrderPrintJobs, PrintAgentStatus } from '../api/types';
 
 /**
  * ============================================================================
@@ -25,6 +26,20 @@ import type { OrderPrintJobs } from '../api/types';
  * botão, e um botão que não faz nada é o defeito que ele veio investigar. A
  * mensagem aparece.
  *
+ * O ESTADO DO PROGRAMA VEM JUNTO, e vem no MESMO clique.
+ *
+ * A pergunta que traz alguém até aqui é "a comanda saiu?", e a resposta tem
+ * duas metades: o que o sistema mandou (as vias) e se a máquina que imprime
+ * estava de pé (o agente). O bloco só sabia a primeira, e por isso terminava
+ * mandando conferir a segunda em Loja › Impressão — um endereço no lugar de
+ * uma resposta, escrito na tela onde a resposta cabia.
+ *
+ * AS DUAS NÃO FALHAM JUNTAS, ao contrário do que `usePrintAgent` faz com as
+ * dela. Lá meia leitura não é um estado desenhável; aqui é: sem o estado do
+ * programa, a comanda continua valendo, e a linha volta a ser a frase neutra —
+ * `linhaDaComanda(undefined)`. O contrário é que seria ruim, e é o defeito que
+ * esta rodada varreu: afirmar "nada sai no papel" porque uma leitura caiu.
+ *
  * TROCAR DE PEDIDO FECHA O BLOCO. O estado carregado é do pedido anterior, e
  * mostrar a comanda do #1041 sob o cabeçalho do #1042 é pior do que não mostrar
  * nenhuma — ainda mais numa tela cuja razão de existir é conferir o que saiu no
@@ -32,6 +47,12 @@ import type { OrderPrintJobs } from '../api/types';
  */
 export type OrderPrintJobsState = {
   vias: OrderPrintJobs | null;
+  /**
+   * O programa de impressão daquela filial, ou `undefined` enquanto não se
+   * sabe — antes do clique, e também quando a leitura falhou. Ver o cabeçalho:
+   * "não perguntei" e "está desligado" não podem virar a mesma frase.
+   */
+  agente: PrintAgentStatus | undefined;
   isLoading: boolean;
   errorMessage: string | null;
   /** Já foi pedido nesta abertura? É o que decide o bloco abrir ou não. */
@@ -40,10 +61,15 @@ export type OrderPrintJobsState = {
   fechar: () => void;
 };
 
-export function useOrderPrintJobs(orderId: string | null): OrderPrintJobsState {
+export function useOrderPrintJobs(
+  orderId: string | null,
+  /** A filial DO PEDIDO (`detail.branch_id`) — a máquina é a daquela loja. */
+  branchId: string | null,
+): OrderPrintJobsState {
   const [vias, setVias] = useState<OrderPrintJobs | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [agente, setAgente] = useState<PrintAgentStatus | undefined>(undefined);
   const [aberto, setAberto] = useState(false);
 
   /*
@@ -62,6 +88,7 @@ export function useOrderPrintJobs(orderId: string | null): OrderPrintJobsState {
   useEffect(() => {
     pedidoEmVoo.current = orderId;
     setVias(null);
+    setAgente(undefined);
     setErrorMessage(null);
     setIsLoading(false);
     setAberto(false);
@@ -84,6 +111,21 @@ export function useOrderPrintJobs(orderId: string | null): OrderPrintJobsState {
     setErrorMessage(null);
 
     void (async () => {
+      /*
+       * O ESTADO DO PROGRAMA VAI EM PARALELO E CAI SOZINHO.
+       *
+       * `catch` próprio, e não um `Promise.all`: uma falha aqui não pode
+       * levar junto a comanda, que é o que o lojista veio ver. Sem resposta,
+       * `agente` fica `undefined` e a linha não afirma nada.
+       */
+      if (branchId) {
+        void fetchPrintAgentStatus(branchId)
+          .then((lido) => {
+            if (pedidoEmVoo.current === orderId) setAgente(lido);
+          })
+          .catch(() => {});
+      }
+
       try {
         const carregadas = await fetchOrderPrintJobs(orderId);
         if (pedidoEmVoo.current !== orderId) return;
@@ -96,9 +138,9 @@ export function useOrderPrintJobs(orderId: string | null): OrderPrintJobsState {
         if (pedidoEmVoo.current === orderId) setIsLoading(false);
       }
     })();
-  }, [orderId]);
+  }, [orderId, branchId]);
 
   const fechar = useCallback(() => setAberto(false), []);
 
-  return { vias, isLoading, errorMessage, aberto, abrir, fechar };
+  return { vias, agente, isLoading, errorMessage, aberto, abrir, fechar };
 }

@@ -103,3 +103,132 @@ export function agentHint(status: PrintAgentStatus | null): string {
       return 'A comanda não sai do navegador: quem imprime é um programa instalado no computador do balcão. Enquanto ele não for instalado nesta loja, nenhuma comanda é impressa aqui.';
   }
 }
+
+/**
+ * ============================================================================
+ * O MESMO ESTADO, DITO ONDE O LOJISTA ESTÁ
+ * ============================================================================
+ *
+ * Tudo acima é a tela de Loja › Impressão. O que vem abaixo existe porque essa
+ * tela é a que só abre quem JÁ desconfia: o programa caía às dezenove horas, a
+ * comanda parava de sair, e Pedidos e Cozinha continuavam idênticos até um
+ * cliente ligar. O dado sempre esteve na mão do painel — faltava dizê-lo na
+ * tela onde o lojista passa o turno.
+ */
+
+/**
+ * De quanto em quanto tempo o painel repergunta pelo agente.
+ *
+ * O agente bate ponto a cada 30 segundos e o backend o considera no ar por 90
+ * (três batidas perdidas). Reler no mesmo passo da batida é o que mantém a
+ * linha honesta: no pior caso a tela afirma "Rodando agora" por até 30 segundos
+ * depois de o programa cair, e nunca por mais que isso.
+ *
+ * MAIS RÁPIDO NÃO SERVIRIA PARA NADA — a resposta não muda entre duas batidas —
+ * e mais devagar traz de volta o defeito que este bloco existe para não ter:
+ * uma tela de balcão afirmando um estado velho, que é pior do que não afirmar
+ * estado nenhum.
+ *
+ * Mora aqui, e não no hook, porque agora são DOIS hooks lendo a mesma rota. Uma
+ * segunda constante de 30 segundos escrita ao lado divergiria da primeira no
+ * dia em que a janela do backend mudasse.
+ */
+export const INTERVALO_DO_AGENTE_MS = 30_000;
+
+/**
+ * O agente de uma filial, com o nome que a tela usa para ela.
+ *
+ * `status` é `undefined` enquanto a resposta não chegou (ou quando a leitura
+ * falhou), e essa distinção é o coração do aviso: `null`/`is_online: false`
+ * são fatos sobre a máquina, `undefined` é ausência de fato. Ver
+ * `avisoDeAgenteParado`.
+ */
+export type AgenteDaFilial = {
+  branchId: string;
+  /** Como a tela chama esta filial — `branchName()`, não o nome cru. */
+  nome: string;
+  status: PrintAgentStatus | undefined;
+};
+
+/** "sem sinal há 1 hora", ou só "sem sinal" quando o backend não mandou o número. */
+function semSinalDesde(status: PrintAgentStatus | undefined): string {
+  const quando = formatAgo(status?.seconds_since_last_seen);
+  return quando === '—' ? 'sem sinal' : `sem sinal ${quando}`;
+}
+
+/** "A e B", "A, B e C" — a vírgula até a penúltima. */
+function emLista(partes: readonly string[]): string {
+  if (partes.length <= 1) return partes[0] ?? '';
+  return `${partes.slice(0, -1).join(', ')} e ${partes[partes.length - 1]}`;
+}
+
+/**
+ * A FAIXA DE PEDIDOS E COZINHA — ou `null`, que é o caso normal e silencioso.
+ *
+ * Três decisões, e cada uma é a diferença entre um aviso que se lê e um que
+ * vira papel de parede:
+ *
+ * 1. SÓ 'offline' ACENDE. "Nunca instalado" é configuração, não incidente: uma
+ *    loja que não comprou impressora térmica veria esta faixa todo dia, o turno
+ *    inteiro, e no dia em que o programa da outra loja caísse ninguém mais
+ *    estaria lendo. Quem nunca instalou descobre isso em Loja › Impressão, que
+ *    é onde se instala.
+ *
+ * 2. LEITURA QUE NÃO VOLTOU NÃO VIRA AFIRMAÇÃO. Filial com `status: undefined`
+ *    fica de fora. Sem resposta o painel não sabe se a comanda está saindo, e
+ *    "Nenhuma comanda está saindo" numa queda de rede de três segundos manda o
+ *    lojista até o balcão à toa — o mesmo defeito de devolver o valor de "não
+ *    há" para dizer "não consegui ler".
+ *
+ * 3. NOMEAR A FILIAL DEPENDE DE QUANTAS ESTÃO EM VISTA, não de quantas
+ *    pararam. Com uma só, o cabeçalho já disse qual é. Com várias, a faixa
+ *    precisa dizer em qual balcão está o computador a conferir — é a diferença
+ *    entre um recado útil e um susto.
+ */
+export function avisoDeAgenteParado(agentes: readonly AgenteDaFilial[]): string | null {
+  const parados = agentes.filter((agente) => {
+    if (!agente.status) return false;
+    return agentState(agente.status) === 'offline';
+  });
+  if (parados.length === 0) return null;
+
+  if (parados.length === 1) {
+    const parado = parados[0]!;
+    const onde = agentes.length > 1 ? ` na ${parado.nome}` : '';
+    return (
+      `Nenhuma comanda está saindo${onde}: o programa de impressão está ` +
+      `${semSinalDesde(parado.status)}. Confira o computador do balcão.`
+    );
+  }
+
+  const lista = emLista(parados.map((p) => `${p.nome} (${semSinalDesde(p.status)})`));
+  return (
+    `Nenhuma comanda está saindo em ${parados.length} filiais: ${lista}. ` +
+    'Confira os computadores do balcão.'
+  );
+}
+
+/**
+ * A LINHA DE APOIO DA COMANDA, dentro do pedido.
+ *
+ * O que estava aqui antes era _"Se o papel não saiu, confira o programa em Loja
+ * › Impressão"_: um recado para ir buscar a resposta em outra tela, escrito na
+ * tela onde a resposta cabia. Quem está com o pedido aberto procurando "a
+ * comanda saiu?" não quer um endereço — quer o estado.
+ *
+ * `undefined` é "ainda não perguntei" e não afirma nada. As outras três
+ * afirmam, e nenhuma manda o lojista a lugar nenhum.
+ */
+export function linhaDaComanda(status: PrintAgentStatus | undefined): string {
+  const base = 'O painel mostra o que o sistema mandou imprimir.';
+  if (!status) return base;
+
+  switch (agentState(status)) {
+    case 'live':
+      return `${base} O programa de impressão está rodando agora, no computador do balcão.`;
+    case 'offline':
+      return `${base} O programa de impressão está ${semSinalDesde(status)}: nada sai no papel enquanto ele não voltar.`;
+    case 'never':
+      return `${base} Esta loja não tem o programa de impressão instalado, então nada sai no papel aqui.`;
+  }
+}

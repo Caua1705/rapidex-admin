@@ -481,7 +481,11 @@ function DetailBody({ detail, branchId }: { detail: OrderDetail; branchId: strin
         Ela nasce fechada e não cobra requisição nenhuma até o clique, então o
         custo de estar aqui em cima é uma linha de altura. Ver `ComandaDoPedido`.
       */}
-      <ComandaDoPedido orderId={detail.id} paymentStatus={detail.payment_status} />
+      <ComandaDoPedido
+        orderId={detail.id}
+        branchId={detail.branch_id}
+        paymentStatus={detail.payment_status}
+      />
 
       {detail.notes ? (
         <section className="detail__block">
