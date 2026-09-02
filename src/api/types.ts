@@ -553,3 +553,24 @@ export type PapelDePessoa = AdminUserCreate['role'];
  * `pages/ChangePasswordPage.tsx`.
  */
 export type ChangePasswordBody = Schemas['ChangeAdminPasswordRequest'];
+
+// --- relato de erro ------------------------------------------------------
+
+/**
+ * O relato como o painel o envia.
+ *
+ * `extra="forbid"` no backend: restaurante, filial e usuário saem do TOKEN, e
+ * mandar qualquer um deles no corpo é 422. Os limites de tamanho dos campos
+ * NÃO saem daqui — o contrato publica os quatro como tipo seco. Eles estão em
+ * `erro/error-report.ts`, com a origem nomeada.
+ */
+export type CreateErrorReport = Schemas['CreateErrorReportRequest'];
+
+/**
+ * O comprovante: o id e a hora, e mais nada.
+ *
+ * O texto NÃO volta, e é decisão do backend: ecoar o relato já redigido faria
+ * a tela mostrar `[redigido]` no lugar do que a pessoa acabou de digitar, e
+ * ela reescreveria achando que perdeu.
+ */
+export type ErrorReport = Schemas['ErrorReportResponse'];

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { CheckIcon, CopyIcon } from './icons';
+import { copiarTexto } from './copiar';
 import { blocosDe } from './secret';
 import './OneTimeSecret.css';
 
@@ -68,26 +69,13 @@ export function OneTimeSecret({
   }, []);
 
   /**
-   * COPIAR TEM DOIS CAMINHOS, e o segundo não é zelo excessivo.
-   *
-   * `navigator.clipboard` exige contexto seguro e permissão; num painel aberto
-   * por IP na rede da loja (`http://192.168.0.x`) ele simplesmente não existe.
-   * Sem o segundo caminho, o botão principal de um diálogo que não deixa fechar
-   * sem copiar seria um botão que não faz nada — e a saída seria gerar outra
-   * senha, matando a que a pessoa já recebeu.
-   *
-   * O caminho velho (`execCommand`) é obsoleto de propósito: ele é o que
-   * funciona onde o novo não existe.
+   * OS DOIS CAMINHOS DA CÓPIA MORAM EM `ds/copiar.ts`, e o porquê do segundo
+   * está lá. O que ele custa AQUI: sem ele, o botão principal de um diálogo que
+   * não deixa fechar sem copiar seria um botão que não faz nada, e a saída
+   * seria gerar outra senha — matando a que a pessoa já recebeu.
    */
   async function copiar() {
-    let deuCerto = false;
-    try {
-      await navigator.clipboard.writeText(value);
-      deuCerto = true;
-    } catch {
-      deuCerto = copiarPeloDocumento(value);
-    }
-
+    const deuCerto = await copiarTexto(value);
     if (!deuCerto) return;
     setCopiado(true);
     if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current);
@@ -137,35 +125,4 @@ export function OneTimeSecret({
       </span>
     </div>
   );
-}
-
-/**
- * A cópia onde `navigator.clipboard` não existe.
- *
- * O `<textarea>` fora da tela é o truque de sempre, e ele precisa estar no
- * documento e selecionado para o `execCommand` alcançá-lo. `readOnly` evita o
- * teclado virtual aparecer no telefone durante o instante em que ele existe.
- */
-function copiarPeloDocumento(value: string): boolean {
-  const area = document.createElement('textarea');
-  area.value = value;
-  area.readOnly = true;
-  area.setAttribute('aria-hidden', 'true');
-  /* Fora do alcance do olho e do dedo, sem sair da tela: um deslocamento em px
-     seria valor solto (a régua de aderência barra), e um elemento colocado
-     acima do topo faz o `select()` rolar a página em alguns navegadores. */
-  area.style.position = 'fixed';
-  area.style.top = '0';
-  area.style.left = '0';
-  area.style.opacity = '0';
-  area.style.pointerEvents = 'none';
-  document.body.appendChild(area);
-  area.select();
-  try {
-    return document.execCommand('copy');
-  } catch {
-    return false;
-  } finally {
-    document.body.removeChild(area);
-  }
 }

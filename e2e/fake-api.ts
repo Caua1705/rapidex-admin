@@ -1592,6 +1592,15 @@ export type FakeApi = {
    * ficou para trás.
    */
   failAvailability: (productId: string) => void;
+  /**
+   * Faz a listagem de pedidos responder 200 com `items: null`.
+   *
+   * É a forma exata do defeito que a borda de erro pega: um campo que o backend
+   * passou a mandar nulo. Chamar ANTES de abrir /pedidos.
+   */
+  quebrarListagemDePedidos: () => void;
+  /** Os relatos de erro que chegaram em `POST /admin/error-reports`. */
+  errorReports: () => Record<string, unknown>[];
   /** Motivo gravado no cancelamento, para conferir o que a tela mandou. */
   cancelReasons: () => { orderId: string; reason: string }[];
   /**
@@ -2131,6 +2140,18 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      * é a diferença entre pedir confirmação e não pedir.
      */
     cancelamentosRecusadosPorConfirmacao: 0,
+    /**
+     * Faz `GET /admin/orders` devolver `items: null` — 200, JSON válido, campo
+     * errado.
+     *
+     * É a forma EXATA do defeito que a borda de erro existe para pegar: "um
+     * campo que o backend passou a mandar null". Não é um erro de rede nem um
+     * 500 (o painel já trata os dois): é uma resposta que passa por tudo e
+     * explode no render, que era a tela branca.
+     */
+    quebrarListagem: false,
+    /** Os relatos de erro que chegaram, na ordem. */
+    errorReports: [] as Record<string, unknown>[],
     streamTickets: 0,
     /**
      * As gerações das conexões SSE penduradas AGORA.
@@ -2810,6 +2831,21 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       const limit = Number(query.get('limit') ?? 100) || 100;
       const offset = Number(query.get('offset') ?? 0) || 0;
 
+      /*
+       * 200, JSON válido, e o painel quebra no render. Ver `state.quebrarListagem`.
+       * O `as never` é o que torna a mentira possível sem desligar o contrato
+       * para o resto do arquivo — e o comentário é o que impede alguém de
+       * "consertar" a tipagem daqui a seis meses achando que é descuido.
+       */
+      if (state.quebrarListagem) {
+        return json(route, 200, {
+          items: null as never,
+          total: 0,
+          limit,
+          offset,
+        });
+      }
+
       return json(route, 200, {
         items: items.slice(offset, offset + limit),
         total: items.length,
@@ -3048,6 +3084,49 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       return json(route, 200, {
         counts: Object.entries(counts).map(([status, count]) => ({ status, count })),
         total: itens.length,
+      });
+    }
+
+    /*
+     * O RELATO DE ERRO. A rota existe no backend desde antes desta rodada e o
+     * painel nunca a chamava; o falso não a tinha por isso.
+     *
+     * Ele confere `extra="forbid"` como o backend: um corpo que mandasse
+     * `branch_id` ou `user_id` é 422 lá, e um falso mais frouxo que o backend
+     * deixaria o painel mandar o que produção recusa.
+     */
+    if (method === 'POST' && path === '/admin/error-reports') {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      const permitidos = ['description', 'error_log', 'screen', 'order_number'];
+      const intruso = Object.keys(body).find((chave) => !permitidos.includes(chave));
+      if (intruso) {
+        return json(route, 422, {
+          detail: [{ loc: ['body', intruso], msg: 'extra fields not permitted' }],
+        });
+      }
+      const descricao = String(body.description ?? '').trim();
+      if (descricao === '' || descricao.length > 4000) {
+        return json(route, 422, {
+          detail: [{ loc: ['body', 'description'], msg: 'de 1 a 4000 caracteres' }],
+        });
+      }
+      // Os tetos que o /openapi.json NÃO publica, e que por isso mesmo têm de
+      // ser cobrados aqui — ver `src/erro/error-report.ts`.
+      if (String(body.error_log ?? '').length > 20000) {
+        return json(route, 422, {
+          detail: [{ loc: ['body', 'error_log'], msg: 'no máximo 20000 caracteres' }],
+        });
+      }
+      if (String(body.screen ?? '').length > 200) {
+        return json(route, 422, {
+          detail: [{ loc: ['body', 'screen'], msg: 'no máximo 200 caracteres' }],
+        });
+      }
+
+      state.errorReports.push(body);
+      return json(route, 201, {
+        id: `relato-${state.errorReports.length}`,
+        created_at: new Date().toISOString(),
       });
     }
 
@@ -4284,6 +4363,10 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       state.reviews = state.reviews.filter((item) => item.rating > 3);
     },
     imageUploads: () => state.imageUploads,
+    quebrarListagemDePedidos() {
+      state.quebrarListagem = true;
+    },
+    errorReports: () => state.errorReports,
     cancelReasons: () => state.cancelReasons,
     cancelamentosRecusadosPorConfirmacao: () => state.cancelamentosRecusadosPorConfirmacao,
     settings: () => state.settings,

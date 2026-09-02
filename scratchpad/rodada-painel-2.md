@@ -44,7 +44,7 @@ que está escrito em cada uma.
 | --- | --------------------------------------------------------- | ------------------- | ------ |
 | 0   | `cozinha.spec.ts:195` — o SSE, vermelho no portão de base | portão              | ✅     |
 | 1   | `detail` objeto + o diálogo do 428 do cancelamento        | (a) e (b)           | ✅     |
-| 2   | `ErrorBoundary` + `POST /admin/error-reports`             | (b) e (c)           | ⬜     |
+| 2   | `ErrorBoundary` + `POST /admin/error-reports`             | (b) e (c)           | ✅     |
 | 3   | §3 do enunciado — a varredura de teste dependente de hora | portão              | ⬜     |
 | 4   | §2 do enunciado — a intermitente de `loja.spec.ts:166`    | portão              | ⬜     |
 | 5   | D.3 — as duas ações destrutivas sem confirmação           | (b)                 | ⬜     |
@@ -189,6 +189,79 @@ passou a dizer isso.
 Portão: `format:check 0` · `lint 0` · `typecheck 0` · `test 0` (**64 arquivos,
 958 testes**, eram 63/948) · `playwright` **259 passaram**, 4 pulados, 0
 falharam (eram 256).
+
+---
+
+### 2.2 — A borda de erro, e o relato que sai dela ✅
+
+Item 2 da auditoria (§f.2 e §D.2). **Não existia `ErrorBoundary` em lugar nenhum
+do `src/`.** Qualquer exceção de render dava tela branca: muda, sem
+"recarregar", e sem nada chegando ao suporte. E **a tela branca não tinha teste
+porque não tinha código** — é por isso que ninguém tinha reparado.
+
+**Vermelho visto antes:** `erro/error-report.test.ts` com o módulo inexistente.
+Para a borda em si o vermelho é o próprio estado anterior do repositório: sem
+código não há teste a ficar vermelho, e o e2e novo (`e2e/erro.spec.ts`) prova o
+depois contra um defeito que reproduz a forma exata do de produção.
+
+**As sete peças:**
+
+1. **`erro/error-report.ts`** — puro, 9 casos. Ele carrega **os três limites que
+   o `/openapi.json` NÃO publica** (`description` 1–4000, `error_log` 20000,
+   `screen` 200; todos são `string` seco no contrato). É a mesma situação de
+   `cancel-reason.ts` e a mesma decisão. **O que importa de verdade é o
+   `error_log`:** a pilha de componentes do React passa de 20.000 caracteres com
+   facilidade, e um 422 ali seria erro de validação **na última porta que
+   restava**, com a pessoa já tendo digitado o que aconteceu.
+2. **O corte do log é na CAUDA.** A causa está na primeira linha e nos primeiros
+   quadros; o fim é arcabouço do React, igual em todo erro. E a marca
+   `[cortado]` fica no texto — sem ela, quem lê no suporte procuraria por horas
+   uma linha que nunca chegou.
+3. **`erro/ErrorBoundary.tsx`** — classe, porque `componentDidCatch` não tem
+   equivalente em hook. Ela guarda **um sinalizador separado do erro**: com
+   "capturou" deduzido de `error !== null`, um `throw null` (código de terceiro
+   faz isso) faria a borda desenhar os filhos de novo no render seguinte — a
+   tela branca de volta, agora piscando. Esse foi um defeito meu, pego e
+   consertado antes do commit; tem teste.
+4. **`erro/ErroDaTela.tsx` não lê NADA que possa estar quebrado.** Sem
+   `useSession`, sem `useNavigate`, sem hook de dado. E as duas saídas são
+   `window.location`, não o roteador: se o que quebrou foi o `BrowserRouter`, um
+   `<Link>` seria um link morto na única tela que precisava funcionar.
+5. **Ela é montada DUAS vezes, e são dois trabalhos.** Na raiz (`main.tsx`,
+   dentro do tema) pega o roteador, a sessão e a moldura. Dentro do `AppShell`,
+   em volta do conteúdo da rota, com **`key={pathname}`**: um defeito no
+   Cardápio deixa a lateral e as outras oito seções de pé. Sem a chave, o React
+   guarda o estado de erro e a próxima seção nasceria quebrada também.
+6. **`POST /admin/error-reports`** — a rota estava pronta no backend e o painel
+   nunca a chamava. O log e a tela vão **sozinhos**; a pessoa escreve só a
+   história. Um relato que dependesse de alguém copiar o traceback de uma tela
+   branca é um relato que nunca chega.
+7. **O pior caso tem saída.** Envio falhando (rede caindo junto), a tela mostra
+   o log em texto copiável para ir pelo WhatsApp. "Não deu para relatar o erro"
+   numa tela de erro é onde a confiança acaba.
+
+**O e2e quebra uma tela DE VERDADE**, e a forma da mentira é a do defeito real:
+`GET /admin/orders` respondendo **200, JSON válido, `items: null`** — "um campo
+que o backend passou a mandar null". Não é rede caída nem 500; o painel já trata
+os dois com mensagem. É a resposta que passa por tudo e explode no render. Quatro
+testes: a tela com saída, a lateral de pé, a borda não perseguindo a rota
+seguinte, e o relato chegando com log e tela.
+
+**Uma duplicação desfeita no caminho:** `navigator.clipboard` + o fallback de
+`execCommand` viviam dentro de `OneTimeSecret`. O número do relato precisa da
+mesma coisa e pelo mesmo motivo (painel aberto por IP na rede da loja não tem
+`navigator.clipboard`), então os dois caminhos foram para `ds/copiar.ts`. Duas
+implementações de área de transferência é como um dos dois botões deixa de
+funcionar por IP sem ninguém notar.
+
+**Uma premissa minha que estava errada, e o teste a pegou:** o primeiro e2e da
+falha de envio usava `expireSession()`. O 401 derruba a sessão e devolve ao
+login — que é o comportamento **certo**, e não chega à tela de erro. O caso que
+importa é a conexão intermitente, e é ele que o teste usa agora.
+
+Portão: `format:check 0` · `lint 0` · `typecheck 0` · `test 0` (**66 arquivos,
+974 testes**, eram 64/958) · `playwright` **263 passaram**, 4 pulados, 0
+falharam (eram 259).
 
 ---
 

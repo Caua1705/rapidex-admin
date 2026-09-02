@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 
 import { ROTA_DA_TROCA_DE_SENHA } from '../auth/RequireAuth';
+import { ErrorBoundary } from '../erro/ErrorBoundary';
 import { roleLabel } from '../auth/role-labels';
 import { useSession } from '../auth/session-context';
 import { ThemeToggle } from '../theme/ThemeToggle';
@@ -35,6 +36,13 @@ export function AppShell({ children }: { children: ReactNode }) {
    * uma tela que responde 403 não é navegação, é convite a um beco.
    */
   const navGroups = useNavGroups();
+  /*
+   * SÓ PARA A BORDA DE ERRO. Ela é remontada a cada rota (`key`), e é isso que
+   * a faz esquecer o erro da tela anterior — sem a chave, o React guarda o
+   * estado de erro do componente e a próxima seção nasceria quebrada também,
+   * fazendo o painel inteiro parecer perdido por causa de uma tela.
+   */
+  const { pathname } = useLocation();
   const initials = user?.name
     .split(/\s+/)
     .filter(Boolean)
@@ -161,7 +169,17 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
 
         <main className="shell__content" id="conteudo">
-          {children}
+          {/*
+            A BORDA FICA AQUI DENTRO, e não em volta do `<AppShell>`, porque é
+            essa posição que preserva o resto: um defeito no Cardápio deixa a
+            lateral, a barra do topo e as outras oito seções DE PÉ, e a pessoa
+            navega para outro lugar e continua trabalhando. Envolvendo a moldura,
+            um erro em qualquer tela apagaria o painel — que é exatamente o que
+            acontecia antes de existir borda nenhuma.
+          */}
+          <ErrorBoundary escopo="tela" key={pathname}>
+            {children}
+          </ErrorBoundary>
         </main>
       </div>
 

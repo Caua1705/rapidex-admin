@@ -1,0 +1,110 @@
+/*
+ * A TELA DO ERRO — ela pertence ao painel, e é isso que a torna crível.
+ *
+ * Sem ícone gigante, sem ilustração e sem cartão vermelho: quem chega aqui já
+ * sabe que algo quebrou, e uma tarja de perigo por cima disso só sobe a
+ * temperatura de quem está no meio do movimento. O que ela precisa é ler como
+ * uma tela do sistema — mesmo fundo, mesma medida de texto, mesmos botões — e
+ * dizer o que fazer agora.
+ *
+ * A MEDIDA É DE LEITURA (56ch), a mesma da tela "em breve": aqui há um
+ * parágrafo e um campo de texto, e uma linha de 140 caracteres não se lê no
+ * meio de um problema.
+ */
+
+.erro {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--surface);
+}
+
+/* Dentro da moldura: ocupa a área de conteúdo, com a lateral ainda de pé. */
+.erro--tela {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Na raiz não há moldura nenhuma — esta é a página inteira. */
+.erro--painel {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.erro__bloco {
+  max-width: 56ch;
+  padding: var(--sp-32) var(--page-pad);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-16);
+}
+
+.erro__titulo {
+  margin: 0;
+  font-size: var(--tt-size);
+  line-height: var(--tt-line);
+  font-weight: var(--tt-weight);
+  letter-spacing: var(--tt-track);
+  color: var(--ink);
+}
+
+.erro__texto {
+  margin: 0;
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  color: var(--ink-2);
+}
+
+.erro__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-8);
+}
+
+.erro__relato,
+.erro__falha,
+.erro__protocolo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-8);
+  width: 100%;
+}
+
+/*
+ * O NÚMERO DO RELATO É PARA SER LIDO CARACTERE A CARACTERE, e não corrido: ele
+ * atravessa um canal de voz ou de WhatsApp, e um dígito trocado manda o suporte
+ * procurar o que não existe. `user-select: all` faz um toque só selecionar o
+ * número inteiro no celular — que é onde o botão de copiar pode não existir
+ * (painel aberto por IP na rede da loja; ver `ds/copiar.ts`).
+ */
+.erro__numero {
+  margin: 0;
+  font-size: var(--tl-size);
+  line-height: var(--tl-line);
+  font-weight: var(--w-semibold);
+  color: var(--ink);
+  word-break: break-all;
+  user-select: all;
+}
+
+.erro__ajuda {
+  margin: 0;
+}
+
+/* O log é para copiar, não para ler: caixa baixa, e a rolagem dentro dela. */
+.erro__log {
+  width: 100%;
+  resize: vertical;
+}
+
+.erro__relato .field,
+.erro__falha .alert {
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  .erro__bloco {
+    padding: var(--sp-24) var(--page-pad-mobile);
+  }
+}
