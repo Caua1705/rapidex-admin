@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "lint": "eslint . --max-warnings=0 && node scripts/check-design-tokens.mjs && node scripts/check-contrast.mjs && node scripts/check-csp-hash.mjs && node scripts/check-fuso.mjs",
+    "lint": "eslint . --max-warnings=0 && node scripts/check-design-tokens.mjs && node scripts/check-contrast.mjs && node scripts/check-csp-hash.mjs && node scripts/check-fuso.mjs && node scripts/check-testes.mjs",
     "lint:tokens": "node scripts/check-design-tokens.mjs",
     "lint:contrast": "node scripts/check-contrast.mjs",
     "lint:csp": "node scripts/check-csp-hash.mjs",
