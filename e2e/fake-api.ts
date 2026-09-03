@@ -2601,6 +2601,8 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     couriers: initialCouriers(),
     courierPatches: [] as { courierId: string; body: Record<string, unknown> }[],
     courierPosts: [] as Record<string, unknown>[],
+    /** Quantos pares já saíram. Cada chamada gera um DIFERENTE. */
+    courierAccessCount: 0,
     courierFees: {} as Record<string, { base: number | null; perKm: number | null }>,
     courierFeePatches: [] as Record<string, unknown>[],
     printAgents: initialPrintAgents(),
@@ -4313,6 +4315,41 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        */
       state.couriers.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
       return json(route, 201, semSegredo(criado));
+    }
+
+    const acessoMatch = /^\/admin\/couriers\/([^/]+)\/access$/.exec(path);
+    if (method === 'POST' && acessoMatch?.[1]) {
+      const courier = state.couriers.find((c) => c.id === acessoMatch[1]);
+      if (!courier) return json(route, 404, { detail: ENTREGADOR_NAO_ENCONTRADO });
+
+      /*
+       * INATIVO NÃO GANHA ACESSO (409). Seria um par que a porta recusaria
+       * de qualquer jeito, e o dono veria "funcionou" numa tela e "não
+       * entra" na outra.
+       */
+      if (!courier.is_active) {
+        return json(route, 409, {
+          detail: 'Entregador inativo não recebe acesso. Reative-o antes.',
+        });
+      }
+
+      /*
+       * PAR NOVO A CADA CHAMADA, e o anterior morre. O contador é o que
+       * deixa o teste provar que regerar TROCA o par — dois pares iguais
+       * fariam o caso passar sem provar nada.
+       */
+      state.courierAccessCount += 1;
+      const n = state.courierAccessCount;
+      const agora = new Date().toISOString();
+      courier.has_access = true;
+      courier.access_generated_at = agora;
+
+      return json(route, 201, {
+        courier_id: courier.id,
+        link_token: `tok-${n}-${courier.id}`,
+        access_code: `COD${String(n).padStart(2, '0')}`,
+        access_generated_at: agora,
+      });
     }
 
     const courierMatch = /^\/admin\/couriers\/([^/]+)$/.exec(path);

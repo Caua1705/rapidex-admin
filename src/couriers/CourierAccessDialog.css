@@ -1,0 +1,81 @@
+/*
+ * O diálogo do acesso do entregador — irmão do da senha temporária, e com a
+ * mesma ordem vertical: o AVISO, o par, e só então as notas.
+ *
+ * Quem abre isto está com o motoboy na frente ou com o WhatsApp aberto; o que
+ * ele precisa antes de qualquer explicação é saber que aquilo não volta.
+ */
+.acesso {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-20);
+}
+
+.acesso__aviso {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-8);
+  color: var(--alert);
+}
+
+/*
+ * O QR E OS CAMPOS LADO A LADO, e o QR primeiro na leitura: com o motoboy na
+ * loja, apontar a câmera é o caminho mais curto e nem precisa dos campos.
+ *
+ * `wrap` porque o diálogo estreita no telefone — e ali o QR desce inteiro em
+ * vez de encolher: um QR espremido é um QR que a câmera não lê, que é o mesmo
+ * que não ter QR.
+ */
+.acesso__par {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sp-20);
+}
+
+.acesso__qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.acesso__qr p {
+  margin: 0;
+  text-align: center;
+}
+
+/*
+ * OS DOIS CAMPOS OCUPAM O QUE SOBRA. O link é longo e quebra em qualquer
+ * lugar; sem `min-width: 0` num filho de flex, ele empurraria o QR para fora
+ * do diálogo em vez de quebrar.
+ */
+.acesso__campos {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-16);
+}
+
+/*
+ * O BOTÃO DO WHATSAPP É UM LINK, e ocupa a largura toda: ele é a ação que o
+ * lojista veio fazer no caso comum (o motoboy não está na loja), e uma âncora
+ * do tamanho de um botão de texto não se lê como ação principal.
+ */
+.acesso__whatsapp {
+  justify-content: center;
+  text-decoration: none;
+}
+
+.acesso__confirma {
+  margin-inline-end: auto;
+}
+
+@media (max-width: 480px) {
+  .acesso__confirma {
+    margin-inline-end: 0;
+    width: 100%;
+  }
+}

@@ -7,6 +7,10 @@ import { DataTable, PageBar, type Column } from '../ds';
 import { EditIcon, PlusIcon } from '../ds/icons';
 import { formatPhone } from '../customers/customer-model';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { generateCourierAccess } from '../api/couriers';
+import { useSession } from '../auth/session-context';
+import { CourierAccessDialog } from './CourierAccessDialog';
+import { linkDoEntregador, podeGerarAcesso } from './courier-access';
 import { CourierDialog } from './CourierDialog';
 import {
   corpoDeCriacao,
@@ -19,7 +23,7 @@ import {
   type ErrosDoEntregador,
 } from './courier-model';
 import { useCouriers } from './useCouriers';
-import type { Courier } from '../api/types';
+import type { Courier, CourierAccess } from '../api/types';
 import './CouriersPage.css';
 
 type Linha = {
@@ -66,6 +70,16 @@ const COLUNAS: readonly Column<Linha>[] = [
 export function CouriersPage() {
   const { pode } = usePermissoes();
   const { branch, branchId, hasChoice } = useAdoptedBranch();
+  const { restaurantLabel } = useSession();
+
+  /*
+   * O DOMÍNIO DO APP NÃO TEM PADRÃO, e é essa a proteção: faltando a
+   * variável, o painel NÃO OFERECE o botão. A alternativa seria gerar um
+   * link para um domínio errado — e o par sai uma vez só, então o motoboy
+   * receberia algo que não abre e a segunda via mataria a primeira.
+   */
+  const appUrl = import.meta.env.VITE_COURIER_APP_URL;
+  const podeAcesso = pode('entregadores.gerarAcesso') && podeGerarAcesso(appUrl);
 
   const couriers = useCouriers(branchId);
 
@@ -74,9 +88,20 @@ export function CouriersPage() {
   );
   const [isSaving, setIsSaving] = useState(false);
 
-  const [confirmando, setConfirmando] = useState<{ courier: Courier; acao: 'excluir' } | null>(
-    null,
-  );
+  const [confirmando, setConfirmando] = useState<{
+    courier: Courier;
+    acao: 'excluir' | 'regerar';
+  } | null>(null);
+
+  /**
+   * O par em claro, enquanto o diálogo está aberto.
+   *
+   * Ele não é guardado em lugar nenhum além deste estado: não vai para o
+   * localStorage, não entra na lista, e some quando o diálogo fecha. É a
+   * mesma disciplina da senha temporária — o que existe uma vez só não pode
+   * ganhar uma segunda morada por conveniência.
+   */
+  const [acesso, setAcesso] = useState<{ courier: Courier; dados: CourierAccess } | null>(null);
   const [erroDaAcao, setErroDaAcao] = useState<string | null>(null);
   const [alternando, setAlternando] = useState<string | null>(null);
 
@@ -153,6 +178,37 @@ export function CouriersPage() {
     setAlternando(null);
   }
 
+  /**
+   * Gera o par, e é a ÚNICA vez que ele existe em claro.
+   *
+   * REGERAR MATA O ANTERIOR NA HORA, então ele passa pela confirmação
+   * quando já há acesso valendo — é o botão de "o motoboy saiu ou perdeu o
+   * celular", e apertá-lo por engano deixa quem está na rua sem entrar.
+   *
+   * O 409 AQUI É ENTREGADOR INATIVO, e a frase do backend já diz o que
+   * fazer ("Reative-o antes"). Ela sobe inteira: reescrevê-la aqui seria
+   * duas fontes para a mesma explicação.
+   */
+  async function gerarAcesso(courier: Courier) {
+    setAlternando(courier.id);
+    setErroDaAcao(null);
+    try {
+      const dados = await generateCourierAccess(courier.id);
+      setAcesso({ courier, dados });
+      setConfirmando(null);
+      /*
+       * A LINHA PRECISA SABER QUE AGORA HÁ ACESSO. A resposta desta rota é
+       * o PAR, não o entregador — sem reler, a coluna continuaria dizendo
+       * "Sem acesso" ao lado de um par que acabou de ser entregue.
+       */
+      await couriers.recarregar();
+    } catch (error) {
+      setErroDaAcao(messageFromUnknownError(error));
+    } finally {
+      setAlternando(null);
+    }
+  }
+
   async function excluir() {
     if (!confirmando) return;
     setIsSaving(true);
@@ -202,6 +258,24 @@ export function CouriersPage() {
               {courier.is_active ? 'Desativar' : 'Reativar'}
             </button>
           </>
+        ) : null}
+
+        {podeAcesso ? (
+          <button
+            type="button"
+            className="btn btn--sm"
+            disabled={alternando === courier.id}
+            onClick={() => {
+              setErroDaAcao(null);
+              // Já há par valendo: perguntar antes, porque gerar outro mata
+              // o que o motoboy está usando agora.
+              if (courier.has_access) setConfirmando({ courier, acao: 'regerar' });
+              else void gerarAcesso(courier);
+            }}
+            data-testid={`courier-access-${courier.id}`}
+          >
+            {courier.has_access ? 'Gerar outro acesso' : 'Gerar acesso'}
+          </button>
         ) : null}
 
         {podeExcluir ? (
@@ -302,7 +376,13 @@ export function CouriersPage() {
         />
       ) : null}
 
-      {confirmando ? (
+      {/*
+        UMA CONFIRMAÇÃO PARA DOIS CASOS, e as duas frases são diferentes
+        porque as consequências são. Excluir tira o cadastro; REGERAR mata o
+        par que o motoboy está usando AGORA — e quem está na rua descobre
+        isso ao tentar abrir o app.
+      */}
+      {confirmando?.acao === 'excluir' ? (
         <ConfirmDialog
           title={`Excluir ${confirmando.courier.name}?`}
           confirmLabel="Excluir"
@@ -315,9 +395,9 @@ export function CouriersPage() {
           data-testid="courier-excluir-dialogo"
         >
           {/*
-            A ALTERNATIVA REVERSÍVEL VEM JUNTO, porque ela existe e é a que quase
-            sempre serve: "vai viajar" e "saiu da loja" pedem coisas diferentes, e
-            só uma delas tem volta.
+            A ALTERNATIVA REVERSÍVEL VEM JUNTO, porque ela existe e quase
+            sempre serve: "vai viajar" e "saiu da loja" pedem coisas
+            diferentes, e só uma delas tem volta.
           */}
           <p>
             O acesso dele morre na hora e os pedidos que estiverem com ele voltam para a fila. O
@@ -328,6 +408,45 @@ export function CouriersPage() {
             volta com um clique.
           </p>
         </ConfirmDialog>
+      ) : null}
+
+      {confirmando?.acao === 'regerar' ? (
+        <ConfirmDialog
+          title={`Gerar outro acesso para ${confirmando.courier.name}?`}
+          confirmLabel="Gerar outro"
+          sendingLabel="Gerando…"
+          cancelLabel="Manter o acesso atual"
+          isSending={alternando === confirmando.courier.id}
+          errorMessage={erroDaAcao}
+          onClose={() => setConfirmando(null)}
+          onConfirm={() => void gerarAcesso(confirmando.courier)}
+          data-testid="courier-regerar-dialogo"
+        >
+          {/*
+            O QUE ACONTECE COM QUEM ESTÁ NA RUA. Este é o botão de "o motoboy
+            saiu ou perdeu o celular", e apertá-lo por engano derruba quem
+            está entregando agora — sem aviso nenhum do lado dele.
+          */}
+          <p>
+            O link e o código de agora <strong>param de funcionar na hora</strong>. Se ele estiver
+            entregando com o app aberto, vai perder o acesso no meio da corrida.
+          </p>
+          <p>Use isto quando ele trocar de celular, perder o aparelho ou sair da loja.</p>
+        </ConfirmDialog>
+      ) : null}
+
+      {/*
+        O PAR, DEPOIS DE GERADO. `link` nunca é nulo aqui: o botão que leva a
+        este diálogo só existe quando há domínio configurado.
+      */}
+      {acesso && linkDoEntregador(appUrl, acesso.dados.link_token) ? (
+        <CourierAccessDialog
+          courier={acesso.courier}
+          acesso={acesso.dados}
+          link={linkDoEntregador(appUrl, acesso.dados.link_token)!}
+          nomeDaLoja={branch?.name ?? restaurantLabel}
+          onClose={() => setAcesso(null)}
+        />
       ) : null}
     </div>
   );

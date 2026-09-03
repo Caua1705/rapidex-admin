@@ -10,7 +10,14 @@
  * juntar os dois num arquivo é o primeiro passo para alguém somar um no outro.
  */
 import { apiClient, unwrap, unwrapEmpty } from './client';
-import type { Courier, CourierCreate, CourierFee, CourierFeeUpdate, CourierUpdate } from './types';
+import type {
+  Courier,
+  CourierAccess,
+  CourierCreate,
+  CourierFee,
+  CourierFeeUpdate,
+  CourierUpdate,
+} from './types';
 
 /**
  * Quanto esta filial paga ao entregador por corrida.
@@ -93,6 +100,24 @@ export async function updateCourier(courierId: string, body: CourierUpdate): Pro
 export async function deleteCourier(courierId: string): Promise<void> {
   await unwrapEmpty(
     await apiClient.DELETE('/admin/couriers/{courier_id}', {
+      params: { path: { courier_id: courierId } },
+    }),
+  );
+}
+
+/**
+ * Gera (ou REGENERA) o par link+código do entregador.
+ *
+ * A RESPOSTA É A ÚNICA VEZ EM QUE OS DOIS EXISTEM EM CLARO. Não há rota que os
+ * mostre de novo, e chamar esta de novo mata o par anterior na hora — não há
+ * sessão nem token derivado que sobreviva.
+ *
+ * 409 é entregador INATIVO: seria um par que a porta recusaria de qualquer
+ * jeito, e o dono veria "funcionou" numa tela e "não entra" na outra.
+ */
+export async function generateCourierAccess(courierId: string): Promise<CourierAccess> {
+  return unwrap(
+    await apiClient.POST('/admin/couriers/{courier_id}/access', {
       params: { path: { courier_id: courierId } },
     }),
   );

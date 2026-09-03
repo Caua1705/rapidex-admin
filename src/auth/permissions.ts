@@ -167,6 +167,7 @@ export type Acao =
   | 'entregadores.cadastrar'
   | 'entregadores.editar'
   | 'entregadores.excluir'
+  | 'entregadores.gerarAcesso'
   | 'entregadores.verTaxa'
   | 'entregadores.editarTaxa'
   // --- impressão
@@ -341,6 +342,7 @@ const ROTA_DA_ACAO = {
   'entregadores.cadastrar': 'POST /admin/couriers',
   'entregadores.editar': 'PATCH /admin/couriers/{courier_id}',
   'entregadores.excluir': 'DELETE /admin/couriers/{courier_id}',
+  'entregadores.gerarAcesso': 'POST /admin/couriers/{courier_id}/access',
   'entregadores.verTaxa': 'GET /admin/branches/{branch_id}/courier-fee',
   'entregadores.editarTaxa': 'PATCH /admin/branches/{branch_id}/courier-fee',
 

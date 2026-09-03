@@ -14,7 +14,7 @@ depende da painel-2 entrar primeiro; decisão confirmada pelo dono.
 | 0   | contrato + `sort_order` do cupom     | feito `b50d2b6` `4f0a437` |
 | 1   | taxa por corrida (Loja › Entrega)    | **feito**                 |
 | 2   | cadastro `/admin/couriers`           | **feito**                 |
-| 3   | o acesso (link + código + QR)        | a fazer                   |
+| 3   | o acesso (link + código + QR)        | **feito**                 |
 | 4   | atribuição, e quem está com o pedido | a fazer                   |
 
 ## As decisões que já estão tomadas
@@ -201,14 +201,97 @@ esta linha"). Subiu, com o motivo escrito no teste e em `nav.ts`: quem atribui
 é o atendente, no meio do turno, com o pedido na mão — uma tela de turno no pé
 das configurações é uma tela que essa pessoa não encontra.
 
+## Item 3 — o acesso
+
+`POST /admin/couriers/{id}/access`, no botão da linha.
+
+### A TELA DO ENTREGADOR AINDA NÃO EXISTE
+
+**Isto não é defeito, e é a primeira coisa a saber ao testar.** O front do app
+do cliente começou agora; a rota `/entregador/{link_token}` vai morar lá, ao
+lado de `/acompanhar/{tracking_token}`. Até ela existir, **o link é gerado e
+não leva a lugar nenhum** — abrir dá 404 do app, não do painel.
+
+O que já é verdade hoje: o par é gerado de verdade, o link é montado com o
+domínio certo, o QR aponta para ele e o WhatsApp o entrega. O que falta é o
+outro lado da porta.
+
+### O domínio não tem padrão, e essa é a proteção
+
+`VITE_COURIER_APP_URL` está no `.env.example` **comentada, sem valor**.
+Faltando ela, o painel **não oferece o botão**. A alternativa seria gerar um
+link para um domínio errado — e o par sai uma vez só: o motoboy receberia algo
+que não abre, e a segunda via mata a primeira.
+
+Um padrão embutido no código seria exatamente o defeito que a ausência da
+variável existe para impedir, e ele apareceria em produção, uma vez, no dia do
+primeiro entregador.
+
+O `playwright.config.ts` fixa a variável para o e2e exercitar o caminho que
+existe; o caso da variável AUSENTE é coberto no teste de unidade
+(`podeGerarAcesso('')`), porque dublá-lo no e2e exigiria um segundo servidor
+com outro ambiente só para provar que um botão não aparece.
+
+### O QR é desenhado aqui, e a recusa importa mais que a implementação
+
+Um serviço de imagem por URL (`api.qrserver.com/...?data=<link>`) mandaria o
+token de acesso do motoboy **para um terceiro**, num par que sai uma vez só e
+abre a operação da loja. Vazamento de segredo disfarçado de conveniência.
+
+`qrcode-generator` (zero dependências) desenha localmente, e o componente
+emite **SVG de verdade** — sem `dangerouslySetInnerHTML` e sem `data:` URI.
+Há um e2e que conta as requisições externas durante a geração e exige zero.
+
+**As duas cores do QR viraram tokens** (`--qr-tinta`, `--qr-fundo`), fixas nos
+dois temas: quem lê um QR é uma CÂMERA, e traços escuros sobre a parede escura
+do tema noturno não têm contraste nenhum para o leitor. A régua de aderência
+estava certa em barrar o literal — cor do sistema se declara num lugar só,
+inclusive a que é fixa de propósito. Assim a exceção fica visível para quem
+revisa, em vez de escondida num `eslint-disable`.
+
+### O diálogo é irmão do da senha temporária
+
+As quatro decisões de lá valem aqui, e pelo mesmo motivo: o aviso vem ANTES do
+par; `dismissible={false}`; fechar exige a confirmação de que entregou; e o par
+aparece INTEIRO, porque um sem o outro não abre nada.
+
+**Três caminhos, nenhum redundante:** o QR é para o motoboy que está na loja; o
+WhatsApp para o que não está (o caso comum, porque o cadastro costuma vir
+antes); copiar é a saída de quem usa outro canal, e a que sobra quando o
+WhatsApp do balcão está na conta errada.
+
+**O WhatsApp é só um link `wa.me`** — sem API, sem Business Manager, sem token.
+É por isso que este botão existe hoje, enquanto a integração de WhatsApp do
+painel inteiro ainda é "em breve". Ele leva o par inteiro numa mensagem só:
+mandar link e código em duas é o que produz a ligação de volta ("chegou só o
+endereço"), e a essa altura o par já não existe para reenviar a metade que
+faltou.
+
+**Regerar pergunta antes**, e a frase diz o que quebra do lado de lá: o par de
+agora para de funcionar na hora, e quem estiver entregando com o app aberto
+perde o acesso no meio da corrida. O 409 do inativo sobe com a frase do
+backend, que já diz o que fazer.
+
+### Vermelho visto
+
+12 casos do modelo puro com o módulo ainda inexistente. Os 9 e2e sob duas
+mutações: regerar sem perguntar (derruba 2) e o diálogo fechando sem a
+confirmação (1).
+
+### Uma armadilha de execução, anotada duas vezes hoje
+
+**Duas suítes e2e ao mesmo tempo brigam pelo mesmo servidor** e reportam
+contagem falsa — uma execução acusou 9 falhas em `caminho-critico.spec.ts` que
+passam todas isoladas. O número do portão sai de uma execução SOZINHA.
+
 ## Portão
 
-Lido sem pipe, com os itens 1 e 2 fechados:
+Lido sem pipe, com os itens 1, 2 e 3 fechados:
 
 ```
 format:check  ok
-lint          ok · 1412 casos afirmam alguma coisa
+lint          ok · 1433 casos afirmam alguma coisa
 typecheck     ok
-test          75 arquivos · 1106 casos
-playwright    318 passed · 4 skipped · 0 failed
+test          76 arquivos · 1118 casos
+playwright    327 passed · 4 skipped · 0 failed
 ```

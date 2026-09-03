@@ -623,3 +623,10 @@ export type CourierFeeUpdate = Schemas['AdminBranchCourierFeeUpdate'];
 export type Courier = Schemas['AdminCourierResponse'];
 export type CourierCreate = Schemas['AdminCourierCreate'];
 export type CourierUpdate = Schemas['AdminCourierUpdate'];
+
+/**
+ * O PAR QUE SAI UMA VEZ SÓ. `link_token` e `access_code` em claro existem
+ * apenas nesta resposta — nenhuma rota os mostra de novo, e gerar outro par
+ * mata o anterior na hora.
+ */
+export type CourierAccess = Schemas['AdminCourierAccessResponse'];

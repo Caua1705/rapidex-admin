@@ -162,6 +162,23 @@
    * que "da marca". Com token próprio, mudar o laranja não repinta o perigo.
    */
   --on-danger: #ffffff;
+  /*
+   * O QR: preto sobre branco, NOS DOIS TEMAS, e é a única dupla do sistema que
+   * não vira com o tema.
+   *
+   * Quem lê um QR é uma CÂMERA, e ela não sabe de tema: traços escuros sobre a
+   * parede escura do tema noturno não têm contraste nenhum para o leitor, e o
+   * código simplesmente não é reconhecido. É a mesma natureza da largura fixa
+   * da comanda — o que vale ali é o que a máquina do outro lado consegue ler,
+   * não o que combina com a tela.
+   *
+   * Eles moram aqui, e não como literais no componente, porque a régua de
+   * aderência está certa: cor do sistema se declara num lugar só, inclusive a
+   * que é fixa de propósito. Assim a exceção fica visível para quem revisa, em
+   * vez de escondida num `eslint-disable`.
+   */
+  --qr-tinta: #000000;
+  --qr-fundo: #ffffff;
   --info: #2b5697;
   --info-wash: #e6ecf7;
 

@@ -39,6 +39,16 @@ export default defineConfig({
       // interceptadas não são cross-origin e o navegador não dispara preflight
       // CORS — que o page.route() não intercepta e faria tudo falhar.
       VITE_API_BASE_URL: 'http://127.0.0.1:4173',
+      /*
+       * O DOMÍNIO DO APP DO CLIENTE. Ele não tem padrão no código de
+       * propósito — sem ele o painel não oferece o botão de gerar acesso —,
+       * então o e2e precisa fixá-lo para exercitar o caminho que existe.
+       *
+       * O caso da variável AUSENTE é coberto no teste de unidade
+       * (`podeGerarAcesso('')`): dublá-lo aqui exigiria subir um segundo
+       * servidor com outro ambiente, só para provar que um botão não aparece.
+       */
+      VITE_COURIER_APP_URL: 'https://pederapidex.com',
     },
   },
 });
