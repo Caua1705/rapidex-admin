@@ -14,6 +14,11 @@
  * tamanho não é sorteio — é o mesmo agrupamento do cartão de crédito e do
  * código de barras, e a razão é a memória de trabalho de quem escuta: acima de
  * cinco símbolos, quem anota perde o lugar antes de terminar o grupo.
+ *
+ * É o PADRÃO, e não a única medida: o código do entregador tem seis dígitos e
+ * se dita em dois grupos de TRÊS, como todo código de verificação. Em blocos de
+ * cinco ele sairia "14686 0" — um grupo cheio e um dígito órfão, que é pior que
+ * nenhum agrupamento, porque o olho conta o primeiro grupo e erra o resto.
  */
 const TAMANHO_DO_BLOCO = 5;
 
@@ -26,10 +31,11 @@ const TAMANHO_DO_BLOCO = 5;
  * senha sem avisar a tela — e um bloco vazio no fim seria um espaço que quem
  * está ditando leria como parte do valor.
  */
-export function blocosDe(value: string): string[] {
+export function blocosDe(value: string, tamanho: number = TAMANHO_DO_BLOCO): string[] {
+  const passo = tamanho > 0 ? tamanho : TAMANHO_DO_BLOCO;
   const blocos: string[] = [];
-  for (let inicio = 0; inicio < value.length; inicio += TAMANHO_DO_BLOCO) {
-    blocos.push(value.slice(inicio, inicio + TAMANHO_DO_BLOCO));
+  for (let inicio = 0; inicio < value.length; inicio += passo) {
+    blocos.push(value.slice(inicio, inicio + passo));
   }
   return blocos;
 }

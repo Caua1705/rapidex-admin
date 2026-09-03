@@ -37,6 +37,13 @@ async function abrirEntregadores(page: Page) {
   await expect(page.getByRole('heading', { name: 'Entregadores' })).toBeVisible();
 }
 
+/** Abre o diálogo do acesso de quem ainda não tem par gerado. */
+async function abrirAcesso(page: Page) {
+  await abrirEntregadores(page);
+  await page.getByTestId('courier-access-ent-jorge').click();
+  await expect(page.getByTestId('acesso-dialogo')).toBeVisible();
+}
+
 /*
  * O JORGE NÃO TEM ACESSO na semente — é o caminho de quem acabou de ser
  * cadastrado, que é o caso normal.
@@ -55,7 +62,7 @@ test('gerar acesso mostra o par inteiro, com o aviso antes dele', async ({ page 
 
   // O PAR INTEIRO, porque um sem o outro não abre nada.
   await expect(page.getByTestId('acesso-link')).toContainText('pederapidex.com/entregador/');
-  await expect(page.getByTestId('acesso-codigo')).toContainText('COD');
+  await expect(page.getByTestId('acesso-codigo')).toContainText('146');
   await expect(page.getByTestId('acesso-qr')).toBeVisible();
 });
 
@@ -119,7 +126,11 @@ test('o WhatsApp leva o par inteiro, para o telefone do entregador', async ({ pa
 
   const texto = decodeURIComponent(new URL(href!).searchParams.get('text')!);
   expect(texto).toContain('pederapidex.com/entregador/');
-  expect(texto).toContain('COD');
+  /*
+   * O CÓDIGO VAI INTEIRO E SEM OS GRUPOS. O agrupamento visual é da TELA; na
+   * mensagem ele viraria um espaço no meio do que o motoboy vai digitar.
+   */
+  expect(texto).toMatch(/\b\d{6}\b/);
 });
 
 /*
@@ -214,4 +225,90 @@ test('o atendente não vê o botão de gerar acesso', async ({ page }) => {
 
   await expect(page.locator('tbody')).toContainText('Jorge Lima');
   await expect(page.getByTestId('courier-access-ent-jorge')).toHaveCount(0);
+});
+
+/*
+ * ============================================================================
+ * A LEITURA DO PAR — o que o lojista consegue DITAR e o que ele só copia
+ * ============================================================================
+ *
+ * O diálogo saiu ilegível em produção: o link vinha "https ://pe derap idex."
+ * em cinco linhas e o código de seis dígitos vinha "14686 0". A causa é uma só
+ * — os dois usavam o desenho da SENHA TEMPORÁRIA, que parte o valor em blocos
+ * de cinco e abre o espacejamento entre caracteres para quem dita 20
+ * caracteres ao telefone.
+ *
+ * Nenhum dos dois é uma senha de 20 caracteres. O código são seis dígitos que
+ * se ditam em dois grupos de três, como todo código de verificação; o link não
+ * se dita nunca — ele se copia, se escaneia, ou vai no WhatsApp.
+ */
+
+test('o código é o destaque, em dois grupos de três e sem espacejamento', async ({ page }) => {
+  await abrirAcesso(page);
+
+  const codigo = page.getByTestId('acesso-codigo');
+
+  // DOIS GRUPOS DE TRÊS, e não um de cinco com um dígito órfão atrás.
+  await expect(codigo.getByTestId('acesso-codigo-bloco')).toHaveCount(2);
+  const blocos = await codigo.getByTestId('acesso-codigo-bloco').allInnerTexts();
+  expect(blocos.every((b) => b.length === 3)).toBe(true);
+  expect(blocos.join('')).toMatch(/^\d{6}$/);
+
+  /*
+   * SEM ESPACEJAMENTO ENTRE CARACTERES. Quem confere dígito a dígito no balcão
+   * não consegue ler "14686 0" — e o vão entre os grupos já faz o trabalho que
+   * o espacejamento tentava fazer.
+   */
+  const track = await codigo
+    .getByTestId('acesso-codigo-valor')
+    .evaluate((el) => getComputedStyle(el).letterSpacing);
+  expect(track).toBe('normal');
+
+  // E ele é o MAIOR texto do par: é o que o motoboy vai digitar.
+  const corpoDoCodigo = await codigo
+    .getByTestId('acesso-codigo-valor')
+    .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+  const corpoDoLink = await page
+    .getByTestId('acesso-link-valor')
+    .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+  expect(corpoDoCodigo).toBeGreaterThan(corpoDoLink);
+});
+
+test('o link ocupa uma linha só, truncada, com o copiar ao lado', async ({ page }) => {
+  await abrirAcesso(page);
+
+  const valor = page.getByTestId('acesso-link-valor');
+
+  /*
+   * UMA LINHA. O link existe para ser copiado ou escaneado, não lido: quem
+   * quiser conferir tem o QR ao lado. Cinco linhas de URL empurravam o código
+   * — que é o que se digita — para o rodapé do diálogo.
+   */
+  const linhas = await valor.evaluate((el) => {
+    const estilo = getComputedStyle(el);
+    return Math.round(el.getBoundingClientRect().height / parseFloat(estilo.lineHeight));
+  });
+  expect(linhas).toBe(1);
+
+  const corte = await valor.evaluate((el) => getComputedStyle(el).textOverflow);
+  expect(corte).toBe('ellipsis');
+
+  const track = await valor.evaluate((el) => getComputedStyle(el).letterSpacing);
+  expect(track).toBe('normal');
+
+  /*
+   * O COPIAR FICA AO LADO, na mesma fileira — e não embaixo. Empilhado, o link
+   * volta a custar duas linhas do diálogo, que é metade do que esta mudança
+   * veio resolver.
+   */
+  const caixaDoValor = (await valor.boundingBox())!;
+  const caixaDoBotao = (await page.getByTestId('acesso-link-copiar').boundingBox())!;
+  const seCruzamNaVertical =
+    caixaDoBotao.y < caixaDoValor.y + caixaDoValor.height &&
+    caixaDoValor.y < caixaDoBotao.y + caixaDoBotao.height;
+  expect(seCruzamNaVertical).toBe(true);
+
+  // Truncado na tela, INTEIRO na área de transferência — e para o leitor de tela.
+  await expect(page.getByTestId('acesso-link-copiar')).toBeVisible();
+  await expect(page.getByTestId('acesso-link')).toContainText('pederapidex.com/entregador/');
 });

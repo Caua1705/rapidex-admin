@@ -109,11 +109,26 @@ export function CourierAccessDialog({
           </div>
 
           <div className="acesso__campos">
-            <OneTimeSecret value={link} label="Link do entregador" data-testid="acesso-link" />
+            {/*
+              O CÓDIGO VEM PRIMEIRO, E É O DESTAQUE DA TELA.
+
+              É o que o motoboy vai DIGITAR — o link ele abre, escaneia ou
+              recebe no WhatsApp. Antes o link dominava o diálogo em cinco
+              linhas e o código de seis dígitos ficava pequeno ao lado, que é a
+              hierarquia ao contrário: o esforço de quem lê estava no valor que
+              não exige esforço nenhum.
+            */}
             <OneTimeSecret
               value={acesso.access_code}
               label="Código de acesso"
+              forma="codigo"
               data-testid="acesso-codigo"
+            />
+            <OneTimeSecret
+              value={link}
+              label="Link do entregador"
+              forma="link"
+              data-testid="acesso-link"
             />
           </div>
         </div>

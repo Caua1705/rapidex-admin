@@ -47,14 +47,47 @@ import './OneTimeSecret.css';
  * acrescentaria um clique antes de ele fazer o que veio fazer. O que protege
  * esta senha é ela ser temporária e trocada no primeiro acesso.
  */
+/**
+ * As três formas do mesmo segredo, e o que decide entre elas é o CANAL.
+ *
+ * | forma     | canal                       | desenho                          |
+ * | --------- | --------------------------- | -------------------------------- |
+ * | `senha`   | a voz, 20 caracteres        | blocos de 5, espacejado, 26px    |
+ * | `codigo`  | a voz, 6 dígitos            | dois grupos de 3, 28px, sem track |
+ * | `link`    | a área de transferência     | uma linha, truncada, discreta    |
+ *
+ * Elas são variantes DESTE componente e não três componentes porque o que não
+ * muda é o que custa caro: o valor inteiro no nome acessível, o botão de
+ * copiar com os dois caminhos de `ds/copiar.ts`, e o `role="status"` que anuncia
+ * a cópia para quem não vê o ícone trocar.
+ *
+ * **`link` NÃO É UM SEGREDO QUE SE DITA**, e é por isso que ele abandona tudo o
+ * que este componente fazia por padrão. Uma URL em blocos de cinco vira
+ * "https ://pe derap idex. com/e ntreg ador/" — o espacejamento que ajuda a
+ * ditar uma senha destrói a única coisa que uma URL precisa ser na tela:
+ * reconhecível de relance. Ninguém dita um link de sessenta caracteres; copia,
+ * escaneia o QR, ou manda no WhatsApp.
+ */
+export type FormaDoSegredo = 'senha' | 'codigo' | 'link';
+
+/** Quantos caracteres por bloco, por forma. `link` não agrupa. */
+const BLOCO_DA_FORMA: Record<FormaDoSegredo, number> = {
+  senha: 5,
+  codigo: 3,
+  link: 0,
+};
+
 export function OneTimeSecret({
   value,
   label,
+  forma = 'senha',
   'data-testid': testId,
 }: {
   value: string;
   /** O nome do segredo, para quem escuta a tela. */
   label: string;
+  /** O canal por onde ele vai passar. Ver `FormaDoSegredo`. */
+  forma?: FormaDoSegredo;
   'data-testid'?: string;
 }) {
   const [copiado, setCopiado] = useState(false);
@@ -82,9 +115,11 @@ export function OneTimeSecret({
     timeoutRef.current = window.setTimeout(() => setCopiado(false), 2400);
   }
 
+  const tamanhoDoBloco = BLOCO_DA_FORMA[forma];
+
   return (
-    <div className="ds-segredo" data-testid={testId}>
-      <p className="ds-segredo__valor">
+    <div className={`ds-segredo ds-segredo--${forma}`} data-testid={testId}>
+      <p className="ds-segredo__valor" data-testid={testId ? `${testId}-valor` : undefined}>
         {/*
           O valor inteiro, sem os espaços dos blocos, é o que o leitor de tela
           anuncia. Os blocos visuais ficam `aria-hidden` logo abaixo.
@@ -92,13 +127,28 @@ export function OneTimeSecret({
         <span className="sr-only">
           {label}: {value}
         </span>
-        <span aria-hidden="true" className="ds-segredo__blocos">
-          {blocosDe(value).map((bloco, indice) => (
-            <span key={`${bloco}-${indice}`} className="ds-segredo__bloco">
-              {bloco}
-            </span>
-          ))}
-        </span>
+        {/*
+          O LINK NÃO SE PARTE. Fora o estrago visual, cada bloco é um <span>, e
+          o CSS que trunca em uma linha só precisa de UMA caixa de texto para
+          medir — seis pedaços em linha não truncam, eles quebram.
+        */}
+        {tamanhoDoBloco === 0 ? (
+          <span aria-hidden="true" className="ds-segredo__linha">
+            {value}
+          </span>
+        ) : (
+          <span aria-hidden="true" className="ds-segredo__blocos">
+            {blocosDe(value, tamanhoDoBloco).map((bloco, indice) => (
+              <span
+                key={`${bloco}-${indice}`}
+                className="ds-segredo__bloco"
+                data-testid={testId ? `${testId}-bloco` : undefined}
+              >
+                {bloco}
+              </span>
+            ))}
+          </span>
+        )}
       </p>
 
       <button

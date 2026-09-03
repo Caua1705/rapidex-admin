@@ -378,7 +378,7 @@ export function UiGalleryPage() {
 
         <Secao
           titulo="Segredo de uma vez só"
-          nota="A senha temporária que o cadastro de usuário devolve. Ela existe UMA vez — não há rota que a mostre de novo —, e é copiada à mão ou DITADA por telefone: daí os blocos de cinco, o corpo grande e o espacejamento aberto (o único positivo do sistema). O alfabeto vem do backend sem O/0 e sem I/l/1."
+          nota="Três formas do mesmo componente, e o que decide é o CANAL. A SENHA (20 caracteres) é ditada por telefone: blocos de cinco, corpo grande e o único espacejamento positivo do sistema. O CÓDIGO do entregador são seis dígitos: dois grupos de três, corpo de métrica e nenhum espacejamento — em blocos de cinco ele sairia com um dígito órfão atrás. O LINK não se dita nunca: uma linha, truncada, discreta, com o copiar ao lado."
         >
           <Amostra rotulo="Como ela chega do backend" larga>
             <OneTimeSecret value="K7MNP2QRST4UVWXY9ZAB" label="Senha temporária" />
@@ -401,6 +401,24 @@ export function UiGalleryPage() {
           <Amostra rotulo="Valor mais curto que os blocos" larga>
             {/* O resto entra inteiro no último bloco: nunca sobra bloco vazio. */}
             <OneTimeSecret value="ABCDEFG" label="Exemplo curto" />
+          </Amostra>
+
+          {/*
+            AS DUAS OUTRAS FORMAS, e elas estão aqui porque a primeira versão do
+            diálogo do entregador usou a de senha nos dois valores: o link saiu
+            "https ://pe derap idex." em cinco linhas e o código de seis dígitos
+            saiu "14686 0". O que muda entre as três não é gosto, é o CANAL.
+          */}
+          <Amostra rotulo="Código de acesso (a voz, seis dígitos)" larga>
+            <OneTimeSecret value="146860" label="Código de acesso" forma="codigo" />
+          </Amostra>
+
+          <Amostra rotulo="Link (a área de transferência, nunca a voz)" larga>
+            <OneTimeSecret
+              value="https://pederapidex.com/entregador/8f3a91c07b2e4d5a9c1f6b8e2d7a4c30"
+              label="Link do entregador"
+              forma="link"
+            />
           </Amostra>
         </Secao>
 

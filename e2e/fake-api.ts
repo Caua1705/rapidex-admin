@@ -4616,7 +4616,18 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       return json(route, 201, {
         courier_id: courier.id,
         link_token: `tok-${n}-${courier.id}`,
-        access_code: `COD${String(n).padStart(2, '0')}`,
+        /*
+         * SEIS DÍGITOS, COMO O BACKEND — `generate_courier_access_code` em
+         * `utils/security.py`: `f"{secrets.randbelow(10**6):06d}"`.
+         *
+         * Este falso devolvia `COD01`: cinco caracteres, com letra. A tela
+         * parte o segredo em blocos de CINCO, então "COD01" saía num bloco só,
+         * inteirinho — e o defeito de verdade (146860 virando "14686 0", um
+         * bloco de cinco mais um dígito órfão) não podia aparecer aqui. Um
+         * falso mais frouxo que o backend não deixa o e2e verde por sorte: ele
+         * o deixa verde por engano.
+         */
+        access_code: String(146860 + n).slice(-6),
         access_generated_at: agora,
       });
     }
