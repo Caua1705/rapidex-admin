@@ -9,12 +9,14 @@ não tocou.
 Este arquivo é a varredura atrás das **irmãs** dessa falha. Nasceu como lista;
 o que já foi fechado está marcado no título de cada item, com o commit.
 
-| #   | Item                                           | Estado              |
-| --- | ---------------------------------------------- | ------------------- |
-| 1   | o "ao vivo" que nunca é reavaliado             | **feito**           |
-| 2   | o agente de impressão fora de Loja › Impressão | **feito** `589cd94` |
-| 3   | o primeiro pedido do turno não apita           | **feito**           |
-| 4-8 | os cinco menores                               | anotados            |
+| #     | Item                                           | Estado              |
+| ----- | ---------------------------------------------- | ------------------- |
+| 1     | o "ao vivo" que nunca é reavaliado             | **feito**           |
+| 2     | o agente de impressão fora de Loja › Impressão | **feito** `589cd94` |
+| 3     | o primeiro pedido do turno não apita           | **feito**           |
+| 4,5,8 | os três que sobraram                           | anotados            |
+| 6     | grupos de opção sumindo por falha de rede      | **feito**           |
+| 7     | escrita que gravou e se reportava como falha   | **feito**           |
 
 ## Como foi medido
 
@@ -167,7 +169,7 @@ O resultado é dois números discordando na mesma tela: a faixa mostra 4 pedidos
 e o contador diz 7. Nada aceso. É a mesma família do `sort_order` divergente —
 duas expressões do mesmo fato, e a tela não diz qual acreditar.
 
-## 6. Grupos de opção somem por falha de rede
+## 6. ~~Grupos de opção somem por falha de rede~~ — FEITO
 
 `src/menu/OptionGroupsSection.tsx:105` → `setGrupos([])`
 
@@ -179,7 +181,19 @@ decide se precisa criar um. Ele cria o segundo "Escolha o tamanho".
 Uma falha de leitura precisa de um terceiro estado (`null` = não sei), não do
 mesmo valor que significa "não há".
 
-## 7. Escrita que gravou e se reporta como falha
+**Conserto (2026-09-03):** `erroDeLeitura` é estado próprio. O `catch` deixa
+`grupos` em `null` e a seção diz que não conseguiu ler — o nome e o preço
+seguem editáveis, que era a razão de não derrubar tudo.
+
+**E o botão de criar SOME enquanto a leitura falhou.** Essa parte não estava no
+achado e é o que fecha o buraco: o estrago descrito aqui não é ler "nenhum
+grupo", é CRIAR um em cima do que já existe. Deixar o botão de pé com o aviso ao
+lado ainda deixaria o caminho aberto para quem lê o botão antes da frase.
+
+Provado por mutação: devolver o `setGrupos([])` derruba o e2e novo
+(`complementos.spec.ts`).
+
+## 7. ~~Escrita que gravou e se reporta como falha~~ — FEITO
 
 `src/menu/OptionGroupsSection.tsx:160-171` (`gravar`)
 
@@ -195,6 +209,17 @@ formulário **fica aberto**. Do lado de cá do balcão isso é indistinguível d
 
 Não é ausência: é o inverso dela (o painel nega o que aconteceu). Está aqui
 porque a causa é a mesma — **o painel só sabe o que a segunda leitura contou.**
+
+**Conserto (2026-09-03):** os dois `await` deixaram de dividir um `catch`. A
+falha da ESCRITA continua igual (mensagem, formulário aberto, o texto do
+lojista preservado). A falha da RELEITURA fecha o formulário — porque a escrita
+aconteceu — e diz o que houve, nesta ordem: "Salvo. Não deu para reler a lista
+agora — o que aparece abaixo pode estar desatualizado."
+
+"Salvo" vem primeiro de propósito: é a palavra que muda o que a pessoa faz em
+seguida. A lista velha é ressalva, não manchete.
+
+Provado por mutação: devolver o `catch` único derruba o e2e novo.
 
 ## 8. Contagem por categoria que fica velha em silêncio
 

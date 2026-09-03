@@ -77,6 +77,16 @@ export function OptionGroupsSection({
   podeEditar: boolean;
 }) {
   const [grupos, setGrupos] = useState<ProductOptionGroup[] | null>(null);
+  /**
+   * A LEITURA QUE FALHOU — e ela é um estado À PARTE de `grupos === null`.
+   *
+   * Antes, o `catch` da leitura fazia `setGrupos([])`, e lista vazia nesta
+   * seção significa "este produto não tem complemento". É a tela em que o
+   * lojista decide se precisa CRIAR um: lendo "nenhum grupo" numa queda de
+   * rede, ele cria o segundo "Escolha o tamanho" — e o cliente passa a ver os
+   * dois. Ausência de dado não pode usar o mesmo desenho que o dado "não há".
+   */
+  const [erroDeLeitura, setErroDeLeitura] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [alternando, setAlternando] = useState<string | null>(null);
   /** A opção que espera confirmação por tirar o item de venda. */
@@ -102,13 +112,15 @@ export function OptionGroupsSection({
       try {
         const lista = await listProductOptionGroups(productId);
         if (!cancelled) setGrupos(lista);
-      } catch {
+      } catch (error) {
         /*
          * Os complementos são informação de apoio DESTE diálogo: não conseguir
          * lê-los não pode impedir a edição do nome e do preço, que é o que
-         * trouxe o lojista até aqui. Lista vazia e a seção diz o que diz.
+         * trouxe o lojista até aqui. O que muda é o VALOR da falha: `grupos`
+         * fica `null` (não sei) e a seção diz que não conseguiu ler, em vez
+         * de afirmar que não há.
          */
-        if (!cancelled) setGrupos([]);
+        if (!cancelled) setErroDeLeitura(messageFromUnknownError(error));
       }
     })();
     return () => {
@@ -157,16 +169,41 @@ export function OptionGroupsSection({
     void alternarOpcao(optionId, isActive);
   }
 
+  /**
+   * Gravar, e DEPOIS reler — com as duas falhas separadas.
+   *
+   * Antes, os dois `await` dividiam um `catch` só: se a gravação passava e a
+   * RELEITURA caía, a tela escrevia a mensagem de erro e deixava o formulário
+   * aberto, com o que o lojista digitou ainda na tela. Daqui do balcão isso é
+   * indistinguível de "não salvou" — e a reação natural é apertar de novo, o
+   * que cria o grupo DUAS VEZES.
+   *
+   * Agora o formulário fecha assim que a escrita passa, aconteça o que
+   * acontecer com a segunda leitura, e a falha dela diz o que de fato houve:
+   * gravou, e a lista abaixo é que pode estar velha.
+   */
   async function gravar(acao: () => Promise<unknown>) {
     setSalvando(true);
     setErro(null);
     try {
       await acao();
-      await recarregar();
-      setEditando(null);
-      setNovaOpcaoEm(null);
     } catch (error) {
       setErro(messageFromUnknownError(error));
+      setSalvando(false);
+      return;
+    }
+
+    // GRAVOU. O que vem abaixo não pode mais desmentir isso.
+    setEditando(null);
+    setNovaOpcaoEm(null);
+    try {
+      await recarregar();
+      setErroDeLeitura(null);
+    } catch {
+      setErro(
+        'Salvo. Não deu para reler a lista agora — o que aparece abaixo pode estar ' +
+          'desatualizado. Feche e abra o item para conferir.',
+      );
     } finally {
       setSalvando(false);
     }
@@ -197,7 +234,12 @@ export function OptionGroupsSection({
         </p>
       ) : null}
 
-      {grupos === null ? (
+      {erroDeLeitura ? (
+        <p className="alert alert--error" role="alert" data-testid="grupos-leitura-erro">
+          {erroDeLeitura} Os complementos deste item não foram lidos — o nome e o preço acima
+          continuam editáveis.
+        </p>
+      ) : grupos === null ? (
         <p className="faint">Carregando…</p>
       ) : grupos.length === 0 && editando !== 'novo' ? (
         <p className="faint" data-testid="grupos-vazio">
@@ -319,7 +361,7 @@ export function OptionGroupsSection({
         </ul>
       )}
 
-      {podeEditar ? (
+      {podeEditar && !erroDeLeitura ? (
         editando === 'novo' ? (
           <GrupoForm
             /* O grupo novo entra no FIM, como a opção nova entra no fim do grupo. */

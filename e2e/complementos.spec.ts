@@ -220,3 +220,85 @@ test('desativar a última opção de um grupo obrigatório pergunta antes', asyn
  * atendente e nunca acha o botão de editar passaria por 30 segundos de timeout,
  * provando o oposto do que diz o nome dele.
  */
+
+/*
+ * ============================================================================
+ * AS DUAS FALHAS SILENCIOSAS DESTA SEÇÃO — `ausencia.md` §6 e §7
+ * ============================================================================
+ *
+ * As duas nasciam do mesmo lugar: **o painel só sabe o que a segunda leitura
+ * contou.** Uma dava à falha o valor de "não há"; a outra deixava a falha da
+ * releitura desmentir uma gravação que tinha acontecido.
+ */
+
+/*
+ * §6 — LISTA VAZIA É UMA AFIRMAÇÃO, e não o desenho da falta de resposta.
+ *
+ * Esta é a tela em que o lojista decide se precisa CRIAR um grupo. Lendo
+ * "nenhum grupo de complemento" numa queda de rede, ele cria o segundo
+ * "Escolha o tamanho" — e o cliente passa a ver os dois no cardápio.
+ */
+test('leitura de complementos que falha não vira "este item não tem nenhum"', async ({ page }) => {
+  await page.route('**/admin/products/*/option-groups', (route) => route.abort());
+
+  await abrirItem(page, 'X-Burger Clássico');
+
+  await expect(page.getByTestId('grupos-leitura-erro')).toBeVisible();
+  await expect(page.getByTestId('grupos-vazio')).toHaveCount(0);
+
+  /*
+   * E CRIAR SAI DA TELA enquanto não se sabe o que existe: é às cegas que
+   * nasce o grupo repetido. O nome e o preço do item continuam editáveis —
+   * eles são o que trouxe o lojista até aqui.
+   */
+  await expect(page.getByTestId('grupo-novo')).toHaveCount(0);
+  await expect(page.getByLabel('Nome do item')).toBeEditable();
+});
+
+/*
+ * §7 — GRAVOU E A RELEITURA CAIU: a tela não pode dizer que falhou.
+ *
+ * Com os dois `await` dividindo um `catch` só, a mensagem de erro subia e o
+ * formulário ficava aberto, com o texto digitado ainda na tela. Daqui do balcão
+ * isso é indistinguível de "não salvou" — e a reação natural é apertar de novo,
+ * criando o grupo DUAS VEZES.
+ */
+test('grupo que gravou não é reportado como falha quando a releitura cai', async ({ page }) => {
+  let gravou = false;
+  await page.route('**/admin/products/*/option-groups', async (route) => {
+    const requisicao = route.request();
+    if (requisicao.method() === 'POST') {
+      gravou = true;
+      await route.fallback();
+      return;
+    }
+    // A releitura de DEPOIS da gravação é a que cai. A primeira leitura, não:
+    // sem ela a tela nem chega ao formulário.
+    if (gravou) {
+      await route.abort();
+      return;
+    }
+    await route.fallback();
+  });
+
+  await abrirItem(page, 'X-Burger Clássico');
+
+  await page.getByTestId('grupo-novo').click();
+  await page.getByTestId('grupo-nome').fill('Escolha o tamanho');
+  await page.getByTestId('grupo-salvar').click();
+
+  // A gravação aconteceu, e uma vez só.
+  await expect.poll(() => api.optionGroupBodies().length).toBe(1);
+
+  // O FORMULÁRIO FECHOU: é ele, aberto, que convida ao segundo clique.
+  await expect(page.getByTestId('grupo-nome')).toHaveCount(0);
+  await expect(page.getByTestId('grupo-novo')).toBeVisible();
+
+  /*
+   * E a mensagem diz o que de fato houve. "Salvo" primeiro, porque é a
+   * informação que muda o que o lojista faz em seguida; a lista velha é a
+   * ressalva, não a manchete.
+   */
+  await expect(page.getByTestId('grupos-erro')).toContainText('Salvo.');
+  await expect(page.getByTestId('grupos-erro')).toContainText('pode estar desatualizado');
+});
