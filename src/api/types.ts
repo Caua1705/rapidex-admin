@@ -648,3 +648,15 @@ export type Assignment = Schemas['AdminAssignmentResponse'];
  * não alcança, e são coisas diferentes.
  */
 export type OrderCourier = Schemas['AdminOrderCourierResponse'];
+
+/**
+ * O RELATÓRIO DO DIA DE PAGAR. `fee_total` é STRING de duas casas nos dois
+ * níveis — soma de `Decimal` do outro lado, e o painel a converte com cuidado
+ * (ver `couriers/courier-report.ts`): texto ilegível não pode virar zero, que
+ * seria a tela afirmando "nada a pagar" num mês em que o dono deve.
+ *
+ * `deliveries_without_fee` é o número que fica AO LADO da soma e nunca dentro:
+ * corridas de uma filial sem taxa configurada não têm valor congelado.
+ */
+export type CourierReport = Schemas['AdminCourierFeeReportResponse'];
+export type CourierReportItem = Schemas['AdminCourierFeeReportItem'];

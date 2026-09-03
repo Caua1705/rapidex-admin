@@ -18,6 +18,7 @@ import type {
   CourierCreate,
   CourierFee,
   CourierFeeUpdate,
+  CourierReport,
   CourierUpdate,
   OrderCourier,
 } from './types';
@@ -189,6 +190,37 @@ export async function unassignOrder(orderId: string): Promise<void> {
   await unwrapEmpty(
     await apiClient.DELETE('/admin/orders/{order_id}/courier', {
       params: { path: { order_id: orderId } },
+    }),
+  );
+}
+
+/**
+ * Quanto o restaurante deve a cada entregador no período.
+ *
+ * OS NÚMEROS BATEM COM O QUE O MOTOBOY VÊ no link dele — é a mesma conta de
+ * `GET /courier/{link}/history`, agrupada. Refazê-la aqui daria duas respostas
+ * para a mesma pergunta, e a divergência apareceria no balcão.
+ *
+ * `branch_id` OMITIDO soma o restaurante inteiro; ele só restringe. Quem não é
+ * dono precisa mandá-lo (403 sem ele) — `podeLerDinheiro` é quem sabe disso do
+ * lado da tela.
+ *
+ * Até 92 dias: acima, 400 com uma frase. A tela recusa antes.
+ */
+export async function fetchCourierReport(params: {
+  startDate: string;
+  endDate: string;
+  branchId?: string;
+}): Promise<CourierReport> {
+  return unwrap(
+    await apiClient.GET('/admin/reports/couriers', {
+      params: {
+        query: {
+          start_date: params.startDate,
+          end_date: params.endDate,
+          ...(params.branchId ? { branch_id: params.branchId } : {}),
+        },
+      },
     }),
   );
 }

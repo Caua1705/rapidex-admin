@@ -2,7 +2,8 @@
 
 Fonte da verdade desta frente. Atualizado no MESMO commit de cada item.
 
-**Branch:** `rodada/entregador`, saída de `rodada/painel-2` (não de `dev`) — a
+**Branch:** `rodada/relatorio-entregador` para o item 5, saída de
+`rodada/entregador`, que saiu de `rodada/painel-2` (não de `dev`) — a
 regeneração do contrato quebrou o cupom em 11 pontos e metade deles é a
 correção de `valid_until` nullable que a painel-2 já tem. O PR desta frente
 depende da painel-2 entrar primeiro; decisão confirmada pelo dono.
@@ -16,6 +17,7 @@ depende da painel-2 entrar primeiro; decisão confirmada pelo dono.
 | 2   | cadastro `/admin/couriers`           | **feito**                 |
 | 3   | o acesso (link + código + QR)        | **feito**                 |
 | 4   | atribuição, e quem está com o pedido | **feito**                 |
+| 5   | o relatório do dia de pagar          | **feito**                 |
 
 ## As decisões que já estão tomadas
 
@@ -356,14 +358,153 @@ mutações:
 | retirada também ganhando o bloco                     | 1          |
 | leitura que falhou virando "ninguém ainda"           | 1          |
 
+## Item 5 — o relatório do dia de pagar
+
+`GET /admin/reports/couriers`, na aba "A pagar" de `/entregadores`.
+
+É a única tela deste domínio que não é de operação: ela abre uma vez por semana
+ou por mês, com o dono conferindo número por número antes de transferir. Tudo
+abaixo sai disso.
+
+### A regra que manda no desenho inteiro
+
+**Os números batem com o que o motoboy vê no link dele** (`GET
+/courier/{link}/history`) — o contrato diz que é a mesma conta, agrupada. Por
+isso a tela **não recalcula nada**: não soma as linhas para conferir o total,
+não arredonda, não reordena. Uma segunda conta aqui viraria divergência no
+balcão, com o motoboy mostrando o celular — e quem estaria errado seria o
+painel, porque a definição de entrega é do backend.
+
+`courier-report.ts` só converte texto em número com cuidado e separa o que não
+pode ser somado.
+
+### O que não tem taxa fica AO LADO da soma, nunca dentro
+
+`deliveries_without_fee` são corridas de uma filial que não tinha taxa
+configurada no momento da atribuição: não há valor congelado nelas. Entram na
+CONTAGEM e não na SOMA, viram coluna própria e uma frase no resumo ("para
+acertar à mão"), porque é a única informação desta tela que vira **conversa** em
+vez de transferência.
+
+Somá-las como zero seria afirmar que foram de graça — a mesma mentira que o item
+1 recusa contar do outro lado do balcão, onde `null` é "sem taxa" e nunca zero.
+
+### As outras decisões
+
+- **Nada vira zero por acidente.** `Number('')` é 0 e `Number(null)` é 0, e aqui
+  isso faria a tela dizer "nada a pagar" num mês em que o dono deve. Texto
+  ilegível vira `null`, e `null` a tela desenha como `—`.
+- **O excluído aparece, marcado "Saiu da loja".** Ele já não trabalha aqui e
+  ainda tem corrida a receber; esconder seria o dono não pagar quem trabalhou,
+  numa tela que existe para o dia de pagar. A etiqueta explica em vez de só
+  pintar: "excluído" sozinho leria como erro de cadastro.
+- **A ordem é a do backend**, como na lista de entregadores. Reordenar daria uma
+  segunda resposta para a mesma pergunta, e o total do resumo deixaria de casar
+  com a leitura de cima para baixo que o dono faz ao conferir.
+- **O total vem ANTES da tabela.** É o número que ele veio buscar; a tabela é a
+  conferência, e quem confere já sabe o total.
+- **O teto de 92 dias é ESPELHO DECLARADO** (`LIMITE_DE_DIAS`). Não está no
+  `/openapi.json`: mora na descrição da rota e na constante de
+  `admin_report_service.py`. A tela recusa antes de ir à rede — um 400 depois de
+  escolher as datas é uma espera para saber uma regra que já se sabia, e a frase
+  que volta não diz qual campo mexer.
+- **A conta do período é em UTC**, e não no fuso da operação: são datas de
+  CALENDÁRIO, não instantes. Somar milissegundos num fuso com horário de verão
+  pularia ou repetiria um dia, e o teto passaria a depender do mês. Mesma escolha
+  de `previousRange` em Desempenho.
+- **Período inválido não apaga o que está na tela.** Quem digita a data passa por
+  estados inválidos no meio da digitação, e limpar a tabela a cada tecla faria a
+  tela piscar enquanto o dono escreve.
+- **Leitura que falhou não vira "nada a pagar".** O relatório fica como estava e
+  o erro aparece ao lado. Zerar por queda de rede é dizer ao dono que ele não
+  deve nada a ninguém, no dia em que ele abriu justamente para pagar.
+- **Abas, não dois itens na lateral.** Quem vai pagar procura pelas PESSOAS, e a
+  lateral já cresceu uma vez nesta frente (item 2). Duas portas para o mesmo
+  domínio, uma embaixo da outra no menu, é o começo de uma lista que ninguém
+  varre.
+- **A aba SOME para o atendente.** A rota é GERENCIA e a lista é PESSOAS; o
+  painel some, não desabilita — controle cinzento sem explicação é a pessoa
+  tentando e não conseguindo.
+
+### O defeito que o portão pegou, e que nenhuma ferramenta acusaria
+
+O e2e do gerente falhou na primeira execução: `pagar-escolha-filial` não
+existia. A causa não estava na tela do relatório, e sim em como ela chega à
+filial.
+
+`CouriersPage` chama `useAdoptedBranch()` — o item 2 decidiu isso de propósito,
+porque o CADASTRO precisa de uma filial concreta (telefone único DENTRO dela,
+`branch_id` obrigatório no POST). Só que `resolveBranch` nunca devolve nada:
+faltando escolha, ele cai na principal. Com a adoção valendo nas duas abas:
+
+1. **"Todas as filiais" no topo voltava sozinha** para a filial adotada, no
+   efeito seguinte — o seletor piscando de volta, que é exatamente o defeito
+   que o comentário de `branchScopeForPath` descreve.
+2. **O dono nunca alcançava o total da rede** — `branch_id` omitido soma o
+   restaurante inteiro, e esse é o número que ele abre a tela para ver. O ramo
+   `'no restaurante'` do rótulo era código que nenhum clique podia atingir.
+3. **O aviso do gerente descrevia um estado inalcançável**, e por isso o teste
+   dele não passava: sem recorte a rota responde 403, a tela existe para
+   orientá-lo antes disso, e nenhum caminho levava até lá.
+
+**A correção:** `useAdoptedBranch(aba === 'lista')`. O `adotar` existe para
+exatamente este caso — a tela que, dentro do mesmo layout, fala de todas as
+filiais. A lista adota (o cadastro precisa); o relatório não, e o seletor do
+topo volta a mandar. `/entregadores` **não** pode entrar em
+`SINGLE_BRANCH_PATHS`: isso tiraria "Todas as filiais" do seletor e mataria o
+total da rede, que é o oposto do que a tela quer.
+
+**E o segundo, que só apareceu depois do primeiro:** o hook buscava mesmo sem
+permissão de leitura. Com "Todas as filiais" escolhida, a tela do gerente pedia
+a filial **e mandava a consulta proibida no mesmo instante** — 403 na rede
+enquanto a tela já dizia a frase certa. `useCourierReport` ganhou `habilitado`,
+pela mesma regra do teto de 92 dias: quando a resposta é sabida, não se pergunta.
+
+Os dois casos ganharam e2e: o do dono em "Todas as filiais" (que não existia — a
+tela tinha um ramo sem teste, e é por isso que ele estava quebrado) e o do
+gerente pelo caminho que de fato produz o estado.
+
+### Vermelho visto
+
+16 casos do modelo puro e 11 e2e. O vermelho de verdade veio do portão, no
+achado acima. Os demais foram provados por **seis mutações**, cada uma com a
+suíte rodada sozinha:
+
+| mutação                                | o que caiu |
+| -------------------------------------- | ---------- |
+| adoção de filial valendo nas duas abas | 2 e2e      |
+| busca sem olhar a permissão de leitura | 1 e2e      |
+| o excluído filtrado da lista           | 2 e2e      |
+| busca disparando com período inválido  | 1 e2e      |
+| aba oferecida a quem não pode ler      | 1 e2e      |
+| dinheiro ilegível convertido para 0    | 2 unidade  |
+
+**A lição de execução:** a mutação 1 é o defeito real que a rodada cometeu, e
+não uma encenação. Ela caiu em dois testes que **não existiam** quando o código
+foi escrito — o portão só a pegou porque o e2e do gerente afirmava um estado que
+a tela não conseguia produzir. Teste que afirma o inalcançável é o único que
+acusa esta classe de coisa.
+
 ## Portão
 
-Lido sem pipe, com os quatro itens fechados:
+Lido sem pipe, com os cinco itens fechados, e o e2e em execução SOZINHA:
 
 ```
 format:check  ok
-lint          ok · 1460 casos afirmam alguma coisa
+lint          ok · 1487 casos afirmam alguma coisa
 typecheck     ok
-test          77 arquivos · 1133 casos
-playwright    339 passed · 4 skipped · 0 failed
+test          78 arquivos · 1149 casos
+playwright    350 passed · 4 skipped · 0 failed
 ```
+
+### Duas coisas sobre ler este número
+
+**A primeira execução acusou 2 falhas, e só uma era do código.** A outra foi
+`net::ERR_NO_BUFFER_SPACE` num `page.goto` de `papeis.spec.ts` — exaustão de
+socket do Windows, não asserção. Ela passou na execução seguinte, sem que uma
+linha daquele arquivo mudasse. Falha de rede local se distingue de defeito pela
+MENSAGEM, e não pela contagem: um `expect` que falha nomeia o locator.
+
+**A falha de verdade estava na tela do item 5** (ver "O defeito que o portão
+pegou"), e o portão foi a única coisa que a viu — `lint` e `typecheck`
+passaram verdes por cima dela nas duas execuções.

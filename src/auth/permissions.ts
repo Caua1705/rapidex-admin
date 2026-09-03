@@ -170,6 +170,7 @@ export type Acao =
   | 'entregadores.gerarAcesso'
   | 'entregadores.atribuir'
   | 'entregadores.desatribuir'
+  | 'entregadores.verRelatorio'
   | 'entregadores.verTaxa'
   | 'entregadores.editarTaxa'
   // --- impressão
@@ -353,6 +354,13 @@ const ROTA_DA_ACAO = {
    */
   'entregadores.atribuir': 'POST /admin/couriers/{courier_id}/assignments',
   'entregadores.desatribuir': 'DELETE /admin/orders/{order_id}/courier',
+  /*
+   * O RELATÓRIO DO DIA DE PAGAR é GERENCIA na rota — e o gerente ainda precisa
+   * mandar `branch_id`, senão é 403. Quem sabe DESSA segunda regra é
+   * `podeLerDinheiro`, logo abaixo, que não sai da tabela de rotas porque no
+   * backend ela também não sai: quem decide é `ensure_pode_ler_dinheiro`.
+   */
+  'entregadores.verRelatorio': 'GET /admin/reports/couriers',
   'entregadores.verTaxa': 'GET /admin/branches/{branch_id}/courier-fee',
   'entregadores.editarTaxa': 'PATCH /admin/branches/{branch_id}/courier-fee',
 

@@ -1,0 +1,83 @@
+/*
+ * O DIA DE PAGAR.
+ *
+ * A ordem vertical é a da decisão: o TOTAL, o que ficou de fora dele, e só
+ * então a tabela — que é a conferência. Quem abre isto já sabe o que veio
+ * buscar; a tabela responde "de onde saiu esse número".
+ */
+.pagar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-16);
+  padding: var(--sp-16);
+}
+
+.pagar__aviso,
+.pagar__estado {
+  margin: 0;
+}
+
+.pagar__datas {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.pagar__resumo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.pagar__rotulo {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+}
+
+/*
+ * O NÚMERO QUE O DONO VEIO BUSCAR. Corpo de título e `tabular-nums`: ele é
+ * lido em voz alta para quem faz a transferência, e conferido contra o extrato
+ * depois — dígitos de largura desigual fazem duas linhas de valores parecerem
+ * diferentes quando não são.
+ */
+.pagar__total {
+  margin: 0;
+  font-size: var(--tt-size);
+  line-height: var(--tt-line);
+  font-weight: var(--tt-weight);
+  letter-spacing: var(--tt-track);
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--ink);
+}
+
+.pagar__resumo .faint {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+}
+
+.pagar__sem-taxa {
+  margin-top: var(--sp-8);
+}
+
+.pagar__pessoa {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-8);
+}
+
+.pagar__nome {
+  font-weight: var(--w-medium);
+}
+
+/*
+ * "SAIU DA LOJA" NÃO É VERMELHO. Não houve falha nenhuma: a pessoa saiu, e o
+ * que a etiqueta diz é que ainda há dinheiro a pagar a ela. Vermelho aqui
+ * leria como erro de cadastro, e o dono pularia a linha.
+ */
+.pagar__saiu {
+  background: var(--alert-wash);
+  color: var(--alert);
+}

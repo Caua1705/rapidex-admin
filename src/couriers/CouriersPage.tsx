@@ -3,13 +3,14 @@ import { useState, type ReactNode } from 'react';
 import { useAdoptedBranch } from '../auth/use-branch-scope';
 import { messageFromUnknownError } from '../api/errors';
 import { usePermissoes } from '../auth/use-permissions';
-import { DataTable, PageBar, type Column } from '../ds';
+import { DataTable, PageBar, Tabs, type Column } from '../ds';
 import { EditIcon, PlusIcon } from '../ds/icons';
 import { formatPhone } from '../customers/customer-model';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { generateCourierAccess } from '../api/couriers';
 import { useSession } from '../auth/session-context';
 import { CourierAccessDialog } from './CourierAccessDialog';
+import { CourierReportPage } from './CourierReportPage';
 import { linkDoEntregador, podeGerarAcesso } from './courier-access';
 import { CourierDialog } from './CourierDialog';
 import {
@@ -69,7 +70,38 @@ const COLUNAS: readonly Column<Linha>[] = [
  */
 export function CouriersPage() {
   const { pode } = usePermissoes();
-  const { branch, branchId, hasChoice } = useAdoptedBranch();
+
+  /*
+   * A ABA DO RELATÓRIO SÓ EXISTE PARA QUEM PODE LER O DINHEIRO.
+   *
+   * `GET /admin/reports/couriers` é GERENCIA e a lista é PESSOAS: o
+   * atendente abre a tela e não vê a aba. Desabilitá-la seria pior — o
+   * painel SOME, não desabilita, e um controle cinzento sem explicação é a
+   * pessoa tentando e não conseguindo.
+   */
+  const podeVerRelatorio = pode('entregadores.verRelatorio');
+  const [aba, setAba] = useState<'lista' | 'pagar'>('lista');
+
+  /*
+   * A ADOÇÃO DA FILIAL VALE SÓ NA ABA DA LISTA — é o `adotar` de
+   * `useAdoptedBranch` no caso que ele existe para cobrir.
+   *
+   * O CADASTRO precisa de uma filial concreta (o telefone é único DENTRO
+   * dela, e `branch_id` é obrigatório no POST), então a lista adota e o
+   * cabeçalho passa a dizer a mesma coisa que o formulário grava.
+   *
+   * O RELATÓRIO É O CONTRÁRIO: `branch_id` omitido soma o restaurante
+   * inteiro, e esse total é o número que o dono abriu a tela para ver.
+   * Adotando sempre, "Todas as filiais" escolhida no topo voltava sozinha
+   * para a filial adotada no efeito seguinte — o seletor piscava, o dono
+   * nunca alcançava o total da rede, e o ramo "no restaurante" da tela do
+   * relatório era código que nenhum clique podia atingir.
+   *
+   * Quem pegou foi o e2e DO GERENTE: sem filial ele toma 403, a tela existe
+   * para orientá-lo antes disso, e com a adoção ligada o aviso nunca
+   * aparecia — porque o estado que ele descreve não era alcançável.
+   */
+  const { branch, branchId, hasChoice } = useAdoptedBranch(aba === 'lista');
   const { restaurantLabel } = useSession();
 
   /*
@@ -295,8 +327,18 @@ export function CouriersPage() {
     ),
   }));
 
+  if (podeVerRelatorio && aba === 'pagar') {
+    return (
+      <div className="entregadores">
+        <AbasDoEntregador aba={aba} onTrocar={setAba} />
+        <CourierReportPage />
+      </div>
+    );
+  }
+
   return (
     <div className="entregadores">
+      {podeVerRelatorio ? <AbasDoEntregador aba={aba} onTrocar={setAba} /> : null}
       <PageBar
         title="Entregadores"
         /*
@@ -449,5 +491,35 @@ export function CouriersPage() {
         />
       ) : null}
     </div>
+  );
+}
+
+/**
+ * AS DUAS PORTAS DO MESMO DOMÍNIO: quem entrega, e quanto se deve a quem
+ * entrega.
+ *
+ * Elas são abas e não dois itens da lateral porque quem vai pagar procura
+ * pelas PESSOAS — e porque a lateral já cresceu uma vez nesta frente. Duas
+ * portas para o mesmo domínio, uma embaixo da outra no menu, é o começo de
+ * uma lista que ninguém varre.
+ */
+function AbasDoEntregador({
+  aba,
+  onTrocar,
+}: {
+  aba: 'lista' | 'pagar';
+  onTrocar: (proxima: 'lista' | 'pagar') => void;
+}) {
+  return (
+    <Tabs
+      label="Entregadores"
+      testIdPrefix="entregadores-aba"
+      value={aba}
+      onChange={(id) => onTrocar(id as 'lista' | 'pagar')}
+      tabs={[
+        { id: 'lista', label: 'Quem entrega' },
+        { id: 'pagar', label: 'A pagar' },
+      ]}
+    />
   );
 }

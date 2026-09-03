@@ -2032,6 +2032,8 @@ export type FakeApi = {
    * asserção de tela, porque a tela mostra o efeito e não o que foi enviado.
    */
   printSettingsPatches: () => { branchId: string; body: Record<string, unknown> }[];
+  /** As consultas que a tela fez ao relatório do dia de pagar. */
+  courierReportQueries: () => { inicio: string; fim: string; filial: string | null }[];
   /** Os lotes de atribuição que a tela mandou, na ordem. */
   assignPosts: () => { courierId: string; orderIds: string[] }[];
   /** Põe um pedido nas mãos de alguém, sem passar pela tela. */
@@ -2633,6 +2635,53 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      */
     assignments: {} as Record<string, { courierId: string; assignedAt: string }>,
     assignPosts: [] as { courierId: string; orderIds: string[] }[],
+    courierReportQueries: [] as { inicio: string; fim: string; filial: string | null }[],
+    /*
+     * AS LINHAS DO RELATÓRIO. Três, e cada uma cobre um caso da tela: quem
+     * tem taxa em tudo, quem tem corridas SEM taxa (o número que fica ao
+     * lado da soma), e quem já SAIU e ainda tem a receber.
+     */
+    courierReportRows: [
+      {
+        courier_id: 'ent-ana',
+        name: 'Ana Souza',
+        phone: '85988887777',
+        branch_id: BRANCH_ID,
+        is_deleted: false,
+        deliveries_count: 12,
+        deliveries_without_fee: 0,
+        fee_total: '96.00',
+      },
+      {
+        courier_id: 'ent-jorge',
+        name: 'Jorge Lima',
+        phone: '85999990000',
+        branch_id: BRANCH_ID,
+        is_deleted: false,
+        deliveries_count: 7,
+        deliveries_without_fee: 3,
+        fee_total: '21.00',
+      },
+      {
+        courier_id: 'ent-saiu',
+        name: 'Rita Alves',
+        phone: '85977776666',
+        branch_id: BRANCH_ID,
+        is_deleted: true,
+        deliveries_count: 4,
+        deliveries_without_fee: 0,
+        fee_total: '32.00',
+      },
+    ] as {
+      courier_id: string;
+      name: string;
+      phone: string;
+      branch_id: string;
+      is_deleted: boolean;
+      deliveries_count: number;
+      deliveries_without_fee: number;
+      fee_total: string;
+    }[],
     courierFees: {} as Record<string, { base: number | null; perKm: number | null }>,
     courierFeePatches: [] as Record<string, unknown>[],
     printAgents: initialPrintAgents(),
@@ -4294,6 +4343,55 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       return json(route, 200, found);
     }
 
+    if (method === 'GET' && path === '/admin/reports/couriers') {
+      const q = new URL(request.url()).searchParams;
+      const inicio = q.get('start_date') ?? '';
+      const fim = q.get('end_date') ?? '';
+      const filial = q.get('branch_id');
+      state.courierReportQueries.push({ inicio, fim, filial });
+
+      /*
+       * 403 PARA QUEM NÃO É DONO SEM RECORTE. Ler o dinheiro do restaurante
+       * inteiro não é do gerente — `ensure_pode_ler_dinheiro` recusa antes
+       * de a consulta rodar. O falso encena isso porque a TELA precisa
+       * evitá-lo, e só se prova que ela evita contra um falso que recusaria.
+       */
+      if (!filial && state.papel !== 'owner') {
+        return json(route, 403, { detail: 'Escolha uma filial para ler este relatório.' });
+      }
+
+      /*
+       * 400 ACIMA DE 92 DIAS — `MAX_REPORT_DAYS`. É 400 e não 422: a data é
+       * válida, o PERÍODO é que não cabe.
+       */
+      const dias =
+        Math.round(
+          (Date.parse(`${fim}T00:00:00Z`) - Date.parse(`${inicio}T00:00:00Z`)) / 86400000,
+        ) + 1;
+      if (!Number.isFinite(dias) || dias > 92) {
+        return json(route, 400, { detail: 'Período máximo do relatório: 92 dias' });
+      }
+
+      const linhas = state.courierReportRows.filter((l) => !filial || l.branch_id === filial);
+      const soma = (campo: 'deliveries_count' | 'deliveries_without_fee') =>
+        linhas.reduce((total, l) => total + l[campo], 0);
+
+      return json(route, 200, {
+        restaurant_id: RESTAURANT_ID,
+        branch_id: filial,
+        period: { start_date: inicio, end_date: fim, days: dias },
+        deliveries_count: soma('deliveries_count'),
+        deliveries_without_fee: soma('deliveries_without_fee'),
+        /*
+         * A SOMA VAI COMO STRING DE DUAS CASAS, como o backend a manda. Um
+         * falso que devolvesse número deixaria a conversão da tela sem
+         * cobertura — e é ela que impede um texto ilegível de virar zero.
+         */
+        fee_total: linhas.reduce((t, l) => t + Number(l.fee_total), 0).toFixed(2),
+        couriers: linhas,
+      });
+    }
+
     const orderCourierMatch = /^\/admin\/orders\/([^/]+)\/courier$/.exec(path);
     if (orderCourierMatch?.[1]) {
       const orderId = orderCourierMatch[1];
@@ -5325,6 +5423,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     printSettingsPatches: () => state.printSettingsPatches,
     courierPosts: () => state.courierPosts,
     assignPosts: () => state.assignPosts,
+    courierReportQueries: () => state.courierReportQueries,
     setAssignment(orderId, courierId) {
       state.assignments[orderId] = { courierId, assignedAt: new Date().toISOString() };
     },
