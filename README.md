@@ -389,5 +389,6 @@ nenhuma chamada sai, com erro só no console.
 
 ## Branches
 
-O trabalho acontece na `dev`; a `main` só recebe merge. A regra completa está
-em `CLAUDE.md`. Cada push na `dev` gera um preview na Vercel.
+O trabalho acontece direto na `main`, sem branch intermediária e sem PR. A
+regra completa está em `CLAUDE.md`. Cada push na `main` roda o CI e publica na
+Vercel — não há preview entre o commit e o ar.

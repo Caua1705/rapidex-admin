@@ -802,6 +802,40 @@ nesta rodada**, e nada saiu.
 O último é o único acréscimo, e ele é pequeno: hoje reordenar grupo ou opção
 seria um PATCH por linha, contra o padrão de arrasto que o cardápio já tem.
 
+### 3.1 A frase do 428 do cancelamento — pedido PRONTO PARA COLAR
+
+**De onde veio:** a linha da `main` consertou o mesmo 428 em paralelo
+(`3d893f1`, 28/ago) e escreveu, DENTRO DO PAINEL, uma segunda linha explicando
+o que o cancelamento custa. A integração de 3/set ficou com a versão da `dev`,
+em que **quem escreve o aviso é o backend** — o texto muda lá sem o painel ser
+reimplantado. A frase da `main` é boa e não se perde: ela deve virar a mensagem
+do próprio 428.
+
+Hoje `_ensure_cancellation_confirmed` responde:
+
+> Este pedido já está em produção. Cancelar agora não devolve o custo da comida
+> para o restaurante. Confirme para continuar.
+
+**O pedido:** acrescentar a consequência concreta, que é o que o lojista precisa
+saber antes de apertar — o dinheiro e o destino do pedido:
+
+> A comida já feita não volta, e o custo dela fica com a loja. O pedido sai do
+> quadro e vai para o histórico como cancelado.
+
+Como as duas frases se juntam (uma mensagem só, dois períodos) é decisão de
+quem escrever lá; o painel mostra `detail.message` inteiro, sem cortar.
+
+**Por que no backend e não na tela:** a regra de custo é do backend — se um dia
+o cancelamento em `preparing` passar a estornar parte, ou a política mudar por
+plano, a frase muda no mesmo lugar que a regra. Escrita no painel, ela
+continuaria dizendo o texto antigo até alguém reimplantar o front, e ninguém
+lembraria de reimplantar por causa de uma frase.
+
+**O que o painel NÃO vai passar a escrever:** só o título, por `order_status`
+("A comida já está sendo feita" / "já está pronta" / "já saiu para entrega") —
+esse é o dado que a mensagem única não distingue e que muda a conversa com o
+cliente.
+
 ---
 
 ## 4. Onde parei

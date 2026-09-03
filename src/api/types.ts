@@ -22,6 +22,7 @@ export type OrderItem = Schemas['OrderItemResponse'];
 export type OrderItemOptionGroup = Schemas['OrderItemOptionGroupResponse'];
 export type OrderItemOption = Schemas['OrderItemOptionResponse'];
 export type OrderStatusHistoryEntry = Schemas['StatusHistoryResponse'];
+
 export type OrderStatusCountsResponse = Schemas['AdminOrderStatusCountsResponse'];
 export type OrderStreamEvent = Schemas['AdminOrderStreamEvent'];
 export type StreamTicket = Schemas['AdminStreamTicketResponse'];

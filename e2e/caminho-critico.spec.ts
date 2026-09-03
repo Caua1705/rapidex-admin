@@ -548,7 +548,9 @@ test('cancelar exige motivo e grava o que foi escrito', async ({ page }) => {
 
   await expect
     .poll(() => api.cancelReasons())
-    .toEqual([{ orderId: 'ord-1003', reason: 'Cliente desistiu por telefone.' }]);
+    .toEqual([
+      { orderId: 'ord-1003', reason: 'Cliente desistiu por telefone.', confirmPrepared: true },
+    ]);
 
   // O card SAIU do quadro: cancelado é histórico, e histórico é a outra aba.
   await expect(page.getByTestId('order-card-1003')).toHaveCount(0);
@@ -634,8 +636,36 @@ test('o pedido em produção pede o segundo clique, com a frase que o backend ma
 
   await expect
     .poll(() => api.cancelReasons())
-    .toEqual([{ orderId: 'ord-1003', reason: 'Cliente desistiu por telefone.' }]);
+    .toEqual([
+      { orderId: 'ord-1003', reason: 'Cliente desistiu por telefone.', confirmPrepared: true },
+    ]);
   await expect(page.getByTestId('order-card-1003')).toHaveCount(0);
+});
+
+/*
+ * DESISTIR NO SEGUNDO PASSO — o caso que veio do conserto da `main` (3d893f1),
+ * que a linha da `dev` não cobria.
+ *
+ * Ele afirma o que nenhum outro afirma: a segunda pergunta tem SAÍDA. Sem
+ * isso, um diálogo cujo "Manter o pedido" cancelasse o pedido mesmo assim —
+ * ou que não fechasse — passaria por toda a suíte acima.
+ */
+test('"Manter o pedido" no segundo passo desiste sem cancelar nada', async ({ page }) => {
+  await fazerLogin(page);
+  await page.getByTestId('order-card-1003').click();
+  await page.getByTestId('order-panel').getByTestId('change-status-cancelled').click();
+
+  const confirmacao = page.getByRole('dialog');
+  await confirmacao.getByLabel('Motivo do cancelamento').fill('Cliente desistiu por telefone.');
+  await confirmacao.getByTestId('confirm-cancel').click();
+
+  await expect(confirmacao.getByTestId('cancel-confirmation')).toBeVisible();
+  await confirmacao.getByRole('button', { name: 'Manter o pedido' }).click();
+
+  // Some tudo, e o pedido continua no quadro, na chapa, como estava.
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(api.cancelReasons()).toHaveLength(0);
+  await expect(page.getByTestId('order-card-1003')).toBeVisible();
 });
 
 /*
@@ -681,7 +711,13 @@ test('o pedido aceito, que a cozinha não começou, cancela num clique só', asy
 
   await expect
     .poll(() => api.cancelReasons())
-    .toEqual([{ orderId: 'ord-1002', reason: 'Cliente desistiu por telefone.' }]);
+    /*
+     * `confirmPrepared` FALSO, e é ele que prova o outro lado: o painel não
+     * manda a confirmação por conta própria em um pedido que ninguém começou.
+     */
+    .toEqual([
+      { orderId: 'ord-1002', reason: 'Cliente desistiu por telefone.', confirmPrepared: false },
+    ]);
   // Nenhum 428: a cozinha não tinha gasto nada, e o painel não inventou uma
   // pergunta que o backend não fez.
   expect(api.cancelamentosRecusadosPorConfirmacao()).toBe(0);

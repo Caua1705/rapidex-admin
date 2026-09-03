@@ -1906,7 +1906,16 @@ export type FakeApi = {
   /** Os grupos de um produto como o "banco" os tem agora. */
   optionGroupsOf: (productId: string) => unknown[];
   /** Motivo gravado no cancelamento, para conferir o que a tela mandou. */
-  cancelReasons: () => { orderId: string; reason: string }[];
+  /**
+   * Os cancelamentos gravados — e o `confirmPrepared` de cada um.
+   *
+   * O TERCEIRO CAMPO VEIO DO FALSO DA `main`, e ele fecha um buraco que a
+   * contagem de 428 sozinha não fechava: ela prova que o PRIMEIRO envio foi
+   * sem confirmação, e nada provava que o SEGUNDO carregou `true`. Um painel
+   * que reenviasse `false` entraria em laço de 428 na cara do lojista, e a
+   * suíte não veria.
+   */
+  cancelReasons: () => { orderId: string; reason: string; confirmPrepared: boolean }[];
   /**
    * Quantos 428 de confirmação o falso devolveu.
    *
@@ -2524,7 +2533,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     availabilityCalls: [] as { productId: string; isAvailable: boolean }[],
     customerQueries: [] as URLSearchParams[],
     imageUploads: [] as { productId: string; bytes: number }[],
-    cancelReasons: [] as { orderId: string; reason: string }[],
+    cancelReasons: [] as { orderId: string; reason: string; confirmPrepared: boolean }[],
     // A matriz já tem faixa gravada; a segunda filial não, para o teste do 409.
     prepTime: {
       [BRANCH_ID]: { min: 25, max: 35 },
@@ -3647,7 +3656,11 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         });
       }
 
-      state.cancelReasons.push({ orderId: item.id, reason });
+      state.cancelReasons.push({
+        orderId: item.id,
+        reason,
+        confirmPrepared: body.confirm_prepared_order === true,
+      });
       item.status = 'cancelled';
       historyOf(item).push({
         id: `${item.id}-hist-cancelled`,
