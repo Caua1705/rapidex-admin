@@ -1606,6 +1606,37 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/admin/reports/couriers': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Courier Fee Report
+     * @description Quanto o restaurante deve a cada entregador no periodo.
+     *
+     *     Uma linha por entregador com entregas concluidas no periodo: quantas,
+     *     quantas SEM taxa (a filial nao tinha taxa configurada na atribuicao —
+     *     entram na contagem e nao na soma, para acertar a mao), e a soma das
+     *     taxas congeladas. Entregador excluido entra, marcado: ele saiu, mas fez
+     *     corridas que sao pagas.
+     *
+     *     E a mesma conta do historico que o proprio entregador ve pelo link dele
+     *     (`GET /courier/{link}/history`), agrupada — os dois batem.
+     *
+     *     Ate 92 dias. Quem nao e dono precisa mandar `branch_id`.
+     */
+    get: operations['courier_fee_report_admin_reports_couriers_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/admin/reports/payment-methods': {
     parameters: {
       query?: never;
@@ -3713,8 +3744,62 @@ export interface components {
       /** Phone */
       phone: string;
     };
+    /** AdminCourierFeeReportItem */
+    AdminCourierFeeReportItem: {
+      /**
+       * Branch Id
+       * Format: uuid
+       */
+      branch_id: string;
+      /**
+       * Courier Id
+       * Format: uuid
+       */
+      courier_id: string;
+      /** Deliveries Count */
+      deliveries_count: number;
+      /** Deliveries Without Fee */
+      deliveries_without_fee: number;
+      /** Fee Total */
+      fee_total: string;
+      /** Is Deleted */
+      is_deleted: boolean;
+      /** Name */
+      name: string;
+      /** Phone */
+      phone: string;
+    };
+    /**
+     * AdminCourierFeeReportResponse
+     * @description Quanto o dono deve a cada motoboy no periodo.
+     *
+     *     `Decimal` e nao `float`, como os outros relatorios de dinheiro do painel
+     *     (`CommissionReportResponse`, `SalesSummaryResponse`): e o formato que o
+     *     painel ja le nessa tela, e misturar os dois num mesmo menu e a armadilha
+     *     34 por outra porta.
+     */
+    AdminCourierFeeReportResponse: {
+      /** Branch Id */
+      branch_id?: string | null;
+      /** Couriers */
+      couriers: components['schemas']['AdminCourierFeeReportItem'][];
+      /** Deliveries Count */
+      deliveries_count: number;
+      /** Deliveries Without Fee */
+      deliveries_without_fee: number;
+      /** Fee Total */
+      fee_total: string;
+      period: components['schemas']['ReportPeriod'];
+      /**
+       * Restaurant Id
+       * Format: uuid
+       */
+      restaurant_id: string;
+    };
     /** AdminCourierResponse */
     AdminCourierResponse: {
+      /** Access Blocked Until */
+      access_blocked_until?: string | null;
       /** Access Generated At */
       access_generated_at?: string | null;
       /**
@@ -5639,6 +5724,8 @@ export interface components {
      *     que esqueca de passa-lo devolve `null` em vez de estourar na serializacao.
      */
     CouponAdminResponse: {
+      /** Allowed Payment Methods */
+      allowed_payment_methods?: string[] | null;
       /** Code */
       code?: string | null;
       /** Cooldown Days */
@@ -5695,6 +5782,10 @@ export interface components {
        * Format: date-time
        */
       valid_from: string;
+      /** Valid Hours From */
+      valid_hours_from?: string | null;
+      /** Valid Hours Until */
+      valid_hours_until?: string | null;
       /** Valid Until */
       valid_until?: string | null;
       visibility: components['schemas']['CouponVisibility'];
@@ -5722,6 +5813,8 @@ export interface components {
     };
     /** CouponCreate */
     CouponCreate: {
+      /** Allowed Payment Methods */
+      allowed_payment_methods?: string[] | null;
       /** Code */
       code?: string | null;
       /** Cooldown Days */
@@ -5774,6 +5867,10 @@ export interface components {
        * Format: date-time
        */
       valid_from: string;
+      /** Valid Hours From */
+      valid_hours_from?: string | null;
+      /** Valid Hours Until */
+      valid_hours_until?: string | null;
       /** Valid Until */
       valid_until?: string | null;
       /** @default public */
@@ -5792,6 +5889,8 @@ export interface components {
       delivery_fee: number | string;
       /** Order Type */
       order_type: string;
+      /** Payment Method */
+      payment_method?: string | null;
       /** Subtotal */
       subtotal: number | string;
     };
@@ -5858,6 +5957,8 @@ export interface components {
     };
     /** CouponUpdate */
     CouponUpdate: {
+      /** Allowed Payment Methods */
+      allowed_payment_methods?: string[] | null;
       /** Code */
       code?: string | null;
       /** Cooldown Days */
@@ -5889,6 +5990,10 @@ export interface components {
       usage_limit_per_customer?: number | null;
       /** Valid From */
       valid_from?: string | null;
+      /** Valid Hours From */
+      valid_hours_from?: string | null;
+      /** Valid Hours Until */
+      valid_hours_until?: string | null;
       /** Valid Until */
       valid_until?: string | null;
       visibility?: components['schemas']['CouponVisibility'] | null;
@@ -6338,6 +6443,13 @@ export interface components {
      *     mesmo motivo — "valido ate" e texto de card.
      */
     CustomerCouponResponse: {
+      /** Allowed Payment Methods */
+      allowed_payment_methods?: string[] | null;
+      /**
+       * Auto Apply
+       * @default false
+       */
+      auto_apply: boolean;
       /** Code */
       code?: string | null;
       /** Description */
@@ -6364,8 +6476,13 @@ export interface components {
       state: components['schemas']['CustomerCouponState'];
       /** Title */
       title: string;
+      /** Valid Hours From */
+      valid_hours_from?: string | null;
+      /** Valid Hours Until */
+      valid_hours_until?: string | null;
       /** Valid Until */
       valid_until?: string | null;
+      visibility: components['schemas']['CouponVisibility'];
     };
     /**
      * CustomerCouponState
@@ -6381,7 +6498,12 @@ export interface components {
      *     sacola (`missing_amount`) ou entrar na conta (`login_required`).
      * @enum {string}
      */
-    CustomerCouponState: 'applicable' | 'missing_amount' | 'login_required';
+    CustomerCouponState:
+      | 'applicable'
+      | 'missing_amount'
+      | 'login_required'
+      | 'payment_method_not_allowed'
+      | 'outside_hours';
     /** CustomerCouponsResponse */
     CustomerCouponsResponse: {
       /** Coupons */
@@ -8220,6 +8342,11 @@ export interface components {
     StartPaymentResponse: {
       /** Checkout Url */
       checkout_url?: string | null;
+      /**
+       * Expires At
+       * @description Quando o QR do pix deixa de ser pagavel, como o gateway devolveu. E o que o contador do app deve usar — nao o relogio do cliente. Nulo no cartao. Um segundo clique em 'pagar' devolve a MESMA cobranca com o MESMO prazo.
+       */
+      expires_at?: string | null;
       /**
        * Payment Status
        * @description Estado do pagamento. No pix e sempre 'pending'; no cartao ja e o desfecho ('paid', 'failed' ou 'in_review').
@@ -11109,6 +11236,42 @@ export interface operations {
       };
     };
   };
+  courier_fee_report_admin_reports_couriers_get: {
+    parameters: {
+      query: {
+        /** @description Primeiro dia do periodo (inclusive), no fuso da operacao */
+        start_date: string;
+        /** @description Ultimo dia do periodo (inclusive) */
+        end_date: string;
+        /** @description Recorte por filial. Omitido, soma o restaurante inteiro. So restringe. */
+        branch_id?: string | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AdminCourierFeeReportResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   payment_methods_report_admin_reports_payment_methods_get: {
     parameters: {
       query: {
@@ -12918,6 +13081,8 @@ export interface operations {
         subtotal?: number | string | null;
         delivery_fee?: number | string | null;
         order_type?: string | null;
+        /** @description A forma de pagamento JA ESCOLHIDA, quando o cliente ja escolheu. Com ela, o cupom restrito a outra forma vem com `state = payment_method_not_allowed`; sem ela ele vem `applicable` e o card diz em que forma vale (`allowed_payment_methods`). */
+        payment_method?: string | null;
       };
       header?: never;
       path: {
