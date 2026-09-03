@@ -597,3 +597,20 @@ export type OptionGroupUpdateBody = Schemas['AdminOptionGroupUpdate'];
  * cardápio é como um dos dois começa a chegar errado.
  */
 export type OptionCreateBody = Schemas['AdminOptionCreate'];
+
+/**
+ * ============================================================================
+ * O ENTREGADOR
+ * ============================================================================
+ *
+ * A TAXA POR CORRIDA É O QUE A LOJA PAGA, e não o frete que o cliente paga. Os
+ * dois usam a mesma fórmula (`base + km × por_km`) e vivem em lugares
+ * diferentes de propósito: o frete está nas cinco colunas de `Branch`, esta
+ * está em rota própria com permissão própria. O contrato é explícito — "nenhum
+ * numero que o CLIENTE paga muda com isto".
+ *
+ * A resposta traz `number | null`; o corpo aceita `number | string | null` e o
+ * painel manda STRING, como todo dinheiro daqui.
+ */
+export type CourierFee = Schemas['AdminBranchCourierFeeResponse'];
+export type CourierFeeUpdate = Schemas['AdminBranchCourierFeeUpdate'];

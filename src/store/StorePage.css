@@ -1721,3 +1721,21 @@
     color: var(--ink);
   }
 }
+
+/*
+ * O VALOR EM VIGOR DA TAXA POR CORRIDA — a linha que a gerência lê quando não
+ * pode editar, e que o dono confere antes de mexer.
+ *
+ * Corpo maior que o do texto de apoio porque é a resposta da seção, não um
+ * detalhe dela: quem abre isto no fim do dia quer o número, não o parágrafo.
+ * Sem tinta própria — a cor semântica aqui sugeriria um estado (bom/ruim) que
+ * uma taxa não tem.
+ */
+.store-form__valor {
+  margin: 0;
+  font-size: var(--ts-size);
+  line-height: var(--ts-line);
+  font-weight: var(--ts-weight);
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--ink);
+}

@@ -8,6 +8,8 @@ import {
   estimateDeliveryFee,
   type DeliveryConfig,
 } from './delivery-config';
+import { useCourierFee } from '../couriers/useCourierFee';
+import { CourierFeeSection } from './CourierFeeSection';
 import { DeliveryBandsSection } from './DeliveryBandsSection';
 import { SaveBar } from './SaveBar';
 import { formatDecimalInput, parseDecimal } from './settings-model';
@@ -53,6 +55,12 @@ export function DeliveryTab({
    * outra — e faria salvar a taxa reenviar a tabela inteira.
    */
   const bands = useDeliveryBands(branchId);
+  /*
+   * A TAXA DO ENTREGADOR TEM ROTA, PERMISSÃO E BOTÃO PRÓPRIOS, pelo mesmo
+   * motivo das faixas acima — e um a mais: ela é o que a LOJA paga, e o resto
+   * desta aba é o que o CLIENTE paga. Ver `CourierFeeSection`.
+   */
+  const taxaDoEntregador = useCourierFee(branchId);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [baseline, setBaseline] = useState<Draft>(EMPTY);
   const [problem, setProblem] = useState<string | null>(null);
@@ -257,6 +265,13 @@ export function DeliveryTab({
       </section>
 
       <DeliveryBandsSection bands={bands} />
+
+      {/*
+        DEPOIS DO FRETE E DAS FAIXAS, e não antes: a aba se lê de cima para
+        baixo na ordem em que o dinheiro anda — o cliente paga, o prazo é
+        prometido, e só então a loja paga o motoboy.
+      */}
+      <CourierFeeSection taxa={taxaDoEntregador} />
 
       <SaveBar
         isSaving={branchDetail.isSaving}

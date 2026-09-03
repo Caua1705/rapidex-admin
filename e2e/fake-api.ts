@@ -1890,6 +1890,10 @@ export type FakeApi = {
    * asserção de tela, porque a tela mostra o efeito e não o que foi enviado.
    */
   printSettingsPatches: () => { branchId: string; body: Record<string, unknown> }[];
+  /** Os corpos que a tela mandou para `PATCH .../courier-fee`, na ordem. */
+  courierFeePatches: () => Record<string, unknown>[];
+  /** Semeia a taxa de uma filial. `null` nos dois é "sem taxa", o padrão. */
+  setCourierFee: (branchId: string, base: number | null, perKm: number | null) => void;
   /** Cada PATCH .../delivery-pause, na ordem. */
   pauseCalls: () => { branchId: string; body: Record<string, unknown> }[];
   /** Cada PUT .../delivery-time-bands, na ordem. */
@@ -2455,6 +2459,13 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     senhasGeradas: [] as string[],
     trocasDeSenha: [] as Record<string, unknown>[],
     printSectors: initialPrintSectors(BRANCH_ID),
+    /*
+     * A TAXA POR CORRIDA, por filial. Nasce VAZIO de propósito: nenhuma
+     * filial tem taxa até alguém configurar, e é esse o estado que a tela
+     * precisa saber desenhar sem escrever "R$ 0,00".
+     */
+    courierFees: {} as Record<string, { base: number | null; perKm: number | null }>,
+    courierFeePatches: [] as Record<string, unknown>[],
     printAgents: initialPrintAgents(),
     printers: initialPrinters(),
     printTests: [] as { branchId: string; body: PrintTestRequest }[],
@@ -4114,6 +4125,74 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       return json(route, 200, found);
     }
 
+    // --- a taxa por corrida do entregador -----------------------------------
+    //
+    // Antes de `/admin/branches/{id}`, pelo mesmo motivo do agente logo abaixo:
+    // o padrão genérico casaria primeiro e devolveria uma filial no lugar da
+    // taxa.
+
+    const courierFeeMatch = /^\/admin\/branches\/([^/]+)\/courier-fee$/.exec(path);
+    if (courierFeeMatch?.[1] && (method === 'GET' || method === 'PATCH')) {
+      const branchId = courierFeeMatch[1];
+      /*
+       * FILIAL SEM TAXA RESPONDE 200 COM OS DOIS NULOS, e não 404 nem zero.
+       * É o estado inicial de toda filial, e o falso precisa nascer nele: um
+       * dublê que semeasse uma taxa faria o caso mais comum da vida real
+       * (ninguém configurou nada) ser o único que nenhum teste veria.
+       */
+      const atual = state.courierFees[branchId] ?? { base: null, perKm: null };
+
+      if (method === 'GET') {
+        return json(route, 200, {
+          branch_id: branchId,
+          courier_fee_base: atual.base,
+          courier_fee_per_km: atual.perKm,
+        });
+      }
+
+      const body = request.postDataJSON() as {
+        courier_fee_base?: number | string | null;
+        courier_fee_per_km?: number | string | null;
+      };
+      state.courierFeePatches.push(body);
+
+      /*
+       * `ge=0` NO PYDANTIC, e o falso cobra. Sem isto ele seria mais frouxo
+       * que o backend numa validação que a tela também faz — e um falso mais
+       * frouxo que o servidor é um portão verde sobre um defeito.
+       */
+      for (const [campo, valor] of Object.entries(body)) {
+        if (valor === null || valor === undefined) continue;
+        const numero = Number(valor);
+        if (!Number.isFinite(numero) || numero < 0) {
+          return json(route, 422, {
+            detail: [{ loc: ['body', campo], msg: 'Input should be greater than or equal to 0' }],
+          });
+        }
+      }
+
+      /*
+       * OS TRÊS ESTADOS, e o `in` é quem os separa. `undefined` por ausência
+       * da chave e `null` explícito são a MESMA coisa em JSON.parse quando se
+       * lê o valor — mas não são a mesma ordem: ausente é "não mexa" e nulo é
+       * "apague". Ler com `body.campo !== undefined` confundiria os dois e o
+       * falso passaria a aceitar um corpo que o backend interpreta diferente.
+       */
+      const proximo = { ...atual };
+      if ('courier_fee_base' in body) {
+        proximo.base = body.courier_fee_base === null ? null : Number(body.courier_fee_base);
+      }
+      if ('courier_fee_per_km' in body) {
+        proximo.perKm = body.courier_fee_per_km === null ? null : Number(body.courier_fee_per_km);
+      }
+      state.courierFees[branchId] = proximo;
+
+      return json(route, 200, {
+        branch_id: branchId,
+        courier_fee_base: proximo.base,
+        courier_fee_per_km: proximo.perKm,
+      });
+    }
     // --- o programa de impressão -------------------------------------------
     //
     // Antes de `/admin/branches/{id}`, pelo mesmo motivo dos horários: o padrão
@@ -4820,6 +4899,10 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     },
     printTests: () => state.printTests,
     printSettingsPatches: () => state.printSettingsPatches,
+    courierFeePatches: () => state.courierFeePatches,
+    setCourierFee(branchId, base, perKm) {
+      state.courierFees[branchId] = { base, perKm };
+    },
     pauseCalls: () => state.pauseCalls,
     bandCalls: () => state.bandCalls,
     productPatches: () => state.productPatches,

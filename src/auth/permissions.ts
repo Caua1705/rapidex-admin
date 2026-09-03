@@ -155,6 +155,16 @@ export type Acao =
   | 'loja.pausarEntrega'
   | 'loja.editarFaixasDePrazo'
   | 'loja.editarPagamento'
+  // --- entregadores
+  /*
+   * A TAXA POR CORRIDA É A DO ENTREGADOR, E NÃO O FRETE. Ler é da GERÊNCIA
+   * (quem toca a operação precisa saber quanto a loja paga para conferir o
+   * acerto do motoboy); gravar é SÓ DO DONO, como toda decisão de quanto se
+   * paga. São duas ações porque são dois papéis na MESMA rota, e apontar as
+   * duas para o mesmo par faria o compilador parar de conferir uma delas.
+   */
+  | 'entregadores.verTaxa'
+  | 'entregadores.editarTaxa'
   // --- impressão
   | 'impressao.verPrograma'
   | 'impressao.verImpressoras'
@@ -315,6 +325,10 @@ const ROTA_DA_ACAO = {
   'loja.pausarEntrega': 'PATCH /admin/branches/{branch_id}/delivery-pause',
   'loja.editarFaixasDePrazo': 'PUT /admin/branches/{branch_id}/delivery-time-bands',
   'loja.editarPagamento': 'POST /admin/branches/{branch_id}/payment-methods',
+
+  // --- entregadores ---------------------------------------------------------
+  'entregadores.verTaxa': 'GET /admin/branches/{branch_id}/courier-fee',
+  'entregadores.editarTaxa': 'PATCH /admin/branches/{branch_id}/courier-fee',
 
   // --- impressão ------------------------------------------------------------
   /*
