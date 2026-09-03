@@ -86,8 +86,34 @@ estados de produção (`preparing`, `ready`, `out_for_delivery`) e os finais
 (`cancelled`, `completed`) são conjuntos DISJUNTOS — nenhum pedido cai nas duas
 checagens, então a ordem entre elas não muda resposta nenhuma.
 
-Ficou a da `dev`, por ser a que sobreviveu à resolução. **Um dos dois comentários
-está errado sobre o backend**, e o custo de descobrir qual é abrir
-`admin_order_service.py` uma vez. Vale fazer antes que alguém tome uma decisão
-apoiada na frase errada — comentário que afirma o que o teste não cobre é
-exatamente o tipo de coisa que envelhece sem avisar.
+**Conferido na fonte, no mesmo dia:** quem estava errado era o comentário da
+`dev` — o que sobreviveu à resolução. A cadeia do backend é
+`_apply_status_change` → `_ensure_cancellation_confirmed` (o 428) →
+`status_change_service.apply` → `ensure_order_transition_allowed` (o 409 de
+estado final, `order_state_machine.py:137`). **O 428 vem ANTES.**
+
+O comentário do falso foi corrigido; o CÓDIGO não se mexeu, e a decisão está
+escrita lá: os dois conjuntos de estado são disjuntos, então nenhum teste
+distingue a ordem, e uma edição que nenhum caso cobre não se faz na véspera de
+um push para produção. Descrever a ordem errada, por outro lado, custa: é o que
+a próxima pessoa lê quando decide.
+
+### O que a leitura do backend achou de quebra
+
+`_ensure_cancellation_confirmed` vale para as **DUAS** rotas do painel, e o
+docstring diz por quê: `PATCH /status` aceita `status='cancelled'`, e exigir a
+confirmação só na rota de cancelamento "deixaria de pé exatamente a porta que
+ela existe para fechar".
+
+Hoje **o painel não passa por essa porta**: o botão de saída do
+`OrderDetailPanel` nunca chama `onChangeStatus` direto — ele abre o diálogo, e
+o cancelamento vai por `PATCH /cancel`. A cozinha só avança
+(`preparing`/`ready`/`out_for_delivery`/`completed`). Nenhum caminho manda
+`cancelled` por `PATCH /status`.
+
+Por isso o parâmetro `confirmPreparedOrder` que a `main` tinha em
+`updateOrderStatus` pôde sair sem consequência. **Mas ele deixa de ser
+inofensivo no dia em que alguém oferecer "cancelar" numa tela que use
+`PATCH /status`** — ali o 428 chegaria sem diálogo nenhum para respondê-lo. O
+lojista veria a frase do backend (`readDetailMessage` já lê `detail` objeto) e
+nenhuma saída. Fica anotado para essa tela, não para hoje.

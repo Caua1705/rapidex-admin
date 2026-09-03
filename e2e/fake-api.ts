@@ -3636,9 +3636,28 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        * texto aqui deixaria o teste verde contra um painel que não sabe ler o
        * objeto — que é exatamente o defeito consertado nesta rodada.
        *
-       * Os três estados são os `PREPARED_ORDER_STATUSES` do backend. E a
-       * checagem vem DEPOIS do 409 de estado final pela mesma ordem de lá:
-       * pedido já cancelado não pede confirmação de novo.
+       * Os três estados são os `PREPARED_ORDER_STATUSES` do backend.
+       *
+       * A ORDEM AQUI É A INVERSA DA DO BACKEND, E ISSO É INOFENSIVO — mas
+       * estava descrito ao contrário até 2026-09-03, e a frase anterior
+       * afirmava que o backend checava o 428 depois do 409. Ele checa ANTES:
+       * `_apply_status_change` chama `_ensure_cancellation_confirmed` (o 428)
+       * e só então `status_change_service.apply`, que é quem chama
+       * `ensure_order_transition_allowed` — o 409 de estado final
+       * (`order_state_machine.py:137`).
+       *
+       * O falso continua com o 409 primeiro porque NENHUM TESTE CONSEGUE
+       * DISTINGUIR: os estados de produção (`preparing`, `ready`,
+       * `out_for_delivery`) e os finais (`cancelled`, `completed`) são
+       * conjuntos DISJUNTOS, então nenhum pedido cai nas duas checagens e a
+       * ordem entre elas não muda resposta nenhuma. Mover o código para casar
+       * com o backend seria uma edição que nenhum caso cobre; descrever a
+       * ordem errada, não — comentário é o que a próxima pessoa lê quando
+       * decide alguma coisa.
+       *
+       * A contradição existia porque as duas linhas do repositório
+       * consertaram este 428 em paralelo e comentaram o falso de formas
+       * opostas. Ver `scratchpad/integracao-dev-main.md`.
        */
       if (
         !body.confirm_prepared_order &&
