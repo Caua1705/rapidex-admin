@@ -69,6 +69,28 @@ motivo novo.
   RESPOSTA do POST, localmente. Confiar no stream deixaria o quadro mostrando
   o motoboy antigo até o pedido andar de status.
 
+## Pedidos ao backend
+
+### 1. O stream devia emitir na atribuição
+
+**Prioridade: alta, e o motivo é o segundo atendente.**
+
+Hoje a atribuição não gera evento (ver acima). A solução local — aplicar a
+resposta do POST no estado da tela — conserta o quadro de QUEM CLICOU, e só
+dele. Numa loja com duas pessoas no balcão, a outra continua vendo o pedido
+como "sem entregador" até ele mudar de status: ela atribui de novo, para outro
+motoboy, e os dois saem para o mesmo endereço. Reatribuir é barato para o
+backend (fecha a linha anterior e abre outra) e caro para a loja.
+
+Isso não é conserto de painel: nenhum polling nosso resolve sem trocar o
+tempo real por uma varredura, que é exatamente o que o SSE veio evitar. O que
+resolve é um tipo de evento novo — `order.courier_changed`, ou o
+`order.status_changed` passando a disparar também na atribuição — carregando o
+mesmo `AdminOrderListItem` que os outros já carregam. O painel já sabe aplicar
+esse item: `applyStreamEvent` não precisaria de uma linha.
+
+Enquanto não vier, fica anotado como limitação conhecida da fase 1.
+
 ## Item 1 — a taxa por corrida
 
 `GET/PATCH /admin/branches/{branch_id}/courier-fee`, em Loja › Entrega.
