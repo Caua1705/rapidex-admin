@@ -11,12 +11,15 @@
  */
 import { apiClient, unwrap, unwrapEmpty } from './client';
 import type {
+  Assignment,
+  AssignmentBatch,
   Courier,
   CourierAccess,
   CourierCreate,
   CourierFee,
   CourierFeeUpdate,
   CourierUpdate,
+  OrderCourier,
 } from './types';
 
 /**
@@ -119,6 +122,73 @@ export async function generateCourierAccess(courierId: string): Promise<CourierA
   return unwrap(
     await apiClient.POST('/admin/couriers/{courier_id}/access', {
       params: { path: { courier_id: courierId } },
+    }),
+  );
+}
+
+/**
+ * Põe um ou mais pedidos nas mãos deste entregador.
+ *
+ * A RESPOSTA É POR ITEM, NA ORDEM DO CORPO, e vem 200 mesmo com recusas: um
+ * pedido de retirada no meio do lote não pode derrubar os outros quatro que o
+ * atendente selecionou. Os `ok` são gravados juntos; os outros não são
+ * gravados. Ver `couriers/assignment-model.ts`.
+ *
+ * REATRIBUIR É CHAMAR ESTA ROTA com outro entregador — a atribuição anterior é
+ * fechada e a nova aberta, com a taxa de agora. Atribuir ao mesmo de novo não
+ * muda nada, então o clique duplo é inofensivo.
+ *
+ * Os erros HTTP são do ENTREGADOR, não dos pedidos: 404 fora do escopo, 409
+ * inativo, 422 no corpo.
+ */
+export async function assignOrders(
+  courierId: string,
+  orderIds: readonly string[],
+): Promise<AssignmentBatch> {
+  return unwrap(
+    await apiClient.POST('/admin/couriers/{courier_id}/assignments', {
+      params: { path: { courier_id: courierId } },
+      body: { order_ids: [...orderIds] },
+    }),
+  );
+}
+
+/** Os pedidos que estão com este entregador AGORA, do mais antigo ao mais novo. */
+export async function listOpenAssignments(courierId: string): Promise<Assignment[]> {
+  return unwrap(
+    await apiClient.GET('/admin/couriers/{courier_id}/assignments', {
+      params: { path: { courier_id: courierId } },
+    }),
+  );
+}
+
+/**
+ * Quem está com este pedido.
+ *
+ * NUNCA 404 PARA "NINGUÉM": os dois campos nulos são 200, e é o estado normal
+ * de um pedido que ainda não saiu. O 404 aqui é o pedido que este lojista não
+ * alcança — e confundir os dois faria a tela dizer "não encontrado" sobre o
+ * pedido que está aberto na frente dela.
+ */
+export async function fetchOrderCourier(orderId: string): Promise<OrderCourier> {
+  return unwrap(
+    await apiClient.GET('/admin/orders/{order_id}/courier', {
+      params: { path: { order_id: orderId } },
+    }),
+  );
+}
+
+/**
+ * Tira o pedido das mãos de quem estiver com ele.
+ *
+ * 409 SE NINGUÉM ESTIVER, e o contrato explica: é clique repetido ou tela
+ * desatualizada, e as duas merecem saber. A linha da atribuição não é apagada —
+ * fica fechada, com quem e quando, no histórico que o dono usa para pagar.
+ */
+export async function unassignOrder(orderId: string): Promise<void> {
+  await unwrapEmpty(
+    await apiClient.DELETE('/admin/orders/{order_id}/courier', {
+      params: { path: { order_id: orderId } },
     }),
   );
 }

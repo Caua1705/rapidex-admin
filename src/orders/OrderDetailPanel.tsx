@@ -7,6 +7,7 @@ import { XIcon } from '../ds/icons';
 import { StatusChip } from '../ds/StatusChip';
 import { customerHistoryLine, formatPhone, phoneHref } from '../customers/customer-model';
 import { CancelOrderDialog } from './CancelOrderDialog';
+import { EntregadorDoPedido } from '../couriers/EntregadorDoPedido';
 import { ComandaDoPedido } from './ComandaDoPedido';
 import { RejectOrderDialog } from './RejectOrderDialog';
 import { advanceActionFor, exitActionFor, type ConfirmKind } from './order-actions';
@@ -461,6 +462,22 @@ function DetailBody({ detail, branchId }: { detail: OrderDetail; branchId: strin
           <div className="muted">O cliente retira na loja.</div>
         )}
       </section>
+
+      {/*
+        QUEM ESTÁ LEVANDO, COLADO EM PARA ONDE. As duas metades da mesma
+        pergunta do cliente que ligou — separá-las obrigaria a rolar entre a
+        pergunta e a resposta no meio do telefonema.
+
+        O bloco NÃO APARECE em retirada nem em pedido encerrado, e some inteiro:
+        `not_delivery` e `order_closed` são duas das quatro recusas do
+        contrato, e são as duas que a tela sabe prever olhando o próprio pedido.
+      */}
+      <EntregadorDoPedido
+        orderId={detail.id}
+        branchId={detail.branch_id}
+        orderType={detail.order_type}
+        status={detail.status}
+      />
 
       <section className="detail__block">
         <h3 className="detail__heading">Itens</h3>

@@ -15,7 +15,7 @@ depende da painel-2 entrar primeiro; decisão confirmada pelo dono.
 | 1   | taxa por corrida (Loja › Entrega)    | **feito**                 |
 | 2   | cadastro `/admin/couriers`           | **feito**                 |
 | 3   | o acesso (link + código + QR)        | **feito**                 |
-| 4   | atribuição, e quem está com o pedido | a fazer                   |
+| 4   | atribuição, e quem está com o pedido | **feito**                 |
 
 ## As decisões que já estão tomadas
 
@@ -205,16 +205,19 @@ das configurações é uma tela que essa pessoa não encontra.
 
 `POST /admin/couriers/{id}/access`, no botão da linha.
 
-### A TELA DO ENTREGADOR AINDA NÃO EXISTE
+### A tela do entregador existe — desde 2026-09-03
 
-**Isto não é defeito, e é a primeira coisa a saber ao testar.** O front do app
-do cliente começou agora; a rota `/entregador/{link_token}` vai morar lá, ao
-lado de `/acompanhar/{tracking_token}`. Até ela existir, **o link é gerado e
-não leva a lugar nenhum** — abrir dá 404 do app, não do painel.
+Ela ficou pronta no repositório do app do cliente, no mesmo dia: **página
+própria** (`entregador.html`, 8 kB contra os 380 kB do app do cliente), com as
+três telas — entrada por código, lista de pedidos e histórico.
 
-O que já é verdade hoje: o par é gerado de verdade, o link é montado com o
-domínio certo, o QR aponta para ele e o WhatsApp o entrega. O que falta é o
-outro lado da porta.
+Então o link que este painel gera **leva a lugar de verdade** assim que os dois
+lados estiverem no ar. Até o deploy dos dois, abrir o link dá 404 do APP, e não
+do painel — é a única leitura que ainda pode assustar quem testar.
+
+> A versão anterior desta seção dizia que a tela não existia. Ficou registrado
+> porque é o tipo de aviso que envelhece em um dia e continua sendo lido por
+> semanas.
 
 ### O domínio não tem padrão, e essa é a proteção
 
@@ -284,14 +287,83 @@ confirmação (1).
 contagem falsa — uma execução acusou 9 falhas em `caminho-critico.spec.ts` que
 passam todas isoladas. O número do portão sai de uma execução SOZINHA.
 
+## Item 4 — a atribuição
+
+`POST /admin/couriers/{id}/assignments`, `GET/DELETE /admin/orders/{id}/courier`.
+
+### A regra que manda no desenho inteiro
+
+**A rota responde 200 MESMO COM ITENS RECUSADOS**, e quem decide é o `ok` de
+cada um. Ler o 200 como sucesso é a forma mais silenciosa de um pedido nunca
+chegar a ninguém: a tela diria "entregue ao Jorge" e o motoboy não teria
+recebido nada. `resumoDoLote` existe só para isso, e `tudoCerto` é falso com
+UMA recusa no lote.
+
+### O botão não é oferecido onde a resposta seria "não"
+
+Das quatro recusas do contrato, **três a tela sabe prever** olhando o próprio
+pedido e a própria lista:
+
+| código         | como a tela evita                                      |
+| -------------- | ------------------------------------------------------ |
+| `not_delivery` | o bloco não existe em pedido de retirada               |
+| `order_closed` | nem em pedido encerrado                                |
+| (409 inativo)  | entregador desativado não entra no seletor             |
+| `other_branch` | os entregadores oferecidos são os da filial DO PEDIDO  |
+| `not_found`    | não dá para prever — é a que a frase existe para dizer |
+
+Oferecer o botão para depois explicar por que ele não funcionou é pior que não
+oferecê-lo: o lojista clica, lê, e aprende que o painel promete o que não
+cumpre.
+
+**Efeito colateral disso:** `other_branch` é inalcançável a partir do detalhe.
+O contexto da frase vai assim mesmo porque quem a escreve é uma função só,
+compartilhada com o lote — onde o caso é real, com o entregador fixo e os
+pedidos variando.
+
+### Os três estados de "quem está com ele"
+
+`undefined` (não li), `null` (ninguém — 200 com os dois campos nulos, estado
+NORMAL) e o entregador. O 404 é o pedido fora do escopo e vira mensagem de
+erro, nunca "ninguém ainda": dizer que um pedido está parado esperando alguém,
+sobre um que JÁ saiu, manda o lojista atribuir de novo — e dois motoboys para o
+mesmo endereço.
+
+### O 409 do DELETE releitura junto
+
+"Ninguém está com o pedido" é clique repetido ou tela velha. A tela mostra a
+frase do backend **e relê**, porque a segunda leitura é o que desfaz a tela
+velha. E "Tirar" só existe quando alguém está com ele — oferecê-lo sem ninguém
+seria fabricar esse 409.
+
+### O que o teste de XSS ganhou junto
+
+O painel do pedido passou a ler a sessão (papel e filiais), e
+`OrderDetailPanel.xss.test.tsx` o monta sem provedor. A sessão foi **dublada
+ali**, como as duas rotas que ele já dublava. A alternativa — um prop de
+desligar o bloco, como o `catalogPairing={false}` de `ProductDialog` — não
+cabia: lá o prop existe porque o pareamento é opcional na própria tela, e aqui
+o bloco não é opcional em pedido de entrega nenhum.
+
+### Vermelho visto
+
+15 casos do modelo puro com o módulo ainda inexistente. Os 12 e2e sob três
+mutações:
+
+| mutação                                              | o que caiu |
+| ---------------------------------------------------- | ---------- |
+| 200 lido como sucesso, sem olhar o `ok` de cada item | 2          |
+| retirada também ganhando o bloco                     | 1          |
+| leitura que falhou virando "ninguém ainda"           | 1          |
+
 ## Portão
 
-Lido sem pipe, com os itens 1, 2 e 3 fechados:
+Lido sem pipe, com os quatro itens fechados:
 
 ```
 format:check  ok
-lint          ok · 1433 casos afirmam alguma coisa
+lint          ok · 1460 casos afirmam alguma coisa
 typecheck     ok
-test          76 arquivos · 1118 casos
-playwright    327 passed · 4 skipped · 0 failed
+test          77 arquivos · 1133 casos
+playwright    339 passed · 4 skipped · 0 failed
 ```

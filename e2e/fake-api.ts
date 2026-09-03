@@ -1012,6 +1012,25 @@ function telefoneInvalido(valor: unknown) {
  * `exceto` é o próprio entregador na edição: sem ele, salvar a ficha de
  * alguém sem mexer no telefone daria 409 contra a própria linha.
  */
+/** A atribuição como a rota a devolve. `null` quando o pedido sumiu. */
+function atribuicaoDe(orderId: string, courierId: string, assignedAt: string) {
+  return {
+    id: `atr-${orderId}`,
+    order_id: orderId,
+    order_number: 0,
+    order_status: 'preparing',
+    courier_id: courierId,
+    assigned_at: assignedAt,
+    /*
+     * NULO É "A FILIAL NÃO TINHA TAXA", e não zero — a mesma regra da tela
+     * de Entrega. O falso semeia nulo porque a filial da semente nasce sem
+     * taxa configurada.
+     */
+    courier_fee_snapshot: null,
+    distance_km_snapshot: null,
+  };
+}
+
 function telefoneRepetido(
   lista: readonly FakeCourier[],
   branchId: string,
@@ -2013,6 +2032,10 @@ export type FakeApi = {
    * asserção de tela, porque a tela mostra o efeito e não o que foi enviado.
    */
   printSettingsPatches: () => { branchId: string; body: Record<string, unknown> }[];
+  /** Os lotes de atribuição que a tela mandou, na ordem. */
+  assignPosts: () => { courierId: string; orderIds: string[] }[];
+  /** Põe um pedido nas mãos de alguém, sem passar pela tela. */
+  setAssignment: (orderId: string, courierId: string) => void;
   /** Os corpos de `POST /admin/couriers`, na ordem. */
   courierPosts: () => Record<string, unknown>[];
   /** Os corpos de `PATCH /admin/couriers/{id}`, com o alvo de cada um. */
@@ -2603,6 +2626,13 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     courierPosts: [] as Record<string, unknown>[],
     /** Quantos pares já saíram. Cada chamada gera um DIFERENTE. */
     courierAccessCount: 0,
+    /*
+     * AS ATRIBUIÇÕES ABERTAS, por pedido. Uma só por pedido — reatribuir
+     * fecha a anterior e abre outra, como no backend, então o mapa guarda
+     * QUEM está com ele agora e nada mais.
+     */
+    assignments: {} as Record<string, { courierId: string; assignedAt: string }>,
+    assignPosts: [] as { courierId: string; orderIds: string[] }[],
     courierFees: {} as Record<string, { base: number | null; perKm: number | null }>,
     courierFeePatches: [] as Record<string, unknown>[],
     printAgents: initialPrintAgents(),
@@ -4264,6 +4294,43 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       return json(route, 200, found);
     }
 
+    const orderCourierMatch = /^\/admin\/orders\/([^/]+)\/courier$/.exec(path);
+    if (orderCourierMatch?.[1]) {
+      const orderId = orderCourierMatch[1];
+      /*
+       * 404 É O PEDIDO FORA DO ESCOPO — e SÓ ele. Um pedido que existe e
+       * está sem entregador responde 200 com os dois campos nulos: é o
+       * estado normal dele, e a tela precisa dos dois casos separados.
+       */
+      const pedido = state.orders.find((o) => o.id === orderId);
+      if (!pedido) return json(route, 404, { detail: 'Pedido não encontrado.' });
+
+      const aberta = state.assignments[orderId];
+
+      if (method === 'GET') {
+        const courier = aberta ? state.couriers.find((c) => c.id === aberta.courierId) : null;
+        return json(route, 200, {
+          courier: courier ? semSegredo(courier) : null,
+          assignment: aberta ? atribuicaoDe(orderId, aberta.courierId, aberta.assignedAt) : null,
+        });
+      }
+
+      if (method === 'DELETE') {
+        /*
+         * 409 QUANDO NINGUÉM ESTÁ COM ELE. Desatribuir o que não está
+         * atribuído é clique repetido ou tela desatualizada, e as duas
+         * merecem saber — é o que o contrato diz com todas as letras.
+         */
+        if (!aberta) {
+          return json(route, 409, {
+            detail: 'Este pedido não está atribuído a nenhum entregador.',
+          });
+        }
+        delete state.assignments[orderId];
+        return route.fulfill({ status: 204, body: '' });
+      }
+    }
+
     // --- o cadastro de entregador -------------------------------------------
 
     if (method === 'GET' && path === '/admin/couriers') {
@@ -4315,6 +4382,78 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        */
       state.couriers.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
       return json(route, 201, semSegredo(criado));
+    }
+
+    const assignMatch = /^\/admin\/couriers\/([^/]+)\/assignments$/.exec(path);
+    if (assignMatch?.[1]) {
+      const courier = state.couriers.find((c) => c.id === assignMatch[1]);
+      if (!courier) return json(route, 404, { detail: ENTREGADOR_NAO_ENCONTRADO });
+
+      if (method === 'GET') {
+        const abertas = Object.entries(state.assignments)
+          .filter(([, a]) => a.courierId === courier.id)
+          .map(([orderId, a]) => atribuicaoDe(orderId, courier.id, a.assignedAt))
+          .filter(Boolean);
+        return json(route, 200, abertas);
+      }
+
+      if (method === 'POST') {
+        /*
+         * O ENTREGADOR É O QUE LEVANTA ERRO HTTP, não os pedidos. 409
+         * inativo, 404 fora do escopo, 422 no corpo — e nada mais.
+         */
+        if (!courier.is_active) {
+          return json(route, 409, { detail: 'Entregador inativo não recebe pedido.' });
+        }
+
+        const body = request.postDataJSON() as { order_ids?: string[] };
+        const orderIds = body.order_ids ?? [];
+        state.assignPosts.push({ courierId: courier.id, orderIds });
+
+        if (orderIds.length === 0 || orderIds.length > 50) {
+          return json(route, 422, {
+            detail: [{ loc: ['body', 'order_ids'], msg: 'lote invalido' }],
+          });
+        }
+
+        const agora = new Date().toISOString();
+        const items = orderIds.map((orderId) => {
+          const pedido = state.orders.find((o) => o.id === orderId);
+
+          /*
+           * A ORDEM DAS RECUSAS É A DO BACKEND, e ela importa: um pedido de
+           * retirada de OUTRA filial precisa responder um motivo só, e o
+           * primeiro que o servidor confere é o que o painel vai mostrar.
+           */
+          if (!pedido)
+            return { order_id: orderId, ok: false, error: 'not_found', assignment: null };
+          if (pedido.order_type !== 'delivery') {
+            return { order_id: orderId, ok: false, error: 'not_delivery', assignment: null };
+          }
+          if (['completed', 'cancelled', 'rejected'].includes(pedido.status)) {
+            return { order_id: orderId, ok: false, error: 'order_closed', assignment: null };
+          }
+          if (pedido.branch_id !== courier.branch_id) {
+            return { order_id: orderId, ok: false, error: 'other_branch', assignment: null };
+          }
+
+          // Reatribuir FECHA a anterior e abre outra: o mapa é por pedido.
+          state.assignments[orderId] = { courierId: courier.id, assignedAt: agora };
+          return {
+            order_id: orderId,
+            ok: true,
+            error: null,
+            assignment: atribuicaoDe(orderId, courier.id, agora),
+          };
+        });
+
+        /*
+         * 200 MESMO COM RECUSA. É o contrato inteiro numa linha: um lote
+         * com um item bom e quatro ruins responde 200, e quem separa os
+         * dois é o `ok` de cada um.
+         */
+        return json(route, 200, { items });
+      }
     }
 
     const acessoMatch = /^\/admin\/couriers\/([^/]+)\/access$/.exec(path);
@@ -5185,6 +5324,10 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     printTests: () => state.printTests,
     printSettingsPatches: () => state.printSettingsPatches,
     courierPosts: () => state.courierPosts,
+    assignPosts: () => state.assignPosts,
+    setAssignment(orderId, courierId) {
+      state.assignments[orderId] = { courierId, assignedAt: new Date().toISOString() };
+    },
     courierPatches: () => state.courierPatches,
     couriers: () => state.couriers,
     courierFeePatches: () => state.courierFeePatches,

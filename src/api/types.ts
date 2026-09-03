@@ -630,3 +630,21 @@ export type CourierUpdate = Schemas['AdminCourierUpdate'];
  * mata o anterior na hora.
  */
 export type CourierAccess = Schemas['AdminCourierAccessResponse'];
+
+/**
+ * A ATRIBUIÇÃO. `AssignmentResultItem` é UM POR PEDIDO do corpo, na mesma
+ * ordem — a rota responde 200 mesmo com itens recusados, e quem decide é o
+ * `ok` de cada um. `AssignmentErrorCode` é enum no contrato de propósito: o
+ * painel escreve a frase por CÓDIGO, nunca casando o texto.
+ */
+export type AssignmentBatch = Schemas['AdminAssignmentBatchResponse'];
+export type AssignmentResultItem = Schemas['AdminAssignmentResultItem'];
+export type AssignmentErrorCode = Schemas['AssignmentErrorCode'];
+export type Assignment = Schemas['AdminAssignmentResponse'];
+
+/**
+ * Quem está com um pedido. OS DOIS CAMPOS NULOS SÃO 200 e significam "ninguém
+ * ainda" — estado normal, não erro. O 404 da rota é o pedido que este lojista
+ * não alcança, e são coisas diferentes.
+ */
+export type OrderCourier = Schemas['AdminOrderCourierResponse'];

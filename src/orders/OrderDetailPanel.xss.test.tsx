@@ -36,6 +36,29 @@ vi.mock('../api/customers', () => ({
   listCustomers: vi.fn(async () => ({ items: [], total: 0, limit: 5, offset: 0 })),
 }));
 
+/*
+ * A SESSÃO, dublada como as duas rotas acima.
+ *
+ * O painel ganhou o bloco "Entregador", que pergunta duas coisas à sessão: o
+ * PAPEL (para saber se este usuário pode atribuir) e as FILIAIS (para nomear a
+ * do pedido na frase de recusa). Sem provedor, `useSession` lança — e o painel
+ * inteiro deixaria de montar, levando junto o que este arquivo protege.
+ *
+ * O papel é o do dono porque é o que faz o bloco desenhar TUDO: com um papel
+ * mais restrito, parte da tela sumiria e o teste passaria por ausência.
+ */
+vi.mock('../auth/session-context', () => ({
+  useSession: () => ({ papel: 'owner', branches: [], activeBranchId: '' }),
+}));
+
+/* O bloco do entregador lê quem está com o pedido; aqui não há ninguém. */
+vi.mock('../api/couriers', () => ({
+  fetchOrderCourier: vi.fn(async () => ({ courier: null, assignment: null })),
+  listCouriers: vi.fn(async () => []),
+  assignOrders: vi.fn(),
+  unassignOrder: vi.fn(),
+}));
+
 import { fetchOrderDetail } from '../api/orders';
 import { OrderDetailPanel } from './OrderDetailPanel';
 

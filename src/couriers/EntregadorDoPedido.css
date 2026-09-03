@@ -1,0 +1,36 @@
+/*
+ * O bloco do entregador, dentro do painel do pedido.
+ *
+ * Ele é curto de propósito: duas linhas quando alguém já está com o pedido, e
+ * um seletor mais um botão quando não. O painel inteiro se lê com pressa, e
+ * qualquer coisa maior aqui empurraria Pagamento e Histórico para baixo da
+ * dobra por um dado de uma linha.
+ */
+.entregador-do-pedido__atual {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-8);
+}
+
+.entregador-do-pedido__nome {
+  font-weight: var(--w-strong);
+}
+
+/*
+ * O SELETOR ESTICA E OS BOTÕES NÃO. Com o painel estreito no telefone, o nome
+ * do entregador é o que precisa de largura — "Entregar" e "Tirar" têm o
+ * tamanho do texto deles e mais nada.
+ */
+.entregador-do-pedido__acao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-8);
+  margin-top: var(--sp-8);
+}
+
+.entregador-do-pedido__acao > :first-child {
+  flex: 1 1 160px;
+  min-width: 0;
+}

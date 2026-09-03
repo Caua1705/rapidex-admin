@@ -168,6 +168,8 @@ export type Acao =
   | 'entregadores.editar'
   | 'entregadores.excluir'
   | 'entregadores.gerarAcesso'
+  | 'entregadores.atribuir'
+  | 'entregadores.desatribuir'
   | 'entregadores.verTaxa'
   | 'entregadores.editarTaxa'
   // --- impressão
@@ -343,6 +345,14 @@ const ROTA_DA_ACAO = {
   'entregadores.editar': 'PATCH /admin/couriers/{courier_id}',
   'entregadores.excluir': 'DELETE /admin/couriers/{courier_id}',
   'entregadores.gerarAcesso': 'POST /admin/couriers/{courier_id}/access',
+  /*
+   * ATRIBUIR É PESSOAS, e não gerência — é o único par de escritas deste
+   * domínio que o atendente faz. Quem entrega o pedido ao motoboy é quem
+   * está no balcão quando ele chega, e uma atribuição que dependesse do
+   * gerente seria uma atribuição que não acontece no sábado à noite.
+   */
+  'entregadores.atribuir': 'POST /admin/couriers/{courier_id}/assignments',
+  'entregadores.desatribuir': 'DELETE /admin/orders/{order_id}/courier',
   'entregadores.verTaxa': 'GET /admin/branches/{branch_id}/courier-fee',
   'entregadores.editarTaxa': 'PATCH /admin/branches/{branch_id}/courier-fee',
 
