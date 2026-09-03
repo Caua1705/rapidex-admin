@@ -9,14 +9,18 @@ não tocou.
 Este arquivo é a varredura atrás das **irmãs** dessa falha. Nasceu como lista;
 o que já foi fechado está marcado no título de cada item, com o commit.
 
-| #     | Item                                           | Estado              |
-| ----- | ---------------------------------------------- | ------------------- |
-| 1     | o "ao vivo" que nunca é reavaliado             | **feito**           |
-| 2     | o agente de impressão fora de Loja › Impressão | **feito** `589cd94` |
-| 3     | o primeiro pedido do turno não apita           | **feito**           |
-| 4,5,8 | os três que sobraram                           | anotados            |
-| 6     | grupos de opção sumindo por falha de rede      | **feito**           |
-| 7     | escrita que gravou e se reportava como falha   | **feito**           |
+| #   | Item                                           | Estado              |
+| --- | ---------------------------------------------- | ------------------- |
+| 1   | o "ao vivo" que nunca é reavaliado             | **feito**           |
+| 2   | o agente de impressão fora de Loja › Impressão | **feito** `589cd94` |
+| 3   | o primeiro pedido do turno não apita           | **feito**           |
+| 4   | as duas leituras de apoio que somem            | **feito**           |
+| 5   | o contador das faixas que congela              | **feito**           |
+| 6   | grupos de opção sumindo por falha de rede      | **feito**           |
+| 7   | escrita que gravou e se reportava como falha   | **feito**           |
+| 8   | contagem por categoria que fica velha          | **feito**           |
+
+**Os oito estão fechados.** Nada do que este arquivo levantou sobrou.
 
 ## Como foi medido
 
@@ -144,7 +148,7 @@ som" — o sino cortado já explica o silêncio, e as duas mensagens juntas fari
 lojista apertar uma para descobrir que faltava a outra. A decisão sai pronta do
 hook, e não como dois fatos para cada tela combinar por conta.
 
-## 4. Duas leituras de apoio que somem sem deixar rastro
+## 4. ~~Duas leituras de apoio que somem sem deixar rastro~~ — FEITO
 
 - `src/orders/useDeliveryEstimate.ts:40` — falha de rede → `setEstimate(null)` →
   a faixa de entrega some do cabeçalho.
@@ -157,7 +161,32 @@ indistinguíveis para quem olha. O `useCustomerHistory` faz a mesma coisa e est�
 _fora_ desta lista porque lá a ausência é do dado de apoio de uma linha; aqui é
 o prazo que o lojista promete ao cliente no telefone.
 
-## 5. O contador das faixas congela sem avisar
+**Conserto (2026-09-03):** `falhou` é estado próprio nos dois hooks, e o valor
+que a falha escrevia (`null`) parou de ser escrito — porque `null` JÁ queria
+dizer "a loja não configurou". A tela ganhou a terceira frase: "não deu para
+ler", ao lado de "sem faixa" e "não definido".
+
+Três decisões que a implementação tomou e o achado não previa:
+
+- **a frase da falha não vira alerta.** Continua sendo uma palavra no lugar do
+  valor, na mesma tinta discreta — quem abriu esta tela veio ver pedido, e um
+  alerta vermelho numa tela que fica aberta o turno inteiro é o que se aprende a
+  ignorar. O que se conserta é a tela AFIRMAR o que ela não sabe;
+- **um ajuste desta sessão desmente a leitura que caiu** (`usePrepTime`):
+  `falhou` só vale com `adjusted === null`. Se o PATCH voltou com uma faixa, ela
+  é a verdade mais fresca que a tela tem, e dizer "não deu para ler" em cima do
+  número que o próprio lojista acabou de gravar seria pior que o defeito;
+- **`isLoading` vem antes de `falhou`** no controle de preparo: durante a
+  primeira leitura a frase certa é "carregando…", e só depois dela a tela tem
+  direito de dizer que não conseguiu.
+
+Provado por mutação: dois e2e em `caminho-critico.spec.ts` derrubam a rota de
+apoio (`/admin/settings` e `/business-hours`) e exigem a frase nova E a ausência
+da antiga — devolver o `setEstimate(null)`/`setRange(null)` derruba os dois. Os
+dois ainda afirmam que a lista de pedidos ficou de pé: apoio que cai não leva
+junto o que o lojista veio ver.
+
+## 5. ~~O contador das faixas congela sem avisar~~ — FEITO
 
 `src/orders/useOrdersBoard.ts:58`
 
@@ -168,6 +197,21 @@ diferentes**: `fetchStatusCounts` pode falhar sozinha, com a listagem verde.
 O resultado é dois números discordando na mesma tela: a faixa mostra 4 pedidos
 e o contador diz 7. Nada aceso. É a mesma família do `sort_order` divergente —
 duas expressões do mesmo fato, e a tela não diz qual acreditar.
+
+**Conserto (2026-09-03):** `countsStale` no `useOrdersBoard`, e uma ressalva ao
+lado dos contadores: _"números podem estar velhos"_. Some sozinha na primeira
+leitura que voltar.
+
+**O número velho FICA na tela**, e isso é escolha: apagá-lo trocaria um número
+possivelmente desatualizado por nenhum, e o contador de apoio serve para o
+relance — o que faltava não era o dado, era a tela parar de afirmá-lo como
+fresco. Pela mesma razão a ressalva não é `.alert`: nada quebrou para o lojista,
+e a listagem — a verdade — continua verde ao lado.
+
+Provado por mutação: o e2e derruba `status-counts` sozinha, exige a ressalva e
+exige o cartão de pedido de pé (as duas rotas são independentes — era esse o
+achado). O par dele afirma o outro lado: com o contador respondendo, a ressalva
+não existe na tela.
 
 ## 6. ~~Grupos de opção somem por falha de rede~~ — FEITO
 
@@ -221,7 +265,7 @@ seguida. A lista velha é ressalva, não manchete.
 
 Provado por mutação: devolver o `catch` único derruba o e2e novo.
 
-## 8. Contagem por categoria que fica velha em silêncio
+## 8. ~~Contagem por categoria que fica velha em silêncio~~ — FEITO
 
 `src/menu/useMenu.ts:189` devolve `null` na falha, e o `setProductCounts` mantém
 a chave anterior. A fita de categorias fica com um número que não confere com a
@@ -229,6 +273,24 @@ lista aberta ao lado.
 
 Menor que os outros — o número é de apoio e a lista é a verdade —, mas é a mesma
 mecânica do item 5.
+
+**Conserto (2026-09-03):** a sondagem que caiu devolve `[category.id, undefined]`
+em vez de `null`, e a mesclagem passou a **apagar** a chave. `undefined` é o
+"não sei" que a fita já sabia desenhar: ela simplesmente não escreve número
+naquela categoria.
+
+**Aqui o número velho SOME, e no item 5 ele FICA** — e a diferença não é
+incoerência. Lá, a listagem ao lado é a verdade e o contador é relance; aqui a
+contagem da fita é a única resposta para _"qual categoria está vazia?"_, que é a
+pergunta que faz o lojista descobrir que o cardápio subiu pela metade. Número
+errado nessa pergunta é pior que número nenhum. E a fita já tinha o desenho do
+vazio pronto — não precisou de frase nova.
+
+Provado por mutação: o e2e de `cardapio.spec.ts` derruba **só a sondagem** (o
+`limit=1` é o que a distingue da listagem da categoria aberta) e cobra as duas
+metades — o número da FECHADA some, e o da ABERTA fica, porque esse vem do
+`total` da listagem, que é mais fresco. Duas fontes para a mesma pergunta podem
+conviver; o que não pode é a mais velha se passar pela nova.
 
 ---
 

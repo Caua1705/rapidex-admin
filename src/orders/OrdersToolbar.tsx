@@ -304,12 +304,12 @@ function Promessa({ streamStatus }: { streamStatus: StreamStatus }) {
   const nomeFilial =
     isAutoResolved && hasChoice && branch ? branch.display_name?.trim() || branch.name : '';
 
-  const cliente = promessaAoCliente(prep.range, entrega);
+  const cliente = promessaAoCliente(prep.range, entrega.estimate);
 
   return (
     <div className="promessa" aria-label="O que a loja promete agora">
       <PrepTimeControl prep={prep} branchId={branchId} nomeFilial={nomeFilial} />
-      <DeliveryEstimate estimate={entrega} />
+      <DeliveryEstimate estimate={entrega.estimate} falhou={entrega.falhou} />
 
       {/*
         SEM AS DUAS PONTAS, NÃO HÁ LINHA. Uma promessa calculada só com o
@@ -345,7 +345,7 @@ function Promessa({ streamStatus }: { streamStatus: StreamStatus }) {
  * há coluna. A classe documenta "isto se alinha com o de cima", e aqui isso não
  * é verdade.
  */
-function DeliveryEstimate({ estimate }: { estimate: Estimativa | null }) {
+function DeliveryEstimate({ estimate, falhou }: { estimate: Estimativa | null; falhou: boolean }) {
   return (
     <span className="prep" data-testid="delivery-estimate">
       <span className="prep__label">Entrega</span>
@@ -354,7 +354,17 @@ function DeliveryEstimate({ estimate }: { estimate: Estimativa | null }) {
           {estimate.min}–{estimate.max} min
         </span>
       ) : (
-        <span className="prep__range prep__range--empty">sem faixa</span>
+        /*
+          "SEM FAIXA" É UMA AFIRMAÇÃO SOBRE A LOJA, e a leitura que caiu não
+          sabe nada sobre ela. As duas desenhavam a mesma coisa aqui — e este
+          número é a promessa que o lojista repete ao cliente no telefone.
+
+          A frase da falha não vira alerta: continua sendo uma palavra no lugar
+          do valor, discreta, porque quem abriu esta tela veio ver pedido.
+        */
+        <span className="prep__range prep__range--empty">
+          {falhou ? 'não deu para ler' : 'sem faixa'}
+        </span>
       )}
     </span>
   );

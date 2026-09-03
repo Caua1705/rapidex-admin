@@ -541,3 +541,58 @@ test('categoria recusada pelo backend: a tela diz o motivo e não perde o que fo
   await expect(page.getByLabel('Nome da categoria')).toHaveValue(nomeLongo);
   expect(api.categories().some((item) => item.name === nomeLongo)).toBe(false);
 });
+
+/*
+ * ============================================================================
+ * `ausencia.md` §8 — a contagem da fita que ficava velha em silêncio
+ * ============================================================================
+ *
+ * A sondagem de contagem é por categoria (`GET /admin/products` com `limit=1`,
+ * só para ler o `total`), e ela falha em silêncio de propósito: contagem é
+ * apoio e não pode derrubar o cardápio.
+ *
+ * O que ela não podia fazer é DEIXAR O NÚMERO ANTERIOR no lugar. A fita passava
+ * a discordar da lista aberta ao lado — e é justamente esta contagem que
+ * responde "qual categoria está vazia?", a pergunta que faz o lojista descobrir
+ * que o cardápio subiu pela metade.
+ */
+test('a contagem que não deu para reler some, em vez de ficar velha', async ({ page }) => {
+  await abrirCardapio(page);
+
+  /*
+   * A CATEGORIA MIRADA É UMA FECHADA (`cat-2`), e isso não é detalhe do teste:
+   * a ABERTA não usa a sondagem — o `total` da listagem que ela já carregou é
+   * mais fresco, e é dele que o número sai. Quem depende da sondagem, e
+   * portanto quem envelhecia calado, são as outras.
+   */
+  await expect(page.getByTestId('category-count-cat-2')).toHaveText('4 itens');
+
+  /*
+   * A sondagem cai a partir daqui, e SÓ ela: `limit=1` é o que a distingue da
+   * listagem da categoria aberta, que continua respondendo.
+   */
+  await page.route('**/admin/products?**', async (route) => {
+    const limite = new URL(route.request().url()).searchParams.get('limit');
+    if (limite === '1') await route.abort();
+    else await route.fallback();
+  });
+
+  await page.getByRole('button', { name: 'Novo item' }).click();
+  await page.getByLabel('Nome do item').fill('X-Tudo');
+  await page.getByLabel('Preço').fill('32,00');
+  await page.getByRole('button', { name: 'Salvar' }).click();
+
+  // O item entrou na lista — criar e listar não dependem da sondagem.
+  await expect(page.getByRole('main')).toContainText('X-Tudo');
+
+  // E o número da FECHADA some, em vez de continuar dizendo 4.
+  await expect(page.getByTestId('category-count-cat-2')).toHaveCount(0);
+
+  /*
+   * A ABERTA continua com o dela, e agora dizendo 4: ele não veio da sondagem
+   * que caiu, veio do `total` da listagem. Duas fontes para a mesma pergunta
+   * existem porque uma é sempre mais fresca — o que não pode é a mais velha se
+   * passar pela nova.
+   */
+  await expect(page.getByTestId('category-count-cat-1')).toHaveText('4 itens');
+});

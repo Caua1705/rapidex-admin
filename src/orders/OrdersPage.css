@@ -250,6 +250,20 @@
   color: var(--ink);
 }
 
+/*
+ * A CONTAGEM QUE PAROU DE ATUALIZAR.
+ *
+ * Ela é a mesma peça dos contadores, sem ponto e sem número — uma ressalva ao
+ * lado deles, na tinta secundária. NÃO é `.alert`: nada quebrou para o lojista,
+ * e um aviso vermelho numa tela que fica aberta o turno inteiro é a coisa que
+ * ele aprende a ignorar. O que se conserta aqui é a tela AFIRMAR um número que
+ * ela já sabe que pode estar velho.
+ */
+.contagem--velha {
+  color: var(--ink-3);
+  font-style: italic;
+}
+
 /* ==========================================================================
  * OS CONTROLES DO RECORTE — sem cartão, sem borda, sem fundo
  * ======================================================================= */

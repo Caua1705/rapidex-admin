@@ -79,7 +79,13 @@ export function PrepTimeControl({
         </span>
       ) : (
         <span className="prep__range prep__range--empty" data-testid="prep-time-range">
-          {prep.isLoading ? 'carregando…' : 'não definido'}
+          {/*
+            TRÊS FRASES, TRÊS ESTADOS. "não definido" afirma que ninguém
+            configurou o prazo; "não deu para ler" admite que o painel não
+            conseguiu perguntar. Quem lê a primeira vai configurar o que já
+            estava configurado — e o prazo daqui é o que a loja promete.
+          */}
+          {prep.isLoading ? 'carregando…' : prep.falhou ? 'não deu para ler' : 'não definido'}
         </span>
       )}
 

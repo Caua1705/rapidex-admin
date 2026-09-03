@@ -21,9 +21,17 @@ export type DeliveryEstimate = { min: number; max: number };
  * Falhar aqui NÃO vira erro de tela, pelo mesmo motivo de `usePrepRange`: é
  * número de apoio, e um alerta por causa dele roubaria a tela de quem veio ver
  * pedido.
+ *
+ * MAS FALHAR TAMBÉM NÃO É "SEM FAIXA". Os dois desenhavam a mesma tela, e são
+ * coisas diferentes: "sem faixa" é uma AFIRMAÇÃO sobre a configuração da loja,
+ * e a leitura que caiu não sabe nada sobre ela. A diferença importa porque este
+ * número vira a promessa que o lojista repete ao cliente no telefone — dizer
+ * que não há prazo configurado, quando o que houve foi uma queda de rede, é a
+ * tela mentindo sobre a operação em vez de admitir que não leu.
  */
-export function useDeliveryEstimate(): DeliveryEstimate | null {
+export function useDeliveryEstimate(): { estimate: DeliveryEstimate | null; falhou: boolean } {
   const [estimate, setEstimate] = useState<DeliveryEstimate | null>(null);
+  const [falhou, setFalhou] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,8 +45,9 @@ export function useDeliveryEstimate(): DeliveryEstimate | null {
         // Meia faixa não é faixa: mostrar só o mínimo faria o lojista ler
         // "30 min" como promessa fechada. É a mesma regra do prazo de preparo.
         setEstimate(typeof min === 'number' && typeof max === 'number' ? { min, max } : null);
+        setFalhou(false);
       } catch {
-        if (!cancelled) setEstimate(null);
+        if (!cancelled) setFalhou(true);
       }
     })();
 
@@ -47,5 +56,5 @@ export function useDeliveryEstimate(): DeliveryEstimate | null {
     };
   }, []);
 
-  return estimate;
+  return { estimate, falhou };
 }

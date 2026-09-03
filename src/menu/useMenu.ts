@@ -187,15 +187,27 @@ export function useMenu(branchId: string) {
             });
             return [category.id, page.total] as const;
           } catch {
-            return null;
+            /*
+             * A SONDAGEM QUE CAIU DEVOLVE A CATEGORIA, E NÃO `null`.
+             *
+             * Devolvendo `null`, a mesclagem abaixo preservava a chave
+             * ANTERIOR — e a fita ficava com um número que não confere com a
+             * lista aberta ao lado, sem nada dizendo isso. `undefined` é o
+             * "não sei" que a fita já sabe desenhar: ela simplesmente não
+             * escreve número nenhum naquela categoria.
+             */
+            return [category.id, undefined] as const;
           }
         }),
       );
 
       setProductCounts((current) => {
         const next = { ...current };
-        entries.forEach((entry) => {
-          if (entry) next[entry[0]] = entry[1];
+        entries.forEach(([id, total]) => {
+          // `undefined` APAGA a chave: número velho no lugar de "não sei" é a
+          // fita discordando da lista ao lado, calada.
+          if (total === undefined) delete next[id];
+          else next[id] = total;
         });
         return next;
       });

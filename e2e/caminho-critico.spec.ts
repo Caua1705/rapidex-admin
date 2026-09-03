@@ -1036,3 +1036,68 @@ test('pagamento não confirmado: sai só a via do cliente, e a tela diz por quê
    */
   await expect(painel).not.toContainText(/impressa|foi impresso|comanda saiu/i);
 });
+
+/*
+ * ============================================================================
+ * O QUE ERRA CALADO — `ausencia.md` §4, §5 e §8
+ * ============================================================================
+ *
+ * As três têm a mesma forma: uma leitura de APOIO cai, e a tela desenha a falha
+ * com o mesmo traço que usa para um fato. Nenhuma delas quebra nada visível —
+ * e é isso que as torna caras, porque o lojista age sobre o que leu.
+ *
+ * O conserto NÃO é acender alerta: quem abriu esta tela veio ver pedido, e um
+ * aviso vermelho numa tela que fica aberta o turno inteiro é o que ele aprende
+ * a ignorar. É a tela parar de AFIRMAR o que ela não sabe.
+ */
+
+/*
+ * §4 — "sem faixa" é uma afirmação sobre a loja; a leitura que caiu não sabe
+ * nada sobre ela. E este número é o prazo que o lojista repete ao cliente no
+ * telefone.
+ */
+test('a entrega que não deu para ler não vira "sem faixa"', async ({ page }) => {
+  await page.route('**/admin/settings', (route) => route.abort());
+  await fazerLogin(page);
+
+  await expect(page.getByTestId('delivery-estimate')).toContainText('não deu para ler');
+  await expect(page.getByTestId('delivery-estimate')).not.toContainText('sem faixa');
+
+  // A tela do lojista continua a dele: a lista de pedidos não foi derrubada.
+  await expect(page.getByTestId('order-card-1001')).toBeVisible();
+});
+
+/*
+ * §4, a outra metade: "não definido" manda configurar o que talvez já esteja
+ * configurado.
+ */
+test('o preparo que não deu para ler não vira "não definido"', async ({ page }) => {
+  await page.route('**/business-hours', (route) => route.abort());
+  await fazerLogin(page);
+
+  await expect(page.getByTestId('prep-time-range')).toContainText('não deu para ler');
+  await expect(page.getByTestId('prep-time-range')).not.toContainText('não definido');
+  await expect(page.getByTestId('order-card-1001')).toBeVisible();
+});
+
+/*
+ * §5 — `status-counts` é rota PRÓPRIA: ela cai sozinha, com a listagem verde.
+ * Sem isto, a faixa mostra um número de pedidos e o contador mostra outro, na
+ * mesma tela, sem nada dizendo em qual acreditar.
+ */
+test('o contador que parou de atualizar diz que pode estar velho', async ({ page }) => {
+  await page.route('**/admin/orders/status-counts*', (route) => route.abort());
+  await fazerLogin(page);
+
+  await expect(page.getByTestId('contagens-velhas')).toBeVisible();
+
+  // A lista NÃO foi derrubada junto: as duas rotas são independentes.
+  await expect(page.getByTestId('order-card-1001')).toBeVisible();
+});
+
+test('com o contador respondendo, a ressalva não aparece', async ({ page }) => {
+  await fazerLogin(page);
+
+  await expect(page.getByTestId('badge-novos')).toBeVisible();
+  await expect(page.getByTestId('contagens-velhas')).toHaveCount(0);
+});

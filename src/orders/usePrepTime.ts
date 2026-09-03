@@ -29,6 +29,9 @@ export function usePrepTime(branchId: string) {
 
   const range = adjusted ?? loaded.range;
   const isLoading = loaded.isLoading;
+  /* A leitura caiu — e um ajuste gravado NESTA sessão a desmente: se o PATCH
+     voltou com uma faixa, ela é a verdade mais fresca que a tela tem. */
+  const falhou = loaded.falhou && adjusted === null;
 
   // A faixa é de UMA filial. Trocar de filial no cabeçalho sem zerar isto
   // deixaria o número de uma loja em cima do nome de outra.
@@ -94,6 +97,7 @@ export function usePrepTime(branchId: string) {
   return {
     range,
     isLoading,
+    falhou,
     isSaving,
     errorMessage,
     needsBase,

@@ -316,6 +316,24 @@ export function OrdersPage() {
                     <b data-testid={`badge-${lane.key}`}>{countFor(lane.statuses, board.counts)}</b>
                   </span>
                 ))}
+
+                {/*
+                  A CONTAGEM QUE PAROU DE ATUALIZAR DIZ ISSO.
+
+                  `status-counts` é rota própria: ela cai sozinha, com a
+                  listagem verde. Sem esta linha, a faixa mostra 4 pedidos e o
+                  contador diz 7 — duas expressões do mesmo fato discordando na
+                  mesma tela, e nada aceso para dizer em qual acreditar.
+
+                  Não é alerta e não derruba nada: os números ficam, e o que
+                  muda é a tela parar de afirmá-los como frescos. Some sozinha
+                  na primeira leitura que voltar.
+                */}
+                {board.countsStale ? (
+                  <span className="contagem contagem--velha" data-testid="contagens-velhas">
+                    números podem estar velhos
+                  </span>
+                ) : null}
               </div>
             ) : null
           }

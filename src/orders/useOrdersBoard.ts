@@ -47,6 +47,9 @@ export function useOrdersBoard() {
     setOrders(next);
   }, []);
 
+  /** A última leitura dos contadores falhou: os números na tela podem estar velhos. */
+  const [countsStale, setCountsStale] = useState(false);
+
   const refreshCounts = useCallback(async () => {
     try {
       const response = await fetchStatusCounts(filtersRef.current);
@@ -55,8 +58,21 @@ export function useOrdersBoard() {
         next[entry.status] = entry.count;
       });
       setCounts(next);
+      setCountsStale(false);
     } catch {
-      // Badge desatualizado não impede trabalhar, e o erro da lista já aparece.
+      /*
+       * O COMENTÁRIO ANTIGO DIZIA "o erro da lista já aparece", E ISSO SÓ VALE
+       * SE AS DUAS CAÍREM JUNTAS.
+       *
+       * São rotas diferentes: `status-counts` falha sozinha, com a listagem
+       * verde. O resultado é a faixa mostrando 4 pedidos e o contador dizendo
+       * 7, sem nada aceso — duas expressões do mesmo fato discordando na mesma
+       * tela, e o lojista sem saber em qual acreditar.
+       *
+       * Continua sem alerta e sem derrubar nada: o número que estava fica, e o
+       * que muda é que a tela passa a DIZER que ele pode estar velho.
+       */
+      setCountsStale(true);
     }
   }, []);
 
@@ -218,6 +234,7 @@ export function useOrdersBoard() {
     updateFilters,
     orders,
     counts,
+    countsStale,
     totalInFilter,
     isLoading,
     errorMessage,
