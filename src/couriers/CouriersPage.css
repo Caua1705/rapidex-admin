@@ -1,0 +1,54 @@
+/*
+ * ENTREGADORES — a tela é uma tabela e mais nada, então a folha é curta.
+ *
+ * Nenhuma largura de coluna aqui: `ds/DataTable` aceitaria, mas isso poria
+ * "132px" dentro do TSX e a régua de aderência barra px solto em código de
+ * tela. Mesma decisão de Usuários, Cupons e Clientes.
+ */
+.entregadores {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-16);
+  padding: var(--sp-16);
+}
+
+.entregadores__ajuda {
+  margin: 0;
+}
+
+.entregadores__estado {
+  margin: 0;
+}
+
+.entregadores__nome {
+  font-weight: var(--w-medium);
+}
+
+/*
+ * AS AÇÕES DA LINHA. `flex-wrap` porque são até três botões numa coluna que
+ * encolhe no telefone — sem ele, "Excluir" sai da tela em vez de descer.
+ */
+.entregadores__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--sp-8);
+}
+
+/*
+ * A ETIQUETA DE SITUAÇÃO — e o desativado NÃO é vermelho.
+ *
+ * Vermelho é a matiz do que deu errado, e desativar um entregador é uma
+ * decisão do lojista, não uma falha: quem viajou está desativado de propósito.
+ * A distinção fica no peso da tinta, que é o que a lista precisa para separar
+ * as duas linhas de relance.
+ */
+.entregadores__tag--ativo {
+  background: var(--ok-wash);
+  color: var(--ok);
+}
+
+.entregadores__tag--inativo {
+  background: var(--surface-muted);
+  color: var(--ink-3);
+}

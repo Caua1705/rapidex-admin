@@ -6,6 +6,7 @@ import {
   CashbackIcon,
   ChatIcon,
   CouponIcon,
+  CourierIcon,
   CustomersIcon,
   IntegrationsIcon,
   KitchenIcon,
@@ -151,6 +152,25 @@ const GRUPOS: readonly NavGroup[] = [
       */
       { to: '/cozinha', label: 'Cozinha', Icon: KitchenIcon },
       { to: '/cardapio', label: 'Cardápio', Icon: MenuIcon },
+      /*
+       * ENTREGADORES É DE "HOJE", e não do pé com as configurações.
+       *
+       * Quem atribui um pedido a um motoboy é o ATENDENTE, no meio do turno,
+       * quando o motoboy chega ao balcão — `POST .../assignments` é PESSOAS de
+       * propósito. Enterrar a tela junto de Loja e Usuários faria essa pessoa
+       * procurá-la entre as configurações, que é onde ela não vai olhar com o
+       * pedido na mão.
+       *
+       * O cadastro em si é semanal e mora dentro desta mesma tela: a
+       * frequência decide a POSIÇÃO, e a posição é a da ação mais frequente —
+       * a mesma regra que trouxe o Cardápio para cá por causa do "acabou a
+       * costela".
+       *
+       * `acao` é a da LEITURA (PESSOAS), como em Cupons: cadastrar e excluir
+       * são da gerência e isso é decidido DENTRO da tela. O grupo continua
+       * homogêneo — os quatro itens são visíveis a todo papel que entra.
+       */
+      { to: '/entregadores', label: 'Entregadores', Icon: CourierIcon, acao: 'entregadores.ver' },
     ],
   },
   /*

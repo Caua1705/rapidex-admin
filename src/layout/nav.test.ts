@@ -86,16 +86,22 @@ describe('a estrutura da lateral', () => {
   /**
    * O TAMANHO DA VARREDURA — Hick em número.
    *
-   * Oito itens acima do fio é o que o olho percorre todo dia; os quatro de
+   * Nove itens acima do fio é o que o olho percorre todo dia; os quatro de
    * configuração ficam abaixo dele, fora do caminho. Se um dia este número
    * subir, que suba com alguém tendo lido esta linha.
+   *
+   * ELE SUBIU DE OITO PARA NOVE COM ENTREGADORES, e o motivo está escrito em
+   * `nav.ts`: quem atribui um pedido a um motoboy é o ATENDENTE, no meio do
+   * turno, com o pedido na mão. Uma tela de turno no pé das configurações é
+   * uma tela que essa pessoa não encontra — e o custo de Hick de um nono item
+   * é menor que o de procurar no lugar errado todo dia.
    */
-  it('a lista varrida todo dia tem oito itens, e o pé tem quatro', () => {
+  it('a lista varrida todo dia tem nove itens, e o pé tem quatro', () => {
     const acimaDoFio = NAV_GROUPS.filter((group) => !group.rodape);
     const pe = NAV_GROUPS.find((group) => group.rodape);
 
     expect(acimaDoFio).toHaveLength(3);
-    expect(acimaDoFio.flatMap((group) => group.entries)).toHaveLength(8);
+    expect(acimaDoFio.flatMap((group) => group.entries)).toHaveLength(9);
     expect(pe?.entries).toHaveLength(4);
   });
 
@@ -114,15 +120,22 @@ describe('a estrutura da lateral', () => {
       '/pedidos',
       '/cozinha',
       '/cardapio',
+      /*
+       * O ATENDENTE VÊ ENTREGADORES, e é o teste que prova a escolha de
+       * `nav.ts`: `POST .../assignments` é PESSOAS porque quem entrega o pedido
+       * ao motoboy é quem está no balcão. Cadastrar e excluir continuam sendo
+       * da gerência, e isso é decidido DENTRO da tela.
+       */
+      '/entregadores',
       '/loja',
       '/whatsapp',
       '/integracoes',
     ]);
   });
 
-  it('o gerente perde só Usuários, e o dono vê os doze', () => {
-    expect(lateralDe('manager').flatMap((group) => group.entries)).toHaveLength(11);
-    expect(lateralDe('owner').flatMap((group) => group.entries)).toHaveLength(12);
+  it('o gerente perde só Usuários, e o dono vê os treze', () => {
+    expect(lateralDe('manager').flatMap((group) => group.entries)).toHaveLength(12);
+    expect(lateralDe('owner').flatMap((group) => group.entries)).toHaveLength(13);
     expect(
       lateralDe('manager')
         .flatMap((group) => group.entries)

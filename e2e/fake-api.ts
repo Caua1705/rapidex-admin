@@ -933,6 +933,129 @@ function initialPrintSectors(branchId: string): PrintSector[] {
  * ======================================================================= */
 type FakePrintAgent = { secondsSinceLastSeen: number; version: string | null };
 
+type FakeCourier = {
+  id: string;
+  branch_id: string;
+  name: string;
+  phone: string;
+  is_active: boolean;
+  has_access: boolean;
+  access_generated_at: string | null;
+  created_at: string | null;
+};
+
+/**
+ * Três entregadores, na ORDEM QUE O BANCO DEVOLVE (`name ASC`).
+ *
+ * A ordem importa: a tela não reordena, então um falso que devolvesse fora
+ * de ordem provaria uma ordenação que não existe no painel.
+ *
+ * O DESATIVADO ESTÁ NA LISTA de propósito — é assim que se religa alguém, e
+ * uma semente só com ativos deixaria o caso sem cobertura nenhuma.
+ */
+/** As frases do backend, copiadas com a origem: `admin_courier_service.py`. */
+const TELEFONE_EM_USO = 'Já existe um entregador com este telefone nesta filial';
+const ENTREGADOR_NAO_ENCONTRADO = 'Entregador não encontrado';
+
+/** Os limites do Pydantic que o /openapi.json não publica. */
+const MAX_COURIER_NAME_LENGTH = 120;
+const MIN_PHONE_DIGITS = 8;
+
+/** O par link+código nunca sai da listagem — só da rota de acesso. */
+function semSegredo(courier: FakeCourier) {
+  return { ...courier };
+}
+
+function erro422(campo: string, msg: string) {
+  return { detail: [{ loc: ['body', campo], msg, type: 'value_error' }] };
+}
+
+/** `extra="forbid"`: chave desconhecida é 422, e não campo ignorado. */
+function extraProibido(body: Record<string, unknown>, permitidos: readonly string[]) {
+  const intruso = Object.keys(body).find((chave) => !permitidos.includes(chave));
+  return intruso ? erro422(intruso, 'Extra inputs are not permitted') : null;
+}
+
+function campoObrigatorio(body: Record<string, unknown>, campo: string) {
+  return body[campo] === undefined ? erro422(campo, 'Field required') : null;
+}
+
+function nomeInvalido(valor: unknown) {
+  const nome = typeof valor === 'string' ? valor.trim() : '';
+  if (!nome) return erro422('name', 'String should have at least 1 character');
+  if (nome.length > MAX_COURIER_NAME_LENGTH) {
+    return erro422('name', `String should have at most ${MAX_COURIER_NAME_LENGTH} characters`);
+  }
+  return null;
+}
+
+/**
+ * O backend confere DUAS coisas: o comprimento da string crua
+ * (`min_length=8`) e o de DÍGITOS depois de normalizar (`_phone_digits`).
+ * O falso confere as duas, porque é o vão entre elas que pega o caso real:
+ * "(85) 9999" tem nove caracteres e seis dígitos.
+ */
+function telefoneInvalido(valor: unknown) {
+  const cru = typeof valor === 'string' ? valor : '';
+  if (cru.length < MIN_PHONE_DIGITS) {
+    return erro422('phone', `String should have at least ${MIN_PHONE_DIGITS} characters`);
+  }
+  if (cru.replace(/\D/g, '').length < MIN_PHONE_DIGITS) {
+    return erro422('phone', 'telefone invalido');
+  }
+  return null;
+}
+
+/**
+ * O telefone é único DENTRO DA FILIAL, e não no restaurante.
+ *
+ * `exceto` é o próprio entregador na edição: sem ele, salvar a ficha de
+ * alguém sem mexer no telefone daria 409 contra a própria linha.
+ */
+function telefoneRepetido(
+  lista: readonly FakeCourier[],
+  branchId: string,
+  phone: string,
+  exceto: string | null,
+) {
+  return lista.some((c) => c.branch_id === branchId && c.phone === phone && c.id !== exceto);
+}
+
+function initialCouriers(): FakeCourier[] {
+  return [
+    {
+      id: 'ent-ana',
+      branch_id: BRANCH_ID,
+      name: 'Ana Souza',
+      phone: '85988887777',
+      is_active: true,
+      has_access: true,
+      access_generated_at: '2026-09-01T12:00:00Z',
+      created_at: '2026-08-01T12:00:00Z',
+    },
+    {
+      id: 'ent-jorge',
+      branch_id: BRANCH_ID,
+      name: 'Jorge Lima',
+      phone: '85999990000',
+      is_active: true,
+      has_access: false,
+      access_generated_at: null,
+      created_at: '2026-08-02T12:00:00Z',
+    },
+    {
+      id: 'ent-rita',
+      branch_id: BRANCH_ID,
+      name: 'Rita Alves',
+      phone: '85977776666',
+      is_active: false,
+      has_access: false,
+      access_generated_at: null,
+      created_at: '2026-08-03T12:00:00Z',
+    },
+  ];
+}
+
 function initialPrintAgents(): Record<string, FakePrintAgent> {
   return { [BRANCH_ID]: { secondsSinceLastSeen: 12, version: '1.4.2' } };
 }
@@ -1890,6 +2013,12 @@ export type FakeApi = {
    * asserção de tela, porque a tela mostra o efeito e não o que foi enviado.
    */
   printSettingsPatches: () => { branchId: string; body: Record<string, unknown> }[];
+  /** Os corpos de `POST /admin/couriers`, na ordem. */
+  courierPosts: () => Record<string, unknown>[];
+  /** Os corpos de `PATCH /admin/couriers/{id}`, com o alvo de cada um. */
+  courierPatches: () => { courierId: string; body: Record<string, unknown> }[];
+  /** Os entregadores como o falso os guarda agora. */
+  couriers: () => readonly { id: string; name: string; phone: string; is_active: boolean }[];
   /** Os corpos que a tela mandou para `PATCH .../courier-fee`, na ordem. */
   courierFeePatches: () => Record<string, unknown>[];
   /** Semeia a taxa de uma filial. `null` nos dois é "sem taxa", o padrão. */
@@ -2464,6 +2593,14 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      * filial tem taxa até alguém configurar, e é esse o estado que a tela
      * precisa saber desenhar sem escrever "R$ 0,00".
      */
+    /*
+     * OS ENTREGADORES. A semente tem três, e cada um cobre um estado que a
+     * tela precisa saber desenhar: ativo com acesso, ativo sem acesso, e
+     * DESATIVADO — que é o que a lista traz de propósito, para religar.
+     */
+    couriers: initialCouriers(),
+    courierPatches: [] as { courierId: string; body: Record<string, unknown> }[],
+    courierPosts: [] as Record<string, unknown>[],
     courierFees: {} as Record<string, { base: number | null; perKm: number | null }>,
     courierFeePatches: [] as Record<string, unknown>[],
     printAgents: initialPrintAgents(),
@@ -4125,6 +4262,117 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       return json(route, 200, found);
     }
 
+    // --- o cadastro de entregador -------------------------------------------
+
+    if (method === 'GET' && path === '/admin/couriers') {
+      const pedida = new URL(request.url()).searchParams.get('branch_id');
+      /*
+       * EXCLUÍDO NÃO APARECE, INATIVO APARECE. O falso não guarda excluídos:
+       * o DELETE tira da lista, que é o que o backend faz do ponto de vista
+       * de quem lê.
+       */
+      return json(
+        route,
+        200,
+        state.couriers.filter((c) => !pedida || c.branch_id === pedida).map(semSegredo),
+      );
+    }
+
+    if (method === 'POST' && path === '/admin/couriers') {
+      const body = request.postDataJSON() as Record<string, unknown>;
+      state.courierPosts.push(body);
+
+      const recusa =
+        extraProibido(body, ['branch_id', 'name', 'phone']) ??
+        campoObrigatorio(body, 'branch_id') ??
+        nomeInvalido(body.name) ??
+        telefoneInvalido(body.phone);
+      if (recusa) return json(route, 422, recusa);
+
+      const branchId = String(body.branch_id);
+      const phone = String(body.phone).replace(/\D/g, '');
+      if (telefoneRepetido(state.couriers, branchId, phone, null)) {
+        return json(route, 409, { detail: TELEFONE_EM_USO });
+      }
+
+      const criado: FakeCourier = {
+        id: `ent-${state.couriers.length + 1}-${phone.slice(-4)}`,
+        branch_id: branchId,
+        name: String(body.name).trim(),
+        phone,
+        is_active: true,
+        has_access: false,
+        access_generated_at: null,
+        created_at: new Date().toISOString(),
+      };
+      state.couriers.push(criado);
+      /*
+       * A LISTA SE MANTÉM ORDENADA POR NOME, como o `ORDER BY` do banco. Um
+       * falso que empilhasse no fim faria a tela parecer ordenada quando não
+       * é — e é justamente a ordem que o painel decidiu NÃO refazer.
+       */
+      state.couriers.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+      return json(route, 201, semSegredo(criado));
+    }
+
+    const courierMatch = /^\/admin\/couriers\/([^/]+)$/.exec(path);
+    if (courierMatch?.[1]) {
+      const courier = state.couriers.find((c) => c.id === courierMatch[1]);
+      if (!courier) return json(route, 404, { detail: ENTREGADOR_NAO_ENCONTRADO });
+
+      if (method === 'GET') return json(route, 200, semSegredo(courier));
+
+      if (method === 'DELETE') {
+        state.couriers = state.couriers.filter((c) => c.id !== courier.id);
+        return route.fulfill({ status: 204, body: '' });
+      }
+
+      if (method === 'PATCH') {
+        const body = request.postDataJSON() as Record<string, unknown>;
+        state.courierPatches.push({ courierId: courier.id, body });
+
+        /*
+         * `extra="forbid"` NO CORPO DE EDIÇÃO. É o que prova que a tela não
+         * manda `branch_id` num PATCH: o campo existe na RESPOSTA e não no
+         * corpo, e concluir o contrário a partir da resposta é o erro que a
+         * skill de API documenta em `printing_sector_id`.
+         */
+        const recusa = extraProibido(body, ['name', 'phone', 'is_active']);
+        if (recusa) return json(route, 422, recusa);
+
+        if ('name' in body) {
+          const invalido = nomeInvalido(body.name);
+          if (invalido) return json(route, 422, invalido);
+          courier.name = String(body.name).trim();
+        }
+        if ('phone' in body) {
+          const invalido = telefoneInvalido(body.phone);
+          if (invalido) return json(route, 422, invalido);
+          const phone = String(body.phone).replace(/\D/g, '');
+          if (telefoneRepetido(state.couriers, courier.branch_id, phone, courier.id)) {
+            return json(route, 409, { detail: TELEFONE_EM_USO });
+          }
+          courier.phone = phone;
+        }
+        if ('is_active' in body) {
+          courier.is_active = Boolean(body.is_active);
+          /*
+           * DESATIVAR TIRA O ACESSO NA HORA, e reativar NÃO o recria — é o
+           * que o contrato diz com todas as letras. Um falso que devolvesse
+           * `has_access: true` ao religar deixaria a tela mentir sobre o que
+           * o motoboy consegue abrir.
+           */
+          if (!courier.is_active) {
+            courier.has_access = false;
+            courier.access_generated_at = null;
+          }
+        }
+
+        state.couriers.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+        return json(route, 200, semSegredo(courier));
+      }
+    }
+
     // --- a taxa por corrida do entregador -----------------------------------
     //
     // Antes de `/admin/branches/{id}`, pelo mesmo motivo do agente logo abaixo:
@@ -4899,6 +5147,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     },
     printTests: () => state.printTests,
     printSettingsPatches: () => state.printSettingsPatches,
+    courierPosts: () => state.courierPosts,
+    courierPatches: () => state.courierPatches,
+    couriers: () => state.couriers,
     courierFeePatches: () => state.courierFeePatches,
     setCourierFee(branchId, base, perKm) {
       state.courierFees[branchId] = { base, perKm };

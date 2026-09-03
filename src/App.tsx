@@ -4,6 +4,7 @@ import { RequireAuth, ROTA_DA_TROCA_DE_SENHA } from './auth/RequireAuth';
 import { SessionProvider } from './auth/SessionProvider';
 import { CashbackPage } from './cashback/CashbackPage';
 import { CouponsPage } from './coupons/CouponsPage';
+import { CouriersPage } from './couriers/CouriersPage';
 import { CustomersPage } from './customers/CustomersPage';
 import { KitchenPage } from './kitchen/KitchenPage';
 import { AppShell } from './layout/AppShell';
@@ -78,6 +79,23 @@ export function App() {
               <RequireAuth>
                 <AppShell>
                   <MenuPage />
+                </AppShell>
+              </RequireAuth>
+            }
+          />
+          {/*
+            ENTREGADORES exige só a LEITURA (`GET /admin/couriers`, PESSOAS).
+            Cadastrar, editar e excluir são da gerência e são decididos DENTRO
+            da tela — pôr a guarda de escrita aqui trancaria a porta para o
+            atendente, que é justamente quem precisa da lista para entregar o
+            pedido ao motoboy que chegou. Mesma decisão de Cupons.
+          */}
+          <Route
+            path="/entregadores"
+            element={
+              <RequireAuth acao="entregadores.ver">
+                <AppShell>
+                  <CouriersPage />
                 </AppShell>
               </RequireAuth>
             }

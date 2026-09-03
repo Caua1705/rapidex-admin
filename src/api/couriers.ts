@@ -9,8 +9,8 @@
  * cuida do que o CLIENTE vê e paga; isto é o que a LOJA paga ao motoboy, e
  * juntar os dois num arquivo é o primeiro passo para alguém somar um no outro.
  */
-import { apiClient, unwrap } from './client';
-import type { CourierFee, CourierFeeUpdate } from './types';
+import { apiClient, unwrap, unwrapEmpty } from './client';
+import type { Courier, CourierCreate, CourierFee, CourierFeeUpdate, CourierUpdate } from './types';
 
 /**
  * Quanto esta filial paga ao entregador por corrida.
@@ -43,6 +43,57 @@ export async function updateCourierFee(
     await apiClient.PATCH('/admin/branches/{branch_id}/courier-fee', {
       params: { path: { branch_id: branchId } },
       body,
+    }),
+  );
+}
+
+/**
+ * Os entregadores do restaurante, INATIVOS INCLUSIVE — é assim que se religa
+ * quem foi desativado. Excluído não aparece.
+ *
+ * A ORDEM É A DO BACKEND (`ORDER BY name ASC, id ASC`) e a tela não reordena.
+ * Refazer a ordenação aqui com `localeCompare` daria uma segunda resposta para
+ * a mesma pergunta, e a divergência entre duas telas sobre o mesmo dado é o
+ * defeito que a rodada passada passou inteira caçando.
+ */
+export async function listCouriers(branchId?: string): Promise<Courier[]> {
+  return unwrap(
+    await apiClient.GET('/admin/couriers', {
+      params: { query: branchId ? { branch_id: branchId } : {} },
+    }),
+  );
+}
+
+export async function createCourier(body: CourierCreate): Promise<Courier> {
+  return unwrap(await apiClient.POST('/admin/couriers', { body }));
+}
+
+/**
+ * PATCH parcial: nome, telefone, ativo/inativo.
+ *
+ * `is_active: false` NÃO É SÓ UM RÓTULO — tira o acesso na hora e devolve à
+ * fila os pedidos abertos dele. `true` de volta não reabre nada e não recria o
+ * acesso: o par gerado antes continua valendo. A tela diz as duas coisas antes
+ * de o lojista clicar.
+ */
+export async function updateCourier(courierId: string, body: CourierUpdate): Promise<Courier> {
+  return unwrap(
+    await apiClient.PATCH('/admin/couriers/{courier_id}', {
+      params: { path: { courier_id: courierId } },
+      body,
+    }),
+  );
+}
+
+/**
+ * Exclui: some das listas, perde o acesso na hora, os pedidos abertos voltam
+ * para a fila. O HISTÓRICO DE CORRIDAS CONTINUA existindo — é o que o dono usa
+ * para pagar —, e o telefone fica livre para um cadastro novo.
+ */
+export async function deleteCourier(courierId: string): Promise<void> {
+  await unwrapEmpty(
+    await apiClient.DELETE('/admin/couriers/{courier_id}', {
+      params: { path: { courier_id: courierId } },
     }),
   );
 }

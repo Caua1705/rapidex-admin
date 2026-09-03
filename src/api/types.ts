@@ -614,3 +614,12 @@ export type OptionCreateBody = Schemas['AdminOptionCreate'];
  */
 export type CourierFee = Schemas['AdminBranchCourierFeeResponse'];
 export type CourierFeeUpdate = Schemas['AdminBranchCourierFeeUpdate'];
+
+/**
+ * O CADASTRO DO ENTREGADOR. `branch_id` está no CREATE e não no UPDATE — quem
+ * serve duas lojas tem dois cadastros, e o `AdminCourierUpdate` é
+ * `extra="forbid"`: a filial num PATCH é 422, não campo ignorado.
+ */
+export type Courier = Schemas['AdminCourierResponse'];
+export type CourierCreate = Schemas['AdminCourierCreate'];
+export type CourierUpdate = Schemas['AdminCourierUpdate'];

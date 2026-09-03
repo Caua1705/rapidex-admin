@@ -13,7 +13,7 @@ depende da painel-2 entrar primeiro; decisão confirmada pelo dono.
 | --- | ------------------------------------ | ------------------------- |
 | 0   | contrato + `sort_order` do cupom     | feito `b50d2b6` `4f0a437` |
 | 1   | taxa por corrida (Loja › Entrega)    | **feito**                 |
-| 2   | cadastro `/admin/couriers`           | a fazer                   |
+| 2   | cadastro `/admin/couriers`           | **feito**                 |
 | 3   | o acesso (link + código + QR)        | a fazer                   |
 | 4   | atribuição, e quem está com o pedido | a fazer                   |
 
@@ -149,14 +149,66 @@ mutação 3 tirou `podeEditar` do bloco dos campos; ao desfazer, o replace
 acertou o bloco do VALOR, que vinha antes — e os dois trocaram de papel, com o
 `typecheck` verde. Quem pegou foi a suíte rodada logo depois.
 
+## Item 2 — o cadastro
+
+`/entregadores`, no grupo "Hoje" da lateral, depois de Cardápio.
+
+### As decisões
+
+- **A tela ADOTA uma filial** (`useAdoptedBranch`), como Cardápio e as seções
+  de Loja. O telefone é único DENTRO da filial e `branch_id` é obrigatório no
+  cadastro — "escolha uma filial" antes da tela lê como bug para quem pediu a
+  tela.
+- **A filial só existe no POST.** `AdminCourierUpdate` é `extra="forbid"`:
+  mandá-la num PATCH é 422, não campo ignorado. Por isso criar e editar são
+  DOIS caminhos de verdade no `salvar` — um ternário uniria os tipos e
+  desligaria o compilador exatamente onde ele protege.
+- **Os limites do Pydantic estão escritos à mão**, num lugar só e com a origem
+  nomeada (`NOME_MAX = 120`, `TELEFONE_MIN_DIGITOS = 8`). O `/openapi.json` não
+  publica `Field(min_length=…)` nem `field_validator`.
+- **O telefone conta DÍGITOS, não caracteres.** O backend cobra as duas coisas,
+  e é o vão entre elas que pega o caso real: "(85) 9999" tem nove caracteres e
+  seis dígitos.
+- **O 409 vai para o CAMPO do telefone, e a decisão sai do STATUS.** Casar a
+  frase do backend seria um acordo que se desfaz em silêncio no dia em que
+  alguém corrigir uma vírgula lá.
+- **Desativar não pergunta; excluir pergunta.** Desativar é reversível num
+  clique e a consequência está ao lado do interruptor; perguntar em toda troca
+  é o que ensina o lojista a confirmar sem ler — e aí o diálogo que importa
+  passa batido também. O diálogo de excluir oferece a alternativa reversível,
+  porque ela existe.
+- **A lista não é reordenada.** `ORDER BY name ASC` é do banco; refazer com
+  `localeCompare` daria uma segunda resposta para a mesma pergunta.
+- **Lista vazia só é afirmação quando a leitura voltou.** Com erro em tela, o
+  estado vazio não aparece — "nenhum entregador" numa queda de rede faz o
+  lojista cadastrar de novo quem já existe, e tomar 409.
+
+### O defeito que eu mesmo cometi, e o que o pegou
+
+`errosDoEntregador` mapeia todo 409 para o campo do telefone, porque no
+FORMULÁRIO 409 é sempre telefone repetido. Eu usei a mesma função no erro de
+**desativar** e de **excluir** — e ali o 409 fala de outra coisa. Resultado:
+`geral` vinha nulo e a recusa do backend virava **erro nenhum na tela**.
+
+É a falha cujo sintoma é ausência, cometida por quem passou a rodada anterior
+inteira varrendo atrás dela. Quem pegou foi o e2e da recusa do DELETE, que só
+existe porque nenhuma escrita nasce só no caminho feliz.
+
+### A lateral subiu de oito para nove itens
+
+`nav.test.ts` trava esse número de propósito ("que suba com alguém tendo lido
+esta linha"). Subiu, com o motivo escrito no teste e em `nav.ts`: quem atribui
+é o atendente, no meio do turno, com o pedido na mão — uma tela de turno no pé
+das configurações é uma tela que essa pessoa não encontra.
+
 ## Portão
 
-Lido sem pipe, com o item 1 fechado:
+Lido sem pipe, com os itens 1 e 2 fechados:
 
 ```
 format:check  ok
-lint          ok · 1381 casos afirmam alguma coisa
+lint          ok · 1412 casos afirmam alguma coisa
 typecheck     ok
-test          74 arquivos · 1088 casos
-playwright    305 passed · 4 skipped · 0 failed
+test          75 arquivos · 1106 casos
+playwright    318 passed · 4 skipped · 0 failed
 ```

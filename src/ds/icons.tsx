@@ -268,6 +268,26 @@ export function CustomersIcon(props: IconProps) {
   );
 }
 
+/**
+ * Entregador: a moto vista de lado.
+ *
+ * NÃO É UMA PESSOA, e a escolha importa numa lateral que já tem `TeamIcon`
+ * para Usuários e `CustomersIcon` para Clientes — um terceiro boneco ali seria
+ * três itens com a mesma silhueta e nenhuma pista de qual é qual. A moto é o
+ * que o lojista chama de "o motoboy", e é o que separa esta linha das outras
+ * duas num relance.
+ */
+export function CourierIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="5.5" cy="17" r="3" />
+      <circle cx="18.5" cy="17" r="3" />
+      <path d="M8.5 17h7l-3-6H9" />
+      <path d="M15.5 11l2-4h2" />
+    </Icon>
+  );
+}
+
 /** Cupom: o bilhete com o picote. */
 export function CouponIcon(props: IconProps) {
   return (

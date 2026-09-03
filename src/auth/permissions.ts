@@ -163,6 +163,10 @@ export type Acao =
    * paga. São duas ações porque são dois papéis na MESMA rota, e apontar as
    * duas para o mesmo par faria o compilador parar de conferir uma delas.
    */
+  | 'entregadores.ver'
+  | 'entregadores.cadastrar'
+  | 'entregadores.editar'
+  | 'entregadores.excluir'
   | 'entregadores.verTaxa'
   | 'entregadores.editarTaxa'
   // --- impressão
@@ -327,6 +331,16 @@ const ROTA_DA_ACAO = {
   'loja.editarPagamento': 'POST /admin/branches/{branch_id}/payment-methods',
 
   // --- entregadores ---------------------------------------------------------
+  /*
+   * VER É DE QUEM OPERA, MEXER É DA GERÊNCIA. O atendente precisa da lista
+   * para saber a quem entregar o pedido — é ele que está no balcão quando o
+   * motoboy chega —, mas cadastrar, editar e excluir são decisões de quem
+   * responde pela loja.
+   */
+  'entregadores.ver': 'GET /admin/couriers',
+  'entregadores.cadastrar': 'POST /admin/couriers',
+  'entregadores.editar': 'PATCH /admin/couriers/{courier_id}',
+  'entregadores.excluir': 'DELETE /admin/couriers/{courier_id}',
   'entregadores.verTaxa': 'GET /admin/branches/{branch_id}/courier-fee',
   'entregadores.editarTaxa': 'PATCH /admin/branches/{branch_id}/courier-fee',
 

@@ -349,7 +349,13 @@ test('o atendente vê dois blocos inteiros, e nenhum grupo com um item só', asy
    * papel é 0 ou cheio, nunca 1. Um rótulo em cima de um item só custa uma
    * linha inteira para dizer o que o próprio item já diz.
    */
-  await expect(page.getByRole('list', { name: 'Hoje' }).getByRole('listitem')).toHaveCount(3);
+  /*
+   * QUATRO, E NÃO MAIS TRÊS: Entregadores entrou em "Hoje" com `acao` de
+   * LEITURA (`GET /admin/couriers`, PESSOAS), e o atendente é justamente quem
+   * mais precisa dela — é ele que está no balcão quando o motoboy chega. As
+   * escritas do cadastro são da gerência e somem DENTRO da tela, não daqui.
+   */
+  await expect(page.getByRole('list', { name: 'Hoje' }).getByRole('listitem')).toHaveCount(4);
   await expect(
     page.getByRole('list', { name: 'Configuração e conta' }).getByRole('listitem'),
   ).toHaveCount(3);
