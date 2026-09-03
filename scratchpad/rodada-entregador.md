@@ -464,6 +464,22 @@ Os dois casos ganharam e2e: o do dono em "Todas as filiais" (que não existia �
 tela tinha um ramo sem teste, e é por isso que ele estava quebrado) e o do
 gerente pelo caminho que de fato produz o estado.
 
+**O que a correção NÃO resolveu, e fica anotado:** na aba da LISTA, escolher
+"Todas as filiais" no topo continua voltando sozinho para a filial adotada. É o
+seletor piscando de novo — só que ali a adoção é a decisão certa (o cadastro
+grava numa filial), e o defeito é a tela oferecer uma opção que ela desfaz.
+
+O jeito normal de matar isso é declarar a rota em `SINGLE_BRANCH_PATHS`, e é
+justamente o que **não** se pode fazer aqui: a lista quer escopo `single` e o
+relatório quer `multi`, na mesma rota. Enquanto as duas abas dividirem
+`/entregadores`, uma das duas fica errada — e a que está errada hoje é a que
+não perde número nenhum.
+
+Sai de duas maneiras, e nenhuma cabe no item 5: o escopo passar a ser por ABA e
+não por rota (mexe no seletor do topo, que é de todo mundo), ou o relatório
+virar rota própria `/entregadores/a-pagar` — o que reabre a decisão de "abas,
+não dois itens na lateral" só na aparência, porque rota irmã não é item de menu.
+
 ### Vermelho visto
 
 16 casos do modelo puro e 11 e2e. O vermelho de verdade veio do portão, no
