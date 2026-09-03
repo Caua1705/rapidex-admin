@@ -312,3 +312,57 @@ test('o link ocupa uma linha só, truncada, com o copiar ao lado', async ({ page
   await expect(page.getByTestId('acesso-link-copiar')).toBeVisible();
   await expect(page.getByTestId('acesso-link')).toContainText('pederapidex.com/entregador/');
 });
+
+/*
+ * ============================================================================
+ * A ORDEM DA TELA, E QUEM ELA ATENDE PRIMEIRO
+ * ============================================================================
+ *
+ * O motoboy quase nunca está na loja quando o cadastro é feito, então mandar o
+ * par pelo WhatsApp é o CAMINHO COMUM e o QR é a exceção de quem está no
+ * balcão. Com o QR antes, no telefone, a ação principal caía abaixo da dobra:
+ * o lojista rolava para achar o botão que ele abriu o diálogo para apertar.
+ */
+test('no telefone o WhatsApp vem antes do QR, e sem rolar', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 780 });
+  await abrirAcesso(page);
+
+  const codigo = (await page.getByTestId('acesso-codigo').boundingBox())!;
+  const whats = (await page.getByTestId('acesso-whatsapp').boundingBox())!;
+  const qr = (await page.getByTestId('acesso-qr').boundingBox())!;
+
+  // A ordem na tela: código, o botão, e só então o QR.
+  expect(whats.y).toBeGreaterThan(codigo.y);
+  expect(qr.y).toBeGreaterThan(whats.y);
+
+  /*
+   * E ELE CABE NA DOBRA. `boundingBox` é a posição na JANELA, então um botão
+   * que só aparece rolando tem `y` maior que a altura dela — é exatamente o
+   * que acontecia antes desta mudança.
+   */
+  expect(whats.y + whats.height).toBeLessThanOrEqual(780);
+  await expect(page.getByTestId('acesso-whatsapp')).toBeInViewport();
+});
+
+/*
+ * NO DESKTOP NADA DISSO SE MOVE: lá não há dobra a resolver, e o QR ao lado
+ * dos campos é o que faz o diálogo caber numa tela só. Quem troca de lugar é a
+ * ÁREA na grade, não o elemento na ordem do documento — por isso os dois
+ * focáveis mantêm a mesma sequência nos dois desenhos.
+ */
+test('no desktop o QR volta para o lado dos campos, com o botão embaixo', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await abrirAcesso(page);
+
+  const codigo = (await page.getByTestId('acesso-codigo').boundingBox())!;
+  const whats = (await page.getByTestId('acesso-whatsapp').boundingBox())!;
+  const qr = (await page.getByTestId('acesso-qr').boundingBox())!;
+
+  // O QR à ESQUERDA dos campos, na mesma altura — e não empilhado.
+  expect(qr.x).toBeLessThan(codigo.x);
+  expect(qr.y).toBeLessThan(codigo.y + codigo.height);
+
+  // O botão embaixo dos dois, e mais largo que a coluna dos campos.
+  expect(whats.y).toBeGreaterThan(qr.y);
+  expect(whats.width).toBeGreaterThan(codigo.width);
+});

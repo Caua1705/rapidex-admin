@@ -20,18 +20,58 @@
 }
 
 /*
- * O QR E OS CAMPOS LADO A LADO, e o QR primeiro na leitura: com o motoboy na
- * loja, apontar a câmera é o caminho mais curto e nem precisa dos campos.
+ * ============================================================================
+ * A ORDEM DO PAR MUDA COM O TAMANHO, E A DO DOCUMENTO É A DO CASO COMUM
+ * ============================================================================
  *
- * `wrap` porque o diálogo estreita no telefone — e ali o QR desce inteiro em
- * vez de encolher: um QR espremido é um QR que a câmera não lê, que é o mesmo
- * que não ter QR.
+ * NO TELEFONE (o padrão, uma coluna) vale a ordem do documento: código e link,
+ * o botão do WhatsApp, e só então o QR. O motoboy quase nunca está na loja
+ * quando o cadastro é feito — mandar a mensagem é o caminho normal, e com o QR
+ * antes ele caía abaixo da dobra. Quem ESTÁ com o motoboy na frente rola um
+ * pouco e acha o QR: é o caminho mais curto, e o menos frequente.
+ *
+ * NO DESKTOP a grade devolve tudo para onde estava: QR à esquerda, os campos à
+ * direita, o botão na largura inteira embaixo. Ali não há dobra a resolver, e o
+ * QR ao lado dos campos é o que faz o diálogo caber numa tela só.
+ *
+ * A GRADE FAZ ISSO SEM `order` E SEM `display: contents`: quem se move é a
+ * ÁREA, não o elemento na sequência de foco. Os dois focáveis (os botões de
+ * copiar e o link do WhatsApp) mantêm a mesma ordem relativa nos dois desenhos,
+ * e o QR — que não recebe foco — é o único que troca de lugar.
  */
 .acesso__par {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  flex-direction: column;
   gap: var(--sp-20);
+}
+
+/*
+ * 560px é onde o QR (200) e os campos (mínimo de 220) passam a caber lado a
+ * lado com o vão entre eles, já descontado o respiro do diálogo. Abaixo disso
+ * eles empilhariam de qualquer jeito — a diferença é que agora empilham na
+ * ordem certa.
+ */
+@media (min-width: 560px) {
+  .acesso__par {
+    display: grid;
+    grid-template-columns: auto minmax(220px, 1fr);
+    grid-template-areas:
+      'qr campos'
+      'whats whats';
+    align-items: start;
+  }
+
+  .acesso__campos {
+    grid-area: campos;
+  }
+
+  .acesso__qr {
+    grid-area: qr;
+  }
+
+  .acesso__whatsapp {
+    grid-area: whats;
+  }
 }
 
 .acesso__qr {
@@ -47,12 +87,13 @@
 }
 
 /*
- * OS DOIS CAMPOS OCUPAM O QUE SOBRA. O link é longo e quebra em qualquer
- * lugar; sem `min-width: 0` num filho de flex, ele empurraria o QR para fora
- * do diálogo em vez de quebrar.
+ * OS DOIS CAMPOS OCUPAM O QUE SOBRA.
+ *
+ * `min-width: 0` é o que permite ao link TRUNCAR: sem ele, uma célula de grade
+ * (e um filho de flex) tem largura mínima igual à do conteúdo, e a URL de
+ * sessenta caracteres empurraria o QR para fora do diálogo em vez de encurtar.
  */
 .acesso__campos {
-  flex: 1 1 220px;
   min-width: 0;
   display: flex;
   flex-direction: column;

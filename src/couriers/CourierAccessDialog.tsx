@@ -99,15 +99,6 @@ export function CourierAccessDialog({
         </p>
 
         <div className="acesso__par">
-          <div className="acesso__qr">
-            <QrCode
-              value={link}
-              label={`QR do acesso de ${courier.name}`}
-              data-testid="acesso-qr"
-            />
-            <p className="field__hint">Aponte a câmera do celular dele.</p>
-          </div>
-
           <div className="acesso__campos">
             {/*
               O CÓDIGO VEM PRIMEIRO, E É O DESTAQUE DA TELA.
@@ -131,23 +122,44 @@ export function CourierAccessDialog({
               data-testid="acesso-link"
             />
           </div>
-        </div>
 
-        {/*
-          O WHATSAPP LEVA O PAR INTEIRO numa mensagem só. Mandar link e código
-          em duas mensagens é o que produz a ligação de volta ("chegou só o
-          endereço") — e a essa altura o par já não existe para reenviar a
-          metade que faltou.
-        */}
-        <a
-          className="btn btn--primary acesso__whatsapp"
-          href={urlDoWhatsApp(courier.phone, mensagem)}
-          target="_blank"
-          rel="noreferrer noopener"
-          data-testid="acesso-whatsapp"
-        >
-          Enviar no WhatsApp
-        </a>
+          {/*
+            O WHATSAPP VEM ANTES DO QR NA ORDEM DO DOCUMENTO, e isso é o
+            desenho do CASO COMUM: o motoboy quase nunca está na loja quando o
+            cadastro é feito, então mandar a mensagem é o caminho normal e o QR
+            é a exceção de quem está no balcão.
+
+            No telefone, com o QR antes, a ação principal caía abaixo da dobra:
+            o lojista rolava para achar o botão que ele veio apertar. Quem está
+            com o motoboy na frente rola um pouco e acha o QR — que é o caminho
+            mais curto, mas o menos frequente.
+
+            No desktop nada disso muda de lugar: a grade abaixo devolve o QR
+            para a esquerda e o botão para a largura inteira.
+
+            ELE LEVA O PAR INTEIRO numa mensagem só. Mandar link e código em
+            duas é o que produz a ligação de volta ("chegou só o endereço") — e
+            a essa altura o par já não existe para reenviar a metade que faltou.
+          */}
+          <a
+            className="btn btn--primary acesso__whatsapp"
+            href={urlDoWhatsApp(courier.phone, mensagem)}
+            target="_blank"
+            rel="noreferrer noopener"
+            data-testid="acesso-whatsapp"
+          >
+            Enviar no WhatsApp
+          </a>
+
+          <div className="acesso__qr">
+            <QrCode
+              value={link}
+              label={`QR do acesso de ${courier.name}`}
+              data-testid="acesso-qr"
+            />
+            <p className="field__hint">Aponte a câmera do celular dele.</p>
+          </div>
+        </div>
 
         <p className="field__hint">
           O código é pedido uma vez, no primeiro acesso. Depois o aplicativo guarda.
