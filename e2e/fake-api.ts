@@ -2087,6 +2087,13 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       target_segment: null,
       is_active: true,
       total_usage_count: 0,
+      /*
+       * A POSIÇÃO NA VITRINE. Zero é o valor que todo cupom de hoje tem
+       * gravado — a coluna existia com `DEFAULT 0` e o painel não tinha como
+       * escrevê-la, então a ordem da vitrine saía do desempate. O falso semeia
+       * o que o banco tem, e não uma ordem inventada que só existiria aqui.
+       */
+      sort_order: 0,
       created_at: null,
       updated_at: null,
     };

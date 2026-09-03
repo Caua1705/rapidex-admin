@@ -55,6 +55,7 @@ function cupom(overrides: Partial<Coupon> = {}): Coupon {
     target_segment: null,
     is_active: true,
     total_usage_count: 0,
+    sort_order: 0,
     created_at: null,
     updated_at: null,
     ...overrides,

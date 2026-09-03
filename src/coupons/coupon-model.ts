@@ -698,6 +698,19 @@ export function bodyFrom(rascunho: CouponDraft, arte: CouponTemplate): CouponCre
   return {
     coupon_template_id: arte.id,
     discount_type: tipo,
+    /*
+     * A POSIÇÃO NA VITRINE, e ela vai ZERO de propósito.
+     *
+     * Zero é "nunca foi arrastado", que é a posição de todo cupom que existe
+     * hoje — o campo entrou no contrato agora, e antes dele a vitrine ordenava
+     * por uma coluna que o painel não escrevia. Mandar outro número aqui seria
+     * a tela decidir a ordem da vitrine num formulário que não mostra ordem
+     * nenhuma, e o lojista descobriria a decisão no app do cliente.
+     *
+     * Quando existir o arrastar de campanha, é ELE que escreve isto — pela
+     * rota de PATCH, com a lista na mão.
+     */
+    sort_order: 0,
     discount_value: tipo === 'free_delivery' ? '0.00' : (arte.discount_value ?? '0.00'),
     code: rascunho.code.trim().toUpperCase() || null,
     title: rascunho.title.trim(),
