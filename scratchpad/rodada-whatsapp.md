@@ -161,3 +161,53 @@ número desligado, e o contrário do que "herança" quer dizer no resto do paine
 - **O restante da lista de `pedidos-ao-backend.md` continua de pé**: criar
   filial, apagar produto/categoria, apagar setor de impressão, logo do
   restaurante, credencial do gateway e nota fiscal.
+
+---
+
+## Onde parei — três coisas em pé, nenhuma começada
+
+A rodada está fechada e empurrada (`c6cfeb8`, `090fb90`, `2736c09`, `73092ba`),
+com o portão verde lido sem pipe. O que sobrou está **proposto e não decidido**,
+e fica aqui para não depender de memória de conversa:
+
+1. **A próxima rodada proposta: editar a opção de complemento.**
+   `PATCH /admin/options/{option_id}` aceita `name`, `description`,
+   `additional_price` e `sort_order`; o painel manda só `is_active`
+   (`src/api/menu.ts:207`). O GRUPO já é editável e a OPÇÃO não — o lojista
+   renomeia a pergunta e não a resposta, e a resposta é a que tem preço.
+
+   As peças existem: `checkOpcao` monta o corpo, `comOpcaoTrocada` aplica a
+   resposta, o formulário em linha é o mesmo da criação, e
+   `cardapio.editarComplemento` já aponta para a rota. Falta o modo de edição e
+   um `updateOption`.
+
+   **Duas coisas conferidas no backend que mudam o corpo:** `update_option` usa
+   `exclude_unset=True` e `AdminOptionUpdate` não tem `@model_validator` — então
+   o PATCH é parcial de verdade (a §4.9 não se aplica), e o corpo leva TRÊS
+   campos. `is_active` fica de fora de propósito: `checkOpcao` devolve
+   `is_active: true` fixo, e reusá-lo na edição RELIGARIA em silêncio a opção
+   que o lojista tinha desligado.
+
+   **A pergunta que ficou sem resposta, e ela decide o tamanho da rodada:** a
+   ORDEM das opções entra? `sort_order` existe e hoje é a ordem de criação, sem
+   controle. Se entrar, são N chamadas à mesma `PATCH` (não há rota de lote,
+   como na barra de seleção do Cardápio) mais as setas de teclado ao lado do
+   arraste (WCAG 2.5.7) — de horas para um dia.
+
+2. **`?include_inactive=true` em `GET /admin/branches`** — pedido escrito em
+   `pedidos-ao-backend.md` §5, com a separação que ele faz: DESATIVAR filial é
+   decisão consciente e documentada; VER a arquivada é lacuna, e a prova é que
+   `AdminBranchResponse` publica um `is_active` que nessa rota só pode valer
+   `true`.
+
+3. **O sintoma 2 daquele pedido é DO PAINEL e não depende de backend nenhum.**
+   `AdminWhatsAppService.list_channels` monta o mapa de nomes com
+   `list_active_by_restaurant` e a lista de canais com `list_by_restaurant` (sem
+   filtro), então o canal de uma filial arquivada volta com `branch_name: null`
+   — e `lugarDoCanal` (`src/whatsapp/whatsapp-model.ts`) desenha o reserva
+   **"Filial"**. O dono vê um número conectado, num lugar sem nome, de uma loja
+   que ele não enxerga.
+
+   O conserto é a frase, e o painel já tem precedente para ela: `filialLabel`
+   escreve **"Outra filial"** no caso irmão em Usuários. **Não foi feito** — é
+   mudança em tela recém-entregue e não foi pedida.
