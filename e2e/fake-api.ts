@@ -2095,6 +2095,20 @@ export type FakeApi = {
   optionGroupBodies: () => { productId: string; body: unknown }[];
   /** O corpo de cada opção criada, na ordem. */
   optionBodies: () => { groupId: string; body: unknown }[];
+  /**
+   * O CORPO DE CADA `PATCH /admin/options/{id}`, na ordem.
+   *
+   * Ele prova as duas AUSÊNCIAS que o objeto resultante esconde: o formulário
+   * de edição não manda `is_active` (mandaria `true` fixo, religando a opção
+   * que o lojista desligou no interruptor ao lado) nem `sort_order` (que é das
+   * setas). "Não mandou" e "mandou o mesmo valor" são indistinguíveis olhando
+   * só a opção gravada.
+   *
+   * E ele prova a CONTA das escritas de ordem: não há rota de lote, então mover
+   * uma opção é uma requisição por posição que mudou — e uma tela que
+   * reescrevesse a lista inteira gastaria N onde bastam duas.
+   */
+  optionPatches: () => { optionId: string; body: Record<string, unknown> }[];
   /** Os grupos de um produto como o "banco" os tem agora. */
   optionGroupsOf: (productId: string) => unknown[];
   /** Motivo gravado no cancelamento, para conferir o que a tela mandou. */
@@ -2893,6 +2907,8 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     optionGroupBodies: [] as { productId: string; body: unknown }[],
     /** O corpo de cada opção criada, na ordem. */
     optionBodies: [] as { groupId: string; body: unknown }[],
+    /** Cada PATCH de opção, com o corpo inteiro. Ver o ramo da rota. */
+    optionPatches: [] as { optionId: string; body: Record<string, unknown> }[],
     reorderCalls: [] as { branchId: string | undefined; categoryIds: string[] }[],
     productReorderCalls: [] as { categoryId: string; productIds: string[] }[],
     /** Ids cuja gravação de disponibilidade responde 500. Ver `failAvailability`. */
@@ -6120,10 +6136,69 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       const optionId = opcaoMatch.option_id;
       for (const grupo of Object.values(state.optionGroups).flat()) {
         const opcao = (grupo.options ?? []).find((item) => item.id === optionId);
-        if (opcao) {
-          Object.assign(opcao, request.postDataJSON() as Record<string, unknown>);
-          return responder(route, 'patch', '/admin/options/{option_id}', 200, opcao);
+        if (!opcao) continue;
+
+        const corpo = request.postDataJSON() as Record<string, unknown>;
+        /*
+         * O CORPO É GUARDADO INTEIRO, e não só aplicado — pelo mesmo motivo de
+         * `productPatches`: é a única forma de um teste provar uma AUSÊNCIA.
+         *
+         * Aqui há duas ausências que custam caro e que o objeto resultante não
+         * distingue de "mandou o mesmo valor": `is_active`, que o formulário de
+         * edição não pode mandar (religaria a opção que o lojista desligou no
+         * interruptor ao lado), e `sort_order`, que é das setas.
+         */
+        state.optionPatches.push({ optionId, body: corpo });
+
+        /*
+         * AS RÉGUAS DE `AdminOptionUpdate`, que o backend cobra e o dublê
+         * cobrava zero. Um falso mais frouxo que produção deixa o painel mandar
+         * o que a API recusa, e a suíte fica verde sobre isso (§4.10).
+         */
+        const nome = corpo.name;
+        if (typeof nome === 'string' && (nome.length < 1 || nome.length > 120)) {
+          return recusar(route, 'patch', '/admin/options/{option_id}', 422, {
+            detail: 'String should have at most 120 characters',
+          });
         }
+        const descricao = corpo.description;
+        if (typeof descricao === 'string' && descricao.length > 500) {
+          return recusar(route, 'patch', '/admin/options/{option_id}', 422, {
+            detail: 'String should have at most 500 characters',
+          });
+        }
+        const preco = corpo.additional_price;
+        if (preco !== undefined && preco !== null && Number(preco) < 0) {
+          return recusar(route, 'patch', '/admin/options/{option_id}', 422, {
+            detail: 'Input should be greater than or equal to 0',
+          });
+        }
+        const posicao = corpo.sort_order;
+        if (posicao !== undefined && posicao !== null && Number(posicao) < 0) {
+          return recusar(route, 'patch', '/admin/options/{option_id}', 422, {
+            detail: 'Input should be greater than or equal to 0',
+          });
+        }
+
+        Object.assign(opcao, corpo);
+        /*
+         * `quantize_money` DO BACKEND: `update_option` arredonda o adicional
+         * antes de gravar. Sem isto, um "3,333" digitado voltaria intacto e o
+         * teste concordaria com um valor que produção nunca guarda.
+         */
+        if (preco !== undefined && preco !== null) {
+          opcao.additional_price = Math.round(Number(preco) * 100) / 100;
+        }
+        /*
+         * A LISTA DO GRUPO SAI ORDENADA POR `sort_order`, como o backend a lê
+         * (`selectinload` com `order_by`). Guardar a posição sem reordenar
+         * deixaria o falso responder na ordem de INSERÇÃO — e a tela, que relê
+         * depois de mover, mostraria a ordem antiga com o dado novo.
+         */
+        grupo.options = [...(grupo.options ?? [])].sort(
+          (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0),
+        );
+        return responder(route, 'patch', '/admin/options/{option_id}', 200, opcao);
       }
       return recusar(route, 'patch', '/admin/options/{option_id}', 404, {
         detail: 'Opção não encontrada.',
@@ -6575,6 +6650,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     errorReports: () => state.errorReports,
     optionGroupBodies: () => state.optionGroupBodies,
     optionBodies: () => state.optionBodies,
+    optionPatches: () => state.optionPatches,
     optionGroupsOf: (productId) => state.optionGroups[productId] ?? [],
     cancelReasons: () => state.cancelReasons,
     cancelamentosRecusadosPorConfirmacao: () => state.cancelamentosRecusadosPorConfirmacao,

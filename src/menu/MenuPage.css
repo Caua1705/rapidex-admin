@@ -832,18 +832,41 @@
   gap: var(--sp-4);
   margin-top: var(--sp-8);
 }
+/*
+ * A LINHA DA OPÇÃO virou FLEX, e não grid, quando ela ganhou o lápis e as setas.
+ *
+ * Em grid, o preço é opcional e as ações não são: com `1fr auto` as duas
+ * últimas células trocariam de dono conforme a opção cobrar ou não adicional, e
+ * a coluna de botões andaria de uma linha para a outra na mesma lista. Em flex,
+ * o nome empurra e todo o resto se encosta à direita, com preço ou sem.
+ */
 .groups__option {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  align-items: center;
   gap: var(--sp-12);
   color: var(--ink-2);
   font-size: var(--ta-size);
 }
 .groups__option-name {
+  flex: 1 1 auto;
   min-width: 0;
 }
 .groups__option-price {
+  flex: 0 0 auto;
   text-align: right;
+}
+/*
+ * AS SETAS E O LÁPIS FICAM VISÍVEIS — sem `:hover`.
+ *
+ * O lápis do item do cardápio nasceu com `opacity: 0` e era invisível no tablet
+ * do balcão (`revisao` §4); aqui isso não se repete. `rail__chevron` é a mesma
+ * classe das setas de categoria, e é por reusá-la que estes botões herdam os
+ * 44px de alvo no toque em vez de precisarem de uma segunda regra.
+ */
+.groups__option-acoes {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
 }
 @media (hover: none), (max-width: 1023px) {
   .rail__reorder,

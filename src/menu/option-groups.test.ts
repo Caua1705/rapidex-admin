@@ -6,7 +6,11 @@ import {
   GRUPO_NOME_MAX,
   checkGrupo,
   checkOpcao,
+  checkOpcaoEdicao,
   comOpcaoTrocada,
+  comOpcoesDoGrupo,
+  opcaoDraftDe,
+  ordemDasOpcoes,
   corpoDoGrupo,
   grupoDraftDe,
   grupoVazio,
@@ -358,5 +362,179 @@ describe('comOpcaoTrocada', () => {
   it('grupo sem opções passa intacto', () => {
     const semOpcoes = [grupo({ id: 'grp-novo', options: undefined })];
     expect(comOpcaoTrocada(semOpcoes, opcao())).toEqual(semOpcoes);
+  });
+});
+
+/* ==========================================================================
+ * A EDIÇÃO DA OPÇÃO
+ *
+ * O GRUPO já era editável e a OPÇÃO não: o lojista renomeava a pergunta e não a
+ * resposta — e a resposta é a que tem preço. `PATCH /admin/options/{option_id}`
+ * aceitava os cinco campos desde sempre e o painel mandava um só.
+ * ======================================================================= */
+
+describe('a opção que se edita', () => {
+  function opcao(overrides: Partial<ProductOption> = {}): ProductOption {
+    return {
+      id: 'opt-bacon',
+      option_group_id: 'grp-adicionais',
+      name: 'Bacon',
+      description: null,
+      additional_price: 5,
+      sort_order: 0,
+      is_active: true,
+      ...overrides,
+    };
+  }
+
+  it('o rascunho sai da opção gravada, com o preço no formato do campo', () => {
+    expect(opcaoDraftDe(opcao({ additional_price: 3.5, description: 'Duas fatias' }))).toEqual({
+      name: 'Bacon',
+      description: 'Duas fatias',
+      price: '3,50',
+    });
+  });
+
+  /*
+   * PREÇO ZERO VIRA CAMPO VAZIO, e não "0,00".
+   *
+   * "Em branco não cobra nada a mais" é o que o campo promete na criação. Abrir
+   * a edição com "0,00" escrito faria o lojista apagar aquilo para dizer a mesma
+   * coisa — e um campo que volta diferente do que foi deixado ensina a não
+   * confiar nele.
+   */
+  it('adicional zero abre o campo VAZIO, como na criação', () => {
+    expect(opcaoDraftDe(opcao({ additional_price: 0 })).price).toBe('');
+  });
+
+  /*
+   * O CORPO DA EDIÇÃO TEM TRÊS CAMPOS, e as duas ausências são decisão.
+   *
+   * `is_active` FICA DE FORA: `checkOpcao` devolve `is_active: true` fixo (é o
+   * padrão de uma opção nova), e reusá-lo na edição RELIGARIA em silêncio a
+   * opção que o lojista tinha desligado — pelo interruptor logo ao lado, na
+   * mesma linha.
+   *
+   * `sort_order` FICA DE FORA porque quem o move são as setas. O formulário não
+   * mostra posição; mandá-la seria a tela reordenando por conta própria com um
+   * valor que pode ter envelhecido enquanto o formulário estava aberto.
+   *
+   * E ISSO SÓ É SEGURO PORQUE ESTE PATCH É PARCIAL DE VERDADE:
+   * `update_option` usa `exclude_unset=True` e `AdminOptionUpdate` não tem
+   * `@model_validator` — o §4.9 de `rapidex-api` (o PATCH validado sobre a
+   * MESCLA, que obriga o formulário inteiro) vale para o GRUPO e não para a
+   * opção.
+   */
+  it('manda três campos — sem `is_active` e sem `sort_order`', () => {
+    const check = checkOpcaoEdicao({ name: 'Bacon', description: '', price: '4,00' });
+
+    expect(check).toEqual({
+      valid: true,
+      opcao: { name: 'Bacon', description: null, additional_price: 4 },
+    });
+  });
+
+  it('a validação é a MESMA da criação — um só lugar decide o que é opção válida', () => {
+    expect(checkOpcaoEdicao(opcaoVazia())).toEqual({ valid: false, message: null });
+    expect(checkOpcaoEdicao({ ...opcaoVazia(), name: 'Bacon', price: 'grátis' }).valid).toBe(false);
+    expect(checkOpcaoEdicao({ ...opcaoVazia(), name: 'Bacon', price: '-1' }).valid).toBe(false);
+    expect(checkOpcaoEdicao({ ...opcaoVazia(), name: 'x'.repeat(GRUPO_NOME_MAX + 1) }).valid).toBe(
+      false,
+    );
+  });
+});
+
+/* ==========================================================================
+ * A ORDEM DAS OPÇÕES
+ *
+ * `sort_order` existia e era a ordem de criação, sem controle nenhum. "Pequena,
+ * Média, Grande" ficava na ordem em que alguém as digitou em dias diferentes.
+ *
+ * NÃO HÁ ROTA DE LOTE — só `PATCH /admin/options/{option_id}`. Mover uma opção
+ * é reescrever a posição de todas as que mudaram de lugar, e é por isso que
+ * esta função devolve a LISTA DE ESCRITAS e não uma lista de opções.
+ * ======================================================================= */
+
+describe('ordemDasOpcoes', () => {
+  function opcao(id: string, sortOrder: number): ProductOption {
+    return {
+      id,
+      option_group_id: 'grp-tamanho',
+      name: id,
+      description: null,
+      additional_price: 0,
+      sort_order: sortOrder,
+      is_active: true,
+    };
+  }
+
+  /* Vizinhas trocadas: duas escritas, e não a lista inteira. */
+  it('escreve só quem mudou de posição', () => {
+    const depois = [opcao('b', 1), opcao('a', 0), opcao('c', 2)];
+
+    expect(ordemDasOpcoes(depois)).toEqual([
+      { id: 'b', sort_order: 0 },
+      { id: 'a', sort_order: 1 },
+    ]);
+  });
+
+  it('lista já na ordem certa não gera escrita nenhuma', () => {
+    expect(ordemDasOpcoes([opcao('a', 0), opcao('b', 1)])).toEqual([]);
+  });
+
+  /*
+   * O CARDÁPIO ANTIGO TEM TODAS AS OPÇÕES EM ZERO — `sort_order` tinha `default: 0`
+   * e ninguém nunca o escreveu. O primeiro arraste renumera o grupo inteiro, e
+   * é uma vez só: essa é a diferença entre a lista ficar na ordem que o lojista
+   * montou e ficar na ordem que o banco devolveu.
+   */
+  it('grupo legado com tudo em zero é renumerado inteiro, uma vez só', () => {
+    const legado = [opcao('a', 0), opcao('b', 0), opcao('c', 0)];
+
+    expect(ordemDasOpcoes(legado)).toEqual([
+      { id: 'b', sort_order: 1 },
+      { id: 'c', sort_order: 2 },
+    ]);
+  });
+
+  it('opção sem posição gravada conta como fora de lugar, e não como zero', () => {
+    const semPosicao = [{ ...opcao('a', 0), sort_order: null }] as ProductOption[];
+    expect(ordemDasOpcoes(semPosicao)).toEqual([{ id: 'a', sort_order: 0 }]);
+  });
+});
+
+/* ==========================================================================
+ * A TROCA LOCAL, ENQUANTO AS ESCRITAS ACONTECEM
+ * ======================================================================= */
+
+describe('comOpcoesDoGrupo', () => {
+  function opcao(id: string, sortOrder: number): ProductOption {
+    return {
+      id,
+      option_group_id: 'grp-tamanho',
+      name: id,
+      description: null,
+      additional_price: 0,
+      sort_order: sortOrder,
+      is_active: true,
+    };
+  }
+
+  it('troca a lista de UM grupo e não encosta nos outros', () => {
+    const antes = [
+      grupo({ id: 'grp-tamanho', options: [opcao('a', 0), opcao('b', 1)] }),
+      grupo({ id: 'grp-ponto', options: [opcao('mal', 0)] }),
+    ];
+
+    const depois = comOpcoesDoGrupo(antes, 'grp-tamanho', [opcao('b', 1), opcao('a', 0)]);
+
+    expect(depois?.[0]?.options?.map((o) => o.id)).toEqual(['b', 'a']);
+    expect(depois?.[1]?.options?.map((o) => o.id)).toEqual(['mal']);
+  });
+
+  /* Mesma regra de `comOpcaoTrocada`: sem lista lida não há o que trocar, e
+     inventar um grupo apagaria a diferença entre "não tem" e "não deu para ler". */
+  it('`null` entra e sai `null`', () => {
+    expect(comOpcoesDoGrupo(null, 'grp-tamanho', [])).toBeNull();
   });
 });

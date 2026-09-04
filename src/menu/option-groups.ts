@@ -37,7 +37,7 @@
  * de preencher seis campos e levar 422 no clique.
  */
 import type { ProductOption, ProductOptionGroup } from '../api/types';
-import { parsePriceInput } from './menu-model';
+import { formatPriceInput, parsePriceInput } from './menu-model';
 
 /** `name`: `min_length=1, max_length=120` no Pydantic. Não sai no contrato. */
 export const GRUPO_NOME_MAX = 120;
@@ -135,6 +135,30 @@ export type OpcaoBody = {
   sort_order: number;
 };
 
+/**
+ * O corpo da EDIÇÃO — três campos, e as duas ausências são decisão.
+ *
+ * `is_active` FICA DE FORA. `checkOpcao` devolve `is_active: true` fixo, que é o
+ * padrão de uma opção nova; reusá-lo aqui RELIGARIA em silêncio a opção que o
+ * lojista tinha desligado no interruptor da mesma linha.
+ *
+ * `sort_order` FICA DE FORA porque quem o move são as setas. O formulário não
+ * mostra posição — mandá-la seria a tela reordenando por conta própria, com um
+ * valor que pode ter envelhecido enquanto o formulário estava aberto.
+ *
+ * E AS DUAS AUSÊNCIAS SÓ SÃO SEGURAS PORQUE ESTE PATCH É PARCIAL DE VERDADE:
+ * `update_option` usa `exclude_unset=True` e `AdminOptionUpdate` não tem
+ * `@model_validator`. O §4.9 de `rapidex-api` — o PATCH validado sobre a MESCLA,
+ * que obriga a mandar o formulário inteiro — vale para o GRUPO, cujo
+ * `AdminOptionGroupUpdate` valida `{...gravado, ...corpo}`, e NÃO vale aqui.
+ * As duas rotas são vizinhas e a regra delas é oposta.
+ */
+export type OpcaoEditBody = {
+  name: string;
+  description: string | null;
+  additional_price: number;
+};
+
 type Check<T, K extends string> =
   ({ valid: true } & Record<K, T>) | { valid: false; message: string | null };
 
@@ -215,11 +239,29 @@ export function corpoDoGrupo(grupo: GrupoBody): GrupoBody {
 }
 
 /**
- * @param sortOrder A posição da opção nova no grupo — normalmente quantas já
- * existem, para ela entrar no FIM. Sem isso toda opção nasceria com `0` e a
- * ordem da lista viraria a do banco, que não é a que o lojista montou.
+ * A opção como o formulário a edita.
+ *
+ * O PREÇO ZERO VIRA CAMPO VAZIO, e não "0,00": "em branco não cobra nada a
+ * mais" é o que o campo promete na criação, e abrir a edição com um zero
+ * escrito faria o lojista apagá-lo para dizer a mesma coisa.
  */
-export function checkOpcao(draft: OpcaoDraft, sortOrder = 0): Check<OpcaoBody, 'opcao'> {
+export function opcaoDraftDe(option: ProductOption): OpcaoDraft {
+  return {
+    name: option.name,
+    description: option.description ?? '',
+    price: option.additional_price > 0 ? formatPriceInput(option.additional_price) : '',
+  };
+}
+
+/**
+ * O que faz uma opção ser válida — e é UM lugar só, para a criação e a edição.
+ *
+ * Duas cópias desta validação divergiriam no dia em que uma delas mudasse, e o
+ * sintoma seria a tela aceitar na edição o que ela recusa na criação (`revisao`
+ * §1). Os limites saem do Pydantic e o preço passa pelo mesmo `parsePriceInput`
+ * do resto do painel.
+ */
+export function checkOpcaoEdicao(draft: OpcaoDraft): Check<OpcaoEditBody, 'opcao'> {
   const name = draft.name.trim();
   if (name === '') return { valid: false, message: null };
   if (name.length > GRUPO_NOME_MAX) {
@@ -254,10 +296,77 @@ export function checkOpcao(draft: OpcaoDraft, sortOrder = 0): Check<OpcaoBody, '
        * um dos dois começa a chegar errado.
        */
       additional_price: additional,
-      is_active: true,
-      sort_order: sortOrder,
     },
   };
+}
+
+/**
+ * O corpo da CRIAÇÃO: os três campos da edição, mais os dois que só nascem uma
+ * vez.
+ *
+ * @param sortOrder A posição da opção nova no grupo — normalmente quantas já
+ * existem, para ela entrar no FIM. Sem isso toda opção nasceria com `0` e a
+ * ordem da lista viraria a do banco, que não é a que o lojista montou.
+ */
+export function checkOpcao(draft: OpcaoDraft, sortOrder = 0): Check<OpcaoBody, 'opcao'> {
+  const check = checkOpcaoEdicao(draft);
+  if (!check.valid) return check;
+
+  return {
+    valid: true,
+    opcao: { ...check.opcao, is_active: true, sort_order: sortOrder },
+  };
+}
+
+/**
+ * ============================================================================
+ * A ORDEM DAS OPÇÕES — e por que ela devolve ESCRITAS, não uma lista
+ * ============================================================================
+ *
+ * `sort_order` existia e era a ordem de criação, sem controle: "Pequena, Média,
+ * Grande" ficava na ordem em que alguém as digitou em dias diferentes.
+ *
+ * **NÃO EXISTE ROTA DE LOTE.** O cardápio tem `PATCH /admin/categories/reorder`
+ * e `PATCH /admin/products/reorder`, que recebem a lista completa de ids; as
+ * opções têm `PATCH /admin/options/{option_id}` e mais nada. Mover uma opção é,
+ * portanto, N requisições — e é por isso que esta função devolve o que PRECISA
+ * SER GRAVADO em vez de uma lista pronta: mandar a posição de quem não se moveu
+ * é gastar requisição para reescrever o valor que já estava lá.
+ *
+ * Vizinhas trocadas dão duas escritas. Um grupo antigo, com todas as opções em
+ * `sort_order: 0` (o `default` do contrato, que ninguém nunca escreveu), é
+ * renumerado inteiro no primeiro arraste — uma vez só, e é o que faz a lista
+ * passar a ser a que o lojista montou em vez da que o banco devolveu.
+ *
+ * @param opcoes as opções JÁ NA ORDEM NOVA.
+ */
+export function ordemDasOpcoes(
+  opcoes: readonly ProductOption[],
+): { id: string; sort_order: number }[] {
+  return opcoes
+    .map((opcao, posicao) => ({ id: opcao.id, sort_order: posicao, gravada: opcao.sort_order }))
+    .filter((linha) => linha.gravada !== linha.sort_order)
+    .map(({ id, sort_order }) => ({ id, sort_order }));
+}
+
+/**
+ * Troca a lista de opções de UM grupo, sem tocar nos outros.
+ *
+ * É a irmã de `comOpcaoTrocada` para o caso do arraste: ali muda uma opção
+ * (a resposta do PATCH), aqui muda a ORDEM, que é uma propriedade da lista e
+ * não de nenhum item dela.
+ *
+ * `null` entra e sai `null`, pela mesma razão: sem lista lida não há o que
+ * trocar, e inventar um grupo apagaria a distinção entre "não tem complemento"
+ * e "não deu para ler".
+ */
+export function comOpcoesDoGrupo(
+  grupos: ProductOptionGroup[] | null,
+  groupId: string,
+  opcoes: ProductOption[],
+): ProductOptionGroup[] | null {
+  if (grupos === null) return null;
+  return grupos.map((grupo) => (grupo.id === groupId ? { ...grupo, options: opcoes } : grupo));
 }
 
 /**

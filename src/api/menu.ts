@@ -21,6 +21,7 @@ import type {
   CategoryCreate,
   CategoryUpdate,
   OptionCreateBody,
+  OptionEditBody,
   OptionGroupCreateBody,
   OptionGroupUpdateBody,
   Product,
@@ -198,17 +199,68 @@ export async function uploadProductImage(
 }
 
 /**
- * Liga ou desliga uma opção de complemento.
+ * ============================================================================
+ * TRÊS ESCRITORES SOBRE `PATCH /admin/options/{option_id}`, e é de propósito
+ * ============================================================================
  *
- * A resposta é a OPÇÃO (`AdminOptionResponse`) — ela não diz nada sobre o
- * produto. Quem precisa saber se o produto saiu de venda por causa desta
- * mudança relê o produto depois; ver `menu/required-groups.ts`.
+ * A rota aceita os cinco campos e é PARCIAL DE VERDADE: `update_option` faz
+ * `payload.model_dump(exclude_unset=True)` e `AdminOptionUpdate` não tem
+ * `@model_validator` — o que não vier não é tocado, e nada é validado contra o
+ * que está gravado. É o oposto do vizinho `PATCH /admin/option-groups/{id}`,
+ * que valida a MESCLA e por isso exige o formulário inteiro (`rapidex-api`
+ * §4.9). As duas rotas são irmãs e a regra delas é contrária.
+ *
+ * Um único `updateOption(id, corpoParcial)` deixaria cada chamador escolher o
+ * que mandar — e o dia em que um deles montasse o corpo a partir de um rascunho
+ * completo, o interruptor de "ativa" e a posição da lista viriam de carona.
+ * Três funções estreitas fazem o corpo ser o que o CONTROLE decide:
+ *
+ *   - o formulário  → `updateOption`        (nome, descrição, preço)
+ *   - o interruptor → `setOptionActive`     (só `is_active`)
+ *   - as setas      → `setOptionSortOrder`  (só `sort_order`)
+ *
+ * Todas respondem a OPÇÃO (`AdminOptionResponse`), que não diz nada sobre o
+ * produto: quem precisa saber se o item saiu de venda relê o produto depois
+ * (ver `menu/required-groups.ts`).
  */
+
+/** Nome, descrição e preço — o que o formulário em linha mostra, e só isso. */
+export async function updateOption(optionId: string, body: OptionEditBody): Promise<ProductOption> {
+  return unwrap(
+    await apiClient.PATCH('/admin/options/{option_id}', {
+      params: { path: { option_id: optionId } },
+      body,
+    }),
+  );
+}
+
+/** Liga ou desliga uma opção de complemento. */
 export async function setOptionActive(optionId: string, isActive: boolean): Promise<ProductOption> {
   return unwrap(
     await apiClient.PATCH('/admin/options/{option_id}', {
       params: { path: { option_id: optionId } },
       body: { is_active: isActive },
+    }),
+  );
+}
+
+/**
+ * A posição da opção dentro do grupo.
+ *
+ * UMA REQUISIÇÃO POR OPÇÃO QUE MUDOU DE LUGAR — não há rota de lote. As
+ * categorias e os produtos têm `PATCH .../reorder`, que recebem a lista
+ * completa de ids; as opções não têm nada equivalente. Quem decide o que
+ * precisa ser escrito é `ordemDasOpcoes`, para não gastar requisição
+ * reescrevendo a posição de quem não se moveu.
+ */
+export async function setOptionSortOrder(
+  optionId: string,
+  sortOrder: number,
+): Promise<ProductOption> {
+  return unwrap(
+    await apiClient.PATCH('/admin/options/{option_id}', {
+      params: { path: { option_id: optionId } },
+      body: { sort_order: sortOrder },
     }),
   );
 }

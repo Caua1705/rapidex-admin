@@ -447,3 +447,132 @@ test('opção nova recusada: a frase aparece, nada entra na lista e o texto fica
   await expect(page.getByTestId('opcao-nome')).toHaveValue('Bacon extra');
   expect(quantas()).toBe(antes);
 });
+
+/* ==========================================================================
+ * EDITAR A OPÇÃO, E ORDENAR AS OPÇÕES
+ *
+ * O GRUPO já era editável e a OPÇÃO não: o lojista renomeava a pergunta
+ * ("Ponto da carne") e não a resposta ("Mal passado") — e a resposta é a que
+ * tem preço. `PATCH /admin/options/{option_id}` aceitava os cinco campos desde
+ * sempre; o painel mandava um só, `is_active`.
+ * ======================================================================= */
+
+test('editar a opção manda TRÊS campos — sem religar e sem reordenar', async ({ page }) => {
+  await abrirItem(page, 'X-Burger Clássico');
+
+  await page.getByRole('button', { name: 'Editar Bacon' }).click();
+
+  /* O formulário abre com o que está gravado: 5 reais viram "5,00". */
+  await expect(page.getByTestId('opcao-preco')).toHaveValue('5,00');
+
+  await page.getByTestId('opcao-preco').fill('6,50');
+  await page.getByTestId('opcao-descricao').fill('Duas fatias');
+  await page.getByRole('button', { name: 'Salvar opção' }).click();
+
+  await expect(page.getByTestId('grupo-grp-adicionais')).toContainText('+R$ 6,50');
+
+  /*
+   * O CORPO É A PROVA, e não a lista. Olhando só a opção gravada, "não mandou
+   * `is_active`" e "mandou `true`" dão o mesmo resultado — porque ela JÁ estava
+   * ativa. A diferença aparece na opção desligada, e é ela que tira o item do
+   * cardápio quando o grupo é obrigatório.
+   */
+  const patch = api.optionPatches().at(-1);
+  expect(patch?.optionId).toBe('opt-bacon');
+  expect(patch?.body).toEqual({
+    name: 'Bacon',
+    description: 'Duas fatias',
+    additional_price: 6.5,
+  });
+});
+
+test('editar uma opção DESLIGADA não a religa', async ({ page }) => {
+  await abrirItem(page, 'X-Burger Clássico');
+
+  /* Desliga pelo interruptor — "Adicionais" é opcional, então não pergunta. */
+  await page.getByRole('switch', { name: 'Bacon ativa' }).click();
+  await expect(page.getByRole('switch', { name: 'Bacon ativa' })).toHaveAttribute(
+    'aria-checked',
+    'false',
+  );
+
+  await page.getByRole('button', { name: 'Editar Bacon' }).click();
+  await page.getByTestId('opcao-nome').fill('Bacon artesanal');
+  await page.getByRole('button', { name: 'Salvar opção' }).click();
+
+  await expect(page.getByTestId('grupo-grp-adicionais')).toContainText('Bacon artesanal');
+
+  /* O interruptor continua desligado — e o corpo diz por quê. */
+  await expect(page.getByRole('switch', { name: 'Bacon artesanal ativa' })).toHaveAttribute(
+    'aria-checked',
+    'false',
+  );
+  expect(api.optionPatches().at(-1)?.body).not.toHaveProperty('is_active');
+});
+
+test('a ordem das opções se muda pelas setas, com uma escrita por posição', async ({ page }) => {
+  await abrirItem(page, 'X-Burger Clássico');
+
+  const grupo = page.getByTestId('grupo-grp-ponto');
+  await expect(grupo).toContainText('Mal passado');
+
+  const antes = api.optionPatches().length;
+  await page.getByRole('button', { name: 'Mover Mal passado para baixo' }).click();
+
+  /*
+   * DUAS ESCRITAS, e não a lista inteira: não há rota de lote, então cada
+   * requisição custa. Quem decide o que precisa ser gravado é `ordemDasOpcoes`,
+   * e reescrever quem não se moveu seria gastar rede à toa.
+   */
+  await expect.poll(() => api.optionPatches().slice(antes).length).toBe(2);
+  expect(api.optionPatches().slice(antes)).toEqual([
+    { optionId: 'opt-ponto', body: { sort_order: 0 } },
+    { optionId: 'opt-mal', body: { sort_order: 1 } },
+  ]);
+
+  /* E a lista, relida do falso, sai na ordem nova. */
+  const nomes = await page
+    .getByTestId('grupo-grp-ponto')
+    .getByTestId(/^opcao-nome-/)
+    .allTextContents();
+  expect(nomes).toEqual(['Ao ponto', 'Mal passado']);
+});
+
+test('as pontas não movem, e o corpo da ordem não leva mais nada junto', async ({ page }) => {
+  await abrirItem(page, 'X-Burger Clássico');
+
+  await expect(page.getByRole('button', { name: 'Mover Mal passado para cima' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Mover Ao ponto para baixo' })).toBeDisabled();
+
+  await page.getByRole('button', { name: 'Mover Ao ponto para cima' }).click();
+  await expect.poll(() => api.optionPatches().length).toBeGreaterThan(0);
+
+  /* Só `sort_order`: um corpo que levasse o nome de carona reenviaria o valor
+     que estava na tela por cima do que outra aba tivesse gravado. */
+  for (const patch of api.optionPatches()) {
+    expect(Object.keys(patch.body)).toEqual(['sort_order']);
+  }
+});
+
+/* Um grupo de uma opção só não tem ordem que se mude. */
+test('grupo com uma opção só não oferece setas', async ({ page }) => {
+  await abrirItem(page, 'X-Burger Clássico');
+
+  await expect(page.getByTestId('grupo-grp-adicionais')).toContainText('Bacon');
+  await expect(page.getByRole('button', { name: 'Mover Bacon para baixo' })).toHaveCount(0);
+});
+
+/*
+ * O ATENDENTE NÃO TEM TESTE AQUI, e a ausência é achado.
+ *
+ * Escrevi um, e ele ficou vermelho pelo motivo certo: o atendente não chega a
+ * este diálogo. Quem abre "Editar item" é `cardapio.editarProduto`, que é
+ * GERÊNCIA — `papeis.spec.ts:154` já prende isso ("nenhum botão Editar na
+ * lista"). O `podeEditar={false}` de `OptionGroupsSection` é defesa em
+ * profundidade para o dia em que a leitura do complemento ganhar outra porta,
+ * e a cobertura dele mora onde ele é alcançável: no teste de unidade da seção,
+ * que a monta direto.
+ *
+ * Um e2e que "provasse" isto aqui estaria afirmando algo sobre um caminho que
+ * não existe — e passaria por qualquer motivo, inclusive pelo errado.
+ */

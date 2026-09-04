@@ -26,6 +26,8 @@ vi.mock('../api/menu', () => ({
   updateOptionGroup: vi.fn(),
   createOption: vi.fn(),
   setOptionActive: vi.fn(),
+  setOptionSortOrder: vi.fn(),
+  updateOption: vi.fn(),
 }));
 
 import {
@@ -33,6 +35,8 @@ import {
   createOptionGroup,
   listProductOptionGroups,
   setOptionActive,
+  setOptionSortOrder,
+  updateOption,
   updateOptionGroup,
 } from '../api/menu';
 import { OptionGroupsSection } from './OptionGroupsSection';
@@ -314,5 +318,197 @@ describe('o atendente lê e não edita', () => {
     expect(screen.queryByTestId('grupo-editar-g-ponto')).not.toBeInTheDocument();
     expect(screen.queryByTestId('opcao-nova-g-ponto')).not.toBeInTheDocument();
     expect(screen.getByRole('switch', { name: /Mal passado ativa/ })).toBeDisabled();
+  });
+});
+
+/* ==========================================================================
+ * EDITAR A OPÇÃO
+ *
+ * O GRUPO já era editável e a OPÇÃO não. O lojista renomeava a pergunta
+ * ("Ponto da carne") e não a resposta ("Mal passado") — e a resposta é a que
+ * tem preço. Corrigir "R$ 3,00 de bacon" para "R$ 4,00" era um chamado.
+ * ======================================================================= */
+
+describe('editar uma opção', () => {
+  const comBacon = () =>
+    grupoPonto([], {
+      id: 'g-adicionais',
+      name: 'Adicionais',
+      is_required: false,
+      min_select: 0,
+      max_select: 5,
+      options: [
+        {
+          id: 'o-bacon',
+          option_group_id: 'g-adicionais',
+          name: 'Bacon',
+          description: 'Duas fatias',
+          additional_price: 3,
+          sort_order: 0,
+          is_active: true,
+        },
+      ],
+    });
+
+  it('abre o formulário com o que está gravado, e grava só os três campos', async () => {
+    vi.mocked(listProductOptionGroups).mockResolvedValue([comBacon()]);
+    vi.mocked(updateOption).mockResolvedValue({} as never);
+
+    renderSecao();
+    await userEvent.click(await screen.findByTestId('opcao-editar-o-bacon'));
+
+    expect(screen.getByTestId('opcao-nome')).toHaveValue('Bacon');
+    expect(screen.getByTestId('opcao-descricao')).toHaveValue('Duas fatias');
+    expect(screen.getByTestId('opcao-preco')).toHaveValue('3,00');
+
+    await userEvent.clear(screen.getByTestId('opcao-preco'));
+    await userEvent.type(screen.getByTestId('opcao-preco'), '4,00');
+    await userEvent.click(screen.getByTestId('opcao-salvar'));
+
+    await waitFor(() =>
+      expect(updateOption).toHaveBeenCalledWith('o-bacon', {
+        name: 'Bacon',
+        description: 'Duas fatias',
+        additional_price: 4,
+      }),
+    );
+  });
+
+  /*
+   * A ARMADILHA DESTA TELA, e ela é silenciosa: `checkOpcao` devolve
+   * `is_active: true` FIXO. Reusá-lo na edição religaria a opção que o lojista
+   * acabou de desligar no interruptor da mesma linha — e num grupo obrigatório
+   * o interruptor decide se o item inteiro fica no cardápio.
+   */
+  it('editar uma opção DESLIGADA não a religa', async () => {
+    const grupo = comBacon();
+    grupo.options = [{ ...grupo.options![0]!, is_active: false }];
+    vi.mocked(listProductOptionGroups).mockResolvedValue([grupo]);
+    vi.mocked(updateOption).mockResolvedValue({} as never);
+
+    renderSecao();
+    await userEvent.click(await screen.findByTestId('opcao-editar-o-bacon'));
+    await userEvent.clear(screen.getByTestId('opcao-nome'));
+    await userEvent.type(screen.getByTestId('opcao-nome'), 'Bacon artesanal');
+    await userEvent.click(screen.getByTestId('opcao-salvar'));
+
+    await waitFor(() => expect(updateOption).toHaveBeenCalled());
+    const corpo = vi.mocked(updateOption).mock.calls[0]![1];
+    expect(corpo).not.toHaveProperty('is_active');
+    /* E a posição também não vai: quem a move são as setas. */
+    expect(corpo).not.toHaveProperty('sort_order');
+  });
+
+  it('o atendente não vê o lápis da opção', async () => {
+    vi.mocked(listProductOptionGroups).mockResolvedValue([comBacon()]);
+    renderSecao(false);
+
+    expect(await screen.findByText('Bacon')).toBeInTheDocument();
+    expect(screen.queryByTestId('opcao-editar-o-bacon')).not.toBeInTheDocument();
+  });
+});
+
+/* ==========================================================================
+ * A ORDEM DAS OPÇÕES
+ *
+ * "Pequena, Média, Grande" ficava na ordem em que alguém as digitou em dias
+ * diferentes. NÃO HÁ ROTA DE LOTE: mover é uma requisição por opção que mudou
+ * de lugar.
+ * ======================================================================= */
+
+describe('reordenar as opções', () => {
+  const tresTamanhos = () =>
+    grupoPonto([], {
+      id: 'g-tamanho',
+      name: 'Tamanho',
+      options: ['Pequena', 'Média', 'Grande'].map((name, i) => ({
+        id: `o-${i}`,
+        option_group_id: 'g-tamanho',
+        name,
+        description: null,
+        additional_price: 0,
+        sort_order: i,
+        is_active: true,
+      })),
+    });
+
+  it('descer a primeira grava DUAS posições, e não a lista inteira', async () => {
+    vi.mocked(listProductOptionGroups).mockResolvedValue([tresTamanhos()]);
+    vi.mocked(setOptionSortOrder).mockResolvedValue({} as never);
+
+    renderSecao();
+    await userEvent.click(await screen.findByTestId('opcao-descer-o-0'));
+
+    await waitFor(() => expect(setOptionSortOrder).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(setOptionSortOrder).mock.calls).toEqual([
+      ['o-1', 0],
+      ['o-0', 1],
+    ]);
+  });
+
+  /*
+   * AS SETAS SÃO A ALTERNATIVA EXIGIDA PELA WCAG 2.5.7 — e aqui elas são o
+   * caminho ÚNICO, porque não há arraste nesta lista. As pontas não têm para
+   * onde ir, e um botão que não faz nada é pior que um botão ausente.
+   */
+  it('a primeira não sobe e a última não desce', async () => {
+    vi.mocked(listProductOptionGroups).mockResolvedValue([tresTamanhos()]);
+
+    renderSecao();
+    expect(await screen.findByTestId('opcao-subir-o-0')).toBeDisabled();
+    expect(screen.getByTestId('opcao-descer-o-2')).toBeDisabled();
+    expect(screen.getByTestId('opcao-descer-o-0')).toBeEnabled();
+    expect(screen.getByTestId('opcao-subir-o-2')).toBeEnabled();
+  });
+
+  it('a lista muda de ordem na hora, sem esperar a gravação', async () => {
+    vi.mocked(listProductOptionGroups).mockResolvedValue([tresTamanhos()]);
+    vi.mocked(setOptionSortOrder).mockReturnValue(new Promise(() => {}) as never);
+
+    renderSecao();
+    await userEvent.click(await screen.findByTestId('opcao-descer-o-0'));
+
+    const nomes = screen.getAllByTestId(/^opcao-nome-/).map((elemento) => elemento.textContent);
+    expect(nomes).toEqual(['Média', 'Pequena', 'Grande']);
+  });
+
+  /*
+   * SEM ROTA DE LOTE NÃO HÁ ESCRITA ATÔMICA: a segunda requisição pode falhar
+   * com a primeira já gravada, e aí o servidor tem uma ordem que ninguém pediu.
+   * A tela não pode ficar mostrando a ordem que ela tentou — ela relê e mostra
+   * a que existe.
+   */
+  it('falhando no meio, relê a lista em vez de mostrar a ordem que não gravou', async () => {
+    vi.mocked(listProductOptionGroups).mockResolvedValue([tresTamanhos()]);
+    vi.mocked(setOptionSortOrder)
+      .mockResolvedValueOnce({} as never)
+      .mockRejectedValueOnce(new Error('sem rede'));
+
+    renderSecao();
+    await userEvent.click(await screen.findByTestId('opcao-descer-o-0'));
+
+    await waitFor(() => expect(screen.getByTestId('grupos-erro')).toBeInTheDocument());
+    expect(screen.getByTestId('grupos-erro')).toHaveTextContent(/ordem/i);
+    // Duas leituras: a de abrir e a de reconciliar depois da falha.
+    await waitFor(() => expect(listProductOptionGroups).toHaveBeenCalledTimes(2));
+  });
+
+  it('o atendente não vê as setas', async () => {
+    vi.mocked(listProductOptionGroups).mockResolvedValue([tresTamanhos()]);
+    renderSecao(false);
+
+    expect(await screen.findByText('Pequena')).toBeInTheDocument();
+    expect(screen.queryByTestId('opcao-descer-o-0')).not.toBeInTheDocument();
+  });
+
+  /* Um grupo de uma opção só não tem ordem que se mude. */
+  it('grupo de uma opção só não mostra setas', async () => {
+    vi.mocked(listProductOptionGroups).mockResolvedValue([
+      grupoPonto([{ id: 'o-unica', name: 'Única', is_active: true }]),
+    ]);
+
+    renderSecao();
+    expect(await screen.findByText('Única')).toBeInTheDocument();
+    expect(screen.queryByTestId('opcao-subir-o-unica')).not.toBeInTheDocument();
   });
 });

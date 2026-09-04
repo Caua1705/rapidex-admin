@@ -5,20 +5,33 @@ import {
   createOptionGroup,
   listProductOptionGroups,
   setOptionActive,
+  setOptionSortOrder,
+  updateOption,
   updateOptionGroup,
 } from '../api/menu';
 import { messageFromUnknownError } from '../api/errors';
-import type { OptionCreateBody, ProductOptionGroup } from '../api/types';
+import type {
+  OptionCreateBody,
+  OptionEditBody,
+  ProductOption,
+  ProductOptionGroup,
+} from '../api/types';
 import { Switch } from '../ds/Switch';
-import { PlusIcon } from '../ds/icons';
+import { ChevronDownIcon, ChevronUpIcon, EditIcon, PlusIcon } from '../ds/icons';
 import { formatCurrency } from '../orders/format';
 import { GrupoForm } from './OptionGroupForm';
+import { moveInList } from './menu-model';
 import { blockingRequiredGroup, groupEmptiedByDeactivating } from './required-groups';
 import {
+  GRUPO_DESCRICAO_MAX,
   GRUPO_NOME_MAX,
   checkOpcao,
+  checkOpcaoEdicao,
   comOpcaoTrocada,
+  comOpcoesDoGrupo,
+  opcaoDraftDe,
   opcaoVazia,
+  ordemDasOpcoes,
   regraDoGrupo,
   type OpcaoDraft,
 } from './option-groups';
@@ -100,6 +113,10 @@ export function OptionGroupsSection({
   const [editando, setEditando] = useState<string | null>(null);
   /** Em qual grupo o formulário de nova opção está aberto. */
   const [novaOpcaoEm, setNovaOpcaoEm] = useState<string | null>(null);
+  /** Qual OPÇÃO está com o formulário de edição aberto. Uma por vez. */
+  const [editandoOpcao, setEditandoOpcao] = useState<string | null>(null);
+  /** Um grupo está com a ordem sendo gravada: as setas dele param. */
+  const [reordenando, setReordenando] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
   const recarregar = useCallback(async () => {
@@ -218,6 +235,72 @@ export function OptionGroupsSection({
    * acontecer com a segunda leitura, e a falha dela diz o que de fato houve:
    * gravou, e a lista abaixo é que pode estar velha.
    */
+  /**
+   * ==========================================================================
+   * MOVER UMA OPÇÃO — e este é o único lugar da tela sem escrita atômica
+   * ==========================================================================
+   *
+   * As categorias e os produtos têm `PATCH .../reorder`, que recebem a lista
+   * completa de ids e renumeram tudo numa transação. As OPÇÕES não têm nada
+   * equivalente: só `PATCH /admin/options/{option_id}`. Mover é, portanto, uma
+   * requisição por opção que mudou de lugar — `ordemDasOpcoes` decide quais —,
+   * e a segunda pode falhar com a primeira já gravada.
+   *
+   * O QUE ISSO OBRIGA: nesta falha a tela NÃO volta para a ordem anterior, como
+   * `reorderProductTo` faz. Voltar seria afirmar que nada gravou, e alguma
+   * coisa gravou — o servidor está numa ordem que ninguém pediu, e ela é a que
+   * o cliente vê no cardápio. A tela relê e mostra o que EXISTE, dizendo o que
+   * houve.
+   *
+   * AS ESCRITAS VÃO EM SÉRIE. Em paralelo elas seriam mais rápidas e a falha do
+   * meio deixaria um estado sem ordem definida; em série, o que falhou é o
+   * ponto onde parou. O número típico é dois (vizinhas trocadas), e o pior caso
+   * é um grupo antigo com tudo em `sort_order: 0`, renumerado uma vez só.
+   */
+  async function moverOpcao(group: ProductOptionGroup, from: number, to: number) {
+    const atuais = group.options ?? [];
+    const reordenadas = moveInList(atuais, from, to);
+    if (!reordenadas) return;
+
+    setReordenando(group.id);
+    setErro(null);
+    // A lista muda na hora: o lojista clica a seta e vê a linha andar.
+    setGrupos((lista) => comOpcoesDoGrupo(lista, group.id, reordenadas));
+
+    try {
+      for (const escrita of ordemDasOpcoes(reordenadas)) {
+        await setOptionSortOrder(escrita.id, escrita.sort_order);
+      }
+    } catch (error) {
+      setErro(
+        `${messageFromUnknownError(error)} A ordem pode ter sido gravada pela metade — ` +
+          'a lista abaixo foi relida do servidor.',
+      );
+      try {
+        await recarregar();
+      } catch {
+        /* A releitura também caiu: o erro acima já diz para conferir. */
+      }
+      setReordenando(null);
+      return;
+    }
+
+    /*
+     * RELÊ MESMO TENDO DADO CERTO, e por um motivo que não é paranoia: quem
+     * responde cada PATCH é a OPÇÃO, e o que a tela precisa é a lista na ordem
+     * que o backend passou a ter. Sem isso, um `sort_order` que o servidor
+     * ajustasse por conta própria só apareceria na próxima abertura do item.
+     */
+    try {
+      await recarregar();
+      setErroDeLeitura(null);
+    } catch {
+      setErro('Ordem salva. Não deu para reler a lista agora — feche e abra o item para conferir.');
+    } finally {
+      setReordenando(null);
+    }
+  }
+
   async function gravar(acao: () => Promise<unknown>) {
     setSalvando(true);
     setErro(null);
@@ -232,6 +315,7 @@ export function OptionGroupsSection({
     // GRAVOU. O que vem abaixo não pode mais desmentir isso.
     setEditando(null);
     setNovaOpcaoEm(null);
+    setEditandoOpcao(null);
     try {
       await recarregar();
       setErroDeLeitura(null);
@@ -316,23 +400,97 @@ export function OptionGroupsSection({
               )}
 
               <ul className="groups__options">
-                {(group.options ?? []).map((option) => (
-                  <li key={option.id} className="groups__option">
-                    <Switch
-                      hideLabel
-                      checked={option.is_active}
-                      disabled={alternando !== null || !podeEditar}
-                      onChange={(isActive) => pedirAlternancia(option.id, option.name, isActive)}
-                      label={`${option.name} ativa`}
-                    />
-                    <span className="groups__option-name">{option.name}</span>
-                    {option.additional_price > 0 ? (
-                      <span className="groups__option-price tnum faint">
-                        +{formatCurrency(option.additional_price)}
+                {(group.options ?? []).map((option, indice, opcoes) =>
+                  editandoOpcao === option.id ? (
+                    <li key={option.id} className="groups__option-editando">
+                      <OpcaoForm
+                        inicial={option}
+                        isSaving={salvando}
+                        onCancel={() => setEditandoOpcao(null)}
+                        onSave={(corpo) => gravar(() => updateOption(option.id, corpo))}
+                      />
+                    </li>
+                  ) : (
+                    <li key={option.id} className="groups__option">
+                      <Switch
+                        hideLabel
+                        checked={option.is_active}
+                        disabled={alternando !== null || !podeEditar}
+                        onChange={(isActive) => pedirAlternancia(option.id, option.name, isActive)}
+                        label={`${option.name} ativa`}
+                      />
+                      <span className="groups__option-name" data-testid={`opcao-nome-${option.id}`}>
+                        {option.name}
                       </span>
-                    ) : null}
-                  </li>
-                ))}
+                      {option.additional_price > 0 ? (
+                        <span className="groups__option-price tnum faint">
+                          +{formatCurrency(option.additional_price)}
+                        </span>
+                      ) : null}
+
+                      {/*
+                        AS SETAS E O LÁPIS, e as duas coisas são a mesma rota
+                        (`PATCH /admin/options/{id}`, GERENCIA): quem edita
+                        também ordena.
+
+                        NÃO HÁ ARRASTE AQUI, ao contrário da lista de itens do
+                        cardápio. Um grupo tem tipicamente três a oito opções e
+                        vive DENTRO de um diálogo que já rola; um alvo de
+                        arrastar dentro dele disputaria o gesto com a rolagem
+                        do próprio diálogo no celular. Com as setas sendo o
+                        caminho único, a WCAG 2.5.7 deixa de ser um problema:
+                        não existe o arraste para o qual ela pede alternativa.
+
+                        E elas ficam VISÍVEIS, sem depender de `:hover` — o
+                        `revisao` §4 é sobre exatamente isto, e o lápis do
+                        cardápio já custou essa lição no tablet do balcão.
+                      */}
+                      {podeEditar ? (
+                        <span className="groups__option-acoes">
+                          {opcoes.length > 1 ? (
+                            <>
+                              <button
+                                type="button"
+                                className="rail__chevron"
+                                disabled={indice === 0 || reordenando !== null}
+                                onClick={() => void moverOpcao(group, indice, indice - 1)}
+                                aria-label={`Mover ${option.name} para cima`}
+                                title="Mover para cima"
+                                data-testid={`opcao-subir-${option.id}`}
+                              >
+                                <ChevronUpIcon size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                className="rail__chevron"
+                                disabled={indice === opcoes.length - 1 || reordenando !== null}
+                                onClick={() => void moverOpcao(group, indice, indice + 1)}
+                                aria-label={`Mover ${option.name} para baixo`}
+                                title="Mover para baixo"
+                                data-testid={`opcao-descer-${option.id}`}
+                              >
+                                <ChevronDownIcon size={14} />
+                              </button>
+                            </>
+                          ) : null}
+                          <button
+                            type="button"
+                            className="btn btn--sm btn--ghost icon-btn"
+                            onClick={() => {
+                              setEditandoOpcao(option.id);
+                              setNovaOpcaoEm(null);
+                            }}
+                            aria-label={`Editar ${option.name}`}
+                            title="Editar opção"
+                            data-testid={`opcao-editar-${option.id}`}
+                          >
+                            <EditIcon />
+                          </button>
+                        </span>
+                      ) : null}
+                    </li>
+                  ),
+                )}
               </ul>
 
               {/*
@@ -436,26 +594,70 @@ export function OptionGroupsSection({
 }
 
 /**
- * O formulário de uma opção nova.
+ * O formulário de uma opção — o MESMO para criar e para editar.
  *
- * Dois campos e um preço, em linha — o padrão de `NewMethodForm` em Loja ›
- * Pagamento. Uma opção é a coisa mais frequente que se acrescenta a um cardápio
- * ("mais um sabor"), e um diálogo por sabor seria um diálogo por minuto.
+ * Três campos em linha, o padrão de `NewMethodForm` em Loja › Pagamento. Uma
+ * opção é a coisa mais frequente que se acrescenta a um cardápio ("mais um
+ * sabor"), e um diálogo por sabor seria um diálogo por minuto.
+ *
+ * UM COMPONENTE E NÃO DOIS, e a razão não é economia de linhas: dois
+ * formulários divergem, e a divergência aqui seria a tela aceitar na edição um
+ * nome que ela recusa na criação (`revisao` §1). A validação é a mesma função
+ * (`checkOpcaoEdicao`), e o que muda entre os modos é o que sai dela.
+ *
+ * O QUE O MODO DE EDIÇÃO NÃO MANDA, e é a parte que custaria caro:
+ *
+ *   - `is_active`, porque quem o decide é o interruptor da mesma linha. O corpo
+ *     da criação leva `is_active: true` fixo; reusá-lo aqui RELIGARIA em
+ *     silêncio a opção que o lojista tinha acabado de desligar.
+ *   - `sort_order`, porque quem o decide são as setas. Este formulário não
+ *     mostra posição, e mandá-la seria reordenar por conta própria com um valor
+ *     que pode ter envelhecido enquanto ele estava aberto.
+ *
+ * As duas ausências só são seguras porque `PATCH /admin/options/{id}` é parcial
+ * de verdade — o vizinho `PATCH /admin/option-groups/{id}` valida a MESCLA e
+ * por isso exige o formulário inteiro (`rapidex-api` §4.9). Ver
+ * `option-groups.ts`.
  */
-function OpcaoForm({
-  sortOrder,
-  isSaving,
-  onCancel,
-  onSave,
-}: {
-  /** Quantas opções o grupo já tem: a nova entra depois delas. */
-  sortOrder: number;
-  isSaving: boolean;
-  onCancel: () => void;
-  onSave: (corpo: OptionCreateBody) => void;
-}) {
-  const [draft, setDraft] = useState<OpcaoDraft>(opcaoVazia());
-  const check = checkOpcao(draft, sortOrder);
+function OpcaoForm(
+  props:
+    | {
+        /** Quantas opções o grupo já tem: a nova entra depois delas. */
+        sortOrder: number;
+        inicial?: undefined;
+        isSaving: boolean;
+        onCancel: () => void;
+        onSave: (corpo: OptionCreateBody) => void;
+      }
+    | {
+        sortOrder?: undefined;
+        /** A opção gravada: o formulário abre com ela. */
+        inicial: ProductOption;
+        isSaving: boolean;
+        onCancel: () => void;
+        onSave: (corpo: OptionEditBody) => void;
+      },
+) {
+  const { inicial, isSaving, onCancel } = props;
+  const [draft, setDraft] = useState<OpcaoDraft>(() =>
+    inicial ? opcaoDraftDe(inicial) : opcaoVazia(),
+  );
+  const check = checkOpcaoEdicao(draft);
+
+  /*
+   * O MODO DECIDE O CORPO, e é o único lugar onde os dois se separam: a edição
+   * manda os três campos que este formulário mostra; a criação manda os mesmos
+   * três mais os dois que só existem quando a opção nasce.
+   */
+  function salvar() {
+    if (props.inicial !== undefined) {
+      const edicao = checkOpcaoEdicao(draft);
+      if (edicao.valid) props.onSave(edicao.opcao);
+      return;
+    }
+    const criacao = checkOpcao(draft, props.sortOrder);
+    if (criacao.valid) props.onSave(criacao.opcao);
+  }
 
   return (
     <div className="groups__form" data-testid="opcao-form">
@@ -470,6 +672,25 @@ function OpcaoForm({
           onChange={(event) => setDraft({ ...draft, name: event.target.value })}
           data-testid="opcao-nome"
         />
+      </label>
+
+      {/*
+        A DESCRIÇÃO ENTROU COM A EDIÇÃO, e ela precisava entrar: o corpo do
+        PATCH leva `description`, e um formulário que não a mostrasse mandaria
+        `null` toda vez que alguém corrigisse um preço — APAGANDO o texto que
+        outra pessoa escreveu, sem nada em tela dizendo isso (`revisao` §2).
+      */}
+      <label className="field">
+        <span className="field__label">Descrição</span>
+        <input
+          className="input"
+          maxLength={GRUPO_DESCRICAO_MAX}
+          placeholder="Ex.: duas fatias"
+          value={draft.description}
+          onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+          data-testid="opcao-descricao"
+        />
+        <span className="field__hint">Opcional. Aparece para o cliente ao lado do nome.</span>
       </label>
 
       <label className="field">
@@ -500,10 +721,10 @@ function OpcaoForm({
           type="button"
           className="btn btn--primary"
           disabled={!check.valid || isSaving}
-          onClick={() => check.valid && onSave(check.opcao)}
+          onClick={salvar}
           data-testid="opcao-salvar"
         >
-          {isSaving ? 'Salvando…' : 'Adicionar opção'}
+          {isSaving ? 'Salvando…' : inicial ? 'Salvar opção' : 'Adicionar opção'}
         </button>
       </div>
     </div>

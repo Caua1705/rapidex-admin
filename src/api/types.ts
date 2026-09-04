@@ -158,7 +158,31 @@ export type ProductListResponse = Schemas['AdminProductListResponse'];
 export type ProductOptionGroup = Schemas['AdminOptionGroupResponse'];
 /** Uma opção de um grupo de complemento. */
 export type ProductOption = Schemas['AdminOptionResponse'];
+
+/**
+ * O corpo de edição de uma opção — os CINCO campos, todos opcionais.
+ *
+ * ELE É PARCIAL DE VERDADE, ao contrário do vizinho `AdminOptionGroupUpdate`.
+ * `update_option` faz `payload.model_dump(exclude_unset=True)` e não há
+ * `@model_validator`: o que não vier não é tocado, e nada é validado contra o
+ * que está no banco. Por isso o painel tem TRÊS escritores estreitos sobre esta
+ * mesma rota — `updateOption` (nome, descrição, preço), `setOptionActive` e
+ * `setOptionSortOrder` —, cada um mandando só o que o controle que o chamou de
+ * fato decide. Ver `menu/option-groups.ts`.
+ */
 export type ProductOptionUpdate = Schemas['AdminOptionUpdate'];
+
+/**
+ * O recorte que o FORMULÁRIO da opção manda.
+ *
+ * `Pick` sobre o tipo gerado, e não uma lista de campos escrita à mão: um campo
+ * renomeado no backend continua acendendo aqui no `typecheck`, que é a razão de
+ * `types.ts` só dar apelido. O que este apelido acrescenta é a INTENÇÃO — os
+ * dois campos de fora (`is_active`, `sort_order`) pertencem a outros dois
+ * controles da mesma linha, e deixá-los de fora daqui é o que impede o
+ * formulário de religar uma opção desligada ou de desfazer um arraste.
+ */
+export type OptionEditBody = Pick<ProductOptionUpdate, 'name' | 'description' | 'additional_price'>;
 /** O caminho e a URL da foto recém-enviada. */
 export type ProductImage = Schemas['ProductImageResponse'];
 
@@ -612,6 +636,14 @@ export type OptionGroupUpdateBody = Schemas['AdminOptionGroupUpdate'];
  * cardápio é como um dos dois começa a chegar errado.
  */
 export type OptionCreateBody = Schemas['AdminOptionCreate'];
+
+/*
+ * O corpo de EDIÇÃO da opção mora ao lado de `ProductOption`, na seção do
+ * cardápio: `ProductOptionUpdate` (os cinco campos) e `OptionEditBody` (os três
+ * que o formulário manda). Um segundo apelido para `AdminOptionUpdate` chegou a
+ * existir aqui e saiu — dois nomes para o mesmo schema é a forma de tipo do §1
+ * da `revisao`: alguém escolhe um, alguém escolhe o outro, e um deles envelhece.
+ */
 
 /**
  * ============================================================================
