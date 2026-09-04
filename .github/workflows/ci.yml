@@ -58,3 +58,140 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  #  O DEPLOY DE PRODUÇÃO — e por que ele mora aqui e não na integração Git
+  #
+  #  A Vercel publicava a `main` no INSTANTE do push. Os dois jobs acima rodam
+  #  `on: push: branches: [main]` — eles CONFEREM, eles não publicam, e a Vercel
+  #  não esperava por eles. O painel do lojista subia e o portão ficava vermelho
+  #  depois.
+  #
+  #  AQUI ISSO É PIOR QUE NO APP DO CLIENTE. A regra deste repositório (CLAUDE.md)
+  #  é commitar e empurrar DIRETO NA MAIN, sem branch e sem PR: "não há branch
+  #  intermediária para segurar nada". O que também quer dizer que não havia
+  #  proteção de branch onde pendurar o check — o portão era a única barreira, e
+  #  ele não era barreira nenhuma para o deploy.
+  #
+  #  A trava tem DUAS metades, e meia trava é pior que nenhuma porque parece uma:
+  #    1. `vercel.json` traz `git.deploymentEnabled.main = false`.
+  #    2. este job publica, com `needs: [verificar, e2e]`.
+  #  `src/deploy-do-portao.test.ts` falha se qualquer uma das duas sumir.
+  #
+  #  OS DOIS `needs`, E NÃO UM. `verificar` e `e2e` são jobs IRMÃOS e correm em
+  #  paralelo; um deploy que dependesse só do primeiro publicaria com o
+  #  Playwright vermelho, que é metade do buraco de volta.
+  #
+  #  Por que este caminho e não os outros dois, que o `pedeaqui_front` avaliou
+  #  antes de escolher este mesmo:
+  #  - `ignoreCommand` no vercel.json consultando a Checks API é uma CORRIDA: a
+  #    Vercel começa o build no instante do push, veria `pending` e pularia o
+  #    deploy — e um CI que fica verde depois NÃO dispara deploy nenhum.
+  #  - proteção de branch exigindo o check fecha pela raiz certa, mas cobra PR
+  #    para tudo (e o fluxo daqui é push direto na main) e, em repositório
+  #    privado, plano pago.
+  #
+  #  Os previews de branch CONTINUAM automáticos: `deploymentEnabled` desliga só
+  #  a branch nomeada.
+  #
+  #  A CLI vai sem pin de versão de propósito: um pin errado quebra o deploy no
+  #  dia em que for preciso publicar, e este job só roda depois de dois portões
+  #  verdes.
+  # ═══════════════════════════════════════════════════════════════════════════
+  deploy:
+    name: Deploy de produção (Vercel)
+    needs: [verificar, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Falha BARULHENTA, e não silenciosa. Sem o segredo, um `if` que apenas
+      # pulasse o passo deixaria o job VERDE sem ter publicado — a produção
+      # parada no commit anterior, sem uma linha dizendo por quê. É exatamente o
+      # modo de falha que este job existe para acabar.
+      - name: Conferir os segredos do deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          faltando=""
+          [ -z "$VERCEL_TOKEN" ] && faltando="$faltando VERCEL_TOKEN"
+          [ -z "$VERCEL_ORG_ID" ] && faltando="$faltando VERCEL_ORG_ID"
+          [ -z "$VERCEL_PROJECT_ID" ] && faltando="$faltando VERCEL_PROJECT_ID"
+          if [ -n "$faltando" ]; then
+            echo "::error::Faltam secrets do repositório:$faltando. Sem eles o deploy não acontece, e o vercel.json já desligou o automático da main — o painel do lojista fica no commit anterior."
+            exit 1
+          fi
+
+      # SEM `vercel pull`, DE PROPÓSITO — a lição saiu do `pedeaqui_front` em
+      # 02/09/2026 e vale igual aqui.
+      #
+      # O `pull` falha com "Could not retrieve Project Settings" mesmo com os
+      # três secrets corretos: o CLI ignora o `VERCEL_ORG_ID` do ambiente quando
+      # o projeto está num TIME, procura o projeto na conta pessoal do dono do
+      # token, e lá ele não existe.
+      #
+      # E tirar o `pull` não basta: o `vercel build` para em "No project
+      # settings found locally" se o `.vercel/project.json` não tiver a chave
+      # `settings`. Não são os IDs que ele cobra — é ela, e a falta DELA dá
+      # exatamente a mesma mensagem que a falta do arquivo inteiro. A mensagem
+      # manda rodar o `pull`, e o `pull` não é o problema.
+      #
+      # A chave aceita até `{}`: o CLI detecta o resto. Aqui ela nomeia o
+      # framework porque `vite` é o que o `vercel.json` já diz, e porque é ele
+      # que decide que a saída publicada é `dist/` e não a árvore de fontes.
+      #
+      # NÃO troque isto por `vercel build --yes`, que a própria CLI sugere na
+      # mensagem de erro: o `--yes` pula direto para o `pull`.
+      #
+      # O arquivo não está e não pode estar no repositório — `.vercel` é
+      # gitignored e os dois IDs só existem em tempo de execução.
+      #
+      # O QUE O `pull` TRARIA E NÃO VEM: as variáveis de ambiente de produção do
+      # projeto na Vercel. Este build lê DUAS, e as duas em tempo de build (o
+      # Vite inlina `import.meta.env` no bundle; configurar no painel depois não
+      # muda o que já subiu):
+      #
+      #   VITE_API_BASE_URL     `api/client.ts` tem o padrão
+      #                         'https://api.pederapidex.com' — o MESMO valor de
+      #                         produção. Ausente, não muda o bundle.
+      #   VITE_COURIER_APP_URL  NÃO TEM PADRÃO, de propósito (`vite-env.d.ts`).
+      #                         Faltando ela, o painel não oferece o botão de
+      #                         gerar acesso do entregador — porque a alternativa
+      #                         seria gerar um link para um domínio errado, e o
+      #                         par link+código sai UMA VEZ SÓ.
+      #
+      # Por isso só a segunda precisa vir de secret, com o mesmo valor que está
+      # em Vercel > Project > Settings > Environment Variables > Production.
+      # Nenhum valor é inventado aqui: sem o secret o passo AVISA e o bundle sobe
+      # sem o botão — escrito no log, em vez de descoberto pelo lojista.
+      - name: Publicar na Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VITE_COURIER_APP_URL: ${{ secrets.VITE_COURIER_APP_URL }}
+        run: |
+          if [ -z "$VITE_COURIER_APP_URL" ]; then
+            echo "::warning::Sem o secret VITE_COURIER_APP_URL: o bundle sobe sem o botão de gerar acesso do entregador. Copie o valor de Vercel > Project > Settings > Environment Variables > Production."
+          fi
+          mkdir -p .vercel
+          cat > .vercel/project.json <<JSON
+          {"projectId":"$VERCEL_PROJECT_ID","orgId":"$VERCEL_ORG_ID","settings":{"framework":"vite"}}
+          JSON
+          # O heredoc escreve e o `build` lê a MESMA pasta, a raiz do checkout.
+          # O `pwd` fica para que isso seja um fato no log, e não uma leitura do
+          # yaml. O `cat` não vaza os IDs: o Actions troca todo valor de secret
+          # por `***` — e é por isso mesmo que ele serve de medida, porque `***`
+          # é secret COM valor e `""` é secret VAZIO, que é a outra maneira de
+          # este arquivo sair errado sem ninguém ver.
+          echo "--- .vercel/project.json entregue ao build, em $(pwd) ---"
+          cat .vercel/project.json
+          npx --yes vercel@latest build --prod --token="$VERCEL_TOKEN"
+          npx --yes vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN"
