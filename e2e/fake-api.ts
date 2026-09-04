@@ -2156,6 +2156,57 @@ export type FakeApi = {
   trocasDeSenha: () => Record<string, unknown>[];
 };
 
+/**
+ * O SLUG, COMO O BACKEND O FAZ — `src/utils/normalization.slugify`.
+ *
+ * Não é enfeite: `categories.slug` e `products.slug` são a URL pública do
+ * cardápio, e sobre eles existem DOIS índices únicos por filial
+ * (`uq_categories_branch_slug` e `uq_products_branch_slug`, revisão
+ * `20260820_0026`). É por isso que "X-Tudo", "X Tudo" e "x tudo!" são o MESMO
+ * item para o backend — e é essa a regra que o falso precisa ter para não ser
+ * mais frouxo que produção (skill `rapidex-api` §4.10).
+ *
+ * `NFKD` + descarte de não-ASCII é o que faz "Filé" composto e decomposto
+ * darem `file` os dois. Trocar por `NFC` faria o slug depender da forma da
+ * entrada, que é exatamente o que o comentário do backend proíbe.
+ */
+function slugFake(nome: string): string {
+  return (
+    nome
+      .normalize('NFKD')
+      // eslint-disable-next-line no-control-regex -- o backend descarta tudo que não é ASCII
+      .replace(/[^\x00-\x7F]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+  );
+}
+
+/**
+ * A CHAVE DE CATÁLOGO É ÚNICA DENTRO DA FILIAL — e nula não colide com nada.
+ *
+ * `uq_products_branch_catalog_key` é um índice único PARCIAL: o produto sem
+ * par em outra loja tem chave nula, e nulo é o estado normal.
+ * `AdminMenuService._ensure_catalog_key_is_free` escreve o 409 em vez de
+ * deixar o `IntegrityError` virar 500, pelo mesmo motivo do slug.
+ *
+ * Repetir a chave DENTRO da mesma loja faz o relatório contar a mesma venda
+ * duas vezes — o oposto do que a coluna existe para fazer. ENTRE lojas
+ * diferentes, repetir é o uso correto e não passa por aqui: é assim que os dois
+ * "X-Burger" da rede viram uma linha só em `/admin/reports/products`.
+ */
+function chaveRepetida(
+  produtos: Product[],
+  chave: unknown,
+  branchId: string,
+  productId?: string,
+): boolean {
+  if (chave === null || chave === undefined) return false;
+  return produtos.some(
+    (item) => item.branch_id === branchId && item.catalog_key === chave && item.id !== productId,
+  );
+}
+
 function json(route: Route, status: number, body: unknown) {
   return route.fulfill({
     status,
@@ -5010,11 +5061,32 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         return json(route, 404, { detail: 'Filial não encontrada' });
       }
 
+      /*
+       * NOME REPETIDO NA MESMA FILIAL É 409, e o falso precisava aprender.
+       *
+       * `AdminMenuService._ensure_category_slug_is_free` confere antes de
+       * inserir e responde a frase; o `uq_categories_branch_slug` é quem
+       * garante. O falso montava o slug e inseria — aceitando o que produção
+       * recusa, que é a armadilha §4.10 da skill `rapidex-api`.
+       *
+       * POR FILIAL: a mesma "Bebidas" na segunda loja é outra categoria, com
+       * outro id, e tem de continuar passando.
+       */
+      const slug = slugFake(body.name);
+      const repetida = state.categories.some(
+        (item) => item.branch_id === body.branch_id && item.slug === slug,
+      );
+      if (repetida) {
+        return json(route, 409, {
+          detail: 'Já existe uma categoria com esse nome nesta filial',
+        });
+      }
+
       const created: Category = {
         id: `cat-${state.categories.length + 1}-nova`,
         branch_id: body.branch_id,
         name: body.name,
-        slug: body.name.toLowerCase().replace(/\s+/g, '-'),
+        slug,
         sort_order: body.sort_order,
         is_active: true,
       };
@@ -5339,6 +5411,24 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
          * "não mandou" e "mandou o mesmo valor" seriam indistinguíveis.
          */
         state.productPatches.push({ productId: found.id, body });
+
+        /*
+         * A CHAVE REPETIDA É 409, E ELE CHEGA ANTES DE QUALQUER GRAVAÇÃO.
+         *
+         * O painel carimba o GÊMEO primeiro (ver `saveProduct`), de propósito:
+         * "a falha dele é a que ainda dá para desfazer". Este 409 é justamente
+         * essa falha, e o corpo fica registrado acima porque o que se prova é
+         * que a tentativa saiu e NADA foi criado depois dela.
+         */
+        if (
+          'catalog_key' in body &&
+          chaveRepetida(state.products, body.catalog_key, found.branch_id, found.id)
+        ) {
+          return json(route, 409, {
+            detail: 'Já existe um produto com essa chave de catálogo nesta filial',
+          });
+        }
+
         Object.assign(found, body);
         return json(route, 200, found);
       }
@@ -5355,6 +5445,32 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        */
       const categoria = state.categories.find((item) => item.id === body.category_id);
       if (!categoria) return json(route, 400, { detail: 'Categoria inválida.' });
+
+      /*
+       * O IRMÃO DO 409 DA CATEGORIA — `_ensure_product_slug_is_free`, com o
+       * `uq_products_branch_slug` atrás. É a regra mais antiga do cardápio, e
+       * o falso não a tinha: o segundo "Salvar" do mesmo item entrava como
+       * linha nova aqui e como 409 em produção.
+       *
+       * A comparação é por SLUG e não por nome, e a diferença é o caso que
+       * importa: o lojista que digita "X Tudo" depois de "X-Tudo" acha que
+       * está criando outro item, e o backend responde que já existe.
+       */
+      const slug = slugFake(String(body.name ?? ''));
+      const repetido = state.products.some(
+        (item) => item.branch_id === categoria.branch_id && slugFake(item.name) === slug,
+      );
+      if (repetido) {
+        return json(route, 409, {
+          detail: 'Já existe um produto com esse nome nesta filial',
+        });
+      }
+
+      if (chaveRepetida(state.products, body.catalog_key, categoria.branch_id)) {
+        return json(route, 409, {
+          detail: 'Já existe um produto com essa chave de catálogo nesta filial',
+        });
+      }
 
       const created: Product = {
         ...body,

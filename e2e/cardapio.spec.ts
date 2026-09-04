@@ -596,3 +596,164 @@ test('a contagem que não deu para reler some, em vez de ficar velha', async ({ 
    */
   await expect(page.getByTestId('category-count-cat-1')).toHaveText('4 itens');
 });
+
+/*
+ * ============================================================================
+ * AS TRÊS UNICIDADES DO CARDÁPIO — item 2 de `escritas-sem-teste.md`
+ * ============================================================================
+ *
+ * O cardápio tem três índices únicos por filial, e os três são da revisão
+ * `20260820_0026` — a mais antiga desta tela:
+ *
+ *   `uq_categories_branch_slug`        → 409 "Já existe uma categoria com…"
+ *   `uq_products_branch_slug`          → 409 "Já existe um produto com esse nome…"
+ *   `uq_products_branch_catalog_key`   → 409 "…com essa chave de catálogo…"
+ *
+ * Nos três o backend escreve o 409 à mão, ANTES de inserir, em vez de deixar o
+ * `IntegrityError` virar 500 — porque o painel precisa de uma frase. E nos três
+ * **o painel nunca tinha visto essa frase**: o falso montava o slug e inseria,
+ * e a chave de catálogo ele nem olhava. Falso mais frouxo que o backend é a
+ * armadilha §4.10 da skill `rapidex-api`, e aqui ela estava na regra mais velha
+ * da tela.
+ *
+ * O falso ficou estrito nesta rodada (ver `slugFake` e `chaveRepetida`), e o
+ * que segue é o que a tela faz com cada um.
+ */
+
+test('categoria com nome repetido na filial: o 409 aparece, e a barra não ganha a segunda', async ({
+  page,
+}) => {
+  await abrirCardapio(page);
+  await escolherFilial(page);
+
+  const antes = api.categories(FAKE_BRANCH.id).length;
+
+  await page.getByRole('button', { name: 'Nova categoria' }).click();
+  await page.getByLabel('Nome da categoria').fill('Lanches');
+  await page.getByRole('button', { name: 'Salvar' }).click();
+
+  await expect(page.getByRole('alert')).toContainText('Já existe uma categoria com esse nome');
+
+  // O diálogo fica, com o texto: o lojista corrige o nome, não redigita.
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByLabel('Nome da categoria')).toHaveValue('Lanches');
+  expect(api.categories(FAKE_BRANCH.id)).toHaveLength(antes);
+});
+
+/*
+ * O SLUG É QUE COLIDE, E NÃO O NOME — e é essa a diferença que faz o teste
+ * valer. "X Tudo" parece um item novo para quem digita e é o MESMO para o
+ * backend: `slugify` derruba a pontuação e o espaço vira hífen nos dois.
+ *
+ * Sem esta asserção, um falso que comparasse `name` cru passaria verde e a
+ * tela levaria o 409 na mão do lojista.
+ */
+test('item cujo nome só difere na pontuação colide pelo slug, e a tela mostra a frase', async ({
+  page,
+}) => {
+  await abrirCardapio(page);
+
+  const antes = api.products().length;
+
+  await page.getByRole('button', { name: 'Novo item' }).click();
+  // "X-Salada" já existe em Lanches; "X Salada!" tem o mesmo slug.
+  await page.getByLabel('Nome do item').fill('X Salada!');
+  await page.getByLabel('Preço').fill('26,00');
+  await page.getByRole('button', { name: 'Salvar' }).click();
+
+  await expect(page.getByRole('alert')).toContainText('Já existe um produto com esse nome');
+
+  // Nada foi criado, e o diálogo segue com o que foi digitado.
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByLabel('Nome do item')).toHaveValue('X Salada!');
+  expect(api.products()).toHaveLength(antes);
+});
+
+/*
+ * A MAIS CARA DAS TRÊS, e é uma ordem de escritas que o teste prende.
+ *
+ * Parear carimba o GÊMEO primeiro (`saveProduct`), e o comentário de lá diz por
+ * quê: "a falha dele é a que ainda dá para desfazer — nada foi criado aqui". O
+ * 409 da chave repetida é exatamente essa falha, e o que este teste prova é o
+ * que aquela decisão vale: a tentativa SAIU, o backend recusou, e **nenhum item
+ * novo nasceu** — nem sem chave, nem com a chave errada.
+ *
+ * Na ordem inversa, um item já criado ficaria com uma chave que não pareia com
+ * ninguém, e o relatório voltaria a contar as duas lojas separadas sem nenhuma
+ * tela ficando errada.
+ */
+test('chave de catálogo repetida: o gêmeo é recusado e nenhum item novo nasce', async ({
+  page,
+}) => {
+  await abrirCardapio(page);
+
+  const antes = api.products().length;
+  const chavesAntes = api.catalogKeys();
+
+  await page.getByTestId('category-select-cat-2').click();
+  await page.getByRole('button', { name: 'Novo item' }).click();
+  await page.getByLabel('Nome do item').fill('Milkshake de morango');
+  await page.getByLabel('Preço').fill('18,00');
+
+  await page.getByTestId('catalog-pair-open').click();
+  await page.getByTestId('catalog-pair-result-prod-zn-milkshake').click();
+
+  /*
+   * A recusa entra agora: o carimbo do gêmeo é um PATCH no item da OUTRA loja,
+   * e o falso responde o 409 do backend quando a chave já está em uso naquela
+   * filial. Aqui ela é forçada, porque o par legítimo entre lojas diferentes
+   * não colide — e é justamente esse o caso que não pode ser recusado.
+   */
+  await page.route('**/admin/products/prod-zn-milkshake', (route) =>
+    route.fulfill({
+      status: 409,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        detail: 'Já existe um produto com essa chave de catálogo nesta filial',
+      }),
+    }),
+  );
+
+  await page.getByRole('button', { name: 'Salvar' }).click();
+
+  await expect(page.getByRole('alert')).toContainText('chave de catálogo');
+
+  /*
+   * NADA NASCEU. É a asserção que a ordem das escritas existe para permitir —
+   * e a única que separa "recusou antes" de "recusou depois de criar".
+   */
+  await expect(page.getByRole('dialog')).toBeVisible();
+  expect(api.products()).toHaveLength(antes);
+  expect(api.catalogKeys()).toEqual(chavesAntes);
+});
+
+/*
+ * A FOTO É A ÚNICA ESCRITA DA TELA QUE NÃO PASSA POR `saveProduct` — rota
+ * própria, `multipart`, e o item já existe quando ela sai. Por isso o desfecho
+ * certo aqui é o oposto do resto: o recorte NÃO é descartado, porque descartá-lo
+ * obrigaria a escolher o arquivo e reenquadrar de novo por causa de uma piscada
+ * de rede.
+ */
+test('foto recusada: a frase aparece e o recorte não se perde', async ({ page }) => {
+  await abrirCardapio(page);
+
+  await page.getByRole('button', { name: 'Editar X-Salada' }).click();
+  await page.getByTestId('product-image-input').setInputFiles('e2e/fixtures/prato.png');
+  await expect(page.getByTestId('product-image-frame')).toBeVisible();
+
+  await page.route('**/admin/products/*/image', (route) =>
+    route.fulfill({
+      status: 413,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'A imagem passa do tamanho máximo' }),
+    }),
+  );
+
+  await page.getByTestId('product-image-send').click();
+
+  await expect(page.getByRole('alert')).toContainText('A imagem passa do tamanho máximo');
+
+  // O enquadramento continua na tela: dá para tentar de novo no mesmo clique.
+  await expect(page.getByTestId('product-image-frame')).toBeVisible();
+  await expect(page.getByTestId('product-image-send')).toBeVisible();
+});

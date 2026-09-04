@@ -41,7 +41,8 @@ motivo de este documento contar as três medições em vez de só a última.
 | depois das escritas de dinheiro          | 0         | 32               |
 | depois de "o que decide se a loja vende" | 0         | 25               |
 | depois de "a comanda que não sai"        | 0         | 22               |
-| depois de fechar a impressão inteira     | 0         | **19**           |
+| depois de fechar a impressão inteira     | 0         | 19               |
+| depois das unicidades do cardápio        | 0         | **16**           |
 
 > **A régua subcontava, duas vezes.** Ela lia só o que o FALSO serviu, e uma
 > recusa dublada com `page.route` nunca chega lá — eram 6 invisíveis. Corrigida
@@ -154,8 +155,12 @@ as 25 restantes, na ordem:
    nome e preço por uma rota e o setor por outra). Agora as três que faltavam —
    `print-settings`, `print-test` e `categories/{id}/printing-sector`. Ver
    "A rodada da impressão" abaixo.
-2. **Cardápio** — produto, categoria, complemento, reordenação, foto. Erra uma
-   tela, não um valor cobrado.
+2. **Cardápio** — **em andamento.** Feitas as três unicidades (`POST` de
+   produto e de categoria, `PATCH` de produto pela chave de catálogo) e a foto.
+   Sobram `PATCH /admin/categories/{id}`, os dois `reorder` e as três de
+   complemento (`PATCH /admin/option-groups/{id}`,
+   `POST /admin/option-groups/{id}/options`, `PATCH /admin/options/{id}`). Ver
+   "A rodada do cardápio" abaixo.
 3. **Equipe e conta** — `updateAdminUser`, `resetAdminUserPassword`,
    `changePassword`. `createAdminUser` já tem o 409.
 4. **O resto** — `delivery-time-bands`, `restaurant`, `settings`,
@@ -177,15 +182,33 @@ Três recusas presas, e **um bug** que nenhuma delas tinha ido procurar.
 `AdminProductUpdate` não tem o campo). Elas dividiam um `catch`, e a recusa da
 SEGUNDA fazia a função devolver `null` — que quem chama lê como "não gravou".
 
-O diálogo não fechava, com nome e preço ainda escritos. **`POST /admin/products`
-não é idempotente e não existe `DELETE` de produto** (auditoria C.1): o segundo
-"Salvar" cria o segundo "X-Tudo" no cardápio que o cliente vê, nenhum dos dois
-com setor, e o conserto é no banco.
+O diálogo não fechava, com nome e preço ainda escritos.
+
+> **CORREÇÃO (mesma data, depois do commit `8d96520`).** Ao escrever o pedido
+> de backend, a fonte desmentiu metade disto. O commit e a primeira versão desta
+> seção diziam que o segundo "Salvar" criava o segundo "X-Tudo" no cardápio do
+> cliente, com conserto só no banco. **Não cria.**
+> `uq_products_branch_slug` + `AdminMenuService._ensure_product_slug_is_free`
+> respondem **409 "Já existe um produto com esse nome nesta filial"** — a mesma
+> proteção existe para categoria. O clique repetido é uma recusa legível, não
+> uma linha nova.
+>
+> **O defeito e o conserto continuam valendo, e o motivo muda para melhor:** o
+> painel afirmava "não gravou" sobre um item criado, e a pessoa que apertasse de
+> novo levava um 409 dizendo que o item **já existe**. Duas frases que se
+> contradizem na mesma tela, em dois cliques — e nenhuma delas responde a única
+> pergunta que importa ali, que é se o item está no cardápio ou não.
+>
+> A lição é a mesma da hipótese derrubada logo abaixo, e é por isso que as duas
+> ficam escritas: **eu supus a gravidade em vez de ler a fonte.** O que a leitura
+> custou foram cinco minutos; o que ela evitou foi um pedido de backend errado
+> (idempotência no `POST`) que já estava a caminho de ser mandado.
 
 A recusa é alcançável e tem frase própria — **400 "O setor de impressão é de
 outra filial"**, quando a filial do cabeçalho muda entre abrir o diálogo e
 salvar. Hoje a tela diz _"Item criado. O setor de impressão NÃO foi gravado: …
-Abra o item e escolha o setor de novo."_, e o item existe uma vez só.
+Abra o item e escolha o setor de novo."_ — que é a frase que responde à pergunta
+do lojista (o item está lá?) e diz o que fazer com o que faltou.
 
 **Na EDIÇÃO a mesma falha continua devolvendo `null` de propósito**, e a
 diferença é idempotência: lá o segundo "Salvar" regrava o mesmo item e tenta o
@@ -226,6 +249,63 @@ A lição vale mais que os dois consertos: **a forma do código não é o defeit
 ela é inofensiva porque a segunda função engole. O que separou os dois casos foi
 escrever o teste ANTES de acreditar no diagnóstico. A anotação ficou no
 cabeçalho de `useMenu`, para quem for "consertar" isso daqui a seis meses.
+
+---
+
+## A rodada do cardápio (2026-09-03) — o falso mais frouxo na regra mais velha
+
+O cardápio tem **três índices únicos por filial**, todos da revisão
+`20260820_0026`, e em todos os três o backend escreve o 409 à mão antes de
+inserir — em vez de deixar o `IntegrityError` virar 500 — porque o painel
+precisa de uma frase:
+
+| Índice                           | Frase do backend                                             |
+| -------------------------------- | ------------------------------------------------------------ |
+| `uq_categories_branch_slug`      | Já existe uma categoria com esse nome nesta filial           |
+| `uq_products_branch_slug`        | Já existe um produto com esse nome nesta filial              |
+| `uq_products_branch_catalog_key` | Já existe um produto com essa chave de catálogo nesta filial |
+
+**O painel nunca tinha visto nenhuma das três**, e o motivo é o §4.10 da skill
+`rapidex-api`: o falso montava o slug e inseria, e a chave de catálogo ele nem
+olhava. Um dublê mais frouxo que produção deixa o e2e verde sobre uma tela que
+toma 409 na mão do lojista — e aqui isso valia para a regra mais antiga da tela.
+
+O falso ficou estrito (`slugFake`, espelhando `utils/normalization.slugify`, e
+`chaveRepetida`), e **nenhum dos 33 testes de cardápio que já existiam
+quebrou** — que é o sinal de que a regra nova não é invenção, é a que já valia.
+
+### O que cada teste prende
+
+- **categoria repetida** — o 409 aparece, o diálogo fica com o nome digitado, e
+  a barra não ganha a segunda "Lanches";
+- **o slug é que colide, não o nome** — "X Salada!" e "X-Salada" são o mesmo
+  item para o backend. É a asserção que separa um falso que compara `name` cru
+  de um que faz o que produção faz;
+- **a chave de catálogo repetida** — e este prende uma ORDEM de escritas. Parear
+  carimba o gêmeo primeiro, de propósito ("a falha dele é a que ainda dá para
+  desfazer"). O teste prova o que essa decisão vale: a tentativa saiu, o backend
+  recusou, e **nenhum item novo nasceu**. Na ordem inversa sobraria um item com
+  chave que não pareia com ninguém, e o relatório voltaria a contar as duas
+  lojas separadas sem nenhuma tela ficando errada;
+- **a foto recusada** — e aqui o desfecho certo é o OPOSTO do resto da tela: o
+  recorte NÃO é descartado. Descartá-lo obrigaria a escolher o arquivo e
+  reenquadrar de novo por causa de uma piscada de rede.
+
+Provado por mutação: afrouxar de volta a conferência do slug no falso derruba o
+teste da categoria repetida.
+
+### O que este achado diz sobre o método
+
+As três unicidades **não estavam na lista de escritas sem teste** — elas
+estavam contadas como "só caminho feliz", que é uma categoria mais branda. A
+régua media o que o falso serviu, e o falso nunca serviu um 409 que ele não
+sabia produzir. **Uma régua que só conta o que o dublê sabe fazer não vê o que
+o dublê não sabe.**
+
+É o mesmo buraco que a auditoria descreve em e.4, chegando por outro caminho: o
+que protege contra ele não é ler o `openapi.json` (nenhuma dessas três regras
+está lá — índice único não vira schema), é ler o **serviço** do backend antes de
+escrever a recusa. Foi o que a skill `rapidex-api` já mandava fazer.
 
 ---
 
