@@ -76,6 +76,17 @@ const RESTAURANT_ID = '11111111-1111-1111-1111-111111111111';
 const BRANCH_ID = '22222222-2222-2222-2222-222222222222';
 const BRANCH_ID_2 = '44444444-4444-4444-4444-444444444444';
 
+/**
+ * O HOST DO BUCKET, no falso.
+ *
+ * `build_storage_url` monta `<SUPABASE_URL>/storage/v1/object/public/<bucket>/…`
+ * e é essa forma — não o host real — que o painel reconhece para reescrever em
+ * `/render/image/`. Um projeto de mentira num subdomínio `supabase.co` mantém a
+ * URL casando com a CSP (`img-src … https://*.supabase.co`) sem cravar o
+ * projeto de produção dentro do repositório.
+ */
+export const BUCKET_FALSO = 'https://falso.supabase.co';
+
 export const FAKE_USER: AdminUser = {
   id: '33333333-3333-3333-3333-333333333333',
   restaurant_id: RESTAURANT_ID,
@@ -2350,6 +2361,14 @@ export type FakeApi = {
   whatsappBodies: () => Record<string, unknown>[];
   /** Planta as linhas de canal antes do login. */
   setWhatsAppChannels: (canais: CanalDeWhatsApp[]) => void;
+  /**
+   * CADA URL DE IMAGEM QUE O NAVEGADOR PEDIU AO BUCKET, na ordem.
+   *
+   * Ler o `src` no DOM prova o que o React escreveu; isto prova o que a rede
+   * de fato buscou — que é onde a banda é gasta. A diferença apareceria, por
+   * exemplo, num `srcset` que sobrescrevesse o `src`.
+   */
+  bucketRequests: () => string[];
 };
 
 /**
@@ -2526,17 +2545,21 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     ): CouponTemplate => ({
       id,
       name,
-      image_path: `${id}.png`,
+      image_path: `rapidex/coupon-templates/${id}.webp`,
       /*
        * `image_url` VEM PRONTA do backend (`build_storage_url`) — o painel não
-       * monta URL de bucket. Aqui ela é um data: URI de 1px porque o e2e roda sem
-       * rede: uma URL de verdade viraria uma imagem quebrada em toda captura.
+       * MONTA URL de bucket, ele REESCREVE a que chegou para pedir o tamanho
+       * que a tela mostra (`src/ds/image-url.ts`).
+       *
+       * ELA TEM A FORMA DO BUCKET DE PROPÓSITO, e isto mudou em 04/09/2026.
+       * Antes era um `data:` URI, "porque o e2e roda sem rede" — e o efeito
+       * colateral era que a reescrita NUNCA era exercitada: `data:` não casa
+       * com `/storage/v1/object/public/` e passa intacto, então o e2e ficaria
+       * verde sobre um painel que não transforma nada. É o §4.10 da skill
+       * `rapidex-api`: um falso mais frouxo que o backend não acusa defeito
+       * nenhum. Quem devolve os bytes é o `page.route` do bucket, mais abaixo.
        */
-      image_url:
-        'data:image/svg+xml;base64,' +
-        Buffer.from(
-          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90"><rect width="160" height="90" fill="#dfe4ee"/><text x="80" y="52" font-family="sans-serif" font-size="20" text-anchor="middle" fill="#2b3444">${name}</text></svg>`,
-        ).toString('base64'),
+      image_url: `${BUCKET_FALSO}/storage/v1/object/public/restaurant-assets/rapidex/coupon-templates/${id}.webp`,
       discount_type,
       discount_value,
       sort_order,
@@ -2957,6 +2980,8 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      */
     whatsappChannels: initialWhatsAppChannels(),
     whatsappBodies: [] as Record<string, unknown>[],
+    /** Cada URL de imagem que o navegador buscou no bucket. Ver `bucketRequests`. */
+    bucketRequests: [] as string[],
     printSectors: initialPrintSectors(BRANCH_ID),
     /*
      * A TAXA POR CORRIDA, por filial. Nasce VAZIO de propósito: nenhuma
@@ -3308,6 +3333,39 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       // A página já pode ter sido fechada no fim do teste. Não é falha.
     }
   }
+
+  /*
+   * ==========================================================================
+   * O BUCKET — e por que ele é uma rota e não um `data:` URI
+   * ==========================================================================
+   *
+   * As `image_url` do falso têm a forma que `build_storage_url` monta, e é
+   * isso que faz o painel REESCREVÊ-LAS para `/render/image/` com o tamanho da
+   * caixa (`src/ds/image-url.ts`). Um `data:` URI passaria intacto pela
+   * reescrita e o e2e ficaria verde sobre um painel que não transforma nada —
+   * §4.10 da skill `rapidex-api`.
+   *
+   * Este handler faz duas coisas, e a segunda é a que importa: devolve um
+   * desenho para a captura não sair com imagem quebrada, e ANOTA a URL pedida,
+   * que é a prova de que a banda economizada foi de fato economizada.
+   *
+   * Ele fica ANTES da rota de `/admin/` porque o Playwright casa na ordem
+   * inversa da instalação — e sobrepor o bucket ao `/admin/` não faria
+   * diferença aqui, mas a leitura fica na ordem em que se pensa.
+   */
+  await page.route(/\/\/[^/]*supabase\.co\//, async (route) => {
+    const url = route.request().url();
+    state.bucketRequests.push(url);
+
+    const rotulo = (url.split('?')[0] ?? '').split('/').pop() ?? '';
+    await route.fulfill({
+      status: 200,
+      // O bucket de verdade serve com cache longo, e o painel conta com isso:
+      // a mesma miniatura reaparece a cada volta ao Cardápio.
+      headers: { 'content-type': 'image/svg+xml', 'cache-control': 'max-age=3600' },
+      body: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 90"><rect width="160" height="90" fill="#dfe4ee"/><text x="80" y="52" font-family="sans-serif" font-size="14" text-anchor="middle" fill="#2b3444">${rotulo.replace(/\.webp$/, '')}</text></svg>`,
+    });
+  });
 
   await page.route(/\/admin\//, async (route) => {
     const request = route.request();
@@ -6535,6 +6593,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     setWhatsAppChannels(canais) {
       state.whatsappChannels = canais;
     },
+    bucketRequests: () => state.bucketRequests,
     printSectors: () => state.printSectors,
     entrarComoPapel(papel) {
       state.papel = papel;

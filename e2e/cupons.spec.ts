@@ -641,3 +641,66 @@ test('código repetido ao editar: o 409 vira erro DO CAMPO, e o diálogo não fe
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByLabel('Código', { exact: true })).toHaveValue('VERAO');
 });
+
+/* ==========================================================================
+ * 8. A ARTE VEM NO TAMANHO DA TELA, NÃO NO TAMANHO DO BUCKET
+ *
+ * O Supabase estourou a cota de banda em 09/2026 e o painel era o repositório
+ * com mais sítios de imagem sem transformação. Toda `image_url` sai do backend
+ * apontando para o objeto CRU; quem pede o tamanho é o painel, reescrevendo a
+ * URL para `/render/image/` (`src/ds/image-url.ts`).
+ *
+ * A ASSERÇÃO É SOBRE A REQUISIÇÃO, não sobre o `src` no DOM: o que custa
+ * dinheiro é o byte que atravessa. `api.bucketRequests()` é o que o navegador
+ * de fato buscou.
+ * ======================================================================= */
+
+test('a lista pede a arte em 112×72, e o escolhedor em 320×180', async ({ page }) => {
+  await entrar(page);
+
+  /* A LISTA. A miniatura mede 56×36 em CouponsPage.css — o dobro disso é o
+     que a URL pede, porque a tela do lojista é retina. */
+  await expect(page.getByTestId('cupom-editar-SETEMBRO')).toBeVisible();
+  await esperarTamanho(page, 'img.cupons__miniatura', { largura: '112', altura: '72' });
+
+  /* O ESCOLHEDOR. A arte ocupa a coluna da grade, 16/9 — outra caixa, outra
+     variante, e é a segunda de quatro no painel inteiro. */
+  await page.getByTestId('cupons-nova').click();
+  await expect(page.getByRole('radio', { name: /15% OFF/ })).toBeVisible();
+  await esperarTamanho(page, 'img.arte__imagem', { largura: '320', altura: '180' });
+
+  /*
+   * E A PROVA DE REDE, que é onde o dinheiro sai: nenhuma das imagens que o
+   * navegador de fato buscou foi o objeto CRU do bucket. Uma sobra aqui é um
+   * sítio que ficou para trás — no piloto, ~20 KB contra ~1,4 KB por arte.
+   */
+  const pedidas = api.bucketRequests();
+  expect(pedidas.length).toBeGreaterThan(0);
+  expect(pedidas.filter((url) => url.includes('/object/public/'))).toEqual([]);
+});
+
+/**
+ * TODO `<img>` que casa com o seletor pede exatamente este tamanho.
+ *
+ * A asserção é sobre o CONJUNTO, e não sobre o primeiro: um sítio que
+ * transformasse a arte da primeira linha e esquecesse as outras passaria numa
+ * asserção de amostra, e é essa a forma que este defeito teria.
+ */
+async function esperarTamanho(
+  page: Page,
+  seletor: string,
+  esperado: { largura: string; altura: string },
+) {
+  await expect(page.locator(seletor).first()).toBeVisible();
+
+  const pedidos = await page.locator(seletor).evaluateAll((elementos) =>
+    elementos.map((elemento) => {
+      const url = new URL((elemento as HTMLImageElement).src);
+      const render = url.pathname.includes('/render/image/public/') ? 'render' : 'objeto-cru';
+      return `${render} ${url.searchParams.get('width')}x${url.searchParams.get('height')}`;
+    }),
+  );
+
+  expect(pedidos.length).toBeGreaterThan(0);
+  expect([...new Set(pedidos)]).toEqual([`render ${esperado.largura}x${esperado.altura}`]);
+}

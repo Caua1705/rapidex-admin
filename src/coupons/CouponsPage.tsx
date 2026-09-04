@@ -4,6 +4,7 @@ import type { Coupon, CouponTemplate } from '../api/types';
 import { usePermissoes } from '../auth/use-permissions';
 import { DataTable, HelpPopover, PageBar, Select, type Column } from '../ds';
 import { AlertIcon, EditIcon, ImageIcon, PlusIcon } from '../ds/icons';
+import { CAIXAS, imagemNaCaixa } from '../ds/image-url';
 import { todayInOperationTimezone } from '../orders/format';
 import { CouponDialog } from './CouponDialog';
 import {
@@ -434,7 +435,20 @@ function Miniatura({ arte, nome }: { arte: CouponTemplate | null; nome: string }
       </span>
     );
   }
-  return <img className="cupons__miniatura" src={arte.image_url} alt={`Arte de ${nome}`} />;
+  /*
+   * 56×36 na tela, e é isso que ela pede ao Storage — o `image_url` do backend
+   * aponta o objeto CRU do bucket, que no piloto pesa ~20 KB por arte contra
+   * ~1,4 KB nesta caixa. Ver `ds/image-url.ts`.
+   */
+  return (
+    <img
+      className="cupons__miniatura"
+      src={imagemNaCaixa(arte.image_url, CAIXAS.miniaturaDaArte)}
+      alt={`Arte de ${nome}`}
+      loading="lazy"
+      decoding="async"
+    />
+  );
 }
 
 /**

@@ -127,6 +127,28 @@ describe('ProductDialog · o bloco da foto nos dois modos', () => {
     expect(screen.getByTestId('product-image-choose')).toBeInTheDocument();
   });
 
+  /*
+   * A FOTO QUE JÁ ESTÁ NO ITEM mede 56px no diálogo (`foto__atual`), e vinha do
+   * bucket em tamanho de upload — ~100 KB para desenhar um selo de confirmação
+   * de qual foto está lá. Ver `ds/image-url.ts`.
+   */
+  it('a foto atual vem no tamanho do selo de 56px, não no tamanho do bucket', async () => {
+    vi.mocked(fetchProductDetail).mockResolvedValue({
+      ...detalhe([]),
+      image_url:
+        'https://exemplo.supabase.co/storage/v1/object/public/restaurant-assets/p/picanha.webp',
+    });
+
+    renderDialog();
+
+    const foto = await screen.findByTestId('product-image-current');
+    const url = new URL(foto.getAttribute('src') ?? '');
+
+    expect(url.pathname).toContain('/storage/v1/render/image/public/');
+    expect(url.searchParams.get('width')).toBe('112');
+    expect(url.searchParams.get('height')).toBe('112');
+  });
+
   it('no "Novo item", com o botão que PEDE a foto no lugar do de escolher', async () => {
     renderDialog({ ...draft, id: null });
 

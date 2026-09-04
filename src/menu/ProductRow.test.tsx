@@ -190,6 +190,47 @@ describe('ProductRow', () => {
   });
 
   /*
+   * A MINIATURA É A COLUNA MAIS CARA DO PAINEL.
+   *
+   * Até 50 fotos por carregamento da lista, todas servidas em tamanho de
+   * upload até 04/09/2026: 2.440 KB na maior categoria do piloto, para desenhar
+   * 26 quadrados de 44px. Ver `ds/image-url.ts`.
+   */
+  describe('a foto do item', () => {
+    const BUCKET =
+      'https://exemplo.supabase.co/storage/v1/object/public/restaurant-assets/p/x-burger.webp';
+
+    it('pede a foto no tamanho do quadrado, não no tamanho em que ela subiu', () => {
+      renderRow({ image_url: BUCKET }, vi.fn(), { showPhoto: true });
+
+      const foto = screen.getByTestId('product-thumb-prod-1');
+      const url = new URL(foto.getAttribute('src') ?? '');
+
+      expect(url.pathname).toContain('/storage/v1/render/image/public/');
+      expect(url.searchParams.get('width')).toBe('88');
+      expect(url.searchParams.get('height')).toBe('88');
+    });
+
+    /*
+     * Numa categoria de cinquenta itens, quarenta e poucas miniaturas nascem
+     * fora da tela. Sem isto, o navegador baixa as cinquenta antes de a lista
+     * assentar — e o lojista paga a banda de uma foto que ele nunca rolou até
+     * ver.
+     */
+    it('a foto que nasce fora da tela não é baixada antes de ser rolada', () => {
+      renderRow({ image_url: BUCKET }, vi.fn(), { showPhoto: true });
+
+      expect(screen.getByTestId('product-thumb-prod-1')).toHaveAttribute('loading', 'lazy');
+    });
+
+    it('item sem foto fica com o contorno tracejado, e sem requisição nenhuma', () => {
+      renderRow({ image_url: null }, vi.fn(), { showPhoto: true });
+
+      expect(screen.queryByTestId('product-thumb-prod-1')).not.toBeInTheDocument();
+    });
+  });
+
+  /*
    * A coluna de setor existe para o lojista conferir a categoria inteira de
    * relance e ver se esqueceu algum item — sem abrir item por item.
    */

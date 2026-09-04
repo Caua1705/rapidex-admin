@@ -1,5 +1,6 @@
 import type { CouponTemplate } from '../api/types';
 import { ImageIcon } from '../ds/icons';
+import { CAIXAS, imagemNaCaixa } from '../ds/image-url';
 import { contarArtes, descontoDaArte, textoDoQueDesconta, type GrupoDeArtes } from './coupon-model';
 
 /**
@@ -105,7 +106,13 @@ function ArteOpcao({
         {arte.image_url ? (
           <img
             className="arte__imagem"
-            src={arte.image_url}
+            /*
+             * A ARTE NA LARGURA DA COLUNA (160×90 de CSS, o dobro na URL), e
+             * não no tamanho em que a plataforma a subiu. `image_url` aponta o
+             * objeto cru do bucket — ver `ds/image-url.ts`, e a cota de banda
+             * que estourou em 09/2026.
+             */
+            src={imagemNaCaixa(arte.image_url, CAIXAS.arteNoEscolhedor)}
             /*
              * O `alt` NÃO REPETE O NOME que está escrito logo abaixo — seria o
              * mesmo texto duas vezes para quem escuta. Ele descreve o que a

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { messageFromUnknownError } from '../api/errors';
 import { uploadProductImage } from '../api/menu';
 import { ImageIcon, MinusIcon, PlusIcon } from '../ds/icons';
+import { CAIXAS, imagemNaCaixa } from '../ds/image-url';
 import {
   ACCEPTED_MIME,
   INITIAL_CROP,
@@ -213,7 +214,20 @@ export function ProductImageField({
             }}
           >
             {currentImageUrl ? (
-              <img className="foto__atual" src={currentImageUrl} alt="" />
+              /*
+                O SELO DA FOTO QUE JÁ ESTÁ NO ITEM — 56px, e por isso ele pede
+                112 ao Storage em vez do objeto cru do bucket, que é o que o
+                backend devolve em `image_url` (ver `ds/image-url.ts`). Não é o
+                lugar de julgar a foto: é o lugar de saber QUAL foto está lá
+                antes de trocá-la.
+              */
+              <img
+                className="foto__atual"
+                src={imagemNaCaixa(currentImageUrl, CAIXAS.fotoDoProduto)}
+                alt=""
+                decoding="async"
+                data-testid="product-image-current"
+              />
             ) : (
               <div className="foto__vazia" aria-hidden="true">
                 <ImageIcon size={20} />

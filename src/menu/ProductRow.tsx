@@ -6,6 +6,7 @@ import { sectorLabelFor } from '../print-sectors/print-sectors';
 import { Checkbox } from '../ds/Checkbox';
 import { Switch } from '../ds/Switch';
 import { AlertIcon, ChevronDownIcon, ChevronUpIcon, EditIcon, GripIcon } from '../ds/icons';
+import { CAIXAS, imagemNaCaixa } from '../ds/image-url';
 import {
   isProductActive,
   isProductAvailable,
@@ -181,10 +182,24 @@ export function ProductRow({
         distinguir um prato de carne de outro, que é a única coisa que ele
         podia estar fazendo ali. Nos itens sem foto ele é um contorno tracejado,
         nunca um bloco preenchido.
+
+        E ELE É O SÍTIO DE IMAGEM MAIS CARO DO PAINEL: até 50 destes por
+        carregamento (o `PAGE_SIZE` de `useMenu`), e até 04/09/2026 cada um
+        baixava o objeto do bucket em tamanho de upload para desenhar 44px.
+        Medido na maior categoria do piloto: 2.440 KB por lista, contra 70 KB
+        pedindo 88×88. `imagemNaCaixa` é quem faz o pedido; `loading="lazy"` é
+        quem impede que as fotos de baixo da rolagem sejam baixadas junto.
       */}
       {showPhoto ? (
         product.image_url ? (
-          <img className="item__thumb" src={product.image_url} alt="" />
+          <img
+            className="item__thumb"
+            src={imagemNaCaixa(product.image_url, CAIXAS.itemDoCardapio)}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            data-testid={`product-thumb-${product.id}`}
+          />
         ) : (
           <span className="item__thumb item__thumb--empty" aria-hidden="true" />
         )

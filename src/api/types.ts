@@ -451,9 +451,23 @@ export type CouponUpdate = Schemas['CouponUpdate'];
  * "R$ 5 OFF", "FRETE GRÁTIS").
  *
  * São da PLATAFORMA: não há rota que os cadastre, não há `restaurant_id` neles,
- * e o lojista não sobe imagem. `image_url` vem pronta porque quem monta a URL
+ * e o lojista não sobe imagem. `image_url` vem pronta porque quem MONTA a URL
  * do bucket é o backend (`build_storage_url`) — remontá-la aqui seria a segunda
  * cópia da configuração do Supabase.
+ *
+ * MONTAR continua sendo do backend; REESCREVER passou a ser do painel, e a
+ * distinção é o que mantém a frase acima verdadeira. Desde 04/09/2026
+ * `ds/image-url.ts` troca `/object/public/` por `/render/image/` e acrescenta o
+ * tamanho da caixa em que a tela desenha — sem saber o host, o nome do bucket
+ * nem o caminho de objeto nenhum, e devolvendo INTACTO tudo o que não tenha a
+ * forma que `build_storage_url` produz.
+ *
+ * O motivo é dinheiro: a cota de banda do Supabase estourou (14,19 GB contra os
+ * 5 GB do plano) porque toda `image_url` da API aponta o objeto CRU. Medido no
+ * cardápio do piloto, a maior categoria baixava 2.440 KB de miniatura por
+ * carregamento para desenhar 26 quadrados de 44px. Esperar o backend passar a
+ * servir variantes seria esperar uma migração de imagem por um custo que já
+ * está correndo.
  *
  * `discount_value` é anulável por causa de `free_delivery`, onde não há valor a
  * imprimir.
