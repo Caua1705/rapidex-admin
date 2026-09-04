@@ -112,6 +112,8 @@ export const PAPEL_POR_ROTA = {
   '/admin/users': { GET: 'SOMENTE_DONO', POST: 'SOMENTE_DONO' },
   '/admin/users/{admin_user_id}': { PATCH: 'SOMENTE_DONO' },
   '/admin/users/{admin_user_id}/reset-password': { POST: 'SOMENTE_DONO' },
+  '/admin/whatsapp/channels': { GET: 'GERENCIA', POST: 'SOMENTE_DONO' },
+  '/admin/whatsapp/channels/{channel_id}': { DELETE: 'SOMENTE_DONO' },
 } as const satisfies Partial<
   Record<
     keyof paths,
