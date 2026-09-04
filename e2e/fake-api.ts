@@ -8,11 +8,24 @@
  * page.route() e respondemos com dados em memória.
  *
  * O que é fake é só o TRANSPORTE: os formatos de resposta são os mesmos do
- * /openapi.json — os tipos vêm de `src/api/generated/openapi.d.ts`, então uma
- * mudança de contrato no backend quebra este arquivo no `npm run typecheck`.
+ * /openapi.json, e agora isso é CONFERIDO em vez de prometido. Toda resposta
+ * sai por `contrato.ts`, que exige o par (rota, método) do contrato e tipa o
+ * corpo pelo que ele declara — o `json(route, status, body: unknown)` que
+ * existia aqui aceitava qualquer coisa, e era por onde o falso podia envelhecer
+ * em silêncio. Ver o cabeçalho de `contrato.ts` para o que ele NÃO cobre.
  */
 import type { Page, Route } from '@playwright/test';
 
+import {
+  casar,
+  corpoDe,
+  recusar,
+  recusarEmQualquerMetodo,
+  recusarSemRota,
+  responder,
+  semCorpo,
+  type Corpo,
+} from './contrato';
 import type { components } from '../src/api/generated/openapi';
 
 type Schemas = components['schemas'];
@@ -334,17 +347,6 @@ function optionGroupsFixture() {
  * O `prod-7` (Onion rings) tem o grupo obrigatório VAZIO de opções ativas —
  * é o item que sai de venda sozinho, e é o que faz a faixa de aviso aparecer.
  */
-/**
- * OS CAMINHOS DAS ROTAS DE COMPLEMENTO.
- *
- * No topo e não em linha: eles são lidos a cada requisição interceptada, e
- * uma expressão recompilada por chamada num falso que atende centenas delas
- * por teste é desperdício sem contrapartida.
- */
-const RE_GRUPOS_DO_PRODUTO = /^\/admin\/products\/([^/]+)\/option-groups$/;
-const RE_GRUPO = /^\/admin\/option-groups\/([^/]+)$/;
-const RE_OPCOES_DO_GRUPO = /^\/admin\/option-groups\/([^/]+)\/options$/;
-const RE_OPCAO = /^\/admin\/options\/([^/]+)$/;
 function gruposIniciais(): Record<string, AdminOptionGroup[]> {
   return {
     'prod-1': [
@@ -1584,10 +1586,34 @@ function initialSalesSummary(start: string, end: string, branchId = ''): SalesSu
  * pedidos excluídos é exatamente o caso em que o lojista precisa saber que os
  * dois existem — e é a linha que a tela mantém mesmo no estado vazio.
  */
-function emptyReport(path: string, start: string, end: string): unknown {
+/**
+ * As seis rotas de relatório, como o CONTRATO as nomeia.
+ *
+ * A lista existe porque `path.startsWith('/admin/reports/')` devolve uma
+ * string, e string não nomeia rota nenhuma para `responder` — sem este
+ * estreitamento a resposta vazia e o 422 do período teriam de mentir a rota.
+ * `/admin/reports/couriers` fica de fora de propósito: ela tem ramo próprio,
+ * com 403 e 400 que as seis não têm.
+ */
+export const ROTAS_DE_RELATORIO = [
+  '/admin/reports/summary',
+  '/admin/reports/sales-by-day',
+  '/admin/reports/payment-methods',
+  '/admin/reports/products',
+  '/admin/reports/cancellations',
+  '/admin/reports/commission',
+] as const;
+
+type RotaDeRelatorio = (typeof ROTAS_DE_RELATORIO)[number];
+
+function emptyReport(
+  rota: RotaDeRelatorio,
+  start: string,
+  end: string,
+): Corpo<RotaDeRelatorio, 'get', 200> {
   const semComparacao = { current: '0.00', previous: '0.00', change: '0.00', change_percent: null };
 
-  if (path === '/admin/reports/summary') {
+  if (rota === '/admin/reports/summary') {
     return {
       restaurant_id: RESTAURANT_ID,
       period: reportPeriod(start, end),
@@ -1610,7 +1636,7 @@ function emptyReport(path: string, start: string, end: string): unknown {
     } satisfies SalesSummary;
   }
 
-  if (path === '/admin/reports/sales-by-day') {
+  if (rota === '/admin/reports/sales-by-day') {
     return {
       restaurant_id: RESTAURANT_ID,
       period: reportPeriod(start, end),
@@ -1620,7 +1646,7 @@ function emptyReport(path: string, start: string, end: string): unknown {
     } satisfies SalesByDay;
   }
 
-  if (path === '/admin/reports/payment-methods') {
+  if (rota === '/admin/reports/payment-methods') {
     return {
       restaurant_id: RESTAURANT_ID,
       period: reportPeriod(start, end),
@@ -1630,7 +1656,7 @@ function emptyReport(path: string, start: string, end: string): unknown {
     } satisfies ReportPaymentMethods;
   }
 
-  if (path === '/admin/reports/products') {
+  if (rota === '/admin/reports/products') {
     return {
       restaurant_id: RESTAURANT_ID,
       period: reportPeriod(start, end),
@@ -1641,7 +1667,7 @@ function emptyReport(path: string, start: string, end: string): unknown {
     } satisfies ProductSales;
   }
 
-  if (path === '/admin/reports/cancellations') {
+  if (rota === '/admin/reports/cancellations') {
     return {
       restaurant_id: RESTAURANT_ID,
       period: reportPeriod(start, end),
@@ -2205,14 +2231,6 @@ function chaveRepetida(
   return produtos.some(
     (item) => item.branch_id === branchId && item.catalog_key === chave && item.id !== productId,
   );
-}
-
-function json(route: Route, status: number, body: unknown) {
-  return route.fulfill({
-    status,
-    contentType: 'application/json',
-    body: JSON.stringify(body),
-  });
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -3032,17 +3050,19 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     // Sessão expirada: qualquer chamada com Authorization responde 401, que é
     // o gatilho do logout automático do painel.
     if (state.sessionExpired && path !== '/admin/auth/login') {
-      return json(route, 401, { detail: 'Token expirado.' });
+      return recusarSemRota(route, 401, { detail: 'Token expirado.' });
     }
 
     if (method === 'POST' && path === '/admin/auth/login') {
-      const body = request.postDataJSON() as { email?: string; password?: string };
+      const body = corpoDe(route, 'post', '/admin/auth/login');
       /* A senha que vale é sempre `state.senhaDeLogin` — inclusive com a marca
          de senha temporária ligada. A marca diz que a senha foi criada por
          outra pessoa, não que ela seja outra: quem entra é sempre o mesmo
          usuário do falso, e a senha dele muda quando ele a troca. */
       if (body.email !== LOGIN_EMAIL || body.password !== state.senhaDeLogin) {
-        return json(route, 401, { detail: 'E-mail ou senha inválidos.' });
+        return recusar(route, 'post', '/admin/auth/login', 401, {
+          detail: 'E-mail ou senha inválidos.',
+        });
       }
       /*
        * O LOGIN ACEITA TODOS OS PAPÉIS, INCLUSIVE `print_agent` — e isso não é
@@ -3051,7 +3071,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        * recusá-lo aqui pararia a impressão de todas as lojas. Quem recusa a
        * conta de máquina é a TELA, depois do login.
        */
-      return json(route, 200, {
+      return responder(route, 'post', '/admin/auth/login', 200, {
         access_token: ACCESS_TOKEN,
         token_type: 'bearer',
         admin_user: {
@@ -3066,7 +3086,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       // O papel sai do banco a cada requisição, como no backend: rebaixar
       // alguém vale na hora, sem esperar o token de 12h expirar. A marca de
       // senha temporária vem junto, e pelo mesmo motivo.
-      return json(route, 200, {
+      return responder(route, 'get', '/admin/auth/me', 200, {
         ...FAKE_USER,
         role: state.papel,
         must_change_password: state.senhaTemporaria,
@@ -3091,13 +3111,19 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       /* A senha atual é a que o login aceita agora — a mesma variável, para os
          dois nunca discordarem. */
       if (atual !== state.senhaDeLogin) {
-        return json(route, 400, { detail: 'Senha atual incorreta' });
+        return recusar(route, 'patch', '/admin/auth/password', 400, {
+          detail: 'Senha atual incorreta',
+        });
       }
       if (nova !== confirmacao) {
-        return json(route, 400, { detail: 'As senhas nao conferem' });
+        return recusar(route, 'patch', '/admin/auth/password', 400, {
+          detail: 'As senhas nao conferem',
+        });
       }
       if (nova === atual) {
-        return json(route, 400, { detail: 'A nova senha precisa ser diferente da atual' });
+        return recusar(route, 'patch', '/admin/auth/password', 400, {
+          detail: 'A nova senha precisa ser diferente da atual',
+        });
       }
 
       /*
@@ -3109,7 +3135,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        */
       state.senhaTemporaria = false;
       state.senhaDeLogin = nova;
-      return json(route, 200, {
+      return responder(route, 'patch', '/admin/auth/password', 200, {
         message: 'Senha alterada. Entre de novo em todos os dispositivos.',
       });
     }
@@ -3124,13 +3150,13 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      * fechar — e é isso que a asserção do e2e recusa.
      */
     if (state.senhaTemporaria) {
-      return json(route, 403, {
+      return recusarSemRota(route, 403, {
         detail: 'Troque a senha temporaria antes de usar o painel',
       });
     }
 
     if (method === 'GET' && path === '/admin/branches') {
-      return json(route, 200, [FAKE_BRANCH, FAKE_BRANCH_2]);
+      return responder(route, 'get', '/admin/branches', 200, [FAKE_BRANCH, FAKE_BRANCH_2]);
     }
 
     /*
@@ -3146,16 +3172,21 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       // O `branch_id` só restringe, e pedir uma filial que não existe é 404 —
       // não lista vazia, que a tela leria como "sem filial nenhuma".
       if (pedida && linhas.length === 0) {
-        return json(route, 404, { detail: 'Filial não encontrada.' });
+        return recusar(route, 'get', '/admin/branches/operation', 404, {
+          detail: 'Filial não encontrada.',
+        });
       }
-      return json(route, 200, linhas);
+      return responder(route, 'get', '/admin/branches/operation', 200, linhas);
     }
 
-    const branchSettingsMatch = /^\/admin\/branches\/([^/]+)\/settings$/.exec(path);
-    if (method === 'PATCH' && branchSettingsMatch?.[1]) {
-      const branchId = branchSettingsMatch[1];
+    const branchSettingsMatch = casar(path, '/admin/branches/{branch_id}/settings');
+    if (method === 'PATCH' && branchSettingsMatch) {
+      const branchId = branchSettingsMatch.branch_id;
       const branch = state.branches.find((item) => item.id === branchId);
-      if (!branch) return json(route, 404, { detail: 'Filial não encontrada.' });
+      if (!branch)
+        return recusar(route, 'patch', '/admin/branches/{branch_id}/settings', 404, {
+          detail: 'Filial não encontrada.',
+        });
 
       const body = request.postDataJSON() as Record<string, unknown>;
       state.branchSettingsCalls.push({ branchId, body });
@@ -3173,22 +3204,33 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       }
       state.overrides[branchId] = gravado;
 
-      return json(route, 200, operationOf(branch));
+      return responder(
+        route,
+        'patch',
+        '/admin/branches/{branch_id}/settings',
+        200,
+        operationOf(branch),
+      );
     }
 
-    const pauseMatch = /^\/admin\/branches\/([^/]+)\/delivery-pause$/.exec(path);
-    if (method === 'PATCH' && pauseMatch?.[1]) {
-      const branchId = pauseMatch[1];
+    const pauseMatch = casar(path, '/admin/branches/{branch_id}/delivery-pause');
+    if (method === 'PATCH' && pauseMatch) {
+      const branchId = pauseMatch.branch_id;
       const branch = state.branches.find((item) => item.id === branchId);
-      if (!branch) return json(route, 404, { detail: 'Filial não encontrada.' });
+      if (!branch)
+        return recusar(route, 'patch', '/admin/branches/{branch_id}/delivery-pause', 404, {
+          detail: 'Filial não encontrada.',
+        });
 
-      const body = request.postDataJSON() as { minutes: number; reason?: string | null };
+      const body = corpoDe(route, 'patch', '/admin/branches/{branch_id}/delivery-pause');
       state.pauseCalls.push({ branchId, body });
 
       // Teto de 24h, como o backend: pausa de três dias é a chave estrutural
       // com passos a mais, e aí a distinção entre as duas deixa de existir.
       if (body.minutes > 24 * 60) {
-        return json(route, 422, { detail: 'A pausa vai até 24 horas.' });
+        return recusar(route, 'patch', '/admin/branches/{branch_id}/delivery-pause', 422, {
+          detail: 'A pausa vai até 24 horas.',
+        });
       }
 
       const atual = state.dayState[branchId] ?? initialDayState();
@@ -3202,23 +3244,29 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
               deliveryPauseReason: body.reason?.trim() || null,
             };
 
-      return json(route, 200, operationOf(branch));
+      return responder(
+        route,
+        'patch',
+        '/admin/branches/{branch_id}/delivery-pause',
+        200,
+        operationOf(branch),
+      );
     }
 
-    const bandsMatch = /^\/admin\/branches\/([^/]+)\/delivery-time-bands$/.exec(path);
-    if (bandsMatch?.[1]) {
-      const branchId = bandsMatch[1];
+    const bandsMatch = casar(path, '/admin/branches/{branch_id}/delivery-time-bands');
+    if (bandsMatch) {
+      const branchId = bandsMatch.branch_id;
       if (method === 'GET') {
-        return json(route, 200, state.deliveryBands[branchId] ?? []);
+        return responder(
+          route,
+          'get',
+          '/admin/branches/{branch_id}/delivery-time-bands',
+          200,
+          state.deliveryBands[branchId] ?? [],
+        );
       }
       if (method === 'PUT') {
-        const body = request.postDataJSON() as {
-          bands?: {
-            max_distance_km: number;
-            delivery_time_min: number;
-            delivery_time_max: number;
-          }[];
-        };
+        const body = corpoDe(route, 'put', '/admin/branches/{branch_id}/delivery-time-bands');
         state.bandCalls.push({ branchId, body });
 
         /*
@@ -3226,27 +3274,44 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
          * repinta — a ordem que vale é a da regra ("a primeira faixa cujo teto
          * alcança"), não a de digitação.
          */
-        state.deliveryBands[branchId] = [...(body.bands ?? [])]
+        /*
+         * O TETO DA FAIXA CHEGA COMO NÚMERO **OU COMO TEXTO** — o contrato diz
+         * `number | string`, porque do outro lado é um `Decimal` do Pydantic, e a
+         * resposta declara `number`. O falso espalhava o corpo recebido direto na
+         * linha guardada: um "3.5" mandado como texto virava `max_distance_km` de
+         * texto num campo que o contrato declara numérico, e a tela ordenaria por
+         * ordem alfabética sem nada acusar. É a família do dinheiro que atravessa
+         * como número enquanto o vizinho vai como texto (skill `revisao`).
+         */
+        const faixas = [...(body.bands ?? [])]
+          .map((band) => ({ ...band, max_distance_km: Number(band.max_distance_km) }))
           .sort((a, b) => a.max_distance_km - b.max_distance_km)
           .map((band, indice) => ({
             id: `faixa-${branchId}-${indice}`,
             branch_id: branchId,
             ...band,
           }));
-        return json(route, 200, state.deliveryBands[branchId]);
+        state.deliveryBands[branchId] = faixas;
+        return responder(
+          route,
+          'put',
+          '/admin/branches/{branch_id}/delivery-time-bands',
+          200,
+          faixas,
+        );
       }
     }
 
-    const orderTypesMatch = /^\/admin\/branches\/([^/]+)\/order-types$/.exec(path);
-    if (method === 'PATCH' && orderTypesMatch?.[1]) {
-      const branchId = orderTypesMatch[1];
+    const orderTypesMatch = casar(path, '/admin/branches/{branch_id}/order-types');
+    if (method === 'PATCH' && orderTypesMatch) {
+      const branchId = orderTypesMatch.branch_id;
       const branch = state.branches.find((item) => item.id === branchId);
-      if (!branch) return json(route, 404, { detail: 'Filial não encontrada.' });
+      if (!branch)
+        return recusar(route, 'patch', '/admin/branches/{branch_id}/order-types', 404, {
+          detail: 'Filial não encontrada.',
+        });
 
-      const body = request.postDataJSON() as {
-        accepts_delivery?: boolean | null;
-        accepts_pickup?: boolean | null;
-      };
+      const body = corpoDe(route, 'patch', '/admin/branches/{branch_id}/order-types');
       state.orderTypeCalls.push({ branchId, body });
 
       /*
@@ -3257,7 +3322,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       const delivery = body.accepts_delivery;
       const pickup = body.accepts_pickup;
       if (delivery === undefined && pickup === undefined) {
-        return json(route, 422, { detail: 'Informe pelo menos um tipo de pedido.' });
+        return recusar(route, 'patch', '/admin/branches/{branch_id}/order-types', 422, {
+          detail: 'Informe pelo menos um tipo de pedido.',
+        });
       }
 
       const atual = state.dayState[branchId] ?? initialDayState();
@@ -3268,16 +3335,25 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         accepts_delivery: delivery ?? atual.accepts_delivery,
         accepts_pickup: pickup ?? atual.accepts_pickup,
       };
-      return json(route, 200, operationOf(branch));
+      return responder(
+        route,
+        'patch',
+        '/admin/branches/{branch_id}/order-types',
+        200,
+        operationOf(branch),
+      );
     }
 
-    const storeStatusMatch = /^\/admin\/branches\/([^/]+)\/store-status$/.exec(path);
-    if (method === 'PATCH' && storeStatusMatch?.[1]) {
-      const branchId = storeStatusMatch[1];
+    const storeStatusMatch = casar(path, '/admin/branches/{branch_id}/store-status');
+    if (method === 'PATCH' && storeStatusMatch) {
+      const branchId = storeStatusMatch.branch_id;
       const branch = state.branches.find((item) => item.id === branchId);
-      if (!branch) return json(route, 404, { detail: 'Filial não encontrada.' });
+      if (!branch)
+        return recusar(route, 'patch', '/admin/branches/{branch_id}/store-status', 404, {
+          detail: 'Filial não encontrada.',
+        });
 
-      const body = request.postDataJSON() as { is_open: boolean };
+      const body = corpoDe(route, 'patch', '/admin/branches/{branch_id}/store-status');
       state.dayState[branchId] = {
         ...(state.dayState[branchId] ?? initialDayState()),
         is_open: body.is_open,
@@ -3285,7 +3361,13 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       // A resposta é a LINHA DE OPERAÇÃO inteira, como no contrato: devolver só
       // o booleano deixaria o falso mais frouxo que o backend, e a tela leria
       // `is_open_now` como indefinido.
-      return json(route, 200, operationOf(branch));
+      return responder(
+        route,
+        'patch',
+        '/admin/branches/{branch_id}/store-status',
+        200,
+        operationOf(branch),
+      );
     }
 
     if (method === 'GET' && path === '/admin/orders') {
@@ -3309,7 +3391,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        * "consertar" a tipagem daqui a seis meses achando que é descuido.
        */
       if (state.quebrarListagem) {
-        return json(route, 200, {
+        return responder(route, 'get', '/admin/orders', 200, {
           items: null as never,
           total: 0,
           limit,
@@ -3317,7 +3399,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         });
       }
 
-      return json(route, 200, {
+      return responder(route, 'get', '/admin/orders', 200, {
         items: items.slice(offset, offset + limit),
         total: items.length,
         limit,
@@ -3332,13 +3414,14 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      * aceita `branch_id`. O falso não filtra por filial de propósito: filtrar
      * aqui esconderia justamente o que a tela precisa avisar ao lojista.
      */
-    if (method === 'GET' && path.startsWith('/admin/reports/')) {
+    const rotaDoRelatorio = ROTAS_DE_RELATORIO.find((candidata) => candidata === path);
+    if (method === 'GET' && rotaDoRelatorio) {
       const query = new URL(request.url()).searchParams;
       const inicio = query.get('start_date') ?? '';
       const fim = query.get('end_date') ?? '';
 
       if (!inicio || !fim) {
-        return json(route, 422, {
+        return recusar(route, 'get', rotaDoRelatorio, 422, {
           detail: [{ loc: ['query', 'start_date'], msg: 'campo obrigatório', type: 'missing' }],
         });
       }
@@ -3350,17 +3433,29 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        * este interruptor não haveria como exercitá-la no e2e.
        */
       if (state.reportsEmpty) {
-        return json(route, 200, emptyReport(path, inicio, fim));
+        return responder(
+          route,
+          'get',
+          rotaDoRelatorio,
+          200,
+          emptyReport(rotaDoRelatorio, inicio, fim),
+        );
       }
 
       if (path === '/admin/reports/summary') {
         // `branch_id` só RESTRINGE: ausente = todas as filiais do token.
-        return json(route, 200, initialSalesSummary(inicio, fim, query.get('branch_id') ?? ''));
+        return responder(
+          route,
+          'get',
+          '/admin/reports/summary',
+          200,
+          initialSalesSummary(inicio, fim, query.get('branch_id') ?? ''),
+        );
       }
 
       if (path === '/admin/reports/sales-by-day') {
         const dias = reportDays(inicio, fim);
-        return json(route, 200, {
+        return responder(route, 'get', '/admin/reports/sales-by-day', 200, {
           restaurant_id: RESTAURANT_ID,
           period: reportPeriod(inicio, fim),
           orders_count: dias.reduce((soma, dia) => soma + dia.orders_count, 0),
@@ -3372,19 +3467,43 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       }
 
       if (path === '/admin/reports/payment-methods') {
-        return json(route, 200, initialPaymentsReport(inicio, fim));
+        return responder(
+          route,
+          'get',
+          '/admin/reports/payment-methods',
+          200,
+          initialPaymentsReport(inicio, fim),
+        );
       }
 
       if (path === '/admin/reports/products') {
-        return json(route, 200, initialProductSales(inicio, fim));
+        return responder(
+          route,
+          'get',
+          '/admin/reports/products',
+          200,
+          initialProductSales(inicio, fim),
+        );
       }
 
       if (path === '/admin/reports/cancellations') {
-        return json(route, 200, initialCancellations(inicio, fim));
+        return responder(
+          route,
+          'get',
+          '/admin/reports/cancellations',
+          200,
+          initialCancellations(inicio, fim),
+        );
       }
 
       if (path === '/admin/reports/commission') {
-        return json(route, 200, initialCommission(inicio, fim));
+        return responder(
+          route,
+          'get',
+          '/admin/reports/commission',
+          200,
+          initialCommission(inicio, fim),
+        );
       }
     }
 
@@ -3429,12 +3548,14 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       const maxTicket = query.get('max_ticket');
 
       if (lastFrom && lastTo && lastFrom > lastTo) {
-        return json(route, 400, {
+        return recusar(route, 'get', '/admin/customers', 400, {
           detail: 'last_order_from nao pode ser depois de last_order_to.',
         });
       }
       if (minTicket !== null && maxTicket !== null && Number(minTicket) > Number(maxTicket)) {
-        return json(route, 400, { detail: 'min_ticket nao pode ser maior que max_ticket.' });
+        return recusar(route, 'get', '/admin/customers', 400, {
+          detail: 'min_ticket nao pode ser maior que max_ticket.',
+        });
       }
 
       const matching = state.customers.filter((item) => {
@@ -3459,7 +3580,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         return digits !== '' && item.customer_phone.includes(digits);
       });
 
-      return json(route, 200, {
+      return responder(route, 'get', '/admin/customers', 200, {
         items: matching.slice(offset, offset + limit),
         total: matching.length,
         limit,
@@ -3498,10 +3619,14 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       const offset = Number(query.get('offset') ?? 0);
 
       if (!startDate || !endDate) {
-        return json(route, 422, { detail: 'start_date e end_date sao obrigatorios.' });
+        return recusar(route, 'get', '/admin/reviews', 422, {
+          detail: 'start_date e end_date sao obrigatorios.',
+        });
       }
       if (startDate > endDate) {
-        return json(route, 400, { detail: 'end_date nao pode ser anterior a start_date' });
+        return recusar(route, 'get', '/admin/reviews', 400, {
+          detail: 'end_date nao pode ser anterior a start_date',
+        });
       }
 
       /** O período e a filial — o recorte que o agregado TAMBÉM enxerga. */
@@ -3531,7 +3656,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         .filter((item) => maxRating === null || item.rating <= Number(maxRating))
         .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
-      return json(route, 200, {
+      return responder(route, 'get', '/admin/reviews', 200, {
         items: daLista.slice(offset, offset + limit),
         summary: {
           total,
@@ -3552,7 +3677,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       itens.forEach((item) => {
         counts[item.status] = (counts[item.status] ?? 0) + 1;
       });
-      return json(route, 200, {
+      return responder(route, 'get', '/admin/orders/status-counts', 200, {
         counts: Object.entries(counts).map(([status, count]) => ({ status, count })),
         total: itens.length,
       });
@@ -3571,31 +3696,31 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       const permitidos = ['description', 'error_log', 'screen', 'order_number'];
       const intruso = Object.keys(body).find((chave) => !permitidos.includes(chave));
       if (intruso) {
-        return json(route, 422, {
+        return recusar(route, 'post', '/admin/error-reports', 422, {
           detail: [{ loc: ['body', intruso], msg: 'extra fields not permitted' }],
         });
       }
       const descricao = String(body.description ?? '').trim();
       if (descricao === '' || descricao.length > 4000) {
-        return json(route, 422, {
+        return recusar(route, 'post', '/admin/error-reports', 422, {
           detail: [{ loc: ['body', 'description'], msg: 'de 1 a 4000 caracteres' }],
         });
       }
       // Os tetos que o /openapi.json NÃO publica, e que por isso mesmo têm de
       // ser cobrados aqui — ver `src/erro/error-report.ts`.
       if (String(body.error_log ?? '').length > 20000) {
-        return json(route, 422, {
+        return recusar(route, 'post', '/admin/error-reports', 422, {
           detail: [{ loc: ['body', 'error_log'], msg: 'no máximo 20000 caracteres' }],
         });
       }
       if (String(body.screen ?? '').length > 200) {
-        return json(route, 422, {
+        return recusar(route, 'post', '/admin/error-reports', 422, {
           detail: [{ loc: ['body', 'screen'], msg: 'no máximo 200 caracteres' }],
         });
       }
 
       state.errorReports.push(body);
-      return json(route, 201, {
+      return responder(route, 'post', '/admin/error-reports', 201, {
         id: `relato-${state.errorReports.length}`,
         created_at: new Date().toISOString(),
       });
@@ -3611,7 +3736,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        * de `serveStream` não teria como ser desfeita.
        */
       state.streamTickets += 1;
-      return json(route, 200, {
+      return responder(route, 'post', '/admin/orders/stream-ticket', 200, {
         ticket: `ticket-de-mentira-${state.streamTickets}`,
         expires_in_seconds: 30,
       });
@@ -3621,18 +3746,21 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       return serveStream(route);
     }
 
-    const statusMatch = /^\/admin\/orders\/([^/]+)\/status$/.exec(path);
-    if (method === 'PATCH' && statusMatch?.[1]) {
-      const item = findOrder(statusMatch[1]);
-      if (!item) return json(route, 404, { detail: 'Pedido não encontrado.' });
+    const statusMatch = casar(path, '/admin/orders/{order_id}/status');
+    if (method === 'PATCH' && statusMatch) {
+      const item = findOrder(statusMatch.order_id);
+      if (!item)
+        return recusar(route, 'patch', '/admin/orders/{order_id}/status', 404, {
+          detail: 'Pedido não encontrado.',
+        });
 
       // `note` é o motivo da recusa: opcional no contrato, e é ele que faz o
       // histórico dizer POR QUE o pedido não saiu.
-      const body = request.postDataJSON() as { status: string; note?: string };
+      const body = corpoDe(route, 'patch', '/admin/orders/{order_id}/status');
       const permitidos = TRANSICOES[item.status] ?? [];
       if (!permitidos.includes(body.status)) {
         // Mesma forma de erro do backend: 409 com a frase já em português.
-        return json(route, 409, {
+        return recusar(route, 'patch', '/admin/orders/{order_id}/status', 409, {
           detail: `Não é possível mudar de "${ROTULOS[item.status]}" para "${ROTULOS[body.status]}".`,
         });
       }
@@ -3645,31 +3773,37 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         created_at: new Date().toISOString(),
         ...(body.note ? { note: body.note } : {}),
       });
-      return json(route, 200, detailOf(item, historyOf(item)));
+      return responder(
+        route,
+        'patch',
+        '/admin/orders/{order_id}/status',
+        200,
+        detailOf(item, historyOf(item)),
+      );
     }
 
     /*
      * Cancelar com motivo. Antes de /admin/orders/{id}, senão "cancel" seria
      * lido como id de pedido.
      */
-    const cancelMatch = /^\/admin\/orders\/([^/]+)\/cancel$/.exec(path);
-    if (method === 'PATCH' && cancelMatch?.[1]) {
-      const item = findOrder(cancelMatch[1]);
-      if (!item) return json(route, 404, { detail: 'Pedido não encontrado.' });
+    const cancelMatch = casar(path, '/admin/orders/{order_id}/cancel');
+    if (method === 'PATCH' && cancelMatch) {
+      const item = findOrder(cancelMatch.order_id);
+      if (!item)
+        return recusar(route, 'patch', '/admin/orders/{order_id}/cancel', 404, {
+          detail: 'Pedido não encontrado.',
+        });
 
-      const body = request.postDataJSON() as {
-        reason?: string;
-        confirm_prepared_order?: boolean;
-      };
+      const body = corpoDe(route, 'patch', '/admin/orders/{order_id}/cancel');
       const reason = (body.reason ?? '').trim();
       // Mesma validação do backend: 3 a 300 caracteres, 422 fora disso.
       if (reason.length < 3 || reason.length > 300) {
-        return json(route, 422, {
+        return recusar(route, 'patch', '/admin/orders/{order_id}/cancel', 422, {
           detail: [{ loc: ['body', 'reason'], msg: 'O motivo precisa ter de 3 a 300 caracteres.' }],
         });
       }
       if (isTerminal(item.status)) {
-        return json(route, 409, {
+        return recusar(route, 'patch', '/admin/orders/{order_id}/cancel', 409, {
           detail: `"${ROTULOS[item.status]}" é um estado final e não muda mais.`,
         });
       }
@@ -3715,7 +3849,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         ['preparing', 'ready', 'out_for_delivery'].includes(item.status)
       ) {
         state.cancelamentosRecusadosPorConfirmacao += 1;
-        return json(route, 428, {
+        return responder(route, 'patch', '/admin/orders/{order_id}/cancel', 428, {
           detail: {
             code: 'confirmation_required',
             message:
@@ -3739,7 +3873,13 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         note: reason,
         created_at: new Date().toISOString(),
       });
-      return json(route, 200, detailOf(item, historyOf(item)));
+      return responder(
+        route,
+        'patch',
+        '/admin/orders/{order_id}/cancel',
+        200,
+        detailOf(item, historyOf(item)),
+      );
     }
 
     /*
@@ -3759,10 +3899,13 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      * É o que faz o teste cobrir o agrupamento de verdade em vez de cobrir uma
      * lista que já vem com um item por bloco.
      */
-    const printJobsMatch = /^\/admin\/orders\/([^/]+)\/print-jobs$/.exec(path);
-    if (method === 'GET' && printJobsMatch?.[1]) {
-      const item = findOrder(printJobsMatch[1]);
-      if (!item) return json(route, 404, { detail: 'Pedido não encontrado.' });
+    const printJobsMatch = casar(path, '/admin/orders/{order_id}/print-jobs');
+    if (method === 'GET' && printJobsMatch) {
+      const item = findOrder(printJobsMatch.order_id);
+      if (!item)
+        return recusar(route, 'get', '/admin/orders/{order_id}/print-jobs', 404, {
+          detail: 'Pedido não encontrado.',
+        });
 
       const cabeca = `PEDIDO #${item.order_number}\n${'-'.repeat(32)}\n`;
       const viaDoCliente = {
@@ -3793,7 +3936,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
               [viaDoCliente, viaDoCliente]
             : [viaDoCliente, viaDoCliente, viaDaProducao];
 
-      return json(route, 200, {
+      return responder(route, 'get', '/admin/orders/{order_id}/print-jobs', 200, {
         order_id: item.id,
         order_number: item.order_number,
         branch_id: item.branch_id,
@@ -3801,40 +3944,45 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       });
     }
 
-    const detailMatch = /^\/admin\/orders\/([^/]+)$/.exec(path);
-    if (method === 'GET' && detailMatch?.[1]) {
-      const item = findOrder(detailMatch[1]);
-      if (!item) return json(route, 404, { detail: 'Pedido não encontrado.' });
-      return json(route, 200, detailOf(item, historyOf(item)));
+    const detailMatch = casar(path, '/admin/orders/{order_id}');
+    if (method === 'GET' && detailMatch) {
+      const item = findOrder(detailMatch.order_id);
+      if (!item)
+        return recusar(route, 'get', '/admin/orders/{order_id}', 404, {
+          detail: 'Pedido não encontrado.',
+        });
+      return responder(
+        route,
+        'get',
+        '/admin/orders/{order_id}',
+        200,
+        detailOf(item, historyOf(item)),
+      );
     }
 
     // --- tempo de preparo --------------------------------------------------
 
-    const prepMatch = /^\/admin\/branches\/([^/]+)\/prep-time$/.exec(path);
-    if (method === 'PATCH' && prepMatch?.[1]) {
-      const branchId = prepMatch[1];
+    const prepMatch = casar(path, '/admin/branches/{branch_id}/prep-time');
+    if (method === 'PATCH' && prepMatch) {
+      const branchId = prepMatch.branch_id;
 
       // Filial fechada ganha de tudo: nem o ajuste nem a gravação da base
       // fazem sentido numa loja que não está vendendo.
       if (state.closedBranches.has(branchId)) {
-        return json(route, 409, {
+        return recusar(route, 'patch', '/admin/branches/{branch_id}/prep-time', 409, {
           code: 'BRANCH_CLOSED',
           detail: 'A filial está fechada agora. Reabra a loja para mexer no tempo de preparo.',
         });
       }
 
-      const body = request.postDataJSON() as {
-        delta_minutes?: number;
-        prep_time_min?: number;
-        prep_time_max?: number;
-      };
+      const body = corpoDe(route, 'patch', '/admin/branches/{branch_id}/prep-time');
 
       if (typeof body.prep_time_min === 'number' && typeof body.prep_time_max === 'number') {
         state.prepTime[branchId] = { min: body.prep_time_min, max: body.prep_time_max };
       } else {
         const current = state.prepTime[branchId];
         if (!current) {
-          return json(route, 409, {
+          return recusar(route, 'patch', '/admin/branches/{branch_id}/prep-time', 409, {
             code: 'PREP_TIME_NOT_CONFIGURED',
             detail: 'A filial ainda não tem tempo de preparo base gravado.',
           });
@@ -3866,7 +4014,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        */
       const hoje = (new Date(`${OPERATION_DAY.format(new Date())}T12:00:00Z`).getUTCDay() + 6) % 7;
       const row = (state.businessHours[branchId] ?? []).find((entry) => entry.weekday === hoje);
-      return json(route, 200, {
+      return responder(route, 'patch', '/admin/branches/{branch_id}/prep-time', 200, {
         id: row?.id ?? `${branchId}-h-${hoje}`,
         weekday: hoje,
         opens_at: row?.opens_at ?? null,
@@ -3897,15 +4045,25 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      * Trocá-la aqui faria o e2e concordar com uma tela que aponta o campo
      * errado em produção.
      */
-    function recusaDeCupom(body: Record<string, unknown>, ignorando: string | null) {
+    /*
+     * As DUAS ROTAS de cupom recusam pelas mesmas regras, e por isso a rota e o
+     * método chegam por parâmetro: sem eles esta função nomearia uma rota só, e a
+     * conferência de `recusar` estaria mentindo na outra metade das vezes.
+     */
+    function recusaDeCupom(
+      body: Record<string, unknown>,
+      ignorando: string | null,
+      metodo: 'post' | 'patch',
+      rota: '/admin/coupons' | '/admin/coupons/{coupon_id}',
+    ) {
       const templateId = String(body.coupon_template_id ?? '');
       const arte = state.couponTemplates.find((item) => item.id === templateId);
       if (!arte) {
-        return json(route, 400, { detail: 'Template de cupom invalido' });
+        return recusar(route, metodo, rota, 400, { detail: 'Template de cupom invalido' });
       }
 
       if (arte.discount_type !== body.discount_type) {
-        return json(route, 422, {
+        return recusar(route, metodo, rota, 422, {
           detail: [
             {
               loc: ['body', 'discount_type'],
@@ -3932,14 +4090,16 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
           )
         : undefined;
       if (donoDoCodigo) {
-        return json(route, 409, { detail: 'Codigo de cupom ja existe neste restaurante' });
+        return recusar(route, metodo, rota, 409, {
+          detail: 'Codigo de cupom ja existe neste restaurante',
+        });
       }
 
       const donoDaArte = state.coupons.find(
         (item) => item.coupon_template_id === templateId && item.id !== ignorando,
       );
       if (donoDaArte) {
-        return json(route, 409, {
+        return recusar(route, metodo, rota, 409, {
           detail: 'Esta arte ja esta em uso por outra campanha deste restaurante',
         });
       }
@@ -3947,7 +4107,14 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       return null;
     }
 
-    function regraDaFilial(branchId: string): { source: string; rule: CashbackRule | null } {
+    /*
+     * `source` NÃO É UMA STRING QUALQUER: o contrato declara os três valores, e
+     * um quarto inventado aqui passaria pelo e2e e chegaria à tela como origem
+     * que ela não sabe desenhar.
+     */
+    function regraDaFilial(
+      branchId: string,
+    ): Corpo<'/admin/branches/{branch_id}/cashback-rules', 'get', 200> {
       const propria = state.cashbackBranchRules[branchId];
       if (propria) return { source: 'branch', rule: propria };
       if (state.cashbackRestaurantRule) {
@@ -3971,8 +4138,10 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
 
     if (path === '/admin/cashback-rules') {
       if (method === 'GET') {
-        return json(
+        return responder(
           route,
+          'get',
+          '/admin/cashback-rules',
           200,
           state.cashbackRestaurantRule
             ? { source: 'restaurant', rule: state.cashbackRestaurantRule }
@@ -3983,14 +4152,21 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         const body = request.postDataJSON() as Record<string, unknown>;
         state.cashbackPuts.push({ escopo: 'rede', body });
         state.cashbackRestaurantRule = regraGravada(body, null);
-        return json(route, 200, state.cashbackRestaurantRule);
+        return responder(route, 'put', '/admin/cashback-rules', 200, state.cashbackRestaurantRule);
       }
     }
 
-    const cashbackMatch = /^\/admin\/branches\/([^/]+)\/cashback-rules$/.exec(path);
-    if (cashbackMatch?.[1]) {
-      const branchId = cashbackMatch[1];
-      if (method === 'GET') return json(route, 200, regraDaFilial(branchId));
+    const cashbackMatch = casar(path, '/admin/branches/{branch_id}/cashback-rules');
+    if (cashbackMatch) {
+      const branchId = cashbackMatch.branch_id;
+      if (method === 'GET')
+        return responder(
+          route,
+          'get',
+          '/admin/branches/{branch_id}/cashback-rules',
+          200,
+          regraDaFilial(branchId),
+        );
       /*
        * A FILIAL PRECISA EXISTIR — e o falso não cobrava isso.
        *
@@ -4004,23 +4180,33 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        * Vale para os três métodos, e por isso vem antes deles.
        */
       if (!state.branches.some((item) => item.id === branchId)) {
-        return json(route, 404, { detail: 'Filial não encontrada' });
+        return recusarEmQualquerMetodo(route, '/admin/branches/{branch_id}/cashback-rules', 404, {
+          detail: 'Filial não encontrada',
+        });
       }
 
       if (method === 'PUT') {
         const body = request.postDataJSON() as Record<string, unknown>;
         state.cashbackPuts.push({ escopo: 'filial', body });
         state.cashbackBranchRules[branchId] = regraGravada(body, branchId);
-        return json(route, 200, state.cashbackBranchRules[branchId]);
+        return responder(
+          route,
+          'put',
+          '/admin/branches/{branch_id}/cashback-rules',
+          200,
+          state.cashbackBranchRules[branchId],
+        );
       }
       if (method === 'DELETE') {
         // 404 quando não havia sobrescrita: "voltou a herdar agora" e "já
         // herdava" são estados diferentes na tela.
         if (!state.cashbackBranchRules[branchId]) {
-          return json(route, 404, { detail: 'Esta filial nao tem regra propria' });
+          return recusar(route, 'delete', '/admin/branches/{branch_id}/cashback-rules', 404, {
+            detail: 'Esta filial nao tem regra propria',
+          });
         }
         delete state.cashbackBranchRules[branchId];
-        return route.fulfill({ status: 204, body: '' });
+        return semCorpo(route, 'delete', '/admin/branches/{branch_id}/cashback-rules');
       }
     }
 
@@ -4039,17 +4225,17 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      */
 
     if (path === '/admin/coupon-templates' && method === 'GET') {
-      return json(route, 200, state.couponTemplates);
+      return responder(route, 'get', '/admin/coupon-templates', 200, state.couponTemplates);
     }
 
     if (path === '/admin/coupons') {
-      if (method === 'GET') return json(route, 200, state.coupons);
+      if (method === 'GET') return responder(route, 'get', '/admin/coupons', 200, state.coupons);
 
       if (method === 'POST') {
         const body = request.postDataJSON() as Record<string, unknown>;
         state.couponBodies.push({ metodo: 'POST', id: null, body });
 
-        const recusa = recusaDeCupom(body, null);
+        const recusa = recusaDeCupom(body, null, 'post', '/admin/coupons');
         if (recusa) return recusa;
 
         const criado: Coupon = {
@@ -4063,18 +4249,21 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         };
 
         state.coupons = [criado, ...state.coupons];
-        return json(route, 201, criado);
+        return responder(route, 'post', '/admin/coupons', 201, criado);
       }
     }
 
-    const cupomMatch = /^\/admin\/coupons\/([^/]+)$/.exec(path);
-    if (cupomMatch?.[1] && method === 'PATCH') {
-      const couponId = cupomMatch[1];
+    const cupomMatch = casar(path, '/admin/coupons/{coupon_id}');
+    if (cupomMatch && method === 'PATCH') {
+      const couponId = cupomMatch.coupon_id;
       const body = request.postDataJSON() as Record<string, unknown>;
       state.couponBodies.push({ metodo: 'PATCH', id: couponId, body });
 
       const atual = state.coupons.find((item) => item.id === couponId);
-      if (!atual) return json(route, 404, { detail: 'Cupom nao encontrado' });
+      if (!atual)
+        return recusar(route, 'patch', '/admin/coupons/{coupon_id}', 404, {
+          detail: 'Cupom nao encontrado',
+        });
 
       /*
        * O BACKEND VALIDA A MESCLA, não o corpo. É por isso que um
@@ -4082,12 +4271,17 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        * a arte conferida é a do RESULTADO, e ela continua sendo a que sumiu.
        */
       const mesclado: Coupon = { ...atual, ...(body as Partial<Coupon>) };
-      const recusa = recusaDeCupom(mesclado as unknown as Record<string, unknown>, couponId);
+      const recusa = recusaDeCupom(
+        mesclado as unknown as Record<string, unknown>,
+        couponId,
+        'patch',
+        '/admin/coupons/{coupon_id}',
+      );
       if (recusa) return recusa;
 
       const gravado: Coupon = { ...mesclado, updated_at: new Date().toISOString() };
       state.coupons = state.coupons.map((item) => (item.id === couponId ? gravado : item));
-      return json(route, 200, gravado);
+      return responder(route, 'patch', '/admin/coupons/{coupon_id}', 200, gravado);
     }
 
     /* ======================================================================
@@ -4097,7 +4291,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     if (path === '/admin/users') {
       /* Sem query nenhuma: a rota devolve a equipe inteira, ativos e inativos,
          em ordem de cadastro. Quem recorta é a tela — e ela não recorta. */
-      if (method === 'GET') return json(route, 200, state.adminUsers);
+      if (method === 'GET') return responder(route, 'get', '/admin/users', 200, state.adminUsers);
 
       if (method === 'POST') {
         const body = request.postDataJSON() as Record<string, unknown>;
@@ -4111,7 +4305,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
            diria "Input should be 'owner', 'manager' or 'attendant'", que é
            verdadeiro e inútil para quem tentou. */
         if (body.role === 'print_agent') {
-          return json(route, 422, {
+          return recusar(route, 'post', '/admin/users', 422, {
             detail: [
               {
                 loc: ['body', 'role'],
@@ -4126,7 +4320,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
            restaurante o e-mail é: qualquer resposta já revela que ele existe na
            plataforma, e o que esta esconde é ONDE. */
         if (state.adminUsers.some((item) => item.email.toLowerCase() === email)) {
-          return json(route, 409, { detail: 'Este e-mail ja esta em uso' });
+          return recusar(route, 'post', '/admin/users', 409, {
+            detail: 'Este e-mail ja esta em uso',
+          });
         }
 
         const senha = senhaTemporariaFalsa(state.senhasGeradas.length);
@@ -4148,13 +4344,16 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         };
 
         state.adminUsers = [...state.adminUsers, criado];
-        return json(route, 201, { admin_user: criado, temporary_password: senha });
+        return responder(route, 'post', '/admin/users', 201, {
+          admin_user: criado,
+          temporary_password: senha,
+        });
       }
     }
 
-    const usuarioMatch = /^\/admin\/users\/([^/]+)$/.exec(path);
-    if (usuarioMatch?.[1] && method === 'PATCH') {
-      const usuarioId = usuarioMatch[1];
+    const usuarioMatch = casar(path, '/admin/users/{admin_user_id}');
+    if (usuarioMatch && method === 'PATCH') {
+      const usuarioId = usuarioMatch.admin_user_id;
       const body = request.postDataJSON() as Record<string, unknown>;
       state.adminUserBodies.push({ metodo: 'PATCH', id: usuarioId, body });
 
@@ -4162,10 +4361,13 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       /* 404 e não 403 para quem não é pessoa deste restaurante: um 403
          confirmaria que aquele id existe. Vale também para a conta de máquina,
          que estas rotas não alcançam nem para ler. */
-      if (!atual) return json(route, 404, { detail: 'Usuario nao encontrado' });
+      if (!atual)
+        return recusar(route, 'patch', '/admin/users/{admin_user_id}', 404, {
+          detail: 'Usuario nao encontrado',
+        });
 
       if (body.role === 'print_agent') {
-        return json(route, 422, {
+        return recusar(route, 'patch', '/admin/users/{admin_user_id}', 422, {
           detail: [
             { loc: ['body', 'role'], msg: 'print_agent e conta de maquina', type: 'value_error' },
           ],
@@ -4179,7 +4381,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        */
       const desativando = body.is_active === false;
       if (desativando && atual.id === FAKE_USER.id) {
-        return json(route, 400, { detail: 'Voce nao pode desativar a propria conta' });
+        return recusar(route, 'patch', '/admin/users/{admin_user_id}', 400, {
+          detail: 'Voce nao pode desativar a propria conta',
+        });
       }
 
       const rebaixando = body.role !== undefined && body.role !== 'owner';
@@ -4193,7 +4397,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         donosAtivos <= 1
       ) {
         const acao = desativando ? 'desativar' : 'rebaixar';
-        return json(route, 400, {
+        return recusar(route, 'patch', '/admin/users/{admin_user_id}', 400, {
           detail: `Nao da para ${acao} o unico dono ativo do restaurante`,
         });
       }
@@ -4206,16 +4410,19 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         password_changed_at: desativando ? new Date().toISOString() : atual.password_changed_at,
       };
       state.adminUsers = state.adminUsers.map((item) => (item.id === usuarioId ? gravado : item));
-      return json(route, 200, gravado);
+      return responder(route, 'patch', '/admin/users/{admin_user_id}', 200, gravado);
     }
 
-    const resetMatch = /^\/admin\/users\/([^/]+)\/reset-password$/.exec(path);
-    if (resetMatch?.[1] && method === 'POST') {
-      const usuarioId = resetMatch[1];
+    const resetMatch = casar(path, '/admin/users/{admin_user_id}/reset-password');
+    if (resetMatch && method === 'POST') {
+      const usuarioId = resetMatch.admin_user_id;
       state.adminUserBodies.push({ metodo: 'POST-reset', id: usuarioId, body: {} });
 
       const atual = state.adminUsers.find((item) => item.id === usuarioId);
-      if (!atual) return json(route, 404, { detail: 'Usuario nao encontrado' });
+      if (!atual)
+        return recusar(route, 'post', '/admin/users/{admin_user_id}/reset-password', 404, {
+          detail: 'Usuario nao encontrado',
+        });
 
       const senha = senhaTemporariaFalsa(state.senhasGeradas.length);
       state.senhasGeradas.push(senha);
@@ -4228,18 +4435,21 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         password_changed_at: new Date().toISOString(),
       };
       state.adminUsers = state.adminUsers.map((item) => (item.id === usuarioId ? gravado : item));
-      return json(route, 200, { admin_user: gravado, temporary_password: senha });
+      return responder(route, 'post', '/admin/users/{admin_user_id}/reset-password', 200, {
+        admin_user: gravado,
+        temporary_password: senha,
+      });
     }
 
     // --- minha loja: configurações do restaurante --------------------------
 
     if (path === '/admin/settings') {
-      if (method === 'GET') return json(route, 200, state.settings);
+      if (method === 'GET') return responder(route, 'get', '/admin/settings', 200, state.settings);
       if (method === 'PATCH') {
         const body = request.postDataJSON() as Record<string, unknown>;
         state.settingsPatches.push(body);
         Object.assign(state.settings, body);
-        return json(route, 200, state.settings);
+        return responder(route, 'patch', '/admin/settings', 200, state.settings);
       }
     }
 
@@ -4254,7 +4464,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      * sobrevive a um salvamento do outro campo), e `null` explícito apaga.
      */
     if (path === '/admin/restaurant') {
-      if (method === 'GET') return json(route, 200, state.profile);
+      if (method === 'GET') return responder(route, 'get', '/admin/restaurant', 200, state.profile);
       if (method === 'PATCH') {
         const body = request.postDataJSON() as Record<string, unknown>;
         state.profilePatches.push(body);
@@ -4263,21 +4473,21 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         // ANTES disto, e este ramo é o que prova que ela recusou.
         const acima = campoAcimaDoTeto(body);
         if (acima) {
-          return json(route, 422, {
+          return recusar(route, 'patch', '/admin/restaurant', 422, {
             detail: [{ loc: ['body', acima], msg: 'String should have at most N characters' }],
           });
         }
 
         Object.assign(state.profile, body);
-        return json(route, 200, state.profile);
+        return responder(route, 'patch', '/admin/restaurant', 200, state.profile);
       }
     }
 
     // --- minha loja: horários ---------------------------------------------
 
-    const hoursMatch = /^\/admin\/branches\/([^/]+)\/business-hours$/.exec(path);
-    if (hoursMatch?.[1]) {
-      const branchId = hoursMatch[1];
+    const hoursMatch = casar(path, '/admin/branches/{branch_id}/business-hours');
+    if (hoursMatch) {
+      const branchId = hoursMatch.branch_id;
       if (method === 'GET') {
         /*
          * O prazo de preparo mora na linha do dia — é daqui que a barra de
@@ -4286,8 +4496,10 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
          * e mantém `prepTimeOf` como fonte única do que foi gravado.
          */
         const prep = state.prepTime[branchId] ?? null;
-        return json(
+        return responder(
           route,
+          'get',
+          '/admin/branches/{branch_id}/business-hours',
           200,
           (state.businessHours[branchId] ?? []).map((row) => ({
             ...row,
@@ -4297,7 +4509,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         );
       }
       if (method === 'PUT') {
-        const body = request.postDataJSON() as { periods?: BusinessHourInput[] };
+        const body = corpoDe(route, 'put', '/admin/branches/{branch_id}/business-hours');
         const periods = body.periods ?? [];
         state.hoursPuts.push({ branchId, periods });
 
@@ -4311,24 +4523,32 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
           is_closed: period.is_closed,
           sort_order: index,
         }));
-        return json(route, 200, state.businessHours[branchId]);
+        return responder(
+          route,
+          'put',
+          '/admin/branches/{branch_id}/business-hours',
+          200,
+          state.businessHours[branchId],
+        );
       }
     }
 
     // --- minha loja: formas de pagamento ----------------------------------
 
-    const methodsMatch = /^\/admin\/branches\/([^/]+)\/payment-methods$/.exec(path);
-    if (methodsMatch?.[1]) {
-      const branchId = methodsMatch[1];
+    const methodsMatch = casar(path, '/admin/branches/{branch_id}/payment-methods');
+    if (methodsMatch) {
+      const branchId = methodsMatch.branch_id;
       if (method === 'GET') {
-        return json(
+        return responder(
           route,
+          'get',
+          '/admin/branches/{branch_id}/payment-methods',
           200,
           state.paymentMethods.filter((entry) => entry.branch_id === branchId),
         );
       }
       if (method === 'POST') {
-        const body = request.postDataJSON() as Omit<PaymentMethod, 'id' | 'branch_id'>;
+        const body = corpoDe(route, 'post', '/admin/branches/{branch_id}/payment-methods');
 
         /*
          * A FORMA REPETIDA É 409, e o falso não cobrava.
@@ -4350,7 +4570,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
             (entry.brand ?? null) === (body.brand ?? null),
         );
         if (repetida) {
-          return json(route, 409, {
+          return recusar(route, 'post', '/admin/branches/{branch_id}/payment-methods', 409, {
             detail: 'Esta forma de pagamento já está cadastrada nesta filial',
           });
         }
@@ -4361,51 +4581,63 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
           branch_id: branchId,
         };
         state.paymentMethods.push(created);
-        return json(route, 201, created);
+        return responder(
+          route,
+          'post',
+          '/admin/branches/{branch_id}/payment-methods',
+          201,
+          created,
+        );
       }
     }
 
-    const paymentMethodMatch = /^\/admin\/payment-methods\/([^/]+)$/.exec(path);
-    if (paymentMethodMatch?.[1]) {
-      const methodId = paymentMethodMatch[1];
+    const paymentMethodMatch = casar(path, '/admin/payment-methods/{method_id}');
+    if (paymentMethodMatch) {
+      const methodId = paymentMethodMatch.method_id;
       const index = state.paymentMethods.findIndex((entry) => entry.id === methodId);
-      if (index < 0) return json(route, 404, { detail: 'Forma de pagamento não encontrada.' });
+      if (index < 0)
+        return recusarEmQualquerMetodo(route, '/admin/payment-methods/{method_id}', 404, {
+          detail: 'Forma de pagamento não encontrada.',
+        });
 
       if (method === 'PATCH') {
         const body = request.postDataJSON() as Record<string, unknown>;
         // O backend NÃO aceita trocar fluxo nem tipo: se o painel mandar, é bug
         // dele, e o falso precisa acusar em vez de aceitar em silêncio.
         if ('payment_flow' in body || 'method_type' in body) {
-          return json(route, 422, {
+          return recusar(route, 'patch', '/admin/payment-methods/{method_id}', 422, {
             detail: [{ loc: ['body'], msg: 'payment_flow e method_type não podem ser alterados.' }],
           });
         }
-        Object.assign(state.paymentMethods[index] as PaymentMethod, body);
-        return json(route, 200, state.paymentMethods[index]);
+        const alvo = state.paymentMethods[index] as PaymentMethod;
+        Object.assign(alvo, body);
+        return responder(route, 'patch', '/admin/payment-methods/{method_id}', 200, alvo);
       }
       if (method === 'DELETE') {
         state.paymentMethods.splice(index, 1);
         // 204 sem corpo, como o backend.
-        return route.fulfill({ status: 204, body: '' });
+        return semCorpo(route, 'delete', '/admin/payment-methods/{method_id}');
       }
     }
 
     // --- setores de impressão ----------------------------------------------
 
-    const sectorsMatch = /^\/admin\/branches\/([^/]+)\/printing-sectors$/.exec(path);
-    if (sectorsMatch?.[1]) {
-      const branchId = sectorsMatch[1];
+    const sectorsMatch = casar(path, '/admin/branches/{branch_id}/printing-sectors');
+    if (sectorsMatch) {
+      const branchId = sectorsMatch.branch_id;
       if (method === 'GET') {
         // Traz os desativados também: a aba de administração mostra todos, e é
         // a tela que filtra o que pode ser ESCOLHIDO num produto.
-        return json(
+        return responder(
           route,
+          'get',
+          '/admin/branches/{branch_id}/printing-sectors',
           200,
           state.printSectors.filter((entry) => entry.branch_id === branchId),
         );
       }
       if (method === 'POST') {
-        const body = request.postDataJSON() as { name: string; sort_order?: number };
+        const body = corpoDe(route, 'post', '/admin/branches/{branch_id}/printing-sectors');
         const created: PrintSector = {
           id: `sec-${state.printSectors.length + 1}-novo`,
           branch_id: branchId,
@@ -4414,16 +4646,25 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
           sort_order: body.sort_order ?? 0,
         };
         state.printSectors.push(created);
-        return json(route, 201, created);
+        return responder(
+          route,
+          'post',
+          '/admin/branches/{branch_id}/printing-sectors',
+          201,
+          created,
+        );
       }
     }
 
-    const sectorMatch = /^\/admin\/printing-sectors\/([^/]+)$/.exec(path);
-    if (method === 'PATCH' && sectorMatch?.[1]) {
-      const found = state.printSectors.find((entry) => entry.id === sectorMatch[1]);
-      if (!found) return json(route, 404, { detail: 'Setor não encontrado.' });
+    const sectorMatch = casar(path, '/admin/printing-sectors/{sector_id}');
+    if (method === 'PATCH' && sectorMatch) {
+      const found = state.printSectors.find((entry) => entry.id === sectorMatch.sector_id);
+      if (!found)
+        return recusar(route, 'patch', '/admin/printing-sectors/{sector_id}', 404, {
+          detail: 'Setor não encontrado.',
+        });
       Object.assign(found, request.postDataJSON());
-      return json(route, 200, found);
+      return responder(route, 'patch', '/admin/printing-sectors/{sector_id}', 200, found);
     }
 
     if (method === 'GET' && path === '/admin/reports/couriers') {
@@ -4440,7 +4681,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        * evitá-lo, e só se prova que ela evita contra um falso que recusaria.
        */
       if (!filial && state.papel !== 'owner') {
-        return json(route, 403, { detail: 'Escolha uma filial para ler este relatório.' });
+        return recusar(route, 'get', '/admin/reports/couriers', 403, {
+          detail: 'Escolha uma filial para ler este relatório.',
+        });
       }
 
       /*
@@ -4452,14 +4695,16 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
           (Date.parse(`${fim}T00:00:00Z`) - Date.parse(`${inicio}T00:00:00Z`)) / 86400000,
         ) + 1;
       if (!Number.isFinite(dias) || dias > 92) {
-        return json(route, 400, { detail: 'Período máximo do relatório: 92 dias' });
+        return recusar(route, 'get', '/admin/reports/couriers', 400, {
+          detail: 'Período máximo do relatório: 92 dias',
+        });
       }
 
       const linhas = state.courierReportRows.filter((l) => !filial || l.branch_id === filial);
       const soma = (campo: 'deliveries_count' | 'deliveries_without_fee') =>
         linhas.reduce((total, l) => total + l[campo], 0);
 
-      return json(route, 200, {
+      return responder(route, 'get', '/admin/reports/couriers', 200, {
         restaurant_id: RESTAURANT_ID,
         branch_id: filial,
         period: { start_date: inicio, end_date: fim, days: dias },
@@ -4475,22 +4720,25 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       });
     }
 
-    const orderCourierMatch = /^\/admin\/orders\/([^/]+)\/courier$/.exec(path);
-    if (orderCourierMatch?.[1]) {
-      const orderId = orderCourierMatch[1];
+    const orderCourierMatch = casar(path, '/admin/orders/{order_id}/courier');
+    if (orderCourierMatch) {
+      const orderId = orderCourierMatch.order_id;
       /*
        * 404 É O PEDIDO FORA DO ESCOPO — e SÓ ele. Um pedido que existe e
        * está sem entregador responde 200 com os dois campos nulos: é o
        * estado normal dele, e a tela precisa dos dois casos separados.
        */
       const pedido = state.orders.find((o) => o.id === orderId);
-      if (!pedido) return json(route, 404, { detail: 'Pedido não encontrado.' });
+      if (!pedido)
+        return recusarEmQualquerMetodo(route, '/admin/orders/{order_id}/courier', 404, {
+          detail: 'Pedido não encontrado.',
+        });
 
       const aberta = state.assignments[orderId];
 
       if (method === 'GET') {
         const courier = aberta ? state.couriers.find((c) => c.id === aberta.courierId) : null;
-        return json(route, 200, {
+        return responder(route, 'get', '/admin/orders/{order_id}/courier', 200, {
           courier: courier ? semSegredo(courier) : null,
           assignment: aberta ? atribuicaoDe(orderId, aberta.courierId, aberta.assignedAt) : null,
         });
@@ -4503,12 +4751,12 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
          * merecem saber — é o que o contrato diz com todas as letras.
          */
         if (!aberta) {
-          return json(route, 409, {
+          return recusar(route, 'delete', '/admin/orders/{order_id}/courier', 409, {
             detail: 'Este pedido não está atribuído a nenhum entregador.',
           });
         }
         delete state.assignments[orderId];
-        return route.fulfill({ status: 204, body: '' });
+        return semCorpo(route, 'delete', '/admin/orders/{order_id}/courier');
       }
     }
 
@@ -4521,8 +4769,10 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        * o DELETE tira da lista, que é o que o backend faz do ponto de vista
        * de quem lê.
        */
-      return json(
+      return responder(
         route,
+        'get',
+        '/admin/couriers',
         200,
         state.couriers.filter((c) => !pedida || c.branch_id === pedida).map(semSegredo),
       );
@@ -4537,12 +4787,12 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         campoObrigatorio(body, 'branch_id') ??
         nomeInvalido(body.name) ??
         telefoneInvalido(body.phone);
-      if (recusa) return json(route, 422, recusa);
+      if (recusa) return recusar(route, 'post', '/admin/couriers', 422, recusa);
 
       const branchId = String(body.branch_id);
       const phone = String(body.phone).replace(/\D/g, '');
       if (telefoneRepetido(state.couriers, branchId, phone, null)) {
-        return json(route, 409, { detail: TELEFONE_EM_USO });
+        return recusar(route, 'post', '/admin/couriers', 409, { detail: TELEFONE_EM_USO });
       }
 
       const criado: FakeCourier = {
@@ -4562,20 +4812,23 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        * é — e é justamente a ordem que o painel decidiu NÃO refazer.
        */
       state.couriers.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
-      return json(route, 201, semSegredo(criado));
+      return responder(route, 'post', '/admin/couriers', 201, semSegredo(criado));
     }
 
-    const assignMatch = /^\/admin\/couriers\/([^/]+)\/assignments$/.exec(path);
-    if (assignMatch?.[1]) {
-      const courier = state.couriers.find((c) => c.id === assignMatch[1]);
-      if (!courier) return json(route, 404, { detail: ENTREGADOR_NAO_ENCONTRADO });
+    const assignMatch = casar(path, '/admin/couriers/{courier_id}/assignments');
+    if (assignMatch) {
+      const courier = state.couriers.find((c) => c.id === assignMatch.courier_id);
+      if (!courier)
+        return recusarEmQualquerMetodo(route, '/admin/couriers/{courier_id}/assignments', 404, {
+          detail: ENTREGADOR_NAO_ENCONTRADO,
+        });
 
       if (method === 'GET') {
         const abertas = Object.entries(state.assignments)
           .filter(([, a]) => a.courierId === courier.id)
           .map(([orderId, a]) => atribuicaoDe(orderId, courier.id, a.assignedAt))
           .filter(Boolean);
-        return json(route, 200, abertas);
+        return responder(route, 'get', '/admin/couriers/{courier_id}/assignments', 200, abertas);
       }
 
       if (method === 'POST') {
@@ -4584,21 +4837,23 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
          * inativo, 404 fora do escopo, 422 no corpo — e nada mais.
          */
         if (!courier.is_active) {
-          return json(route, 409, { detail: 'Entregador inativo não recebe pedido.' });
+          return recusar(route, 'post', '/admin/couriers/{courier_id}/assignments', 409, {
+            detail: 'Entregador inativo não recebe pedido.',
+          });
         }
 
-        const body = request.postDataJSON() as { order_ids?: string[] };
+        const body = corpoDe(route, 'post', '/admin/couriers/{courier_id}/assignments');
         const orderIds = body.order_ids ?? [];
         state.assignPosts.push({ courierId: courier.id, orderIds });
 
         if (orderIds.length === 0 || orderIds.length > 50) {
-          return json(route, 422, {
+          return recusar(route, 'post', '/admin/couriers/{courier_id}/assignments', 422, {
             detail: [{ loc: ['body', 'order_ids'], msg: 'lote invalido' }],
           });
         }
 
         const agora = new Date().toISOString();
-        const items = orderIds.map((orderId) => {
+        const items = orderIds.map((orderId): Schemas['AdminAssignmentResultItem'] => {
           const pedido = state.orders.find((o) => o.id === orderId);
 
           /*
@@ -4633,14 +4888,17 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
          * com um item bom e quatro ruins responde 200, e quem separa os
          * dois é o `ok` de cada um.
          */
-        return json(route, 200, { items });
+        return responder(route, 'post', '/admin/couriers/{courier_id}/assignments', 200, { items });
       }
     }
 
-    const acessoMatch = /^\/admin\/couriers\/([^/]+)\/access$/.exec(path);
-    if (method === 'POST' && acessoMatch?.[1]) {
-      const courier = state.couriers.find((c) => c.id === acessoMatch[1]);
-      if (!courier) return json(route, 404, { detail: ENTREGADOR_NAO_ENCONTRADO });
+    const acessoMatch = casar(path, '/admin/couriers/{courier_id}/access');
+    if (method === 'POST' && acessoMatch) {
+      const courier = state.couriers.find((c) => c.id === acessoMatch.courier_id);
+      if (!courier)
+        return recusar(route, 'post', '/admin/couriers/{courier_id}/access', 404, {
+          detail: ENTREGADOR_NAO_ENCONTRADO,
+        });
 
       /*
        * INATIVO NÃO GANHA ACESSO (409). Seria um par que a porta recusaria
@@ -4648,7 +4906,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        * entra" na outra.
        */
       if (!courier.is_active) {
-        return json(route, 409, {
+        return recusar(route, 'post', '/admin/couriers/{courier_id}/access', 409, {
           detail: 'Entregador inativo não recebe acesso. Reative-o antes.',
         });
       }
@@ -4664,7 +4922,13 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       courier.has_access = true;
       courier.access_generated_at = agora;
 
-      return json(route, 201, {
+      /*
+       * 200, E NÃO 201: o contrato declara só o 200 para esta rota. O falso
+       * respondia 201 e nada acusava — o `unwrap` do painel aceita qualquer 2xx.
+       * É a forma mais barata do defeito (e.4): o dublê servindo um código que
+       * produção não manda.
+       */
+      return responder(route, 'post', '/admin/couriers/{courier_id}/access', 200, {
         courier_id: courier.id,
         link_token: `tok-${n}-${courier.id}`,
         /*
@@ -4683,16 +4947,20 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       });
     }
 
-    const courierMatch = /^\/admin\/couriers\/([^/]+)$/.exec(path);
-    if (courierMatch?.[1]) {
-      const courier = state.couriers.find((c) => c.id === courierMatch[1]);
-      if (!courier) return json(route, 404, { detail: ENTREGADOR_NAO_ENCONTRADO });
+    const courierMatch = casar(path, '/admin/couriers/{courier_id}');
+    if (courierMatch) {
+      const courier = state.couriers.find((c) => c.id === courierMatch.courier_id);
+      if (!courier)
+        return recusarEmQualquerMetodo(route, '/admin/couriers/{courier_id}', 404, {
+          detail: ENTREGADOR_NAO_ENCONTRADO,
+        });
 
-      if (method === 'GET') return json(route, 200, semSegredo(courier));
+      if (method === 'GET')
+        return responder(route, 'get', '/admin/couriers/{courier_id}', 200, semSegredo(courier));
 
       if (method === 'DELETE') {
         state.couriers = state.couriers.filter((c) => c.id !== courier.id);
-        return route.fulfill({ status: 204, body: '' });
+        return semCorpo(route, 'delete', '/admin/couriers/{courier_id}');
       }
 
       if (method === 'PATCH') {
@@ -4706,19 +4974,23 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
          * skill de API documenta em `printing_sector_id`.
          */
         const recusa = extraProibido(body, ['name', 'phone', 'is_active']);
-        if (recusa) return json(route, 422, recusa);
+        if (recusa) return recusar(route, 'patch', '/admin/couriers/{courier_id}', 422, recusa);
 
         if ('name' in body) {
           const invalido = nomeInvalido(body.name);
-          if (invalido) return json(route, 422, invalido);
+          if (invalido)
+            return recusar(route, 'patch', '/admin/couriers/{courier_id}', 422, invalido);
           courier.name = String(body.name).trim();
         }
         if ('phone' in body) {
           const invalido = telefoneInvalido(body.phone);
-          if (invalido) return json(route, 422, invalido);
+          if (invalido)
+            return recusar(route, 'patch', '/admin/couriers/{courier_id}', 422, invalido);
           const phone = String(body.phone).replace(/\D/g, '');
           if (telefoneRepetido(state.couriers, courier.branch_id, phone, courier.id)) {
-            return json(route, 409, { detail: TELEFONE_EM_USO });
+            return recusar(route, 'patch', '/admin/couriers/{courier_id}', 409, {
+              detail: TELEFONE_EM_USO,
+            });
           }
           courier.phone = phone;
         }
@@ -4737,7 +5009,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         }
 
         state.couriers.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
-        return json(route, 200, semSegredo(courier));
+        return responder(route, 'patch', '/admin/couriers/{courier_id}', 200, semSegredo(courier));
       }
     }
 
@@ -4747,9 +5019,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     // o padrão genérico casaria primeiro e devolveria uma filial no lugar da
     // taxa.
 
-    const courierFeeMatch = /^\/admin\/branches\/([^/]+)\/courier-fee$/.exec(path);
-    if (courierFeeMatch?.[1] && (method === 'GET' || method === 'PATCH')) {
-      const branchId = courierFeeMatch[1];
+    const courierFeeMatch = casar(path, '/admin/branches/{branch_id}/courier-fee');
+    if (courierFeeMatch && (method === 'GET' || method === 'PATCH')) {
+      const branchId = courierFeeMatch.branch_id;
       /*
        * FILIAL SEM TAXA RESPONDE 200 COM OS DOIS NULOS, e não 404 nem zero.
        * É o estado inicial de toda filial, e o falso precisa nascer nele: um
@@ -4759,17 +5031,14 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       const atual = state.courierFees[branchId] ?? { base: null, perKm: null };
 
       if (method === 'GET') {
-        return json(route, 200, {
+        return responder(route, 'get', '/admin/branches/{branch_id}/courier-fee', 200, {
           branch_id: branchId,
           courier_fee_base: atual.base,
           courier_fee_per_km: atual.perKm,
         });
       }
 
-      const body = request.postDataJSON() as {
-        courier_fee_base?: number | string | null;
-        courier_fee_per_km?: number | string | null;
-      };
+      const body = corpoDe(route, 'patch', '/admin/branches/{branch_id}/courier-fee');
       state.courierFeePatches.push(body);
 
       /*
@@ -4781,7 +5050,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         if (valor === null || valor === undefined) continue;
         const numero = Number(valor);
         if (!Number.isFinite(numero) || numero < 0) {
-          return json(route, 422, {
+          return recusar(route, 'patch', '/admin/branches/{branch_id}/courier-fee', 422, {
             detail: [{ loc: ['body', campo], msg: 'Input should be greater than or equal to 0' }],
           });
         }
@@ -4803,7 +5072,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       }
       state.courierFees[branchId] = proximo;
 
-      return json(route, 200, {
+      return responder(route, 'patch', '/admin/branches/{branch_id}/courier-fee', 200, {
         branch_id: branchId,
         courier_fee_base: proximo.base,
         courier_fee_per_km: proximo.perKm,
@@ -4815,17 +5084,21 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     // genérico casaria com estes três primeiro e devolveria uma filial no lugar
     // do estado do agente.
 
-    const agentMatch = /^\/admin\/branches\/([^/]+)\/print-agent$/.exec(path);
-    if (method === 'GET' && agentMatch?.[1]) {
-      const branchId = agentMatch[1];
+    const agentMatch = casar(path, '/admin/branches/{branch_id}/print-agent');
+    if (method === 'GET' && agentMatch) {
+      const branchId = agentMatch.branch_id;
       const agent = state.printAgents[branchId];
 
       // Filial que nunca instalou responde 200 com o resto nulo, e não 404 —
       // "ninguém instalou aqui" é uma resposta, não um erro.
-      if (!agent) return json(route, 200, { branch_id: branchId, is_online: false });
+      if (!agent)
+        return responder(route, 'get', '/admin/branches/{branch_id}/print-agent', 200, {
+          branch_id: branchId,
+          is_online: false,
+        });
 
       const segundos = agent.secondsSinceLastSeen;
-      return json(route, 200, {
+      return responder(route, 'get', '/admin/branches/{branch_id}/print-agent', 200, {
         branch_id: branchId,
         // A MESMA janela de 90s do backend (`ONLINE_WINDOW_SECONDS`): o falso
         // decide o `is_online` como o servidor decide, porque a tela LÊ esse
@@ -4837,10 +5110,10 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       });
     }
 
-    const printersMatch = /^\/admin\/branches\/([^/]+)\/printers$/.exec(path);
-    if (method === 'GET' && printersMatch?.[1]) {
-      const branchId = printersMatch[1];
-      return json(route, 200, {
+    const printersMatch = casar(path, '/admin/branches/{branch_id}/printers');
+    if (method === 'GET' && printersMatch) {
+      const branchId = printersMatch.branch_id;
+      return responder(route, 'get', '/admin/branches/{branch_id}/printers', 200, {
         branch_id: branchId,
         printers: state.printers[branchId] ?? [],
       });
@@ -4851,9 +5124,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      * distintos), mas depois de `printers` sim: todos começam com
      * `/admin/branches/{id}/`.
      */
-    const printSettingsMatch = /^\/admin\/branches\/([^/]+)\/print-settings$/.exec(path);
-    if (printSettingsMatch?.[1]) {
-      const branchId = printSettingsMatch[1];
+    const printSettingsMatch = casar(path, '/admin/branches/{branch_id}/print-settings');
+    if (printSettingsMatch) {
+      const branchId = printSettingsMatch.branch_id;
       const atual = state.printSettings[branchId] ?? {
         receipt_footer_message: null,
         // A migração faz as quatro nascerem em 1, inclusive a produção da
@@ -4887,7 +5160,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
           const valor = body[chave];
           if (typeof valor !== 'number') {
             // `null` numa contagem é 422, e não "herda": as colunas são NOT NULL.
-            return json(route, 422, {
+            return recusar(route, 'patch', '/admin/branches/{branch_id}/print-settings', 422, {
               detail: [{ loc: ['body', chave], msg: 'a contagem de vias não pode ser nula' }],
             });
           }
@@ -4896,23 +5169,31 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       }
 
       const marca = state.settings.receipt_footer_message ?? null;
-      return json(route, 200, {
+      /*
+       * A LEITURA E A GRAVAÇÃO TERMINAM NA MESMA RESPOSTA, e por isso o método
+       * sai daqui em vez de ficar fixo: era um `patch` escrito à mão que a
+       * conferência de `responder` pegou logo no primeiro GET da tela.
+       */
+      const corpo = {
         branch_id: branchId,
         ...atual,
         // `_ou_herdado`: o vazio da filial é uma ESCOLHA e não cai no padrão.
         effective_receipt_footer_message:
           atual.receipt_footer_message !== null ? atual.receipt_footer_message : marca,
-      });
+      };
+      return method === 'PATCH'
+        ? responder(route, 'patch', '/admin/branches/{branch_id}/print-settings', 200, corpo)
+        : responder(route, 'get', '/admin/branches/{branch_id}/print-settings', 200, corpo);
     }
 
-    const printTestMatch = /^\/admin\/branches\/([^/]+)\/print-test$/.exec(path);
-    if (method === 'POST' && printTestMatch?.[1]) {
-      const branchId = printTestMatch[1];
-      const body = request.postDataJSON() as PrintTestRequest;
+    const printTestMatch = casar(path, '/admin/branches/{branch_id}/print-test');
+    if (method === 'POST' && printTestMatch) {
+      const branchId = printTestMatch.branch_id;
+      const body = corpoDe(route, 'post', '/admin/branches/{branch_id}/print-test');
       state.printTests.push({ branchId, body });
 
       const agent = state.printAgents[branchId];
-      return json(route, 202, {
+      return responder(route, 'post', '/admin/branches/{branch_id}/print-test', 202, {
         command_id: `cmd-${state.printTests.length}`,
         branch_id: branchId,
         created_at: new Date().toISOString(),
@@ -4926,12 +5207,16 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
 
     // Depois de prep-time, business-hours e payment-methods: todos começam com
     // o mesmo prefixo e este padrão casaria com eles primeiro.
-    const branchMatch = /^\/admin\/branches\/([^/]+)$/.exec(path);
-    if (branchMatch?.[1]) {
-      const found = state.branches.find((entry) => entry.id === branchMatch[1]);
-      if (!found) return json(route, 404, { detail: 'Filial não encontrada.' });
+    const branchMatch = casar(path, '/admin/branches/{branch_id}');
+    if (branchMatch) {
+      const found = state.branches.find((entry) => entry.id === branchMatch.branch_id);
+      if (!found)
+        return recusarEmQualquerMetodo(route, '/admin/branches/{branch_id}', 404, {
+          detail: 'Filial não encontrada.',
+        });
 
-      if (method === 'GET') return json(route, 200, found);
+      if (method === 'GET')
+        return responder(route, 'get', '/admin/branches/{branch_id}', 200, found);
       if (method === 'PATCH') {
         const body = request.postDataJSON() as Record<string, unknown>;
         state.branchPatches.push({ branchId: found.id, body });
@@ -4955,13 +5240,13 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         const min = mesclado.delivery_min_fee;
         const max = mesclado.delivery_max_fee;
         if (typeof min === 'number' && typeof max === 'number' && max < min) {
-          return json(route, 422, {
+          return recusar(route, 'patch', '/admin/branches/{branch_id}', 422, {
             detail: 'delivery_max_fee não pode ser menor que delivery_min_fee',
           });
         }
 
         Object.assign(found, body);
-        return json(route, 200, found);
+        return responder(route, 'patch', '/admin/branches/{branch_id}', 200, found);
       }
     }
 
@@ -4979,8 +5264,10 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      */
     if (method === 'GET' && path === '/admin/categories') {
       const pedida = new URL(request.url()).searchParams.get('branch_id');
-      return json(
+      return responder(
         route,
+        'get',
+        '/admin/categories',
         200,
         state.categories.filter((categoria) => !pedida || categoria.branch_id === pedida),
       );
@@ -4992,14 +5279,14 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      * chamada "reorder" — que é exatamente o bug que a ordem aqui previne.
      */
     if (method === 'PATCH' && path === '/admin/categories/reorder') {
-      const body = request.postDataJSON() as { branch_id?: string; category_ids: string[] };
+      const body = corpoDe(route, 'patch', '/admin/categories/reorder');
       state.reorderCalls.push({ branchId: body.branch_id, categoryIds: body.category_ids });
 
       // `branch_id` é OBRIGATÓRIO no corpo, e sem ele o backend responde 422 —
       // a lista completa de uma loja é parcial para a outra, e sem o recorte
       // não há como saber qual das duas a lista pretende ser.
       if (!body.branch_id) {
-        return json(route, 422, {
+        return recusar(route, 'patch', '/admin/categories/reorder', 422, {
           detail: [{ loc: ['body', 'branch_id'], msg: 'Field required', type: 'missing' }],
         });
       }
@@ -5027,10 +5314,12 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       const daFilial = state.categories.filter((item) => item.branch_id === branchId);
       const conhecidas = new Set(daFilial.map((item) => item.id));
       if (body.category_ids.some((id) => !conhecidas.has(id))) {
-        return json(route, 404, { detail: 'Categoria não encontrada' });
+        return recusar(route, 'patch', '/admin/categories/reorder', 404, {
+          detail: 'Categoria não encontrada',
+        });
       }
       if (daFilial.length !== body.category_ids.length) {
-        return json(route, 400, {
+        return recusar(route, 'patch', '/admin/categories/reorder', 400, {
           detail: 'Envie todas as categorias da filial na nova ordem',
         });
       }
@@ -5052,20 +5341,16 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         ...state.categories.filter((category) => category.branch_id !== branchId),
         ...reordenadas,
       ];
-      return json(route, 200, reordenadas);
+      return responder(route, 'patch', '/admin/categories/reorder', 200, reordenadas);
     }
 
     if (method === 'POST' && path === '/admin/categories') {
-      const body = request.postDataJSON() as {
-        branch_id?: string;
-        name: string;
-        sort_order: number;
-      };
+      const body = corpoDe(route, 'post', '/admin/categories');
 
       // Também obrigatório: não existe categoria da rede. A mesma categoria em
       // duas lojas são duas categorias, com dois ids.
       if (!body.branch_id) {
-        return json(route, 422, {
+        return recusar(route, 'post', '/admin/categories', 422, {
           detail: [{ loc: ['body', 'branch_id'], msg: 'Field required', type: 'missing' }],
         });
       }
@@ -5077,7 +5362,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        */
       const nome = String(body.name ?? '').trim();
       if (nome === '' || nome.length > 120) {
-        return json(route, 422, {
+        return recusar(route, 'post', '/admin/categories', 422, {
           detail: [{ loc: ['body', 'name'], msg: 'de 1 a 120 caracteres', type: 'value_error' }],
         });
       }
@@ -5088,7 +5373,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        * recebe 404, pela mesma regra de `AdminScope.ensure_branch_allowed`".
        */
       if (!state.branches.some((item) => item.id === body.branch_id)) {
-        return json(route, 404, { detail: 'Filial não encontrada' });
+        return recusar(route, 'post', '/admin/categories', 404, {
+          detail: 'Filial não encontrada',
+        });
       }
 
       /*
@@ -5107,7 +5394,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         (item) => item.branch_id === body.branch_id && item.slug === slug,
       );
       if (repetida) {
-        return json(route, 409, {
+        return recusar(route, 'post', '/admin/categories', 409, {
           detail: 'Já existe uma categoria com esse nome nesta filial',
         });
       }
@@ -5121,7 +5408,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         is_active: true,
       };
       state.categories.push(created);
-      return json(route, 201, created);
+      return responder(route, 'post', '/admin/categories', 201, created);
     }
 
     /*
@@ -5129,11 +5416,18 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      * pelo mesmo motivo do reorder: "printing-sector" é rota, não id de
      * categoria.
      */
-    const categorySectorMatch = /^\/admin\/categories\/([^/]+)\/printing-sector$/.exec(path);
-    if (method === 'PATCH' && categorySectorMatch?.[1]) {
-      const categoryId = categorySectorMatch[1];
-      const body = request.postDataJSON() as { printing_sector_id: string | null };
-      state.categorySectorCalls.push({ categoryId, printSectorId: body.printing_sector_id });
+    const categorySectorMatch = casar(path, '/admin/categories/{category_id}/printing-sector');
+    if (method === 'PATCH' && categorySectorMatch) {
+      const categoryId = categorySectorMatch.category_id;
+      const body = corpoDe(route, 'patch', '/admin/categories/{category_id}/printing-sector');
+      /*
+       * O CAMPO É OPCIONAL NO CORPO, e ausente vale por `null` — o padrão do
+       * Pydantic. `null` aqui não é 'campo vazio': é a instrução de NÃO imprimir
+       * via de produção, e a rota diz isso por escrito. O falso lia o campo como
+       * se ele sempre viesse.
+       */
+      const setorPedido = body.printing_sector_id ?? null;
+      state.categorySectorCalls.push({ categoryId, printSectorId: setorPedido });
 
       // Como o backend: sobrescreve TODOS os produtos da categoria, inclusive
       // os que já tinham outro setor.
@@ -5143,19 +5437,22 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         item.printing_sector_id = body.printing_sector_id;
         updated += 1;
       });
-      return json(route, 200, {
+      return responder(route, 'patch', '/admin/categories/{category_id}/printing-sector', 200, {
         category_id: categoryId,
         printing_sector_id: body.printing_sector_id,
         updated_products: updated,
       });
     }
 
-    const categoryMatch = /^\/admin\/categories\/([^/]+)$/.exec(path);
-    if (method === 'PATCH' && categoryMatch?.[1]) {
-      const found = state.categories.find((category) => category.id === categoryMatch[1]);
-      if (!found) return json(route, 404, { detail: 'Categoria não encontrada.' });
+    const categoryMatch = casar(path, '/admin/categories/{category_id}');
+    if (method === 'PATCH' && categoryMatch) {
+      const found = state.categories.find((category) => category.id === categoryMatch.category_id);
+      if (!found)
+        return recusar(route, 'patch', '/admin/categories/{category_id}', 404, {
+          detail: 'Categoria não encontrada.',
+        });
       Object.assign(found, request.postDataJSON());
-      return json(route, 200, found);
+      return responder(route, 'patch', '/admin/categories/{category_id}', 200, found);
     }
 
     // --- cardápio: produtos ------------------------------------------------
@@ -5174,7 +5471,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
           (!categoryId || item.category_id === categoryId) &&
           (!search || item.name.toLowerCase().includes(search)),
       );
-      return json(route, 200, {
+      return responder(route, 'get', '/admin/products', 200, {
         items: matching,
         total: matching.length,
         limit: Number(query.get('limit') ?? 50),
@@ -5194,7 +5491,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      * impedir.
      */
     if (method === 'PATCH' && path === '/admin/products/reorder') {
-      const body = request.postDataJSON() as { category_id: string; product_ids: string[] };
+      const body = corpoDe(route, 'patch', '/admin/products/reorder');
       state.productReorderCalls.push({
         categoryId: body.category_id,
         productIds: body.product_ids,
@@ -5215,10 +5512,12 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        */
       const conhecidos = new Set(daCategoria.map((item) => item.id));
       if (body.product_ids.some((id) => !conhecidos.has(id))) {
-        return json(route, 404, { detail: 'Produto não encontrado nesta categoria' });
+        return recusar(route, 'patch', '/admin/products/reorder', 404, {
+          detail: 'Produto não encontrado nesta categoria',
+        });
       }
       if (daCategoria.length !== body.product_ids.length) {
-        return json(route, 400, {
+        return recusar(route, 'patch', '/admin/products/reorder', 400, {
           detail: 'Envie todos os produtos da categoria na nova ordem',
         });
       }
@@ -5228,16 +5527,21 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         return found ? [Object.assign(found, { sort_order: index })] : [];
       });
       if (reordenados.length !== body.product_ids.length) {
-        return json(route, 400, { detail: 'Produto de outra categoria na lista.' });
+        return recusar(route, 'patch', '/admin/products/reorder', 400, {
+          detail: 'Produto de outra categoria na lista.',
+        });
       }
-      return json(route, 200, reordenados);
+      return responder(route, 'patch', '/admin/products/reorder', 200, reordenados);
     }
 
     // Antes de /admin/products/{id}, pelo mesmo motivo do reorder.
-    const availabilityMatch = /^\/admin\/products\/([^/]+)\/availability$/.exec(path);
-    if (method === 'PATCH' && availabilityMatch?.[1]) {
-      const found = state.products.find((item) => item.id === availabilityMatch[1]);
-      if (!found) return json(route, 404, { detail: 'Produto não encontrado.' });
+    const availabilityMatch = casar(path, '/admin/products/{product_id}/availability');
+    if (method === 'PATCH' && availabilityMatch) {
+      const found = state.products.find((item) => item.id === availabilityMatch.product_id);
+      if (!found)
+        return recusar(route, 'patch', '/admin/products/{product_id}/availability', 404, {
+          detail: 'Produto não encontrado.',
+        });
 
       /*
        * A FALHA DE UM ITEM SÓ — e ela existe porque a ação em massa da tela
@@ -5247,16 +5551,18 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        * "deu erro".
        */
       if (state.failAvailabilityFor.has(found.id)) {
-        return json(route, 500, { detail: 'Falha ao gravar a disponibilidade.' });
+        return recusar(route, 'patch', '/admin/products/{product_id}/availability', 500, {
+          detail: 'Falha ao gravar a disponibilidade.',
+        });
       }
 
-      const body = request.postDataJSON() as { is_available: boolean };
+      const body = corpoDe(route, 'patch', '/admin/products/{product_id}/availability');
       state.availabilityCalls.push({
         productId: found.id,
         isAvailable: body.is_available,
       });
       found.is_available = body.is_available;
-      return json(route, 200, found);
+      return responder(route, 'patch', '/admin/products/{product_id}/availability', 200, found);
     }
 
     /*
@@ -5264,20 +5570,25 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      * chama esta rota ao editar um item: `AdminProductUpdate` não tem o campo,
      * então o PATCH do produto não muda setor nenhum.
      */
-    const productSectorMatch = /^\/admin\/products\/([^/]+)\/printing-sector$/.exec(path);
-    if (method === 'PATCH' && productSectorMatch?.[1]) {
-      const found = state.products.find((item) => item.id === productSectorMatch[1]);
-      if (!found) return json(route, 404, { detail: 'Produto não encontrado.' });
+    const productSectorMatch = casar(path, '/admin/products/{product_id}/printing-sector');
+    if (method === 'PATCH' && productSectorMatch) {
+      const found = state.products.find((item) => item.id === productSectorMatch.product_id);
+      if (!found)
+        return recusar(route, 'patch', '/admin/products/{product_id}/printing-sector', 404, {
+          detail: 'Produto não encontrado.',
+        });
 
-      const body = request.postDataJSON() as { printing_sector_id: string | null };
+      const body = corpoDe(route, 'patch', '/admin/products/{product_id}/printing-sector');
+      // Campo opcional, e ausente vale por `null` — ver a rota irmã da categoria.
+      const setorPedido = body.printing_sector_id ?? null;
       state.productSectorCalls.push({
         productId: found.id,
-        printSectorId: body.printing_sector_id,
+        printSectorId: setorPedido,
       });
-      found.printing_sector_id = body.printing_sector_id;
+      found.printing_sector_id = setorPedido;
 
-      const sector = state.printSectors.find((entry) => entry.id === body.printing_sector_id);
-      return json(route, 200, {
+      const sector = state.printSectors.find((entry) => entry.id === setorPedido);
+      return responder(route, 'patch', '/admin/products/{product_id}/printing-sector', 200, {
         product_id: found.id,
         printing_sector_id: body.printing_sector_id,
         printing_sector_name: sector?.name ?? null,
@@ -5296,10 +5607,13 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
      * lugar nenhum. Ela carrega o id do produto porque é isso que o teste
      * confere — que a foto foi parar no item certo.
      */
-    const imageMatch = /^\/admin\/products\/([^/]+)\/image$/.exec(path);
-    if (method === 'POST' && imageMatch?.[1]) {
-      const found = state.products.find((item) => item.id === imageMatch[1]);
-      if (!found) return json(route, 404, { detail: 'Produto não encontrado.' });
+    const imageMatch = casar(path, '/admin/products/{product_id}/image');
+    if (method === 'POST' && imageMatch) {
+      const found = state.products.find((item) => item.id === imageMatch.product_id);
+      if (!found)
+        return recusar(route, 'post', '/admin/products/{product_id}/image', 404, {
+          detail: 'Produto não encontrado.',
+        });
 
       state.imageUploads.push({
         productId: found.id,
@@ -5310,7 +5624,10 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       // anterior, que continua no bucket.
       const imagePath = `produtos/${found.id}-${state.imageUploads.length}.webp`;
       found.image_url = `/media/${imagePath}`;
-      return json(route, 200, { image_path: imagePath, image_url: found.image_url });
+      return responder(route, 'post', '/admin/products/{product_id}/image', 200, {
+        image_path: imagePath,
+        image_url: found.image_url,
+      });
     }
 
     /*
@@ -5354,18 +5671,27 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         .find((grupo) => grupo.id === groupId);
     }
 
-    const gruposMatch = RE_GRUPOS_DO_PRODUTO.exec(path);
-    if (gruposMatch?.[1]) {
-      const productId = gruposMatch[1];
+    const gruposMatch = casar(path, '/admin/products/{product_id}/option-groups');
+    if (gruposMatch) {
+      const productId = gruposMatch.product_id;
       state.optionGroups[productId] ??= [];
 
       if (method === 'GET') {
-        return json(route, 200, state.optionGroups[productId]);
+        return responder(
+          route,
+          'get',
+          '/admin/products/{product_id}/option-groups',
+          200,
+          state.optionGroups[productId],
+        );
       }
       if (method === 'POST') {
-        const corpo = request.postDataJSON() as Schemas['AdminOptionGroupCreate'];
+        const corpo = corpoDe(route, 'post', '/admin/products/{product_id}/option-groups');
         const erro = validarGrupo(corpo);
-        if (erro) return json(route, 422, { detail: [{ loc: ['body'], msg: erro }] });
+        if (erro)
+          return recusar(route, 'post', '/admin/products/{product_id}/option-groups', 422, {
+            detail: [{ loc: ['body'], msg: erro }],
+          });
 
         const criado: AdminOptionGroup = {
           id: `grp-novo-${state.optionGroups[productId].length + 1}`,
@@ -5376,38 +5702,47 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         };
         state.optionGroups[productId].push(criado);
         state.optionGroupBodies.push({ productId, body: corpo });
-        return json(route, 201, criado);
+        return responder(route, 'post', '/admin/products/{product_id}/option-groups', 201, criado);
       }
     }
 
-    const grupoMatch = RE_GRUPO.exec(path);
-    if (method === 'PATCH' && grupoMatch?.[1]) {
-      const alvo = acharGrupo(grupoMatch[1]);
-      if (!alvo) return json(route, 404, { detail: 'Grupo não encontrado.' });
+    const grupoMatch = casar(path, '/admin/option-groups/{group_id}');
+    if (method === 'PATCH' && grupoMatch) {
+      const alvo = acharGrupo(grupoMatch.group_id);
+      if (!alvo)
+        return recusar(route, 'patch', '/admin/option-groups/{group_id}', 404, {
+          detail: 'Grupo não encontrado.',
+        });
 
-      const corpo = request.postDataJSON() as Schemas['AdminOptionGroupUpdate'];
+      const corpo = corpoDe(route, 'patch', '/admin/option-groups/{group_id}');
       /*
        * A VALIDAÇÃO É SOBRE A MESCLA, como no backend. Um corpo parcial que
        * ligasse `is_required` num grupo de `min_select: 0` é 422 — e é
        * exatamente por isso que o painel manda o formulário inteiro.
        */
       const erro = validarGrupo({ ...alvo, ...corpo });
-      if (erro) return json(route, 422, { detail: [{ loc: ['body'], msg: erro }] });
+      if (erro)
+        return recusar(route, 'patch', '/admin/option-groups/{group_id}', 422, {
+          detail: [{ loc: ['body'], msg: erro }],
+        });
 
       state.optionGroupBodies.push({ productId: alvo.product_id, body: corpo });
       Object.assign(alvo, corpo);
-      return json(route, 200, alvo);
+      return responder(route, 'patch', '/admin/option-groups/{group_id}', 200, alvo);
     }
 
-    const opcoesMatch = RE_OPCOES_DO_GRUPO.exec(path);
-    if (method === 'POST' && opcoesMatch?.[1]) {
-      const groupId = opcoesMatch[1];
+    const opcoesMatch = casar(path, '/admin/option-groups/{group_id}/options');
+    if (method === 'POST' && opcoesMatch) {
+      const groupId = opcoesMatch.group_id;
       const alvo = acharGrupo(groupId);
-      if (!alvo) return json(route, 404, { detail: 'Grupo não encontrado.' });
+      if (!alvo)
+        return recusar(route, 'post', '/admin/option-groups/{group_id}/options', 404, {
+          detail: 'Grupo não encontrado.',
+        });
 
-      const corpo = request.postDataJSON() as Schemas['AdminOptionCreate'];
+      const corpo = corpoDe(route, 'post', '/admin/option-groups/{group_id}/options');
       if (Number(corpo.additional_price ?? 0) < 0) {
-        return json(route, 422, {
+        return recusar(route, 'post', '/admin/option-groups/{group_id}/options', 422, {
           detail: [{ loc: ['body', 'additional_price'], msg: 'não pode ser negativo' }],
         });
       }
@@ -5421,29 +5756,37 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       };
       alvo.options = [...(alvo.options ?? []), criada];
       state.optionBodies.push({ groupId, body: corpo });
-      return json(route, 201, criada);
+      return responder(route, 'post', '/admin/option-groups/{group_id}/options', 201, criada);
     }
 
-    const opcaoMatch = RE_OPCAO.exec(path);
-    if (method === 'PATCH' && opcaoMatch?.[1]) {
-      const optionId = opcaoMatch[1];
+    const opcaoMatch = casar(path, '/admin/options/{option_id}');
+    if (method === 'PATCH' && opcaoMatch) {
+      const optionId = opcaoMatch.option_id;
       for (const grupo of Object.values(state.optionGroups).flat()) {
         const opcao = (grupo.options ?? []).find((item) => item.id === optionId);
         if (opcao) {
           Object.assign(opcao, request.postDataJSON() as Record<string, unknown>);
-          return json(route, 200, opcao);
+          return responder(route, 'patch', '/admin/options/{option_id}', 200, opcao);
         }
       }
-      return json(route, 404, { detail: 'Opção não encontrada.' });
+      return recusar(route, 'patch', '/admin/options/{option_id}', 404, {
+        detail: 'Opção não encontrada.',
+      });
     }
 
-    const productMatch = /^\/admin\/products\/([^/]+)$/.exec(path);
-    if (productMatch?.[1]) {
-      const found = state.products.find((item) => item.id === productMatch[1]);
-      if (!found) return json(route, 404, { detail: 'Produto não encontrado.' });
+    const productMatch = casar(path, '/admin/products/{product_id}');
+    if (productMatch) {
+      const found = state.products.find((item) => item.id === productMatch.product_id);
+      if (!found)
+        return recusarEmQualquerMetodo(route, '/admin/products/{product_id}', 404, {
+          detail: 'Produto não encontrado.',
+        });
 
       if (method === 'GET') {
-        return json(route, 200, { ...found, option_groups: [] });
+        return responder(route, 'get', '/admin/products/{product_id}', 200, {
+          ...found,
+          option_groups: [],
+        });
       }
       if (method === 'PATCH') {
         const body = request.postDataJSON() as Record<string, unknown>;
@@ -5470,18 +5813,18 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
           'catalog_key' in body &&
           chaveRepetida(state.products, body.catalog_key, found.branch_id, found.id)
         ) {
-          return json(route, 409, {
+          return recusar(route, 'patch', '/admin/products/{product_id}', 409, {
             detail: 'Já existe um produto com essa chave de catálogo nesta filial',
           });
         }
 
         Object.assign(found, body);
-        return json(route, 200, found);
+        return responder(route, 'patch', '/admin/products/{product_id}', 200, found);
       }
     }
 
     if (method === 'POST' && path === '/admin/products') {
-      const body = request.postDataJSON() as Omit<Product, 'id' | 'branch_id'>;
+      const body = corpoDe(route, 'post', '/admin/products');
 
       /*
        * A FILIAL VEM DA CATEGORIA, e o corpo não a traz. É a decisão do
@@ -5490,7 +5833,8 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        * que não precisa existir.
        */
       const categoria = state.categories.find((item) => item.id === body.category_id);
-      if (!categoria) return json(route, 400, { detail: 'Categoria inválida.' });
+      if (!categoria)
+        return recusar(route, 'post', '/admin/products', 400, { detail: 'Categoria inválida.' });
 
       /*
        * O IRMÃO DO 409 DA CATEGORIA — `_ensure_product_slug_is_free`, com o
@@ -5507,27 +5851,41 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         (item) => item.branch_id === categoria.branch_id && slugFake(item.name) === slug,
       );
       if (repetido) {
-        return json(route, 409, {
+        return recusar(route, 'post', '/admin/products', 409, {
           detail: 'Já existe um produto com esse nome nesta filial',
         });
       }
 
       if (chaveRepetida(state.products, body.catalog_key, categoria.branch_id)) {
-        return json(route, 409, {
+        return recusar(route, 'post', '/admin/products', 409, {
           detail: 'Já existe um produto com essa chave de catálogo nesta filial',
         });
       }
 
+      /*
+       * O QUE O CORPO NÃO TRAZ, E A RESPOSTA TEM.
+       *
+       * `AdminProductCreate` não tem `unavailable_by_required_group` — quem o
+       * calcula é o backend, e ele é OBRIGATÓRIO na resposta. O falso espalhava o
+       * corpo e devolvia o campo ausente: `required-groups.ts` lê isso, e
+       * `undefined` só não virou defeito porque ele é falsy do lado de cá.
+       *
+       * E `price` chega `number | string` e sai `number`: espalhar o corpo fazia
+       * um preço mandado como texto ficar guardado como texto num campo que o
+       * contrato declara numérico.
+       */
       const created: Product = {
         ...body,
+        price: Number(body.price),
+        unavailable_by_required_group: false,
         id: `prod-${state.products.length + 1}-novo`,
         branch_id: categoria.branch_id,
       };
       state.products.push(created);
-      return json(route, 201, created);
+      return responder(route, 'post', '/admin/products', 201, created);
     }
 
-    return json(route, 404, { detail: `Rota não simulada no E2E: ${method} ${path}` });
+    return recusarSemRota(route, 404, { detail: `Rota não simulada no E2E: ${method} ${path}` });
   });
 
   return {

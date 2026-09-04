@@ -498,6 +498,39 @@ responde**, com o corpo do backend letra por letra, e **as validações que ela
 cobra**. Um falso que só sabe o caminho feliz transforma o e2e num teste de que
 a tela desenha, não de que ela funciona.
 
+### A forma de escrever isso: `e2e/contrato.ts`
+
+Desde 2026-09-04 o falso não responde nada por conta própria. Toda saída passa
+por `e2e/contrato.ts`, e a forma é sempre a mesma:
+
+```ts
+const filial = casar(path, '/admin/branches/{branch_id}/print-settings');
+if (filial) {
+  const body = corpoDe(route, 'patch', '/admin/branches/{branch_id}/print-settings');
+  return responder(route, 'patch', '/admin/branches/{branch_id}/print-settings', 200, corpo);
+}
+```
+
+- **o literal da rota é `keyof paths`** — caminho renomeado no backend não
+  compila, e caminho inventado nunca compilou;
+- **`responder` tipa o corpo** por `paths[rota][metodo].responses[status]`;
+  status que o contrato não declara vira `never`, o que empurra para `recusar` e
+  faz você DIZER que aquele status sai do serviço, não do contrato;
+- **a rota e o método são conferidos em execução** contra a requisição que
+  chegou. Uma resposta compartilhada por dois métodos (a leitura e a gravação de
+  `print-settings` terminam na mesma) sai do `method` do ramo, com um ternário —
+  fixar um dos dois derruba o teste com a frase inteira na tela;
+- **`recusar` recusa corpo de erro que `src/api/errors.ts` não sabe ler.** Um
+  formato inventado no falso faz o teste afirmar uma frase que produção nunca
+  manda, e esconde o caso do §4.7.
+
+Isso fecha a deriva de **forma** (campo renomeado, status que não existe, enum
+com um sexto valor). **Não fecha a de regra**, que é o assunto desta seção: o
+índice único, o `@model_validator` e o 409 escrito à mão no serviço não estão no
+`/openapi.json`, e continuam saindo da leitura do backend. Ver
+`scratchpad/falso-contra-o-contrato.md` para o que a amarra achou e o que ficou
+de fora.
+
 ---
 
 ---
