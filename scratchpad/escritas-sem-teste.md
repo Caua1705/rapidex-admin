@@ -45,7 +45,8 @@ motivo de este documento contar as três medições em vez de só a última.
 | depois das unicidades do cardápio                   | 0         | 16               |
 | depois de fechar o cardápio (menos os complementos) | 0         | 13               |
 | depois do CARDÁPIO INTEIRO                          | 0         | 10               |
-| depois de Equipe e conta                            | 0         | **7**            |
+| depois de Equipe e conta                            | 0         | 7                |
+| depois de "o resto"                                 | 0         | **2**            |
 
 > **A régua subcontava, duas vezes.** Ela lia só o que o FALSO serviu, e uma
 > recusa dublada com `page.route` nunca chega lá — eram 6 invisíveis. Corrigida
@@ -164,8 +165,11 @@ as 25 restantes, na ordem:
 3. ~~**Equipe e conta**~~ — **FECHADO (2026-09-03).** `updateAdminUser` (400 do
    único dono, pela lista velha), `resetAdminUserPassword` (404) e
    `changePassword` (400 "Senha atual incorreta"). `createAdminUser` já tinha o 409. Ver "A rodada da equipe" abaixo.
-4. **O resto** — `delivery-time-bands`, `restaurant`, `settings`,
-   `stream-ticket`, os dois DELETE.
+4. ~~**O resto**~~ — **FECHADO (2026-09-03).** `delivery-time-bands` (404),
+   `restaurant` (422), `coupons/{id}` (409 traduzido para o campo) e
+   `stream-ticket` (403, e o que se prende é a nova tentativa). Os dois DELETE
+   já tinham recusa — o de entregador desde `entregadores.spec.ts`, e a lista
+   aqui estava velha. Ver "A rodada do resto" abaixo.
 
 E uma nota de método para quem seguir: várias recusas do backend são
 **inalcançáveis pelo painel**, porque a tela valida antes. Isso não é buraco —
@@ -446,6 +450,70 @@ lista, a guarda local deixa rebaixar um (e é o certo); a outra aba desativa a
 primeira dona nesse meio-tempo, e aí o 400 é o que o backend de fato responde.
 Sem o segundo dono a guarda barra antes e a requisição nem sai — o teste passaria
 sem exercitar nada, provando só que a tela sabe o que ela já sabia.
+
+---
+
+## A rodada do resto (2026-09-03) — e as duas que sobram de propósito
+
+Quatro escritas, e a regra 12 da skill `revisao` (escrita nesta rodada) foi o
+que as juntou: as recusas de `store-status`, `order-types`, `delivery-pause` e
+`business-hours` já estavam presas, e a varredura de então parou nas quatro. As
+irmãs delas na mesma tela é que ficaram.
+
+| Rota                               | Recusa | O que o teste prende                                |
+| ---------------------------------- | ------ | --------------------------------------------------- |
+| `PUT .../delivery-time-bands`      | 404    | a frase na TABELA, e o rascunho inteiro fica        |
+| `PATCH /admin/restaurant`          | 422    | nada diz "salvo", e o texto da vitrine não se perde |
+| `PATCH /admin/coupons/{id}`        | 409    | o erro vira erro DO CAMPO do código                 |
+| `POST /admin/orders/stream-ticket` | 403    | o painel TENTA DE NOVO                              |
+
+**As faixas de prazo salvam por uma barra própria**, e por isso a recusa delas
+não pode aparecer na barra da aba: são duas gravações independentes na mesma
+tela, com permissões diferentes, e quem lesse "não salvou" na barra de baixo
+procuraria o campo errado. O rascunho ficar é o que mais importa num `PUT` que
+substitui tudo — recompor a tabela de memória é como se apaga uma faixa sem
+querer.
+
+### A exceção declarada à regra "a frase do backend chega inteira"
+
+O 409 do código de cupom **não** é repassado como veio. `coupon-form.ts:326`
+reconhece esse 409 e o traduz para um erro **do campo do código**, com a
+informação que o backend não dá: que "PROMO10" e "promo10" contam como o mesmo
+cupom. É o mesmo desenho do e-mail repetido em Usuários — recusa com campo
+culpado aponta o campo, em vez de virar uma linha no rodapé do diálogo.
+
+**Meu primeiro teste afirmava a frase crua e falhou**, e falhou pelo motivo
+certo. Vale registrar porque é a terceira vez nesta rodada que o teste corrigiu
+o diagnóstico, e as três foram baratas só porque o teste veio antes do commit.
+
+### O bilhete do tempo real, e a cobertura declarada
+
+`stream-ticket` é a única escrita que nenhum lojista dispara: sai sozinha, na
+abertura e a cada reabertura. O que se prende não é frase nenhuma — é que **a
+recusa vira nova tentativa**. Sem o reagendamento o painel fica parado para
+sempre com a lista da abertura, que é a forma mais cara de falha desta tela,
+porque nada nela muda.
+
+**E a cobertura está escrita no teste**: ali a conexão nunca chegou a viver,
+então o que se prova é a etiqueta na ABERTURA. O "ao vivo" que envelhece com a
+conexão morta é outro caso, e é o `stream-health.ts` do §1 de `ausencia.md`, com
+teste unitário próprio. A primeira versão deste teste só afirmava a ausência da
+palavra "Tempo real" — o que passaria mesmo sem guarda nenhuma, porque na
+abertura a etiqueta nunca foi "ao vivo". Um teste que não pode falhar não é
+cobertura.
+
+### As duas que sobram, e por que elas ficam
+
+`PATCH /admin/settings` e `PATCH /admin/branches/{id}/settings` seguem só no
+caminho feliz **de propósito**: as recusas delas são as mesmas de
+`PATCH /admin/branches/{id}` (422 sobre a mescla) e de `_get_branch` (404), as
+duas já presas em `loja.spec.ts` pela mesma barra de salvar e pelo mesmo
+componente. Um quinto teste ali afirmaria o mesmo caminho de tela com outro
+corpo — cobertura que engorda o número e não muda o que a suíte sabe.
+
+Ficam anotadas aqui em vez de viradas para zero: **um placar honesto vale mais
+que um placar zerado**, e a próxima pessoa precisa saber que estas duas foram
+lidas e dispensadas, não esquecidas.
 
 ---
 

@@ -1169,3 +1169,102 @@ test('salvar a semana recusado: a barra não diz "salvo" e a grade não mente', 
   await expect(page.getByTestId('store-saved')).toHaveCount(0);
   expect(api.hoursPuts()).toHaveLength(0);
 });
+
+/* ==========================================================================
+ * O RESTO DAS ESCRITAS DE LOJA — grupo 4 de `escritas-sem-teste.md`
+ * ==========================================================================
+ *
+ * As recusas de `store-status`, `order-types`, `delivery-pause` e
+ * `business-hours` já estão presas mais acima. Estas são as irmãs delas que
+ * ficaram de fora — e a regra 12 da skill `revisao` é o motivo de elas serem
+ * procuradas juntas: a varredura que achou as quatro primeiras parou ali.
+ */
+
+/*
+ * O `PUT` QUE SUBSTITUI TUDO, e é o irmão de `business-hours`.
+ *
+ * A tabela salva a si mesma, por uma barra própria — são duas gravações
+ * independentes na mesma tela, com permissões diferentes. Por isso a recusa
+ * dela não pode aparecer na barra da aba: quem lê "não salvou" ali procuraria o
+ * campo errado.
+ *
+ * O 404 é o de `_get_branch`: a filial sai do alcance do token entre abrir a
+ * seção e salvar.
+ */
+test('faixas de prazo recusadas: a frase aparece na tabela, e o que foi digitado fica', async ({
+  page,
+}) => {
+  await abrirLoja(page);
+  await abrirSecao(page, 'entrega');
+
+  await page.getByTestId('band-add').click();
+  // A faixa precisa dos TRÊS campos: a tela valida antes e a recusa do backend
+  // nem sairia — que é a tela fazendo o trabalho dela.
+  const ultima = page.getByTestId(/^band-km-/).last();
+  await ultima.fill('12');
+  await page
+    .getByTestId(/^band-min-/)
+    .last()
+    .fill('40');
+  await page
+    .getByTestId(/^band-max-/)
+    .last()
+    .fill('60');
+
+  await page.route('**/admin/branches/*/delivery-time-bands', (route) => {
+    if (route.request().method() !== 'PUT') return route.fallback();
+    return route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Filial não encontrada' }),
+    });
+  });
+
+  await page.getByTestId('delivery-bands-save').click();
+
+  await expect(page.getByTestId('delivery-bands-error')).toContainText('Filial não encontrada');
+
+  /*
+   * O RASCUNHO FICA. Um `PUT` que substitui tudo é o pior lugar para perder o
+   * que foi digitado: recompor a tabela inteira de memória é como se apaga uma
+   * faixa sem querer.
+   */
+  await expect(ultima).toHaveValue('12');
+
+  // E a barra da ABA não diz que salvou: a gravação é outra, e o botão é outro.
+  await expect(page.getByTestId('store-saved')).toHaveCount(0);
+});
+
+/*
+ * `PATCH /admin/restaurant` — e a recusa dele é a que a edição parcial existe
+ * para evitar.
+ *
+ * O corpo leva só o campo mexido justamente porque um texto legado acima do
+ * teto tomaria 422 e levaria junto o campo que o lojista estava tentando
+ * salvar. Quando o 422 chega assim mesmo, o que não pode acontecer é a tela
+ * dizer "salvo" — este é o texto que aparece na vitrine.
+ */
+test('perfil recusado pelo backend: a frase aparece, nada diz "salvo", e o texto fica', async ({
+  page,
+}) => {
+  await abrirLoja(page);
+  await abrirSecao(page, 'marca');
+
+  await page.getByTestId('marca-descricao').fill('Forno a lenha desde 2011, no Centro.');
+
+  await page.route('**/admin/restaurant', (route) =>
+    route.fulfill({
+      status: 422,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'A descrição passa do limite de caracteres' }),
+    }),
+  );
+
+  await page.getByTestId('store-save').click();
+
+  await expect(page.getByTestId('store-error')).toContainText('A descrição passa do limite');
+  await expect(page.getByTestId('store-saved')).toHaveCount(0);
+  await expect(page.getByTestId('marca-descricao')).toHaveValue(
+    'Forno a lenha desde 2011, no Centro.',
+  );
+});

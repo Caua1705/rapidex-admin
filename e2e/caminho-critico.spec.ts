@@ -1101,3 +1101,60 @@ test('com o contador respondendo, a ressalva não aparece', async ({ page }) => 
   await expect(page.getByTestId('badge-novos')).toBeVisible();
   await expect(page.getByTestId('contagens-velhas')).toHaveCount(0);
 });
+
+/*
+ * ============================================================================
+ * O BILHETE DO TEMPO REAL — grupo 4 de `escritas-sem-teste.md`
+ * ============================================================================
+ *
+ * `POST /admin/orders/stream-ticket` é a única escrita do painel que nenhum
+ * lojista dispara: ela sai sozinha, na abertura da tela e a cada reabertura. E
+ * é a que sustenta a camada 2 inteira — sem bilhete não há stream, e sem stream
+ * o pedido não entra sozinho.
+ *
+ * O que este teste prende NÃO é uma frase, é o comportamento: **a recusa do
+ * bilhete tem de virar nova tentativa**, e não desistência calada. Sem o
+ * reagendamento, o painel fica parado para sempre com a lista da abertura —
+ * e é a forma mais cara de falha desta tela, porque nada na tela muda.
+ *
+ * A etiqueta entra junto pelo §1 de `ausencia.md`: ela não pode dizer "Tempo
+ * real" quando nem o bilhete saiu. **Cobertura declarada:** aqui a conexão
+ * nunca chegou a viver, então o que se prova é a etiqueta na ABERTURA. O caso
+ * do "ao vivo" que envelhece com a conexão morta é o `stream-health.ts`, que
+ * tem teste unitário próprio.
+ */
+test('bilhete recusado: o painel tenta de novo, e nunca diz "ao vivo"', async ({ page }) => {
+  let tentativas = 0;
+  await page.route('**/admin/orders/stream-ticket', (route) => {
+    tentativas += 1;
+    return route.fulfill({
+      status: 403,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Sem permissão para o tempo real' }),
+    });
+  });
+
+  await fazerLogin(page);
+
+  // A tela abre e é utilizável: a lista vem por outra rota, e a recusa do
+  // bilhete não pode derrubar o que o lojista veio ver.
+  await expect(page.getByTestId('order-card-1001')).toBeVisible();
+
+  /*
+   * A ETIQUETA DIZ A VERDADE, e a verdade aqui é "Reconectando…". "Tempo real"
+   * seria o painel tranquilizando quem devia estar olhando o telefone.
+   */
+  const etiqueta = page.getByTestId('stream-status');
+  await expect(etiqueta).toContainText('Reconectando');
+  await expect(etiqueta).not.toContainText('Tempo real');
+
+  /*
+   * E TENTA DE NOVO. É a asserção que sobra se alguém trocar o `scheduleReopen`
+   * por um `return` — a tela ficaria igualzinha a esta, com a etiqueta certa e
+   * nenhuma reconexão jamais acontecendo.
+   *
+   * A espera é por CONDIÇÃO e não por relógio: o recuo do primeiro retry é de
+   * 1s, e cravar um `waitForTimeout` aqui seria o item 11 da skill `revisao`.
+   */
+  await expect.poll(() => tentativas, { timeout: 10_000 }).toBeGreaterThan(1);
+});

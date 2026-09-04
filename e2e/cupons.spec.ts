@@ -587,3 +587,57 @@ test('editar para um código que já existe: o 409 aparece e o formulário não 
   // E nada foi gravado: a campanha continua com o código dela.
   expect(api.coupons().find((c) => c.id === 'cupom-natal')?.code).toBe('NATAL10');
 });
+
+/*
+ * ============================================================================
+ * A EDIÇÃO RECUSADA — grupo 4 de `escritas-sem-teste.md`
+ * ============================================================================
+ *
+ * `POST /admin/coupons` já tinha o 409 do código repetido preso mais acima.
+ * O `PATCH` tem o MESMO 409 (`coupon_service`, "Código de cupom já existe neste
+ * restaurante") e não tinha teste nenhum — é a irmã que a varredura de então
+ * não olhou, e é a regra 12 da skill `revisao`.
+ *
+ * O caso alcançável é o de sempre: outra aba criou "VERAO" enquanto esta estava
+ * aberta, e o lojista renomeia a campanha dele para o mesmo código. Daqui não há
+ * como saber — a lista desta aba não tem o cupom da outra.
+ */
+test('código repetido ao editar: o 409 vira erro DO CAMPO, e o diálogo não fecha', async ({
+  page,
+}) => {
+  await entrar(page);
+  await page.getByTestId('cupom-editar-SETEMBRO').click();
+
+  await page.route('**/admin/coupons/*', (route) => {
+    if (route.request().method() !== 'PATCH') return route.fallback();
+    return route.fulfill({
+      status: 409,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Código de cupom já existe neste restaurante' }),
+    });
+  });
+
+  // 'Código' casa também com 'Código do cupom' na lista: o exato é obrigatório.
+  await page.getByLabel('Código', { exact: true }).fill('VERAO');
+  await page.getByRole('button', { name: 'Salvar' }).click();
+
+  /*
+   * AQUI A REGRA "a frase do backend chega inteira" TEM UMA EXCEÇÃO DECLARADA,
+   * e ela é melhor que a regra: `coupon-form.ts` reconhece este 409 e o
+   * traduz para um erro DO CAMPO do código, com a informação que o backend não
+   * dá — que "PROMO10" e "promo10" contam como o mesmo cupom.
+   *
+   * É o mesmo desenho do e-mail repetido em Usuários: a recusa que tem um campo
+   * culpado aponta o campo, em vez de virar uma linha no rodapé do diálogo.
+   */
+  await expect(page.getByText(/já existe um cupom com este código/i)).toBeVisible();
+  await expect(page.getByText(/PROMO10 e promo10 contam como o mesmo/i)).toBeVisible();
+
+  /*
+   * O DIÁLOGO FICA, com o código digitado. Fechado, o lojista voltaria para a
+   * lista vendo o código ANTIGO na linha e sem saber se a mudança pegou — e a
+   * campanha é o que ele acabou de divulgar.
+   */
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByLabel('Código', { exact: true })).toHaveValue('VERAO');
+});

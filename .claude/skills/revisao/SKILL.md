@@ -1,6 +1,6 @@
 ---
 name: revisao
-description: Checklist de revisão de código do Admin Rapidex — os onze defeitos que já chegaram à mão do lojista aqui e que nenhuma ferramenta acusa: estado que diverge entre telas, campo que some do corpo do PATCH, permissão que existe na tela e não na rota, controle preso ao `:hover` (invisível no toque), alvo menor que 44px, dinheiro que atravessa como número quando o vizinho vai como string, barra de salvar que não gruda, erro cujo `detail` é objeto (a tela mostra o número HTTP no lugar da frase), rota que o backend entregou e o painel nunca chamou, achado que saiu de contagem de `grep` sem ser conferido, e o portão que muda de resposta conforme quem o roda (fuso não fixado, relógio real dentro do teste, virada de dia). Leia ao revisar diff, PR ou rodada antes de dar por pronta, e ao terminar qualquer alteração em `src/`. Não substitui `npm run lint`/`typecheck`/`test` — é o que sobra depois deles.
+description: Checklist de revisão de código do Admin Rapidex — os doze defeitos que já chegaram à mão do lojista aqui e que nenhuma ferramenta acusa: estado que diverge entre telas, campo que some do corpo do PATCH, permissão que existe na tela e não na rota, controle preso ao `:hover` (invisível no toque), alvo menor que 44px, dinheiro que atravessa como número quando o vizinho vai como string, barra de salvar que não gruda, erro cujo `detail` é objeto (a tela mostra o número HTTP no lugar da frase), rota que o backend entregou e o painel nunca chamou, achado que saiu de contagem de `grep` sem ser conferido, o portão que muda de resposta conforme quem o roda (fuso não fixado, relógio real dentro do teste, virada de dia), e a varredura que parou no primeiro achado sem olhar a função vizinha. Leia ao revisar diff, PR ou rodada antes de dar por pronta, e ao terminar qualquer alteração em `src/`. Não substitui `npm run lint`/`typecheck`/`test` — é o que sobra depois deles.
 ---
 
 # Revisão de código do Admin Rapidex
@@ -8,7 +8,7 @@ description: Checklist de revisão de código do Admin Rapidex — os onze defei
 O `typecheck` diz que os tipos batem. O `lint` diz que a cor saiu de um token e
 que o contraste passa. O `test` diz que a função devolve o que a asserção pede.
 
-**Nenhum dos três pegou um só dos onze defeitos abaixo.** Todos compilaram,
+**Nenhum dos três pegou um só dos doze defeitos abaixo.** Todos compilaram,
 passaram, subiram, e apareceram na tela de quem estava no balcão. Esta lista é
 o que se lê com o olho depois que as ferramentas ficam verdes — e ela não é
 genérica: cada item tem o caso real, com o commit, e o arquivo onde o conserto
@@ -24,8 +24,9 @@ Ordem de leitura, em quatro grupos que custam igual:
   painel não sabe ler e a rota que ele nunca chamou. Estes dois são os mais
   caros justamente porque não deixam rastro: o `typecheck` está feliz, os
   testes passam, e quem descobre é o lojista.
-- **10 — o defeito é de quem revisa.** Achado que saiu de contagem e não foi
-  conferido no arquivo.
+- **10 e 12 — o defeito é de quem revisa.** Achado que saiu de contagem e não
+  foi conferido no arquivo; e varredura que parou no primeiro achado sem olhar a
+  função vizinha.
 - **11 — o portão mente conforme QUEM o roda.** Fuso não fixado, relógio real
   dentro do teste, virada de dia. Ele fechava esta lista como "a décima primeira
   ainda não tem nome"; ela tem, e o nome é relógio.
@@ -526,6 +527,56 @@ uma semana em produção — ou às 00:30 de um sábado, na máquina de outra pe
 
 ---
 
+# 12. A varredura que achou não terminou — olhe as vizinhas
+
+**A pergunta:** esta varredura achou UM caso. Já abri as outras funções do mesmo
+arquivo, e as outras rotas da mesma família, antes de dar a lista por fechada?
+
+Como o 10, não é defeito do painel: é defeito de quem revisa. E ele custa mais
+caro que o 10, porque o falso negativo dele passa despercebido por semanas — a
+lista foi entregue, o item foi marcado feito, e ninguém volta a olhar.
+
+**O caso real, e ele é o mais caro desta skill.** A rodada de `ausencia.md` §7
+achou que `gravar()`, em `OptionGroupsSection`, dividia um `catch` entre a
+escrita e a releitura: gravava, a releitura caía, e a tela reportava falha sobre
+o que tinha gravado. Foi consertado, provado por mutação, commitado.
+
+**A função IMEDIATAMENTE ACIMA, no mesmo arquivo, tinha o mesmo desenho.**
+`alternarOpcao` também dividia o `catch` — e o desfecho dela era pior: com o
+interruptor ainda no estado antigo, a tela dizia erro sobre uma gravação que
+funcionou, e o segundo clique mandava o valor OPOSTO. Desfazia. E o que aquele
+interruptor decide é se a opção sai de venda, o que num grupo obrigatório tira o
+item inteiro do cardápio do cliente.
+
+Ficou aberta por rodadas, com a irmã dela consertada trinta linhas abaixo.
+
+**A varredura mirou `gravar`, achou, e parou.** É o que acontece quando o achado
+parece a resposta: ele encerra a busca em vez de calibrá-la. O padrão que a
+varredura descobriu é justamente o que diz ONDE procurar o resto.
+
+**Não é só função vizinha.** As três formas que já apareceram aqui:
+
+| Vizinhança           | Caso                                                                                                                                     |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Função ao lado**   | `gravar` consertada, `alternarOpcao` esquecida — mesmo arquivo, mesmo `catch` compartilhado                                              |
+| **Rota irmã**        | o falso recusava a lista curta no `reorder` de PRODUTO e não no de CATEGORIA; e das três unicidades do cardápio, ele não cobrava nenhuma |
+| **Controle ao lado** | o e2e apertava o SEGUNDO item do menu de ações do Cardápio; o primeiro estava debaixo do cabeçalho da tabela e não recebia clique        |
+
+**E a outra metade da regra, que vem do 10:** a vizinha tem o mesmo DESENHO, não
+necessariamente o mesmo DEFEITO. Nesta mesma rodada, o padrão de
+`await escrita(); await releitura();` num `try` só apareceu em mais três lugares
+de `useMenu` — e os três estavam certos, porque ali a segunda função trata o
+próprio erro e não relança. Dois consertos chegaram a ser escritos e foram
+desfeitos quando o e2e recusou a reproduzir o defeito.
+
+Ou seja: **a vizinha é onde olhar, e o teste é quem decide.** Escrever o teste
+antes de acreditar no diagnóstico é o que separou um achado de dois falsos
+positivos que teriam entrado no commit com comentário e tudo.
+
+---
+
+---
+
 # Como se roda a revisão
 
 As ferramentas primeiro — elas eliminam o que não vale o olho:
@@ -605,6 +656,9 @@ Relógio:
 Método:
 
 - [ ] Todo achado meu que saiu de contagem de `grep` foi conferido no arquivo?
+- [ ] Para cada defeito que achei, abri as funções VIZINHAS do mesmo arquivo e
+      as rotas irmãs da mesma família — e escrevi o teste de cada suspeita antes
+      de consertá-la?
 - [ ] O portão foi lido SEM pipe, `format:check` incluído?
 - [ ] Todo experimento que "deu verde" foi conferido quanto a TER RODADO? (Um
       `TZ=…` no shell não chega ao worker do Vitest no Windows: o teste passou
@@ -612,5 +666,5 @@ Método:
 
 E, por último, a pergunta que fecha: **o que nesta rodada só apareceria depois
 de uma semana em produção — ou às 00:30 de um sábado, na máquina de outra
-pessoa?** Os onze itens acima são as respostas que já foram dadas. A décima
-segunda ainda não tem nome.
+pessoa?** Os doze itens acima são as respostas que já foram dadas. A décima
+terceira ainda não tem nome.
