@@ -364,7 +364,26 @@
  */
 .menu__columns {
   position: sticky;
-  z-index: var(--z-sticky);
+  /*
+   * UM DEGRAU ABAIXO DA RÉGUA DA CATEGORIA, e isto conserta um controle que
+   * não dava para apertar.
+   *
+   * As duas grudam e nunca se sobrepõem (uma em `top: 0`, esta em `top: 44px`),
+   * então a ordem entre elas seria livre — não fosse o menu de ações, que mora
+   * DENTRO da régua. `position: sticky` com `z-index` cria contexto de
+   * empilhamento: o `--z-popover` de `.actions-menu__list` fica preso ao valor
+   * da régua, e com as duas em `--z-sticky` quem vinha depois no DOM pintava
+   * por cima — este cabeçalho.
+   *
+   * O efeito era invisível no desenho e total no uso: a PRIMEIRA linha do menu
+   * ("Editar categoria") caía debaixo desta fileira e não recebia clique
+   * nenhum. A segunda ("Aplicar setor") ficava abaixo da faixa e funcionava —
+   * e era só ela que o e2e apertava, que é por que ninguém viu.
+   *
+   * Derivado de `--z-sticky` de propósito: o que importa é o degrau entre as
+   * duas, não o número.
+   */
+  z-index: calc(var(--z-sticky) - 1);
   top: 44px;
   min-height: var(--row-dense-h);
   border-bottom: 1px solid var(--line-strong);

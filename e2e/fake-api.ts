@@ -5006,6 +5006,36 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       const branchId = body.branch_id;
 
       /*
+       * A LISTA PRECISA SER A COMPLETA DAQUELA FILIAL — e o falso não cobrava.
+       *
+       * `AdminMenuService.reorder_categories` responde **404 "Categoria não
+       * encontrada"** para id que não é da filial, e **400 "Envie todas as
+       * categorias da filial na nova ordem"** quando falta alguma. As duas
+       * frases são as do backend, palavra por palavra: um teste que afirmasse a
+       * frase inventada pelo dublê provaria que a tela mostra *uma* frase, e
+       * não *a* frase — que é a única coisa que estes testes existem para
+       * provar.
+       *
+       * A ordem das duas conferências também é a do backend, e ela tem motivo
+       * escrito lá: 400 antes de 404 contaria ao chamador que aquela categoria
+       * existe.
+       *
+       * O caso alcançável do 400 é o da lista velha: outra aba criou uma
+       * categoria, e a que está aberta aqui arrasta sem saber. É a recusa que
+       * manda recarregar.
+       */
+      const daFilial = state.categories.filter((item) => item.branch_id === branchId);
+      const conhecidas = new Set(daFilial.map((item) => item.id));
+      if (body.category_ids.some((id) => !conhecidas.has(id))) {
+        return json(route, 404, { detail: 'Categoria não encontrada' });
+      }
+      if (daFilial.length !== body.category_ids.length) {
+        return json(route, 400, {
+          detail: 'Envie todas as categorias da filial na nova ordem',
+        });
+      }
+
+      /*
        * Renumera a partir da lista recebida, na ordem recebida — e SÓ dentro da
        * filial. As categorias das outras lojas ficam onde estão: uma
        * reordenação que as varresse do "banco" faria o falso esconder o bug de
@@ -5171,9 +5201,25 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       });
 
       const daCategoria = state.products.filter((item) => item.category_id === body.category_id);
+
+      /*
+       * AS DUAS FRASES SÃO AS DO BACKEND, palavra por palavra
+       * (`AdminMenuService.reorder_products`), e a ordem das conferências
+       * também: o 404 do id estranho vem ANTES do 400 da lista curta, porque a
+       * ordem inversa contaria ao chamador que aquele produto existe.
+       *
+       * A frase daqui era inventada pelo falso ("A lista precisa ter todos os
+       * produtos da categoria."). A tela mostra o que o `detail` disser, então
+       * nada quebrava — mas o teste passava a afirmar uma frase que produção
+       * nunca manda, que é o mesmo defeito do dublê frouxo com outra roupa.
+       */
+      const conhecidos = new Set(daCategoria.map((item) => item.id));
+      if (body.product_ids.some((id) => !conhecidos.has(id))) {
+        return json(route, 404, { detail: 'Produto não encontrado nesta categoria' });
+      }
       if (daCategoria.length !== body.product_ids.length) {
         return json(route, 400, {
-          detail: 'A lista precisa ter todos os produtos da categoria.',
+          detail: 'Envie todos os produtos da categoria na nova ordem',
         });
       }
 

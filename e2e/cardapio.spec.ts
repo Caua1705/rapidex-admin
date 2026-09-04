@@ -757,3 +757,127 @@ test('foto recusada: a frase aparece e o recorte não se perde', async ({ page }
   await expect(page.getByTestId('product-image-frame')).toBeVisible();
   await expect(page.getByTestId('product-image-send')).toBeVisible();
 });
+
+/*
+ * ============================================================================
+ * A REORDENAÇÃO RECUSADA — e a lista velha, que é o caso que a produz
+ * ============================================================================
+ *
+ * Reordenar é a única escrita OTIMISTA do cardápio: a barra troca de ordem
+ * antes de o backend responder, porque arrastar e esperar meio segundo é uma
+ * interação que ninguém aceita duas vezes.
+ *
+ * O preço disso é que a recusa precisa DESFAZER. Sem a volta, o painel fica
+ * mostrando uma ordem que o backend rejeitou — e o cardápio que o cliente vê
+ * sai numa ordem, o do lojista em outra, sem nada aceso. É o `sort_order`
+ * divergente, que é a família de defeito que abriu a rodada de `ausencia.md`.
+ *
+ * A recusa é alcançável e tem um caso só: **a lista velha.** As duas rotas
+ * exigem a lista COMPLETA (categorias da filial, produtos da categoria) e
+ * respondem 400 quando falta alguém — porque renumerar só uma parte deixaria os
+ * de fora com `sort_order` repetido, e a ordem final passaria a depender do
+ * desempate por nome. Outra aba criou uma categoria, esta aqui arrasta sem
+ * saber, e o 400 é o sinal de recarregar.
+ *
+ * O falso passou a cobrar as duas listas nesta rodada, com as frases do backend
+ * palavra por palavra. Ele não é o sujeito destes testes: é a armadilha que
+ * prende o dia em que a tela começar a mandar a lista curta.
+ */
+
+test('categoria reordenada e recusada: a barra volta à ordem de antes, com a frase do backend', async ({
+  page,
+}) => {
+  await abrirCardapio(page);
+
+  const antes = await page.locator('.rail__name').allTextContents();
+  expect(antes).toEqual(['Lanches', 'Acompanhamentos', 'Sobremesas']);
+
+  /*
+   * É a recusa do backend, palavra por palavra
+   * (`AdminMenuService.reorder_categories`), e o caso que a produz é a lista
+   * velha: alguém criou uma categoria na outra aba entre esta tela carregar e
+   * o lojista arrastar.
+   */
+  await page.route('**/admin/categories/reorder', (route) =>
+    route.fulfill({
+      status: 400,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Envie todas as categorias da filial na nova ordem' }),
+    }),
+  );
+
+  await page.getByTestId('category-select-cat-2').hover();
+  await page.getByRole('button', { name: 'Mover Acompanhamentos para cima' }).click();
+
+  await expect(page.getByRole('alert')).toContainText('Envie todas as categorias da filial');
+
+  /*
+   * A VOLTA. Esta é a asserção que a suíte não tinha — e sem ela o teste
+   * provaria só que a mensagem aparece, que é a metade barata.
+   */
+  await expect.poll(() => page.locator('.rail__name').allTextContents()).toEqual(antes);
+});
+
+test('item reordenado e recusado: a lista volta à ordem de antes, com a frase do backend', async ({
+  page,
+}) => {
+  await abrirCardapio(page);
+
+  const nomes = () => page.locator('[data-testid^="product-row-"] .item__name').allTextContents();
+  const antes = await nomes();
+  expect(antes.length).toBeGreaterThan(1);
+
+  await page.route('**/admin/products/reorder', (route) =>
+    route.fulfill({
+      status: 400,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Envie todos os produtos da categoria na nova ordem' }),
+    }),
+  );
+
+  const primeiro = antes[0]!;
+  await page.getByTestId(`product-row-${api.products()[0]?.id}`).hover();
+  await page.getByRole('button', { name: `Mover ${primeiro} para baixo` }).click();
+
+  await expect(page.getByRole('alert')).toContainText('Envie todos os produtos da categoria');
+  await expect.poll(nomes).toEqual(antes);
+});
+
+/*
+ * `PATCH /admin/categories/{id}` — a última escrita do cardápio sem recusa.
+ *
+ * Renomear não pode colidir: `update_category` NÃO recalcula o slug (ele é a
+ * URL pública e fica congelado no que a criação gravou), então a unicidade não
+ * é alcançável daqui. O que é alcançável é o 404 de `_get_category`: a filial
+ * sai do alcance do token entre abrir o diálogo e salvar — outra pessoa
+ * desativou a loja, ou o dono restringiu o gerente à outra.
+ */
+test('categoria recusada por 404 ao renomear: a frase aparece e o nome antigo fica na barra', async ({
+  page,
+}) => {
+  await abrirCardapio(page);
+
+  // "Editar categoria" mora no menu de três pontinhos da régua da lista, e
+  // age sobre a categoria ABERTA — que é cat-1, "Lanches".
+  await page.getByTestId('category-actions-open').click();
+  await page.getByRole('menuitem', { name: 'Editar categoria' }).click();
+  await page.getByLabel('Nome da categoria').fill('Sanduíches');
+
+  await page.route('**/admin/categories/cat-1', (route) =>
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Categoria não encontrada' }),
+    }),
+  );
+
+  await page.getByRole('button', { name: 'Salvar' }).click();
+
+  await expect(page.getByRole('alert')).toContainText('Categoria não encontrada');
+
+  // O diálogo fica com o nome novo digitado, e a barra segue com o antigo:
+  // nada foi gravado, e nada na tela finge que foi.
+  await expect(page.getByLabel('Nome da categoria')).toHaveValue('Sanduíches');
+  await expect(page.getByTestId('category-select-cat-1')).toContainText('Lanches');
+  expect(api.categories().find((item) => item.id === 'cat-1')?.name).toBe('Lanches');
+});

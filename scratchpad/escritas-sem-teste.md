@@ -35,14 +35,15 @@ motivo de este documento contar as três medições em vez de só a última.
 
 **46 escritas. 0 sem nenhum teste. 25 exercitadas só no caminho feliz.**
 
-| Momento                                  | sem teste | só caminho feliz |
-| ---------------------------------------- | --------- | ---------------- |
-| primeira medição                         | 2         | 37               |
-| depois das escritas de dinheiro          | 0         | 32               |
-| depois de "o que decide se a loja vende" | 0         | 25               |
-| depois de "a comanda que não sai"        | 0         | 22               |
-| depois de fechar a impressão inteira     | 0         | 19               |
-| depois das unicidades do cardápio        | 0         | **16**           |
+| Momento                                             | sem teste | só caminho feliz |
+| --------------------------------------------------- | --------- | ---------------- |
+| primeira medição                                    | 2         | 37               |
+| depois das escritas de dinheiro                     | 0         | 32               |
+| depois de "o que decide se a loja vende"            | 0         | 25               |
+| depois de "a comanda que não sai"                   | 0         | 22               |
+| depois de fechar a impressão inteira                | 0         | 19               |
+| depois das unicidades do cardápio                   | 0         | 16               |
+| depois de fechar o cardápio (menos os complementos) | 0         | **13**           |
 
 > **A régua subcontava, duas vezes.** Ela lia só o que o FALSO serviu, e uma
 > recusa dublada com `page.route` nunca chega lá — eram 6 invisíveis. Corrigida
@@ -155,11 +156,11 @@ as 25 restantes, na ordem:
    nome e preço por uma rota e o setor por outra). Agora as três que faltavam —
    `print-settings`, `print-test` e `categories/{id}/printing-sector`. Ver
    "A rodada da impressão" abaixo.
-2. **Cardápio** — **em andamento.** Feitas as três unicidades (`POST` de
-   produto e de categoria, `PATCH` de produto pela chave de catálogo) e a foto.
-   Sobram `PATCH /admin/categories/{id}`, os dois `reorder` e as três de
-   complemento (`PATCH /admin/option-groups/{id}`,
-   `POST /admin/option-groups/{id}/options`, `PATCH /admin/options/{id}`). Ver
+2. **Cardápio** — feitas as três unicidades (`POST` de produto e de categoria,
+   `PATCH` de produto pela chave de catálogo), a foto, os dois `reorder` e o
+   `PATCH /admin/categories/{id}`. Sobram só as três de complemento
+   (`PATCH /admin/option-groups/{id}`, `POST /admin/option-groups/{id}/options`,
+   `PATCH /admin/options/{id}`), que são de outro arquivo e de outra tela. Ver
    "A rodada do cardápio" abaixo.
 3. **Equipe e conta** — `updateAdminUser`, `resetAdminUserPassword`,
    `changePassword`. `createAdminUser` já tem o 409.
@@ -293,6 +294,53 @@ quebrou** — que é o sinal de que a regra nova não é invenção, é a que j�
 
 Provado por mutação: afrouxar de volta a conferência do slug no falso derruba o
 teste da categoria repetida.
+
+### A reordenação, e o botão que não dava para apertar
+
+As duas rotas de `reorder` são a **única escrita otimista do cardápio**: a barra
+troca de ordem antes de o backend responder. O preço disso é que a recusa
+precisa DESFAZER — sem a volta, o painel mostra uma ordem que o backend
+rejeitou, e o cardápio do cliente sai numa ordem e o do lojista em outra, sem
+nada aceso. É o `sort_order` divergente, a família que abriu `ausencia.md`.
+
+A recusa tem um caso só e ele é alcançável: **a lista velha.** As duas exigem a
+lista COMPLETA e respondem 400 quando falta alguém — outra aba criou uma
+categoria, esta arrasta sem saber. Os dois testes novos prendem a mensagem **e a
+volta**, que é a metade que faltava.
+
+O falso passou a cobrar as duas listas, com as frases do backend palavra por
+palavra. A de produto ele **inventava** ("A lista precisa ter todos os produtos
+da categoria." em vez de "Envie todos os produtos da categoria na nova ordem"),
+e a de categoria ele não cobrava de jeito nenhum: descartava em silêncio os ids
+que não achava. Um dublê que inventa a frase é o mesmo defeito do dublê frouxo
+com outra roupa — o teste passa a afirmar uma frase que produção nunca manda, e
+o que estes testes existem para provar é que **a frase do backend** chega à tela.
+
+**E o `PATCH /admin/categories/{id}` destravou um defeito de UI que nada
+pegava.** Para escrever a recusa foi preciso clicar em "Editar categoria", que
+mora no menu de três pontinhos da régua — e o clique não chegava. A causa:
+
+- `.menu__panel-head` (a régua, que CONTÉM o menu) é `position: sticky` com
+  `z-index: --z-sticky`, e isso **cria contexto de empilhamento**;
+- o `--z-popover` de `.actions-menu__list` fica preso ao valor da régua;
+- `.menu__columns` (a fileira de rótulos) também está em `--z-sticky` e vem
+  DEPOIS no DOM — então ela pintava por cima do menu.
+
+O efeito era invisível no desenho e total no uso: a **primeira** linha do menu
+caía debaixo da fileira de rótulos e não recebia clique nenhum. A segunda
+("Aplicar setor a todos os itens") ficava abaixo da faixa e funcionava — e era
+só ela que o e2e apertava. **A cobertura existia e mirava o item errado.**
+
+Conserto: `.menu__columns` desce um degrau
+(`calc(var(--z-sticky) - 1)`). As duas grudam em alturas diferentes e nunca se
+sobrepõem, então a ordem entre elas era livre; o que não era livre é o popover
+que mora dentro de uma delas. Derivado do token de propósito — o que importa é
+o degrau, não o número.
+
+Isso é da mesma família dos onze da skill `revisao` (controle preso ao
+`:hover`, alvo menor que 44px): **um controle que existe e não se usa.** Nenhum
+script do portão pega, e o e2e só pegaria se apertasse aquele item — que é
+exatamente o que ele passou a fazer.
 
 ### O que este achado diz sobre o método
 
