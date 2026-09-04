@@ -148,3 +148,18 @@ cobertura.
 - As três rotas de relatório fora das seis (`/admin/reports/couriers`) e o
   `multipart` da foto continuam com ramo próprio, e está escrito no arquivo por
   quê.
+
+---
+
+## A deriva de REGRA, anotada como pendência (2026-09-04)
+
+Ela continua aberta de propósito. O que seria preciso para fechá-la está escrito
+em `scratchpad/escopo-de-tenant.md`, na seção **"Pendência aberta: a deriva de
+REGRA do falso do e2e"** — em três passos, com o custo de cada um e a nota de
+que a decisão de fazer não é de quem escreve.
+
+Resumo de uma linha, para quem chegar por aqui: **versionar o `/openapi.json`**
+(hoje só o `.d.ts` é versionado) destrava um validador de request no falso, que
+fecha os limites de campo; o que não está nem no JSON — índice único,
+`@model_validator`, o 409 do serviço — continua saindo da leitura do backend, e
+o que dá para automatizar ali é a LISTA do que precisa ser lido, não a leitura.

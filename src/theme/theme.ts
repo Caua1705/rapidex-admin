@@ -30,8 +30,14 @@ function isTheme(value: unknown): value is Theme {
  * claro" de "nunca opinou" — é essa distinção que faz o `prefers-color-scheme`
  * ser consultado apenas enquanto ninguém decidiu nada.
  */
+/*
+ * escopo-ok: claro ou escuro, do aparelho. Não recorta dado, não vai em
+ * requisição nenhuma, e o valor lido é conferido contra os dois literais
+ * possíveis (`isTheme`) antes de virar qualquer coisa.
+ */
 export function readStoredTheme(): Theme | null {
   try {
+    // escopo-ok: claro ou escuro, do aparelho — ver o bloco acima.
     const raw = localStorage.getItem(THEME_STORAGE_KEY);
     return isTheme(raw) ? raw : null;
   } catch {
@@ -41,8 +47,10 @@ export function readStoredTheme(): Theme | null {
   }
 }
 
+// escopo-ok: idem, na escrita.
 export function storeTheme(theme: Theme): void {
   try {
+    // escopo-ok: idem, na escrita.
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   } catch {
     // Idem: não lembrar é aceitável, quebrar não.

@@ -40,6 +40,9 @@ export function useNewOrderSound() {
   const audioContextRef = useRef<AudioContext | null>(null);
   /** O NAVEGADOR está segurando o áudio? Fato sobre o contexto, e só isso. */
   const [bloqueadoPeloNavegador, setBloqueadoPeloNavegador] = useState(false);
+  // escopo-ok: o silêncio do alerta é preferência do APARELHO, e por isso mora
+  // aqui e não no servidor: o tablet do balcão fica sem som e o celular do dono
+  // apita. Não há tenant nenhum neste valor — é um booleano.
   const [isMuted, setIsMuted] = useState(() => localStorage.getItem(MUTE_STORAGE_KEY) === '1');
 
   const getContext = useCallback((): AudioContext | null => {
@@ -121,6 +124,7 @@ export function useNewOrderSound() {
   const toggleMute = useCallback(() => {
     setIsMuted((current) => {
       const next = !current;
+      // escopo-ok: idem — preferência do aparelho, sem tenant.
       localStorage.setItem(MUTE_STORAGE_KEY, next ? '1' : '0');
       return next;
     });

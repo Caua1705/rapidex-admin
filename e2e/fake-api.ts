@@ -14,7 +14,7 @@
  * existia aqui aceitava qualquer coisa, e era por onde o falso podia envelhecer
  * em silêncio. Ver o cabeçalho de `contrato.ts` para o que ele NÃO cobre.
  */
-import type { Page, Route } from '@playwright/test';
+import type { Page, Request, Route } from '@playwright/test';
 
 import {
   casar,
@@ -2148,6 +2148,13 @@ export type FakeApi = {
   setStatusFromAnotherUser: (orderId: string, status: string) => void;
   /** Faz toda chamada autenticada responder 401 (sessão expirada). */
   expireSession: () => void;
+  /**
+   * O que a varredura de escopo anotou até agora — vazio é o esperado.
+   *
+   * Ela olha TODA requisição interceptada, e não uma lista de rotas: a rota
+   * nova entra na varredura sem ninguém se lembrar dela.
+   */
+  fugasDeEscopo: () => FugaDeEscopo[];
   /** Encerra as respostas pendentes do SSE no fim do teste. */
   stop: () => void;
   /** Cria um item de pedido pronto para o pushNewOrder. */
@@ -2231,6 +2238,94 @@ function chaveRepetida(
   return produtos.some(
     (item) => item.branch_id === branchId && item.catalog_key === chave && item.id !== productId,
   );
+}
+
+/* ==========================================================================
+ * AS ISCAS DE ESCOPO
+ *
+ * Ids que NENHUMA resposta deste falso devolve, em lugar nenhum. Eles existem
+ * para serem plantados onde a PESSOA pode mexer — a barra de endereço e o
+ * `localStorage` — e a pergunta que respondem é uma só: alguma tela do painel
+ * pega um identificador de tenant de fora da sessão e o usa?
+ *
+ * A resposta esperada é não, e é por isso que a isca precisa ser plantada em
+ * vez de esperada: um id que o falso nunca serve, o painel nunca teria como
+ * mandar por acidente. Plantá-lo na URL e na sessão gravada é a única forma de
+ * a pergunta poder ter a outra resposta.
+ * ======================================================================= */
+
+/** A filial de outro restaurante — o que o token não alcança de jeito nenhum. */
+export const ISCA_FILIAL = 'isca-de-outra-loja';
+/** O restaurante vizinho. Nenhuma rota `/admin` aceita restaurante; ver §4.3. */
+export const ISCA_RESTAURANTE = 'isca-de-outro-restaurante';
+
+/**
+ * O escopo que o token deste falso alcança — as duas filiais que
+ * `GET /admin/branches` devolve, e nada além delas.
+ */
+const FILIAIS_DO_TOKEN = new Set([BRANCH_ID, BRANCH_ID_2]);
+
+export type FugaDeEscopo = {
+  /** O que foi violado, em uma palavra — é por ela que o teste falha legível. */
+  tipo: 'isca' | 'restaurante' | 'filial-fora-do-token' | 'cardapio-sem-recorte';
+  metodo: string;
+  caminho: string;
+  detalhe: string;
+};
+
+/** O corpo cru, sem estourar no `multipart` da foto nem no GET sem corpo. */
+function corpoBrutoDe(request: Request): string {
+  try {
+    return request.postData() ?? '';
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * As quatro perguntas que esta varredura faz de cada requisição.
+ *
+ * A quarta é a que não parece de escopo e é a mais cara do painel: uma leitura
+ * de cardápio SEM `branch_id` responde 200, com JSON válido, somando o cardápio
+ * das duas lojas — "Promoções 10 / Promoções 10" na barra, cada item duas
+ * vezes. Não é vazamento entre restaurantes; é vazamento entre FILIAIS, e nada
+ * acende porque a resposta é a certa para a pergunta errada (§4.4).
+ */
+function fugasDaRequisicao(metodo: string, url: string, corpo: string): FugaDeEscopo[] {
+  const { pathname, searchParams } = new URL(url);
+  const fugas: FugaDeEscopo[] = [];
+  const anotar = (tipo: FugaDeEscopo['tipo'], detalhe: string) =>
+    fugas.push({ tipo, metodo, caminho: pathname, detalhe });
+
+  const tudo = `${url} ${corpo}`;
+  for (const isca of [ISCA_FILIAL, ISCA_RESTAURANTE]) {
+    if (tudo.includes(isca)) anotar('isca', `a isca "${isca}" saiu na requisição`);
+  }
+
+  if (searchParams.has('restaurant_id') || /"restaurant_id"\s*:/.test(corpo)) {
+    anotar('restaurante', 'restaurante viajou na requisição — ele mora no token');
+  }
+
+  const filiais = new Set<string>();
+  const noCaminho = /^\/admin\/branches\/([^/]+)/.exec(pathname);
+  // `operation` é caminho fixo, não id — o mesmo cuidado que o despacho tem.
+  if (noCaminho?.[1] && noCaminho[1] !== 'operation') filiais.add(noCaminho[1]);
+  const naQuery = searchParams.get('branch_id');
+  if (naQuery) filiais.add(naQuery);
+  const noCorpo = /"branch_id"\s*:\s*"([^"]+)"/.exec(corpo);
+  if (noCorpo?.[1]) filiais.add(noCorpo[1]);
+
+  for (const filial of filiais) {
+    if (FILIAIS_DO_TOKEN.has(filial)) continue;
+    anotar('filial-fora-do-token', `filial "${filial}" não está no escopo do token`);
+  }
+
+  const ehCardapio = pathname === '/admin/categories' || pathname === '/admin/products';
+  if (metodo === 'GET' && ehCardapio && !naQuery) {
+    anotar('cardapio-sem-recorte', 'leitura de cardápio sem branch_id soma as duas lojas');
+  }
+
+  return fugas;
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -2526,6 +2621,8 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     history: {} as Record<string, Schemas['StatusHistoryResponse'][]>,
     sessionExpired: false,
     stopped: false,
+    /** O que a varredura de escopo anotou. Vazio é o resultado esperado. */
+    fugasDeEscopo: [] as FugaDeEscopo[],
     /** Append-only: cada conexão SSE lê a partir do próprio cursor. */
     streamLog: [] as StreamEvent[],
     /**
@@ -3046,6 +3143,22 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     const request = route.request();
     const method = request.method();
     const path = new URL(request.url()).pathname;
+
+    /*
+     * A ISCA DE ESCOPO, e ela roda ANTES de qualquer ramo.
+     *
+     * O backend varreu as 82 rotas dele com iscas; do lado de cá quem faz esse
+     * papel é este gravador. Ele não responde nada — só olha CADA requisição
+     * que o painel manda e anota quando o recorte de tenant está errado, do
+     * jeito que `AdminBranchService._get_branch` anotaria com um 404.
+     *
+     * Ele fica aqui, e não em cada ramo, porque uma varredura que dependesse de
+     * o ramo lembrar de chamá-la seria a mesma coisa que não ter varredura: a
+     * rota nova nasceria sem ela.
+     */
+    for (const fuga of fugasDaRequisicao(method, request.url(), corpoBrutoDe(request))) {
+      state.fugasDeEscopo.push(fuga);
+    }
 
     // Sessão expirada: qualquer chamada com Authorization responde 401, que é
     // o gatilho do logout automático do painel.
@@ -6041,6 +6154,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     },
     expireSession() {
       state.sessionExpired = true;
+    },
+    fugasDeEscopo() {
+      return [...state.fugasDeEscopo];
     },
     stop() {
       state.stopped = true;
