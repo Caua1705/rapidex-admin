@@ -302,3 +302,148 @@ test('grupo que gravou não é reportado como falha quando a releitura cai', asy
   await expect(page.getByTestId('grupos-erro')).toContainText('Salvo.');
   await expect(page.getByTestId('grupos-erro')).toContainText('pode estar desatualizado');
 });
+
+/*
+ * ============================================================================
+ * AS TRÊS ESCRITAS DE COMPLEMENTO QUE SÓ TINHAM CAMINHO FELIZ
+ * ============================================================================
+ *
+ * Fecham o item 2 de `scratchpad/escritas-sem-teste.md`. O par que cada uma
+ * prova é o de sempre — a frase do backend chega inteira, e a tela não afirma o
+ * que não aconteceu. O que muda é o desfecho da primeira, que é o oposto das
+ * outras duas, e é onde estava o defeito.
+ */
+
+/*
+ * O INTERRUPTOR QUE SE DESFAZIA SOZINHO — a irmã que o §7 de `ausencia.md`
+ * não pegou, e ela é pior que a dele.
+ *
+ * Ligar ou desligar uma opção são DUAS chamadas: `PATCH /admin/options/{id}` e
+ * a releitura dos grupos. Enquanto dividiam um `catch`, a releitura que caía
+ * escrevia erro com o interruptor ainda no estado ANTIGO — porque quem o
+ * desenha é a lista, e a lista não tinha mudado.
+ *
+ * Do balcão isso é "não deu certo", e a reação natural é clicar de novo. Só que
+ * o segundo clique manda o valor OPOSTO: ele DESFAZ a gravação que funcionou.
+ * Não é duplicata — é reversão silenciosa. E o que este interruptor decide é se
+ * a opção sai de venda, que num grupo obrigatório tira o item inteiro do
+ * cardápio do cliente.
+ */
+test('opção alternada com a releitura caída: a tela não nega, e o interruptor acompanha', async ({
+  page,
+}) => {
+  await abrirItem(page, 'X-Burger Clássico');
+
+  // Bacon está no grupo OPCIONAL: desligá-lo não passa pela confirmação, que é
+  // outra tela e outro teste.
+  const bacon = page.getByRole('switch', { name: 'Bacon ativa' });
+  await expect(bacon).toBeChecked();
+
+  /*
+   * Só a releitura cai, e só uma vez — uma piscada de wi-fi. A gravação passa,
+   * que é a premissa inteira deste teste.
+   */
+  let caiu = false;
+  await page.route('**/admin/products/*/option-groups', async (route) => {
+    if (!caiu && route.request().method() === 'GET') {
+      caiu = true;
+      await route.abort();
+      return;
+    }
+    await route.fallback();
+  });
+
+  await bacon.click();
+
+  /*
+   * "Salvo" PRIMEIRO — a palavra que muda o que a pessoa faz em seguida, na
+   * mesma ordem que o §7 fixou em `gravar`. A ressalva nomeia o que a releitura
+   * traria e não trouxe: o efeito indireto no grupo obrigatório.
+   */
+  await expect(page.getByTestId('grupos-erro')).toContainText('Salvo');
+
+  /*
+   * E O INTERRUPTOR ACOMPANHA A GRAVAÇÃO. É a asserção que fecha o buraco: sem
+   * ela a tela diria "salvo" com a chave no lugar antigo, e o clique seguinte
+   * mandaria o oposto.
+   */
+  await expect(bacon).not.toBeChecked();
+
+  // No "banco", uma gravação só — e ela é a que o lojista pediu.
+  const grupos = api.optionGroupsOf('prod-1') as {
+    options?: { id: string; is_active: boolean }[];
+  }[];
+  const opcao = grupos.flatMap((g) => g.options ?? []).find((o) => o.id === 'opt-bacon');
+  expect(opcao?.is_active).toBe(false);
+});
+
+/*
+ * O 422 DA MESCLA, e o FORMATO dele é a metade que importa.
+ *
+ * `AdminMenuService.update_option_group` valida sobre a mescla com o banco, e
+ * quando recusa monta o `detail` como TEXTO (`"; ".join(...)`) — porque essa
+ * validação acontece depois do corpo, e o 422 automático do Pydantic não a
+ * alcança. O `POST` de opção, logo abaixo, recusa com `detail` de LISTA.
+ *
+ * São dois formatos de erro na mesma seção da mesma tela, e a frase precisa
+ * chegar nos dois. É a família do `detail` que não é string da skill `revisao`:
+ * quando `messageFromUnknownError` não sabe ler o formato, o lojista lê o
+ * número HTTP no lugar da frase que o backend mandou pronta.
+ */
+test('grupo recusado na mescla: a frase do backend aparece e o formulário não fecha', async ({
+  page,
+}) => {
+  await abrirItem(page, 'X-Burger Clássico');
+
+  await page.getByTestId('grupo-editar-grp-adicionais').click();
+  await page.getByTestId('grupo-nome').fill('Adicionais do lanche');
+
+  await page.route('**/admin/option-groups/grp-adicionais', (route) =>
+    route.fulfill({
+      status: 422,
+      contentType: 'application/json',
+      // TEXTO, e não lista: é o formato que `update_option_group` monta.
+      body: JSON.stringify({ detail: 'max_select não pode ser menor que min_select' }),
+    }),
+  );
+
+  await page.getByTestId('grupo-salvar').click();
+
+  await expect(page.getByTestId('grupos-erro')).toContainText('max_select não pode ser menor');
+
+  // O formulário fica, com o que foi digitado: o lojista corrige um número.
+  await expect(page.getByTestId('grupo-nome')).toHaveValue('Adicionais do lanche');
+});
+
+/*
+ * A OPÇÃO NOVA RECUSADA — 404 do grupo, que é a recusa alcançável daqui: o
+ * grupo sai do alcance do token entre abrir o formulário e salvar.
+ */
+test('opção nova recusada: a frase aparece, nada entra na lista e o texto fica', async ({
+  page,
+}) => {
+  await abrirItem(page, 'X-Burger Clássico');
+
+  const quantas = () =>
+    (api.optionGroupsOf('prod-1') as { options?: unknown[] }[]).flatMap((g) => g.options ?? [])
+      .length;
+  const antes = quantas();
+
+  await page.getByTestId('opcao-nova-grp-adicionais').click();
+  await page.getByTestId('opcao-nome').fill('Bacon extra');
+  await page.getByTestId('opcao-preco').fill('4,00');
+
+  await page.route('**/admin/option-groups/grp-adicionais/options', (route) =>
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Grupo de opções não encontrado' }),
+    }),
+  );
+
+  await page.getByTestId('opcao-salvar').click();
+
+  await expect(page.getByTestId('grupos-erro')).toContainText('Grupo de opções não encontrado');
+  await expect(page.getByTestId('opcao-nome')).toHaveValue('Bacon extra');
+  expect(quantas()).toBe(antes);
+});

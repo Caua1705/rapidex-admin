@@ -43,7 +43,8 @@ motivo de este documento contar as três medições em vez de só a última.
 | depois de "a comanda que não sai"                   | 0         | 22               |
 | depois de fechar a impressão inteira                | 0         | 19               |
 | depois das unicidades do cardápio                   | 0         | 16               |
-| depois de fechar o cardápio (menos os complementos) | 0         | **13**           |
+| depois de fechar o cardápio (menos os complementos) | 0         | 13               |
+| depois do CARDÁPIO INTEIRO                          | 0         | **10**           |
 
 > **A régua subcontava, duas vezes.** Ela lia só o que o FALSO serviu, e uma
 > recusa dublada com `page.route` nunca chega lá — eram 6 invisíveis. Corrigida
@@ -156,12 +157,9 @@ as 25 restantes, na ordem:
    nome e preço por uma rota e o setor por outra). Agora as três que faltavam —
    `print-settings`, `print-test` e `categories/{id}/printing-sector`. Ver
    "A rodada da impressão" abaixo.
-2. **Cardápio** — feitas as três unicidades (`POST` de produto e de categoria,
-   `PATCH` de produto pela chave de catálogo), a foto, os dois `reorder` e o
-   `PATCH /admin/categories/{id}`. Sobram só as três de complemento
-   (`PATCH /admin/option-groups/{id}`, `POST /admin/option-groups/{id}/options`,
-   `PATCH /admin/options/{id}`), que são de outro arquivo e de outra tela. Ver
-   "A rodada do cardápio" abaixo.
+2. ~~**Cardápio**~~ — **FECHADO (2026-09-03).** As três unicidades, a foto, os
+   dois `reorder`, o `PATCH /admin/categories/{id}` e as três de complemento.
+   Ver "A rodada do cardápio" abaixo.
 3. **Equipe e conta** — `updateAdminUser`, `resetAdminUserPassword`,
    `changePassword`. `createAdminUser` já tem o 409.
 4. **O resto** — `delivery-time-bands`, `restaurant`, `settings`,
@@ -341,6 +339,51 @@ Isso é da mesma família dos onze da skill `revisao` (controle preso ao
 `:hover`, alvo menor que 44px): **um controle que existe e não se usa.** Nenhum
 script do portão pega, e o e2e só pegaria se apertasse aquele item — que é
 exatamente o que ele passou a fazer.
+
+### Os complementos, e a irmã que o §7 não tinha pegado
+
+`ausencia.md` §7 consertou `gravar()` em `OptionGroupsSection`: gravar e reler
+deixaram de dividir um `catch`, porque a releitura que caía era relatada como
+escrita que falhou. **A função logo acima, `alternarOpcao`, tinha o mesmo
+defeito e ninguém olhou** — a varredura da época mirou `gravar`, achou, e parou.
+
+E esta é pior que a dela:
+
+```ts
+await setOptionActive(optionId, isActive); // gravou
+await recarregar(); // esta caiu
+```
+
+Com o `catch` compartilhado, a tela escrevia erro **com o interruptor no estado
+ANTIGO** — quem o desenha é a lista, e a lista não tinha mudado. Do balcão isso
+é "não deu certo", e a reação natural é clicar de novo. Só que o segundo clique
+manda o valor **oposto**: ele DESFAZ a gravação que funcionou.
+
+Não é duplicata, é **reversão silenciosa** — e o que este interruptor decide é
+se a opção sai de venda, que num grupo obrigatório tira o item inteiro do
+cardápio do cliente. É camada 2 com outra roupa.
+
+**O conserto usa a resposta que já vinha e ninguém aproveitava.**
+`PATCH /admin/options/{id}` responde a OPÇÃO — o próprio `api/menu.ts` diz, no
+comentário de `createOption`, que quem desenha a lista deve acrescentar o que
+voltou "como `setOptionActive` faz". Só que aqui ninguém fazia: descartava a
+resposta e relia. Agora a opção entra na lista ANTES da releitura
+(`comOpcaoTrocada`, função pura, quatro casos unitários), e a releitura fica
+valendo pelo que ela acrescenta de fato: o efeito INDIRETO
+(`unavailable_by_required_group`), que é do produto e não da opção.
+
+### Os dois formatos de erro da mesma seção
+
+O 422 de `update_option_group` tem `detail` de **TEXTO** — o serviço monta
+`"; ".join(...)` à mão, porque a validação acontece sobre a MESCLA com o banco e
+o 422 automático do Pydantic não a alcança. O 422 do `POST` de opção, dez linhas
+abaixo na mesma tela, tem `detail` de **LISTA**.
+
+Dois formatos na mesma seção, e a frase precisa chegar nos dois. É a família do
+`detail` que não é string da skill `revisao`: quando `messageFromUnknownError`
+não sabe ler o formato, o lojista lê o número HTTP no lugar da frase que o
+backend mandou pronta. Os testes novos afirmam o formato de cada um, e não só o
+status.
 
 ### O que este achado diz sobre o método
 

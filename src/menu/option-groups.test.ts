@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ProductOptionGroup } from '../api/types';
+import type { ProductOption, ProductOptionGroup } from '../api/types';
 import {
   GRUPO_DESCRICAO_MAX,
   GRUPO_NOME_MAX,
   checkGrupo,
   checkOpcao,
+  comOpcaoTrocada,
   corpoDoGrupo,
   grupoDraftDe,
   grupoVazio,
@@ -292,5 +293,70 @@ describe('a posição do grupo', () => {
 
   it('sem posição passada, o grupo novo é o primeiro — que é o caso do produto vazio', () => {
     expect(grupoVazio().sortOrder).toBe(0);
+  });
+});
+
+/*
+ * ============================================================================
+ * `comOpcaoTrocada` — a verdade que o PATCH devolveu, aplicada sem releitura
+ * ============================================================================
+ *
+ * Ela existe para que a releitura que vem DEPOIS possa falhar sem desmentir a
+ * gravação (ver `alternarOpcao`). Enquanto as duas dividiam um `catch`, a
+ * releitura caída deixava o interruptor no estado antigo com a tela dizendo
+ * erro — e o clique seguinte mandava o valor oposto, desfazendo o que tinha
+ * gravado.
+ */
+describe('comOpcaoTrocada', () => {
+  function opcao(overrides: Partial<ProductOption> = {}): ProductOption {
+    return {
+      id: 'opt-bacon',
+      option_group_id: 'grp-adicionais',
+      name: 'Bacon',
+      description: null,
+      additional_price: 5,
+      sort_order: 0,
+      is_active: true,
+      ...overrides,
+    };
+  }
+
+  const comOpcoes = (): ProductOptionGroup[] => [
+    grupo({ id: 'grp-ponto', options: [opcao({ id: 'opt-mal', name: 'Mal passado' })] }),
+    grupo({ id: 'grp-adicionais', options: [opcao()] }),
+  ];
+
+  it('troca a opção pela versão que voltou, e só ela', () => {
+    const depois = comOpcaoTrocada(comOpcoes(), opcao({ is_active: false }));
+
+    expect(depois?.[1]?.options?.[0]?.is_active).toBe(false);
+    // O outro grupo não é tocado — nem a opção dele.
+    expect(depois?.[0]?.options?.[0]?.is_active).toBe(true);
+    expect(depois?.[0]?.options?.[0]?.id).toBe('opt-mal');
+  });
+
+  /*
+   * `null` ENTRA E SAI `null`. Sem lista lida não há o que trocar, e inventar um
+   * grupo aqui apagaria a distinção entre "não tem complemento" e "não deu para
+   * ler" — que é o §6 de `ausencia.md`, e custou um e2e para existir.
+   */
+  it('lista não lida continua não lida', () => {
+    expect(comOpcaoTrocada(null, opcao())).toBeNull();
+  });
+
+  it('opção de outro produto não entra em grupo nenhum', () => {
+    const antes = comOpcoes();
+    const depois = comOpcaoTrocada(antes, opcao({ id: 'opt-de-outro-item' }));
+
+    expect(depois).toEqual(antes);
+  });
+
+  /*
+   * O GRUPO SEM `options` NÃO QUEBRA: o contrato deixa o campo opcional, e um
+   * grupo recém-criado volta sem nenhuma opção dentro.
+   */
+  it('grupo sem opções passa intacto', () => {
+    const semOpcoes = [grupo({ id: 'grp-novo', options: undefined })];
+    expect(comOpcaoTrocada(semOpcoes, opcao())).toEqual(semOpcoes);
   });
 });

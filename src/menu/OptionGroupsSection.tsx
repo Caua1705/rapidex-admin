@@ -17,6 +17,7 @@ import { blockingRequiredGroup, groupEmptiedByDeactivating } from './required-gr
 import {
   GRUPO_NOME_MAX,
   checkOpcao,
+  comOpcaoTrocada,
   opcaoVazia,
   regraDoGrupo,
   type OpcaoDraft,
@@ -136,15 +137,50 @@ export function OptionGroupsSection({
    * confiasse nela, o aviso de "saiu de venda" nunca apareceria, porque o dado
    * que o carrega não está ali.
    */
+  /**
+   * Liga ou desliga uma opção — com as duas falhas separadas, como `gravar`.
+   *
+   * ESTA ERA A IRMÃ QUE O §7 DE `ausencia.md` NÃO PEGOU, e ela é pior que a
+   * dele. Os dois `await` dividiam um `catch`: a gravação passava, a releitura
+   * caía, e a tela escrevia erro com o interruptor ainda no estado ANTIGO —
+   * porque quem desenha o interruptor é `grupos`, e `grupos` não tinha mudado.
+   *
+   * Do lado de cá do balcão isso é "não deu certo", e a reação natural é clicar
+   * de novo. Só que o segundo clique manda o valor OPOSTO: ele DESFAZ a
+   * gravação que tinha funcionado. Não é duplicata, é reversão silenciosa — e o
+   * que este interruptor decide é se a opção sai de venda, que num grupo
+   * obrigatório tira o item inteiro do cardápio.
+   *
+   * A opção que o PATCH devolve entra na lista ANTES da releitura, e é isso que
+   * torna a segunda falha inofensiva. A releitura continua valendo por causa do
+   * efeito INDIRETO: se este clique esvaziou um grupo obrigatório, quem sabe é
+   * o produto (`unavailable_by_required_group`), não a opção.
+   */
   async function alternarOpcao(optionId: string, isActive: boolean) {
     setAlternando(optionId);
     setErro(null);
     setConfirmando(null);
+
+    let salva;
     try {
-      await setOptionActive(optionId, isActive);
-      await recarregar();
+      salva = await setOptionActive(optionId, isActive);
     } catch (error) {
       setErro(messageFromUnknownError(error));
+      setAlternando(null);
+      return;
+    }
+
+    // GRAVOU. Daqui para baixo nada pode dizer que não.
+    setGrupos((atuais) => comOpcaoTrocada(atuais, salva));
+
+    try {
+      await recarregar();
+      setErroDeLeitura(null);
+    } catch {
+      setErro(
+        'Salvo. Não deu para reler os complementos agora — se este era o último ' +
+          'ativo de um grupo obrigatório, a lista ainda não mostra isso.',
+      );
     } finally {
       setAlternando(null);
     }

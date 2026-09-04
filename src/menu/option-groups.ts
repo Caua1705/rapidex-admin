@@ -36,7 +36,7 @@
  * Conferir aqui não é desconfiança do backend: é o lojista ver o limite ANTES
  * de preencher seis campos e levar 422 no clique.
  */
-import type { ProductOptionGroup } from '../api/types';
+import type { ProductOption, ProductOptionGroup } from '../api/types';
 import { parsePriceInput } from './menu-model';
 
 /** `name`: `min_length=1, max_length=120` no Pydantic. Não sai no contrato. */
@@ -271,6 +271,34 @@ export function checkOpcao(draft: OpcaoDraft, sortOrder = 0): Check<OpcaoBody, '
  * aparece para o cliente, e essa é a informação que responde "por que o
  * complemento sumiu do app?".
  */
+/**
+ * Troca UMA opção pela versão que o backend devolveu, sem tocar no resto.
+ *
+ * Existe porque `PATCH /admin/options/{id}` responde a OPÇÃO — ela é a verdade
+ * mais fresca que a tela tem sobre aquela linha, e aplicá-la é o que permite a
+ * releitura que vem depois falhar sem desmentir a gravação (ver
+ * `alternarOpcao`). O que a releitura acrescenta é o efeito INDIRETO: se este
+ * clique esvaziou um grupo obrigatório, quem sabe disso é o produto, não a
+ * opção.
+ *
+ * `null` entra e sai `null`: sem lista lida não há o que trocar, e inventar um
+ * grupo aqui apagaria a distinção entre "não tem" e "não deu para ler" que o §6
+ * de `ausencia.md` custou para existir.
+ */
+export function comOpcaoTrocada(
+  grupos: ProductOptionGroup[] | null,
+  opcao: ProductOption,
+): ProductOptionGroup[] | null {
+  if (grupos === null) return null;
+  return grupos.map((grupo) => {
+    if (!grupo.options?.some((item) => item.id === opcao.id)) return grupo;
+    return {
+      ...grupo,
+      options: grupo.options.map((item) => (item.id === opcao.id ? opcao : item)),
+    };
+  });
+}
+
 export function regraDoGrupo(group: ProductOptionGroup): string {
   const partes: string[] = [];
   if (!group.is_active) partes.push('Desativado');
