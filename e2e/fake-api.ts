@@ -1927,6 +1927,21 @@ export type CanalDeWhatsApp = {
  * o que o e2e precisa provar é que ela mostra a frase que CHEGOU. Um texto
  * inventado aqui deixaria o teste verde sobre uma tela que ignora o campo.
  */
+/*
+ * AS QUATRO FAIXAS DE `source_label`, letra por letra como o backend as escreve
+ * (as constantes `FAIXA_*` de `admin_whatsapp_service.py`).
+ *
+ * O campo entrou no contrato em 09/2026 e a TELA NÃO O USA — a razão está em
+ * `src/whatsapp/whatsapp-model.ts`, e ela é que ele cola num rótulo só os dois
+ * estados que a tela existe para separar. Mesmo assim o falso o devolve com a
+ * frase exata: um dublê que inventasse o texto deixaria de acusar o dia em que
+ * alguém decidir consumi-lo (`rapidex-api` §4.10).
+ */
+const FAIXA_NUMERO_PROPRIO = 'Número próprio';
+const FAIXA_NUMERO_PROPRIO_FORA_DO_AR = 'Número próprio, fora do ar';
+const FAIXA_HERDA_DO_RESTAURANTE = 'Usa o WhatsApp do restaurante';
+const FAIXA_SEM_NUMERO = 'Sem WhatsApp';
+
 const ESTADO_DO_CANAL: Record<WhatsAppChannelStatus, { label: string; action: string | null }> = {
   connected: { label: 'Conectado', action: null },
   disabled: {
@@ -6285,13 +6300,15 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       const utilizavel = resolverParaFilial(filial.id);
 
       if (propria) {
+        const noAr = utilizavel !== null;
         return {
           branch_id: filial.id,
           branch_name: filial.name,
           source: 'branch',
+          source_label: noAr ? FAIXA_NUMERO_PROPRIO : FAIXA_NUMERO_PROPRIO_FORA_DO_AR,
           channel_id: propria.id,
           display_phone_number: propria.display_phone_number,
-          can_send: utilizavel !== null,
+          can_send: noAr,
         };
       }
       if (utilizavel) {
@@ -6299,6 +6316,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
           branch_id: filial.id,
           branch_name: filial.name,
           source: 'restaurant',
+          source_label: FAIXA_HERDA_DO_RESTAURANTE,
           channel_id: utilizavel.id,
           display_phone_number: utilizavel.display_phone_number,
           can_send: true,
@@ -6308,6 +6326,12 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
         branch_id: filial.id,
         branch_name: filial.name,
         source: 'none',
+        /*
+         * "SEM WHATSAPP" COBRE OS DOIS `source: 'none'` — a loja que nunca teve
+         * número e a que HERDARIA um que caiu. É essa colagem que faz a tela
+         * não consumir o campo; ver `src/whatsapp/whatsapp-model.ts`.
+         */
+        source_label: FAIXA_SEM_NUMERO,
         channel_id: null,
         display_phone_number: null,
         can_send: false,

@@ -303,6 +303,33 @@ export type SituacaoDaLoja = {
  *
  * A leitura de `source` é a espinha, e o canal correspondente entra junto
  * porque é dele que sai a frase do estado (`status_label` / `status_action`).
+ *
+ * ----------------------------------------------------------------------------
+ * ESTE É UM ESPELHO DECLARADO, E A ROTA TEM O CAMPO PRONTO
+ * ----------------------------------------------------------------------------
+ *
+ * Em 09/2026 o backend passou a mandar `source_label` em cada linha de loja, com
+ * a frase já escrita — o mesmo desenho de `status_label`, que a tela REPASSA sem
+ * pensar. `resumo` continua sendo derivado aqui mesmo assim, e a razão é uma só:
+ *
+ *   FAIXA_SEM_NUMERO ("Sem WhatsApp") cobre os DOIS `source: 'none'`.
+ *
+ * "Nunca teve número" e "herdaria um que caiu" são o mesmo `source` do lado de
+ * lá, e são as duas coisas que esta tela existe para separar: a primeira pede
+ * cadastro, a segunda tem um cliente de ontem que foi avisado e um de hoje que
+ * não foi. Consumir `source_label` apagaria a distinção — a tela ficaria mais
+ * simples e diria menos do que sabe.
+ *
+ * **Quem ganha na divergência, e qual é o estrago:** o backend ganha em tudo que
+ * ele responde e a tela não deduz — `can_send`, `status_label`, `status_action`.
+ * Aqui a tela ganha porque tem um dado a mais (a linha do restaurante está na
+ * MESMA resposta, e é ela que separa os dois `none`). O estrago máximo é o texto
+ * dos cinco `resumo` abaixo envelhecer em relação às quatro `FAIXA_*` do
+ * backend: eles se contradizerem na tela é impossível, porque só um dos dois é
+ * desenhado.
+ *
+ * Se um dia `source` ganhar um quinto valor que separe os dois `none`, este
+ * espelho perde a razão de existir e o campo passa a ser repassado.
  */
 export function situacaoDaLoja(
   linha: WhatsAppBranchLine,

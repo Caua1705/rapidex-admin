@@ -47,6 +47,14 @@ function loja(over: Partial<WhatsAppBranchLine> = {}): WhatsAppBranchLine {
     branch_id: 'filial-1',
     branch_name: 'Centro',
     source: 'none',
+    /*
+     * `source_label` VEM DO BACKEND E A TELA NÃO O LÊ — ver o comentário de
+     * `situacaoDaLoja`. Ele está aqui com a frase exata de `FAIXA_SEM_NUMERO`
+     * porque o dublê não pode ser mais frouxo que o contrato, e porque é ele
+     * que torna visível o que o campo cola: os casos abaixo trocam de `tipo`
+     * sem que esta linha mude.
+     */
+    source_label: 'Sem WhatsApp',
     channel_id: null,
     display_phone_number: null,
     can_send: false,
