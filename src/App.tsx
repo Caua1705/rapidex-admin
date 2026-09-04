@@ -22,6 +22,7 @@ import { StoreSectionPage } from './store/StoreSectionPage';
 import { STORE_SECTIONS } from './store/store-sections';
 import { UsersPage } from './users/UsersPage';
 import { UiGalleryPage } from './ui-gallery/UiGalleryPage';
+import { WhatsAppPage } from './whatsapp/WhatsAppPage';
 
 /**
  * As rotas do painel.
@@ -229,6 +230,24 @@ export function App() {
               <RequireAuth acao="usuarios.ver">
                 <AppShell>
                   <UsersPage />
+                </AppShell>
+              </RequireAuth>
+            }
+          />
+          {/*
+            WHATSAPP exige o papel da LEITURA (`GET /admin/whatsapp/channels`,
+            GERENCIA), como Cupons e Cashback: conectar e desconectar são do
+            dono e isso é decidido DENTRO da tela. Pôr a guarda de escrita aqui
+            trancaria a porta justamente para quem mais precisa entrar — é o
+            gerente que responde ao cliente que ligou dizendo não ter recebido
+            o aviso do pedido.
+          */}
+          <Route
+            path="/whatsapp"
+            element={
+              <RequireAuth acao="whatsapp.ver">
+                <AppShell>
+                  <WhatsAppPage />
                 </AppShell>
               </RequireAuth>
             }

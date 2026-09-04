@@ -203,7 +203,30 @@ export type Acao =
   | 'usuarios.ver'
   | 'usuarios.criar'
   | 'usuarios.editar'
-  | 'usuarios.redefinirSenha';
+  | 'usuarios.redefinirSenha'
+  /*
+   * O WHATSAPP LÊ COMO GERÊNCIA E ESCREVE COMO DONO, e é a assimetria mais
+   * larga do painel — mais que a de Cupons e Cashback, que também é
+   * "gerência lê, dono escreve".
+   *
+   * LER é do gerente porque é ELE quem responde ao cliente que ligou dizendo
+   * não ter recebido o aviso: sem a tela, a resposta é um encolher de ombros.
+   * A leitura não devolve credencial nenhuma — o token nunca sai, nem parcial,
+   * e o `waba_id` vem com os quatro últimos dígitos.
+   *
+   * ESCREVER é só do dono pelos dois lados. Conectar é colar no banco uma
+   * CREDENCIAL da Business Manager dele, e o que ela habilita é a plataforma
+   * mandando mensagem no WhatsApp da loja, em nome dele. Desconectar não
+   * quebra nada — nenhum erro, nenhuma tela vermelha, só pedido seguindo em
+   * silêncio —, e estrago silencioso pede a senha que menos circula.
+   *
+   * São três ações e não uma porque são três rotas: apontar as três para uma
+   * só faria o compilador parar de conferir duas delas, o mesmo motivo das
+   * quatro de cashback.
+   */
+  | 'whatsapp.ver'
+  | 'whatsapp.conectar'
+  | 'whatsapp.desconectar';
 
 /**
  * A ponte. Cada ação, a rota que ela chama.
@@ -384,6 +407,13 @@ const ROTA_DA_ACAO = {
   /* Editar E desativar: não existe DELETE, tirar alguém é `is_active: false`. */
   'usuarios.editar': 'PATCH /admin/users/{admin_user_id}',
   'usuarios.redefinirSenha': 'POST /admin/users/{admin_user_id}/reset-password',
+
+  // --- whatsapp -------------------------------------------------------------
+  'whatsapp.ver': 'GET /admin/whatsapp/channels',
+  /* Conectar É reconectar: o mesmo `phone_number_id` de novo troca o token e
+     religa o canal. Um botão só, uma rota só, um papel só. */
+  'whatsapp.conectar': 'POST /admin/whatsapp/channels',
+  'whatsapp.desconectar': 'DELETE /admin/whatsapp/channels/{channel_id}',
 } as const satisfies Record<Acao, RotaComPapel>;
 
 /**

@@ -1878,6 +1878,146 @@ const ROTULOS: Record<string, string> = {
   rejected: 'Recusado',
 };
 
+/* ==========================================================================
+ * O CANAL DE WHATSAPP
+ *
+ * O falso guarda a LINHA e deriva a vista, como o backend — e não o contrário.
+ * `is_active` e `disconnected_at` são colunas; `status` é o que sai delas, e a
+ * ORDEM da derivação é regra: a desconexão da META vence a nossa mesmo quando
+ * as duas são verdade. Guardar `status` pronto faria este falso concordar com
+ * qualquer derivação da tela, inclusive a que confunde os dois estados — que é
+ * justamente o defeito que a tela existe para não ter.
+ * ======================================================================= */
+
+type WhatsAppChannelView = Schemas['AdminWhatsAppChannelView'];
+type WhatsAppBranchView = Schemas['AdminWhatsAppBranchView'];
+type WhatsAppChannelStatus = Schemas['WhatsAppChannelStatus'];
+
+/** Uma linha de `whatsapp_channels`, com as colunas que decidem o estado. */
+export type CanalDeWhatsApp = {
+  id: string;
+  /** Fora do restaurante do token é o que faz o cadastro colidir sem dizer de quem. */
+  restaurant_id: string;
+  /** NULO é a linha do RESTAURANTE — a queda que as filiais herdam. */
+  branch_id: string | null;
+  waba_id: string;
+  phone_number_id: string;
+  display_phone_number: string;
+  is_active: boolean;
+  disconnected_at: string | null;
+  disconnect_reason: string | null;
+  connected_at: string;
+};
+
+/**
+ * A TABELA DE ESTADOS, letra por letra como `_ESTADO_DO_CANAL` do backend.
+ *
+ * Ela é copiada de propósito: a tela NÃO monta a frase a partir do enum, então
+ * o que o e2e precisa provar é que ela mostra a frase que CHEGOU. Um texto
+ * inventado aqui deixaria o teste verde sobre uma tela que ignora o campo.
+ */
+const ESTADO_DO_CANAL: Record<WhatsAppChannelStatus, { label: string; action: string | null }> = {
+  connected: { label: 'Conectado', action: null },
+  disabled: {
+    label: 'Desligado no painel',
+    action: 'Conecte o número de novo para voltar a avisar os clientes.',
+  },
+  disconnected_by_meta: {
+    label: 'Desconectado pela Meta',
+    action:
+      'O acesso da Cloud API foi removido no WhatsApp da loja. Reconecte por lá primeiro e ' +
+      'depois conecte o número de novo aqui.',
+  },
+};
+
+/**
+ * A ORDEM DA PERGUNTA IMPORTA, e é a de `status_do_canal`: a desconexão pela
+ * META vem primeiro mesmo quando o canal também está desligado do nosso lado.
+ * São dois consertos, e só um deles depende de outra pessoa.
+ */
+function statusDoCanal(canal: CanalDeWhatsApp): WhatsAppChannelStatus {
+  if (canal.disconnected_at !== null) return 'disconnected_by_meta';
+  if (!canal.is_active) return 'disabled';
+  return 'connected';
+}
+
+/** `1234567890` vira `••••7890`. Curto demais sai inteiro mascarado. */
+function mascararWaba(wabaId: string): string {
+  if (wabaId.length <= 4) return '•'.repeat(wabaId.length);
+  return '•'.repeat(wabaId.length - 4) + wabaId.slice(-4);
+}
+
+/**
+ * "Dá para mandar por este canal?" — e são DUAS condições que não se
+ * substituem: `is_active` (eu não desliguei) e `disconnected_at` (a Meta não
+ * tirou o acesso).
+ */
+function canalUtilizavel(canal: CanalDeWhatsApp): boolean {
+  return canal.is_active && canal.disconnected_at === null;
+}
+
+function vistaDoCanal(
+  canal: CanalDeWhatsApp,
+  nomes: Record<string, string | undefined>,
+): WhatsAppChannelView {
+  const estado = statusDoCanal(canal);
+  return {
+    id: canal.id,
+    branch_id: canal.branch_id,
+    branch_name: canal.branch_id ? (nomes[canal.branch_id] ?? null) : null,
+    display_phone_number: canal.display_phone_number,
+    phone_number_id: canal.phone_number_id,
+    waba_id_masked: mascararWaba(canal.waba_id),
+    status: estado,
+    status_label: ESTADO_DO_CANAL[estado].label,
+    status_action: ESTADO_DO_CANAL[estado].action,
+    connected_at: canal.connected_at,
+    disconnected_at: canal.disconnected_at,
+    disconnect_reason: canal.disconnect_reason,
+  };
+}
+
+/**
+ * A SEMENTE, e ela cobre os dois estados que a tela precisa saber separar sem
+ * ninguém mexer em nada:
+ *
+ *   - a QUEDA do restaurante, no ar — e a Zona Norte, sem linha própria,
+ *     herdando dela e avisando o cliente;
+ *   - a Matriz Aldeota com número PRÓPRIO desligado — que NÃO cai no do
+ *     restaurante, e por isso é a loja que não avisa ninguém.
+ *
+ * É de propósito que a segunda seja a filial PRINCIPAL: a herança boa e a
+ * herança que não acontece ficam lado a lado na primeira tela que abre.
+ */
+function initialWhatsAppChannels(): CanalDeWhatsApp[] {
+  return [
+    {
+      id: 'wa-restaurante',
+      restaurant_id: RESTAURANT_ID,
+      branch_id: null,
+      waba_id: '109876543210987',
+      phone_number_id: 'pn-restaurante',
+      display_phone_number: '+55 85 3333-0000',
+      is_active: true,
+      disconnected_at: null,
+      disconnect_reason: null,
+      connected_at: '2026-08-20T13:00:00Z',
+    },
+    {
+      id: 'wa-aldeota',
+      restaurant_id: RESTAURANT_ID,
+      branch_id: BRANCH_ID,
+      waba_id: '109876543210987',
+      phone_number_id: 'pn-aldeota',
+      display_phone_number: '+55 85 98888-1111',
+      is_active: false,
+      disconnected_at: null,
+      disconnect_reason: null,
+      connected_at: '2026-08-25T13:00:00Z',
+    },
+  ];
+}
+
 export type FakeApi = {
   /** Estado que o "banco" tem agora. Os testes leem e escrevem à vontade. */
   orders: OrderListItem[];
@@ -2187,6 +2327,29 @@ export type FakeApi = {
   entrarComSenhaTemporaria: () => void;
   /** Cada PATCH /admin/auth/password que chegou, com o corpo. */
   trocasDeSenha: () => Record<string, unknown>[];
+  /**
+   * ============================================================================
+   * O CANAL DE WHATSAPP
+   * ============================================================================
+   *
+   * As LINHAS como o "banco" as tem — não as vistas que a rota devolve. A
+   * diferença importa: `is_active` e `disconnected_at` são COLUNAS, e o
+   * `status` da resposta é DERIVADO delas, com a desconexão da Meta vencendo a
+   * nossa. Guardar a vista pronta faria o falso concordar com qualquer
+   * derivação, inclusive a errada.
+   */
+  whatsappChannels: () => CanalDeWhatsApp[];
+  /**
+   * O corpo de cada `POST /admin/whatsapp/channels`.
+   *
+   * É AQUI que se confere o `branch_id: null` EXPLÍCITO da linha do
+   * restaurante: na tela, "conectou no restaurante" e "conectou numa filial"
+   * desenham parecido, e a única prova de qual foi está no corpo. E é aqui que
+   * se vê o token saindo no CORPO, e nunca na querystring.
+   */
+  whatsappBodies: () => Record<string, unknown>[];
+  /** Planta as linhas de canal antes do login. */
+  setWhatsAppChannels: (canais: CanalDeWhatsApp[]) => void;
 };
 
 /**
@@ -2787,6 +2950,13 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     }[],
     senhasGeradas: [] as string[],
     trocasDeSenha: [] as Record<string, unknown>[],
+    /*
+     * OS CANAIS DE WHATSAPP, como LINHAS. Ver `initialWhatsAppChannels` para
+     * o porquê da semente: ela abre a tela com a herança que funciona e a que
+     * não acontece, lado a lado.
+     */
+    whatsappChannels: initialWhatsAppChannels(),
+    whatsappBodies: [] as Record<string, unknown>[],
     printSectors: initialPrintSectors(BRANCH_ID),
     /*
      * A TAXA POR CORRIDA, por filial. Nasce VAZIO de propósito: nenhuma
@@ -5998,6 +6168,260 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
       return responder(route, 'post', '/admin/products', 201, created);
     }
 
+    /* --- whatsapp ---------------------------------------------------------
+     *
+     * AS TRÊS ROTAS, e o que este ramo precisa reproduzir não é o caminho
+     * feliz: são as QUATRO RECUSAS de cadastro e a herança resolvida loja a
+     * loja. Um falso que só soubesse conectar deixaria verde uma tela que, em
+     * produção, mostra o número HTTP no lugar da frase que diz o que fazer.
+     *
+     * As quatro recusas do backend (`AdminWhatsAppService.connect`), na ordem:
+     *
+     *   404  filial que não existe (ou fora do escopo)
+     *   409  o número já é de OUTRO restaurante — e a frase não diz de quem
+     *   409  o número já é de outra filial SUA — a frase nomeia a filial
+     *   409  o lugar já está ocupado — a frase diz por qual número ele fala
+     *
+     * E a quinta coisa, que não é recusa e é o caminho mais importante:
+     * conectar o MESMO `phone_number_id` de novo é RECONECTAR. Sem ela,
+     * desconectar seria irreversível pelo painel.
+     */
+
+    const nomesDasFiliais: Record<string, string | undefined> = Object.fromEntries(
+      state.branches.map((filial) => [filial.id, filial.name]),
+    );
+
+    /**
+     * Os canais deste restaurante, com a QUEDA PRIMEIRO — `list_by_restaurant`.
+     *
+     * A ordem não é enfeite: ler a lista de cima para baixo fica na mesma ordem
+     * em que a herança é resolvida, e a tela conta com isso ao dizer que a
+     * primeira linha é de onde sai o número das outras.
+     */
+    function canaisDoRestaurante(): CanalDeWhatsApp[] {
+      return state.whatsappChannels
+        .filter((canal) => canal.restaurant_id === RESTAURANT_ID)
+        .sort((a, b) => Number(a.branch_id !== null) - Number(b.branch_id !== null));
+    }
+
+    /**
+     * "De qual número esta filial fala?" — `resolve_for_branch`.
+     *
+     * A REGRA QUE MAIS ENGANA MORA AQUI: o número da FILIAL desligado não cai
+     * no do restaurante. A queda só acontece quando a filial não tem linha
+     * NENHUMA — a distinção é entre EXISTIR e não existir linha, nunca entre
+     * ligada e desligada. Um falso que fizesse a queda acontecer deixaria a
+     * tela dizer "esta loja avisa" sobre uma loja muda.
+     */
+    function resolverParaFilial(branchId: string): CanalDeWhatsApp | null {
+      const daFilial = canaisDoRestaurante().find((canal) => canal.branch_id === branchId);
+      if (daFilial) return canalUtilizavel(daFilial) ? daFilial : null;
+      return (
+        canaisDoRestaurante().find((canal) => canal.branch_id === null && canalUtilizavel(canal)) ??
+        null
+      );
+    }
+
+    function vistaDaFilial(filial: Branch): WhatsAppBranchView {
+      const propria = canaisDoRestaurante().find((canal) => canal.branch_id === filial.id);
+      const utilizavel = resolverParaFilial(filial.id);
+
+      if (propria) {
+        return {
+          branch_id: filial.id,
+          branch_name: filial.name,
+          source: 'branch',
+          channel_id: propria.id,
+          display_phone_number: propria.display_phone_number,
+          can_send: utilizavel !== null,
+        };
+      }
+      if (utilizavel) {
+        return {
+          branch_id: filial.id,
+          branch_name: filial.name,
+          source: 'restaurant',
+          channel_id: utilizavel.id,
+          display_phone_number: utilizavel.display_phone_number,
+          can_send: true,
+        };
+      }
+      return {
+        branch_id: filial.id,
+        branch_name: filial.name,
+        source: 'none',
+        channel_id: null,
+        display_phone_number: null,
+        can_send: false,
+      };
+    }
+
+    /** `_nome_do_lugar`: a queda do restaurante tem nome, e ele não é "nenhuma". */
+    function nomeDoLugar(branchId: string | null): string {
+      if (branchId === null) return 'do restaurante';
+      return nomesDasFiliais[branchId] ?? 'outra';
+    }
+
+    if (path === '/admin/whatsapp/channels') {
+      if (method === 'GET') {
+        /*
+         * O FILTRO SÓ RESTRINGE, NUNCA AMPLIA — e a tela não o manda, de
+         * propósito. Ele continua implementado aqui porque o falso não pode ser
+         * mais frouxo que o backend: o dia em que alguém passar a mandar uma
+         * filial, é este ramo que precisa recusar a que não existe.
+         *
+         * Com filtro, `channels` traz o canal daquela loja E a linha do
+         * restaurante — sem a queda na lista, a tela diria "você herda um
+         * número" sem ter o número para mostrar.
+         */
+        const filtro = new URL(request.url()).searchParams.get('branch_id');
+        if (filtro !== null && !state.branches.some((filial) => filial.id === filtro)) {
+          return recusar(route, 'get', '/admin/whatsapp/channels', 404, {
+            detail: 'Filial não encontrada',
+          });
+        }
+
+        const filiais = state.branches.filter((filial) => filtro === null || filial.id === filtro);
+        const canais = canaisDoRestaurante().filter(
+          (canal) => filtro === null || canal.branch_id === filtro || canal.branch_id === null,
+        );
+
+        return responder(route, 'get', '/admin/whatsapp/channels', 200, {
+          channels: canais.map((canal) => vistaDoCanal(canal, nomesDasFiliais)),
+          branches: filiais.map(vistaDaFilial),
+        });
+      }
+
+      if (method === 'POST') {
+        const body = corpoDe(route, 'post', '/admin/whatsapp/channels');
+        state.whatsappBodies.push(body as unknown as Record<string, unknown>);
+        const branchId = body.branch_id ?? null;
+
+        /* `_ensure_branch_in_scope`: 404 e nunca 403 — filial de outro
+           restaurante e filial inexistente respondem a mesma coisa. */
+        if (branchId !== null && !state.branches.some((filial) => filial.id === branchId)) {
+          return recusar(route, 'post', '/admin/whatsapp/channels', 404, {
+            detail: 'Filial não encontrada',
+          });
+        }
+
+        /*
+         * `get_any_by_phone_number_id` — SEM filtro de restaurante e SEM olhar
+         * o estado da linha. O `UNIQUE (phone_number_id)` é global, e o
+         * desligado conta: o índice é sobre a linha, não sobre o estado dela.
+         */
+        const existente = state.whatsappChannels.find(
+          (canal) => canal.phone_number_id === body.phone_number_id,
+        );
+
+        if (existente) {
+          if (existente.restaurant_id !== RESTAURANT_ID) {
+            return recusar(route, 'post', '/admin/whatsapp/channels', 409, {
+              detail:
+                'Este número já está conectado. Se ele é da sua loja, desconecte o cadastro ' +
+                'atual antes de conectar de novo.',
+            });
+          }
+          if (existente.branch_id !== branchId) {
+            return recusar(route, 'post', '/admin/whatsapp/channels', 409, {
+              detail:
+                'Este número já é o da filial ' +
+                nomeDoLugar(existente.branch_id) +
+                '. Desconecte-o lá antes de conectá-lo aqui.',
+            });
+          }
+
+          /*
+           * RECONECTAR: troca o token, religa e LIMPA A DESCONEXÃO. Quem
+           * recadastra está com um token novo em mãos, e o token novo só existe
+           * porque o lojista religou o acesso do lado da Meta.
+           */
+          existente.waba_id = body.waba_id;
+          existente.display_phone_number = body.display_phone_number;
+          existente.is_active = true;
+          existente.disconnected_at = null;
+          existente.disconnect_reason = null;
+          existente.connected_at = new Date().toISOString();
+          return responder(
+            route,
+            'post',
+            '/admin/whatsapp/channels',
+            200,
+            vistaDoCanal(existente, nomesDasFiliais),
+          );
+        }
+
+        /*
+         * `_ensure_slot_is_free` — e a consulta do CADASTRO não pergunta se a
+         * linha está ligada: o índice único parcial da queda também não. Juntar
+         * as duas faria o cadastro achar o lugar vazio e o banco recusar.
+         */
+        const ocupante = canaisDoRestaurante().find((canal) => canal.branch_id === branchId);
+        if (ocupante) {
+          return recusar(route, 'post', '/admin/whatsapp/channels', 409, {
+            detail:
+              branchId === null
+                ? 'O restaurante já tem o número ' +
+                  ocupante.display_phone_number +
+                  ' como padrão, e as filiais sem número próprio herdam dele. Desconecte-o antes de conectar outro.'
+                : 'A filial ' +
+                  nomeDoLugar(branchId) +
+                  ' já fala pelo número ' +
+                  ocupante.display_phone_number +
+                  '. Desconecte-o antes de conectar outro.',
+          });
+        }
+
+        const criado: CanalDeWhatsApp = {
+          id: 'wa-novo-' + String(state.whatsappChannels.length + 1),
+          restaurant_id: RESTAURANT_ID,
+          branch_id: branchId,
+          waba_id: body.waba_id,
+          phone_number_id: body.phone_number_id,
+          display_phone_number: body.display_phone_number,
+          is_active: true,
+          disconnected_at: null,
+          disconnect_reason: null,
+          connected_at: new Date().toISOString(),
+        };
+        state.whatsappChannels.push(criado);
+        return responder(
+          route,
+          'post',
+          '/admin/whatsapp/channels',
+          200,
+          vistaDoCanal(criado, nomesDasFiliais),
+        );
+      }
+    }
+
+    const canalMatch = casar(path, '/admin/whatsapp/channels/{channel_id}');
+    if (canalMatch && method === 'DELETE') {
+      const alvo = state.whatsappChannels.find((canal) => canal.id === canalMatch.channel_id);
+      /* Canal de outro restaurante e canal inexistente respondem a MESMA coisa:
+         um 403 confirmaria que aquele id existe. */
+      if (!alvo || alvo.restaurant_id !== RESTAURANT_ID) {
+        return recusar(route, 'delete', '/admin/whatsapp/channels/{channel_id}', 404, {
+          detail: 'Canal não encontrado',
+        });
+      }
+
+      /*
+       * A LINHA NÃO É APAGADA — e é por isso que a rota devolve 200 com o canal,
+       * e não 204. `whatsapp_messages.channel_id` é FK sem `ON DELETE` de
+       * propósito: apagar o canal apagaria o registro de que o cliente foi
+       * avisado, que é o único lugar onde isso é visível depois.
+       */
+      alvo.is_active = false;
+      return responder(
+        route,
+        'delete',
+        '/admin/whatsapp/channels/{channel_id}',
+        200,
+        vistaDoCanal(alvo, nomesDasFiliais),
+      );
+    }
+
     return recusarSemRota(route, 404, { detail: `Rota não simulada no E2E: ${method} ${path}` });
   });
 
@@ -6091,6 +6515,11 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     branchPatches: () => state.branchPatches,
     hoursPuts: () => state.hoursPuts,
     paymentMethods: () => state.paymentMethods,
+    whatsappChannels: () => state.whatsappChannels,
+    whatsappBodies: () => state.whatsappBodies,
+    setWhatsAppChannels(canais) {
+      state.whatsappChannels = canais;
+    },
     printSectors: () => state.printSectors,
     entrarComoPapel(papel) {
       state.papel = papel;

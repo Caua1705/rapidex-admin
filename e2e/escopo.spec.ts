@@ -70,6 +70,13 @@ const TELAS = [
   '/cupons',
   '/entregadores',
   '/usuarios',
+  /*
+   * WHATSAPP LÊ A REDE INTEIRA de propósito — a rota aceita `branch_id` e o
+   * painel não o manda. É justamente por isso que ela entra na varredura: uma
+   * tela que passasse a recortar pelo seletor teria de tirar o id de algum
+   * lugar, e é esse "algum lugar" que a isca mede.
+   */
+  '/whatsapp',
   '/loja',
   '/loja/operacao',
   '/loja/marca',
@@ -85,6 +92,24 @@ const TELAS = [
 /** Espera a tela assentar: sem isso a varredura mede menos do que a tela pediu. */
 async function assentar(page: Page) {
   await page.waitForLoadState('networkidle');
+}
+
+/**
+ * AS QUATRO VARREDURAS SÃO LENTAS DE PROPÓSITO, e por isso são declaradas.
+ *
+ * Cada uma abre as {@link TELAS} inteiras e espera cada uma ASSENTAR — é isso
+ * que faz a medida valer alguma coisa: uma tela que ainda está carregando não
+ * mandou as requisições que a isca precisa ver. Com 22 telas, o orçamento
+ * padrão de 30s ficava a segundos do teto, e a varredura passava a falhar por
+ * relógio na máquina carregada — que é o §11 da skill `revisao`: portão que
+ * muda de resposta conforme quem o roda.
+ *
+ * `test.slow()` triplica o prazo e é a forma honesta de dizer isso, em vez de
+ * encurtar a lista de telas (que é o que a varredura mede) ou trocar o
+ * `networkidle` por uma espera fixa.
+ */
+function varreduraDemorada() {
+  test.slow();
 }
 
 function relatorio(fugas: ReturnType<FakeApi['fugasDeEscopo']>): string {
@@ -130,6 +155,7 @@ test('a régua acusa as quatro fugas quando elas de fato acontecem', async ({ pa
  * ======================================================================= */
 
 test('nenhuma tela do painel sai do escopo, com "todas as filiais" aberta', async ({ page }) => {
+  varreduraDemorada();
   await entrar(page);
 
   for (const tela of TELAS) {
@@ -141,6 +167,7 @@ test('nenhuma tela do painel sai do escopo, com "todas as filiais" aberta', asyn
 });
 
 test('nenhuma tela do painel sai do escopo com a segunda filial escolhida', async ({ page }) => {
+  varreduraDemorada();
   await entrar(page);
   // A SEGUNDA, e não a principal: com a Matriz escolhida, um id esquecido cairia
   // no mesmo valor que a resolução automática usa, e o teste passaria por sorte.
@@ -159,6 +186,7 @@ test('nenhuma tela do painel sai do escopo com a segunda filial escolhida', asyn
  * ======================================================================= */
 
 test('a filial na barra de endereço não vira o recorte de nenhuma tela', async ({ page }) => {
+  varreduraDemorada();
   await entrar(page);
 
   /*
@@ -181,6 +209,7 @@ test('a filial na barra de endereço não vira o recorte de nenhuma tela', async
 test('a sessão adulterada no localStorage não muda o escopo de nenhuma chamada', async ({
   page,
 }) => {
+  varreduraDemorada();
   await entrar(page);
 
   /*

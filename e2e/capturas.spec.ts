@@ -250,12 +250,11 @@ for (const tamanho of TAMANHOS) {
       await page.getByTestId('senha-concluir').click();
 
       /*
-       * "Em breve": o estado honesto, que também precisa pertencer ao sistema.
-       *
-       * ELE APONTAVA PARA /cupons, e Cupons tem tela desde `e835961` — a foto
-       * chamada "em-breve" era a de Cupons de novo, e a tela que ela deveria
-       * documentar não era fotografada por ninguém. WhatsApp continua pendente,
-       * e é ela que sobra para o papel.
+       * WHATSAPP — e a foto existe pelo que ela mostra LADO A LADO: a Zona
+       * Norte herdando o número do restaurante e avisando, e a Matriz com
+       * número próprio desligado que NÃO cai no do restaurante. As duas linhas
+       * juntas são a tela inteira, e é nelas que se olha se a distinção
+       * continua legível depois de qualquer mexida.
        */
       await page.evaluate(() => window.localStorage.clear());
       await page.goto('/whatsapp');
@@ -263,7 +262,24 @@ for (const tamanho of TAMANHOS) {
       await page.getByLabel('Senha').fill(LOGIN_PASSWORD);
       await page.getByRole('button', { name: 'Entrar' }).click();
       await expect(page.getByRole('heading', { name: 'WhatsApp' })).toBeVisible();
-      await fotografar(page, 'em-breve', tamanho.nome, tema);
+      await fotografar(page, 'whatsapp', tamanho.nome, tema);
+
+      /*
+       * A FOTO "em-breve" SAIU EM 05/09/2026, e o motivo não é que ela deixou
+       * de importar: é que ficou sem assunto.
+       *
+       * Ela já apontou para /cupons e para /whatsapp, e as duas ganharam tela —
+       * cada vez, a foto chamada "em-breve" virava a de outra tela e a que ela
+       * deveria documentar não era fotografada por ninguém. Integrações era a
+       * última pendente, e ela não virou tela: foi REMOVIDA do menu (o porquê
+       * está em `src/layout/nav.ts`). Sem nenhum item `soon`, não há página de
+       * estado para fotografar, e apontar esta foto para uma rota que não
+       * existe mais é o mesmo defeito das duas vezes anteriores.
+       *
+       * O mecanismo continua em pé — `soon`, `ComingSoonPage`, a etiqueta da
+       * lateral. No dia em que um item pendente nascer, esta foto volta com
+       * ele, e volta apontando para o item certo.
+       */
 
       /*
        * A TROCA OBRIGATÓRIA — a tela que abre sozinha para quem entrou com uma

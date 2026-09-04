@@ -84,16 +84,24 @@ está sendo fechado na rodada do Cardápio.
 Sem detalhamento aqui — estão na auditoria com o motivo de cada uma. Em ordem
 do que mais dói:
 
-| O que                         | Falta                                              |
-| ----------------------------- | -------------------------------------------------- |
-| **Criar filial**              | não existe `POST /admin/branches`                  |
-| **Apagar setor de impressão** | não existe `DELETE /admin/printing-sectors/{id}`   |
-| **Logo do restaurante**       | `logo_path` só é servido na API da vitrine         |
-| **Credencial do gateway**     | nenhuma rota `/admin`; hoje é linha de banco       |
-| **WhatsApp e Integrações**    | nenhuma rota `/admin` — as telas seguem "em breve" |
-| **Nota fiscal**               | não existe nem tabela                              |
+| O que                         | Falta                                            |
+| ----------------------------- | ------------------------------------------------ |
+| **Criar filial**              | não existe `POST /admin/branches`                |
+| **Apagar setor de impressão** | não existe `DELETE /admin/printing-sectors/{id}` |
+| **Logo do restaurante**       | `logo_path` só é servido na API da vitrine       |
+| **Credencial do gateway**     | nenhuma rota `/admin`; hoje é linha de banco     |
+| **Nota fiscal**               | não existe nem tabela                            |
 
-Sobre o WhatsApp: o contrato de 2026-09-03 trouxe `/webhooks/whatsapp`, mas ele
-é a **entrada da Meta no backend**, não a configuração do lojista. Das oito
-rotas novas daquele dia, nenhuma é `/admin` — as outras sete são do app do
-cliente (`/auth/google`, `/customers/me/social`).
+**O WhatsApp saiu desta lista em 05/09/2026.** O backend entregou
+`GET`/`POST /admin/whatsapp/channels` e
+`DELETE /admin/whatsapp/channels/{channel_id}`, e a tela foi construída — ver
+`scratchpad/rodada-whatsapp.md`. Fica registrado o que a linha dizia antes,
+porque o engano é fácil de repetir: o contrato de 2026-09-03 já trazia
+`/webhooks/whatsapp`, e ele é a **entrada da Meta no backend**, não a
+configuração do lojista. Uma rota com o nome certo no caminho errado não é a
+rota que a tela precisa.
+
+**Integrações também saiu**, e por outro motivo: o item foi removido do menu em
+vez de virar tela. As três coisas que o `soon` dela prometia ou não estão sendo
+construídas ou já moram em outro lugar do painel — o porquê está em
+`src/layout/nav.ts`.

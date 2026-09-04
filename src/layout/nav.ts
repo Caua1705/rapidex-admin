@@ -8,7 +8,6 @@ import {
   CouponIcon,
   CourierIcon,
   CustomersIcon,
-  IntegrationsIcon,
   KitchenIcon,
   MenuIcon,
   OrdersIcon,
@@ -220,18 +219,37 @@ const GRUPOS: readonly NavGroup[] = [
        */
       { to: '/loja', label: 'Loja', Icon: StoreIcon },
       { to: '/usuarios', label: 'Usuários', Icon: TeamIcon, acao: 'usuarios.ver' },
-      {
-        to: '/whatsapp',
-        label: 'WhatsApp',
-        Icon: ChatIcon,
-        soon: 'Ligar o número da loja para avisar o cliente a cada mudança de status do pedido.',
-      },
-      {
-        to: '/integracoes',
-        label: 'Integrações',
-        Icon: IntegrationsIcon,
-        soon: 'Conectar gateway de pagamento, emissor de nota fiscal e impressora de comanda.',
-      },
+      /*
+       * `acao` é a da LEITURA (`GET /admin/whatsapp/channels`, GERENCIA), como
+       * em Cupons e Cashback: conectar e desconectar são do dono e isso é
+       * decidido DENTRO da tela. O gerente entra para responder ao cliente que
+       * ligou dizendo não ter recebido o aviso.
+       */
+      { to: '/whatsapp', label: 'WhatsApp', Icon: ChatIcon, acao: 'whatsapp.ver' },
+      /*
+       * INTEGRAÇÕES SAIU DO MENU em 05/09/2026, e não virou tela: o item foi
+       * REMOVIDO.
+       *
+       * O `soon` dela prometia "gateway de pagamento, emissor de nota fiscal e
+       * impressora de comanda" — três coisas que ninguém está construindo, e
+       * duas que o lojista já resolve em outro lugar: a impressora é Setores de
+       * impressão, e o gateway é cadastrado por script, fora do painel. O que
+       * existe de integração no produto é o iFood, desligado por flag e sem
+       * nada configurável.
+       *
+       * O contrato de `soon` é "uma frase do que a tela VAI fazer" (ver o
+       * cabeçalho deste arquivo). Sem trabalho previsto não há frase verdadeira
+       * a escrever, e uma seção que promete três integrações inexistentes é
+       * pior que a ausência dela: manda o lojista esperar por algo que não vem,
+       * e manda quem procura a impressora para o lugar errado.
+       *
+       * O MECANISMO FICA INTEIRO — `soon`, `ordenar`, `ComingSoonPage`, a
+       * etiqueta da lateral, a regra de `nav.test.ts`. Ele fica sem instância,
+       * e é isso mesmo: volta a ter uma no dia em que houver tela de fato
+       * prevista, que é o dia para o qual ele existe. O preço, que é real: a
+       * foto `em-breve` de `e2e/capturas.spec.ts` saiu junto, porque
+       * Integrações era a última pendente e a foto ficaria sem assunto.
+       */
     ],
   },
 ];

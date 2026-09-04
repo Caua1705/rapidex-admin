@@ -345,9 +345,9 @@ test('o atendente vê dois blocos inteiros, e nenhum grupo com um item só', asy
   await expect(page.getByRole('list', { name: 'Acompanhar' })).toHaveCount(0);
 
   /*
-   * A INVARIANTE, medida na tela e não só em `nav.test.ts`: grupo homogêneo de
-   * papel é 0 ou cheio, nunca 1. Um rótulo em cima de um item só custa uma
-   * linha inteira para dizer o que o próprio item já diz.
+   * A INVARIANTE, medida na tela e não só em `nav.test.ts`: nenhum grupo COM
+   * RÓTULO PINTADO encolhe para um item. O que um grupo de um custa é a linha
+   * de texto acima dele, dizendo o que o próprio item já diz.
    */
   /*
    * QUATRO, E NÃO MAIS TRÊS: Entregadores entrou em "Hoje" com `acao` de
@@ -356,10 +356,24 @@ test('o atendente vê dois blocos inteiros, e nenhum grupo com um item só', asy
    * escritas do cadastro são da gerência e somem DENTRO da tela, não daqui.
    */
   await expect(page.getByRole('list', { name: 'Hoje' }).getByRole('listitem')).toHaveCount(4);
+  /*
+   * O PÉ DELE FICOU COM UM ITEM SÓ em 05/09/2026, por duas mudanças que se
+   * somaram: o WhatsApp ganhou tela e com ela a `acao` de leitura (GERENCIA —
+   * enquanto era "em breve" ele não tinha `acao`, e item sem ação é item de
+   * todo mundo), e Integrações saiu do menu inteiro.
+   *
+   * NÃO É O DEFEITO QUE A INVARIANTE PERSEGUE, e é por isso que ele é medido
+   * aqui em vez de consertado: o pé NÃO pinta rótulo (`AppShell`), então o que
+   * o atendente vê é "Loja" solta abaixo de um fio — um link, não uma seção de
+   * um item. Inventar um item para lhe fazer companhia seria pôr na lateral
+   * uma tela que não existe.
+   */
   await expect(
     page.getByRole('list', { name: 'Configuração e conta' }).getByRole('listitem'),
-  ).toHaveCount(3);
+  ).toHaveCount(1);
+  await expect(page.getByRole('link', { name: 'Loja' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Usuários' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'WhatsApp' })).toHaveCount(0);
 });
 
 test('no telefone, "Todas as seções" mostra TODAS — e nenhuma que dê 403', async ({ page }) => {
@@ -384,4 +398,5 @@ test('no telefone, "Todas as seções" mostra TODAS — e nenhuma que dê 403', 
   await expect(folha.getByRole('link', { name: 'Clientes' })).toHaveCount(0);
   await expect(folha.getByRole('link', { name: 'Cupons' })).toHaveCount(0);
   await expect(folha.getByRole('link', { name: 'Usuários' })).toHaveCount(0);
+  await expect(folha.getByRole('link', { name: 'WhatsApp' })).toHaveCount(0);
 });

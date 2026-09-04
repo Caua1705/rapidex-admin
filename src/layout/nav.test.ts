@@ -40,14 +40,47 @@ describe('a estrutura da lateral', () => {
    *
    * `use-nav.ts` já apaga grupo VAZIO. O que ele não tem como impedir é grupo
    * de UM, porque a decisão é de composição, e é aqui que ela se cobra.
+   *
+   * ----------------------------------------------------------------------------
+   * O PÉ FICA DE FORA, e o motivo é o CUSTO que esta regra mede
+   * ----------------------------------------------------------------------------
+   *
+   * O que um grupo de um custa é o RÓTULO PINTADO — uma linha de texto acima do
+   * item, dizendo o que o item já diz. O pé não tem rótulo pintado
+   * (`AppShell.tsx`: `group.rodape ? null : <p className="shell__group-title">`);
+   * ali quem separa é o fio e a posição, e o título só existe como nome
+   * acessível da lista. Um item sozinho no pé é um link solto abaixo de um fio,
+   * e não uma seção de um item — não custa a linha que esta regra cobra.
+   *
+   * ELA PASSOU A PRECISAR DA RESSALVA em 05/09/2026, com duas mudanças que se
+   * somaram: o WhatsApp ganhou tela e com ela a `acao` de leitura (GERENCIA), e
+   * Integrações saiu do menu. O atendente ficou com "Loja" sozinha no pé.
+   * Inventar um item para lhe fazer companhia seria pôr na lateral uma tela que
+   * não existe — que é o defeito que esta regra existe para não ter.
+   *
+   * O QUE ELA CONTINUA COBRANDO É O QUE IMPORTA: nenhum dos três grupos com
+   * rótulo pintado pode encolher para um.
    */
-  it.each(PAPEIS)('nenhum grupo fica com um item só para o papel %s', (papel) => {
+  it.each(PAPEIS)('nenhum grupo COM RÓTULO fica com um item só para o papel %s', (papel) => {
     for (const group of lateralDe(papel)) {
+      if (group.rodape) continue;
       expect(
         group.entries.length,
         `"${group.title}" ficou com um item só: ${group.entries[0]?.label}`,
       ).toBeGreaterThan(1);
     }
+  });
+
+  /**
+   * E O PÉ CONTINUA MEDIDO — o que muda é o piso, não a ausência de régua.
+   *
+   * Ele nunca pode SUMIR para um papel que entra no painel: sem ele, quem está
+   * no balcão perde a única porta para Loja, que é onde se abre e se fecha a
+   * loja no meio do turno.
+   */
+  it.each(PAPEIS)('o pé nunca some para o papel %s', (papel) => {
+    const pe = lateralDe(papel).find((group) => group.rodape);
+    expect(pe?.entries.length ?? 0).toBeGreaterThan(0);
   });
 
   /**
@@ -86,9 +119,13 @@ describe('a estrutura da lateral', () => {
   /**
    * O TAMANHO DA VARREDURA — Hick em número.
    *
-   * Nove itens acima do fio é o que o olho percorre todo dia; os quatro de
+   * Nove itens acima do fio é o que o olho percorre todo dia; os três de
    * configuração ficam abaixo dele, fora do caminho. Se um dia este número
    * subir, que suba com alguém tendo lido esta linha.
+   *
+   * O PÉ CAIU DE QUATRO PARA TRÊS com a saída de Integrações (05/09/2026, o
+   * porquê está em `nav.ts`). O número aqui é de itens que EXISTEM: enquanto
+   * Integrações estava na lista, um dos quatro era uma promessa.
    *
    * ELE SUBIU DE OITO PARA NOVE COM ENTREGADORES, e o motivo está escrito em
    * `nav.ts`: quem atribui um pedido a um motoboy é o ATENDENTE, no meio do
@@ -96,13 +133,13 @@ describe('a estrutura da lateral', () => {
    * uma tela que essa pessoa não encontra — e o custo de Hick de um nono item
    * é menor que o de procurar no lugar errado todo dia.
    */
-  it('a lista varrida todo dia tem nove itens, e o pé tem quatro', () => {
+  it('a lista varrida todo dia tem nove itens, e o pé tem três', () => {
     const acimaDoFio = NAV_GROUPS.filter((group) => !group.rodape);
     const pe = NAV_GROUPS.find((group) => group.rodape);
 
     expect(acimaDoFio).toHaveLength(3);
     expect(acimaDoFio.flatMap((group) => group.entries)).toHaveLength(9);
-    expect(pe?.entries).toHaveLength(4);
+    expect(pe?.entries).toHaveLength(3);
   });
 
   /**
@@ -127,15 +164,27 @@ describe('a estrutura da lateral', () => {
        * da gerência, e isso é decidido DENTRO da tela.
        */
       '/entregadores',
+      /*
+       * O PÉ DELE É UM ITEM SÓ, e isso é consequência de duas remoções, não
+       * descuido. WhatsApp saiu da lista dele quando a tela nasceu: ler os
+       * canais é `GERENCIA` (`GET /admin/whatsapp/channels`), como Cupons e
+       * Cashback — e enquanto a tela era "em breve" ele chegava lá, porque item
+       * sem `acao` é item de todo mundo. Integrações saiu do menu inteiro em
+       * 05/09/2026 (o porquê está em `nav.ts`), e era ela quem fazia o par.
+       *
+       * Um grupo de UM contraria o que este bloco dizia — e o caso é o do
+       * RODAPÉ, que não pinta rótulo: o atendente vê "Loja" solta no fim da
+       * lateral, e não uma seção de um item. Se um dia isso incomodar na tela,
+       * o conserto é de layout e não de navegação: não se inventa item para
+       * fazer companhia.
+       */
       '/loja',
-      '/whatsapp',
-      '/integracoes',
     ]);
   });
 
-  it('o gerente perde só Usuários, e o dono vê os treze', () => {
-    expect(lateralDe('manager').flatMap((group) => group.entries)).toHaveLength(12);
-    expect(lateralDe('owner').flatMap((group) => group.entries)).toHaveLength(13);
+  it('o gerente perde só Usuários, e o dono vê os doze', () => {
+    expect(lateralDe('manager').flatMap((group) => group.entries)).toHaveLength(11);
+    expect(lateralDe('owner').flatMap((group) => group.entries)).toHaveLength(12);
     expect(
       lateralDe('manager')
         .flatMap((group) => group.entries)

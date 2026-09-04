@@ -661,3 +661,37 @@ export type OrderCourier = Schemas['AdminOrderCourierResponse'];
  */
 export type CourierReport = Schemas['AdminCourierFeeReportResponse'];
 export type CourierReportItem = Schemas['AdminCourierFeeReportItem'];
+
+/**
+ * ============================================================================
+ * O CANAL DE WHATSAPP
+ * ============================================================================
+ *
+ * A RESPOSTA TEM DUAS LISTAS, E A SEGUNDA NÃO É RESUMO DA PRIMEIRA. `channels`
+ * são as linhas que existem; `branches` é a pergunta que o dono de fato faz —
+ * "por qual número ESTA loja fala?" — e nenhuma lista de canais a responde.
+ * Uma filial sem linha própria aparece em `channels` como AUSÊNCIA, e pode
+ * estar herdando o número do restaurante e funcionando perfeitamente.
+ *
+ * `source` diz de onde vem o número de cada loja e `can_send` diz se um aviso
+ * sairia por ela neste minuto — e ele sai da MESMA consulta que o envio usa
+ * (`resolve_for_branch`), não de um `if` equivalente do nosso lado.
+ *
+ * `status_label` e `status_action` VÊM PRONTOS do backend, e a tela não monta a
+ * frase a partir do enum. O código serve para o painel DECIDIR (qual botão,
+ * qual etiqueta); a frase serve para a pessoa LER. Uma tela que deduz o texto
+ * do enum cai no `default` do `switch` no dia em que entrar um quarto estado —
+ * que é exatamente onde a mensagem errada mora.
+ *
+ * NENHUM CAMPO DAQUI É CREDENCIAL: o token entra por `POST` e não volta em
+ * rota nenhuma, nem parcial nem mascarado, e o `waba_id` sai com os quatro
+ * últimos dígitos (`waba_id_masked`).
+ */
+export type WhatsAppChannels = Schemas['AdminWhatsAppChannelsResponse'];
+/** Uma linha de canal. `branch_id` NULO é a linha do RESTAURANTE — a queda. */
+export type WhatsAppChannel = Schemas['AdminWhatsAppChannelView'];
+/** Por qual número uma filial fala agora, com a herança já resolvida. */
+export type WhatsAppBranchLine = Schemas['AdminWhatsAppBranchView'];
+export type WhatsAppChannelCreate = Schemas['AdminWhatsAppChannelCreate'];
+export type WhatsAppChannelStatus = Schemas['WhatsAppChannelStatus'];
+export type WhatsAppBranchSource = Schemas['WhatsAppBranchSource'];

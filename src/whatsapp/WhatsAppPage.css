@@ -1,0 +1,169 @@
+/*
+ * WHATSAPP — por qual número cada loja avisa o cliente.
+ *
+ * A tela é uma FOLHA: `--surface` do começo ao fim, sem cartão flutuando sobre
+ * chão cinza. Mesma estrutura de Usuários e Clientes — a faixa de 52px e as
+ * tabelas correndo até a margem.
+ *
+ * DUAS SEÇÕES NA MESMA FOLHA, e quem lhes dá começo e fim é o RESPIRO e o
+ * título de nível 2 — não um cartão e não um fio horizontal atravessando a
+ * tela. As duas tabelas já têm cabeçalho sobre `--line-strong`, e um terceiro
+ * fio entre elas seria a terceira régua horizontal em vinte pixels.
+ */
+
+.whatsapp {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* A ressalva e a ajuda andam juntas: o vão de 16px da faixa separaria o ícone
+   da frase que ele explica. Mesma peça de Usuários. */
+.whatsapp__escopo-grupo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-4);
+}
+
+.whatsapp__escopo {
+  color: var(--ink-3);
+}
+
+/*
+ * O AVISO É UM PARÁGRAFO, e não uma linha `flex`.
+ *
+ * Com `display: flex`, o `<strong>` do começo e o texto que vem depois viram
+ * DOIS itens de flex — e no telefone eles se arrumam em duas colunas, com a
+ * frase forte espremida à esquerda e o resto à direita. Aqui não há ícone a
+ * alinhar com o texto (é o que justifica o flex em `UsersPage`), então o
+ * parágrafo comum é o que faz a frase correr como frase.
+ */
+.whatsapp__alerta {
+  margin: var(--sp-16) var(--page-pad) 0;
+  max-width: var(--page-max);
+}
+
+.whatsapp__estado {
+  padding: var(--sp-32) var(--page-pad);
+  /* Medida de LEITURA: uma frase de estado que atravessa 1600px não se lê. */
+  max-width: 60ch;
+}
+
+/* --- as duas seções ----------------------------------------------------- */
+
+.whatsapp__secao {
+  /* A tabela corre até a margem da tela, como em Clientes e Usuários. */
+  --tabela-pad: var(--page-pad);
+  padding-block: var(--sp-24) 0;
+  max-width: var(--page-max);
+  width: 100%;
+}
+
+/* A última respira embaixo, para a tabela não encostar no fim da folha. */
+.whatsapp__secao:last-of-type {
+  padding-bottom: var(--sp-32);
+}
+
+.whatsapp__secao-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding-inline: var(--page-pad);
+  padding-bottom: var(--sp-12);
+}
+
+.whatsapp__secao-head p {
+  margin: 0;
+}
+
+/* --- a linha ------------------------------------------------------------ */
+
+/*
+ * O NOME DA LOJA EM 550, o mesmo peso do cliente na lista de pedidos e do
+ * produto no cardápio. Ele é o que identifica a linha.
+ */
+.whatsapp__nome {
+  font-weight: var(--w-strong);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/*
+ * O NÚMERO LEVA MÉTRICA TABULAR. Ele é a coluna que se compara linha a linha —
+ * duas lojas com números parecidos são o caso normal de uma rede —, e sem a
+ * métrica fixa os dígitos dançam de uma linha para a outra.
+ */
+.whatsapp__numero {
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* O WABA mascarado é conferência ("é a conta certa?"), não dado de leitura. */
+.whatsapp__conta {
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.whatsapp__celula,
+.whatsapp__origem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.whatsapp__celula .t-aux,
+.whatsapp__origem .t-aux {
+  /*
+   * A explicação da herança é uma FRASE, e ela precisa quebrar em algum lugar:
+   * sem teto, ela estica a coluna e espreme as outras quatro. 44ch é a medida
+   * de leitura de um texto auxiliar dentro de célula.
+   */
+  max-width: 44ch;
+}
+
+/* A etiqueta de estado alinha o ícone com a palavra, como em Usuários. */
+.whatsapp__celula .tag,
+.whatsapp__origem .tag {
+  align-self: flex-start;
+  gap: var(--sp-4);
+}
+
+.whatsapp__acoes {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  justify-content: flex-end;
+  /* Sem `wrap`: nunca há mais de um botão por linha — "Conectar de novo" e
+     "Desconectar" são excludentes, porque um canal está no ar ou não está. */
+  flex-wrap: nowrap;
+}
+
+@media (max-width: 640px) {
+  .whatsapp__alerta {
+    margin-inline: var(--page-pad-mobile);
+  }
+
+  .whatsapp__secao {
+    --tabela-pad: var(--page-pad-mobile);
+  }
+
+  .whatsapp__secao-head {
+    padding-inline: var(--page-pad-mobile);
+  }
+
+  .whatsapp__estado {
+    padding-inline: var(--page-pad-mobile);
+  }
+
+  /*
+   * No celular a tabela vira bloco e a célula ganha o rótulo da coluna ao lado
+   * do valor. O teto de leitura sai: a largura já é a da tela, e 44ch ali
+   * deixaria a frase estreita no meio de um bloco largo.
+   */
+  .whatsapp__celula .t-aux,
+  .whatsapp__origem .t-aux {
+    max-width: none;
+  }
+}

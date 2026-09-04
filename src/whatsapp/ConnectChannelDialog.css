@@ -1,0 +1,33 @@
+/*
+ * O formulário de conexão do canal. Cinco campos empilhados — sem `FieldRow`,
+ * como o de Usuários e pelo mesmo motivo: loja, número, os dois ids e o token
+ * são perguntas de naturezas diferentes, e dois campos lado a lado convidariam
+ * a ler o ID do número como qualificador do número. A coluna também é a forma
+ * que já cabe no telefone sem nenhuma regra a mais.
+ */
+.canal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-20);
+}
+
+/*
+ * O QUE FAZER ANTES, quando o backend mandou uma ação. Ele abre o diálogo
+ * porque é a única coisa da tela que não se resolve preenchendo o formulário —
+ * é preciso sair daqui, religar a Cloud API na Meta, e voltar.
+ */
+.canal__acao {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-8);
+  margin: 0;
+}
+
+/*
+ * O erro geral ocupa a linha inteira do rodapé, acima dos dois botões — o
+ * rodapé é `flex-wrap`, então basta ele pedir a largura toda.
+ */
+.canal__erro-geral {
+  flex-basis: 100%;
+  margin: 0;
+}
