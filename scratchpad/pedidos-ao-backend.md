@@ -167,3 +167,72 @@ quanto tempo que este número parou", que hoje só existe se alguém lembrar.
 **O que NÃO estou pedindo:** quem desligou. O painel não tem tela de auditoria e
 não há onde mostrar isso — e um campo de autor sem tela é o `changed_by` de
 novo, que era texto livre vindo do cliente e saiu do contrato.
+
+---
+
+## 5. `GET /admin/branches`: a filial arquivada some do painel inteiro
+
+> **Cole daqui para baixo.**
+
+**Antes do pedido, a separação, porque são duas coisas e só uma delas é lacuna.**
+
+**DESATIVAR filial é decisão consciente, e está escrita.** `AdminBranchUpdate`
+não aceita `is_active`, e o docstring diz por quê com todas as letras:
+_"desativar filial e operacao de plataforma, nao de lojista — some do app de
+todo mundo e deixa pedido em aberto sem cozinha"_. **Concordo, e não estou
+pedindo para mudar isso.** O painel não deve ter esse botão.
+
+**VER a filial arquivada é outra coisa, e essa parte não está decidida em lugar
+nenhum.** `AdminSettingsService.list_branches` chama
+`branch_repository.list_active_by_restaurant`, então `GET /admin/branches`
+**nunca** devolve uma filial arquivada — nem para o dono, que enxerga a rede
+inteira por definição. Nenhum comentário do backend justifica esconder; o que
+está justificado é só não deixar mexer.
+
+**A prova de que é lacuna, e não regra, está no próprio contrato:**
+`AdminBranchResponse` **publica `is_active`** — um campo booleano que, nesta
+rota, só pode valer `true`. Um campo que nunca varia é um campo que alguém
+pretendeu que variasse.
+
+**E o painel já acredita nisso.** `src/menu/catalog-key.ts` tem DOIS filtros
+`is_active !== false` sobre a lista de filiais, com a razão escrita ao lado
+(_"oferecer o item de uma loja que saiu do ar é oferecer um pareamento que não
+vai aparecer em relatório nenhum"_). Os dois são código morto: eles filtram uma
+lista que nunca contém uma filial inativa. Um dos dois lados está errado sobre o
+que essa rota devolve.
+
+**O que isso custa hoje, em três lugares:**
+
+1. **A pessoa presa à filial arquivada vira "Outra filial"** em Usuários
+   (`users-model.ts:170`). O dono não consegue dizer de qual loja ela é. O
+   comentário de lá supõe que isso "só acontece com dado velho" — não é: a
+   filial arquivada é o caso normal disso.
+2. **O canal de WhatsApp da filial arquivada aparece sem nome.**
+   `AdminWhatsAppService.list_channels` monta o mapa de nomes com
+   `list_active_by_restaurant` e a lista de canais com `list_by_restaurant`
+   (sem filtro) — então a linha volta com `branch_name: null` e sem par em
+   `branches`. O dono vê um número conectado, num lugar sem nome, de uma loja
+   que ele não enxerga.
+3. **A varredura de escopo do painel não alcança o caso**, porque ele não
+   existe no falso do e2e — e não existe no falso porque não existe na rota.
+
+**O pedido é o menor possível:** que a listagem consiga devolver a arquivada,
+**só para leitura**.
+
+    GET /admin/branches?include_inactive=true
+
+O painel filtra: o seletor do topo continua oferecendo só as ativas (arquivada
+não é lugar de operar), e quem passa a usar a lista completa é o rótulo — a
+coluna de filial em Usuários, o "onde vale" do canal de WhatsApp, e os dois
+filtros de `catalog-key.ts`, que deixam de ser código morto.
+
+**O que torna o pedido barato:** o repositório **já tem a consulta sem filtro** e
+já tem a razão escrita para ela existir — `get_by_id_and_restaurant`, criada para
+a reimpressão de comanda de pedido de loja desativada ("_reimprimir a comanda é
+a operação mais comum do balcão, e ela não pode parar de funcionar porque a loja
+foi desativada depois_"). É a mesma necessidade, na listagem em vez de no id: o
+que já aconteceu continua precisando de nome depois que a loja fecha.
+
+**O que NÃO estou pedindo:** que a arquivada volte a aparecer no seletor de
+filial, em Operação, no Cardápio ou em qualquer tela de escrita. Ela não é lugar
+de operar — é nome de coisa que já aconteceu.
