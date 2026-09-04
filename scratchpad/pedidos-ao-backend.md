@@ -105,3 +105,65 @@ rota que a tela precisa.
 vez de virar tela. As três coisas que o `soon` dela prometia ou não estão sendo
 construídas ou já moram em outro lugar do painel — o porquê está em
 `src/layout/nav.ts`.
+
+---
+
+## 4. `whatsapp_channels`: há quanto tempo este número está fora?
+
+> **Cole daqui para baixo.**
+
+A tela de WhatsApp mostra, para cada número, **desde quando ele está no ar** — e
+para o canal desligado pelo painel ela não mostra data nenhuma, porque não há
+data verdadeira para mostrar. É a única célula do painel que fica em branco por
+falta de dado, e o dono pergunta exatamente isso: _"faz quanto tempo que este
+número parou?"_.
+
+**São duas coisas, e a primeira é um defeito pequeno com efeito grande.**
+
+### 4a. `connected_at` ANDA quando alguém desconecta
+
+`AdminWhatsAppChannelView.connected_at` não é coluna: `_channel_view` o monta
+como `canal.updated_at or canal.created_at`
+(`admin_whatsapp_service.py:236`), e `updated_at` tem `onupdate=func.now()`
+(`whatsapp_model.py`). `AdminWhatsAppService.disconnect` escreve
+`is_active = False` na linha — então **o próprio 200 do `DELETE` já volta com
+`connected_at` valendo o instante da desconexão**.
+
+O docstring do campo diz o contrário, e diz o certo: _"Quando o canal foi
+cadastrado. Reconectar reescreve, porque o que a tela pergunta é 'desde quando
+este número está no ar'"_. Reconectar deve reescrever; **desligar não**.
+
+O painel não tem como contornar isso — para ele os dois casos são o mesmo
+`connected_at`. O que ele faz hoje é esconder a data no estado `disabled`, e
+esconder é o menos errado dos três desfechos possíveis (a primeira versão da
+tela escreveu "No ar desde 25/08" embaixo de "Desligado no painel"; a segunda
+escreveu "Conectado em 25/08", que é pior porque soa exata).
+
+**O conserto é uma linha**: `connected_at` sai de uma coluna própria (escrita no
+`_criar` e no `upsert`, e só neles) em vez de `updated_at`. Ou, se preferir não
+acrescentar coluna, `disconnect()` deixa de tocar a linha por atribuição comum e
+passa a fazer um `UPDATE` que não mexe em `updated_at` — mas aí a próxima
+escrita que alguém acrescentar recria o problema em silêncio, e por isso a
+coluna é a forma que se defende sozinha.
+
+### 4b. Falta `disabled_at`
+
+Hoje o schema tem `disconnected_at` para a desconexão da META e **nada** para a
+nossa. As duas saídas já são duas colunas (`is_active` e `disconnected_at`), com
+o comentário do modelo explicando por quê — e é justamente essa simetria que
+falta fechar: uma tem "desde quando", a outra não.
+
+O que a tela faria com ela: **"Fora desde 28/08, 19:40"** no canal desligado,
+igual ao que ela já escreve no desconectado pela Meta. É a resposta a "faz
+quanto tempo que este número parou", que hoje só existe se alguém lembrar.
+
+**O pedido, então:**
+
+1. `connected_at` para de andar no `disconnect` (item 4a);
+2. `disabled_at TIMESTAMPTZ NULL`, escrito no `disconnect` e limpo no `upsert`
+   junto de `disconnected_at`;
+3. `disabled_at` em `AdminWhatsAppChannelView`, ao lado de `disconnected_at`.
+
+**O que NÃO estou pedindo:** quem desligou. O painel não tem tela de auditoria e
+não há onde mostrar isso — e um campo de autor sem tela é o `changed_by` de
+novo, que era texto livre vindo do cliente e saiu do contrato.

@@ -78,6 +78,12 @@ número desligado, e o contrário do que "herança" quer dizer no resto do paine
   escrita ao lado do título. `/whatsapp` entrou em `e2e/escopo.spec.ts` por
   isso: se um dia ela passar a recortar, o id vai ter de sair de algum lugar, e
   é esse "algum lugar" que a isca mede.
+
+  **Esta é a exceção que mais se parece com esquecimento**, porque o parâmetro
+  existe e está a uma linha de distância — e por isso ela está escrita também em
+  `scratchpad/escopo-de-tenant.md` §4, ao lado da de Usuários, que é onde alguém
+  vai olhar antes de "consertar".
+
 - **Não monta a frase do estado a partir do enum.** `status_label` e
   `status_action` chegam prontos. O código serve para o painel DECIDIR (qual
   botão, qual etiqueta); a frase serve para a pessoa LER.
@@ -104,10 +110,23 @@ número desligado, e o contrário do que "herança" quer dizer no resto do paine
   derivação é regra: a desconexão da Meta vence a nossa. Guardar `status` pronto
   faria o e2e concordar com qualquer derivação, inclusive a que confunde os dois
   estados que a tela existe para separar.
-- **"No ar desde" só vale para o que está no ar.** A primeira versão da célula
-  escrevia "No ar desde 25/08" embaixo de "Desligado no painel": `connected_at`
-  continua preenchido depois do desligamento, e não há coluna de "quando alguém
-  desligou". Achado na captura, não no teste.
+- **A DATA SÓ APARECE ONDE ELA É VERDADE — e são dois casos de três.**
+  `connected_at` não é coluna: o backend o monta de `updated_at`, que tem
+  `onupdate`. Desconectar escreve na linha, então o próprio 200 do `DELETE` já
+  volta com `connected_at` valendo o INSTANTE DA DESCONEXÃO.
+
+  A primeira versão da célula escrevia "No ar desde 25/08" embaixo de "Desligado
+  no painel" — duas frases que se contradizem. A segunda trocou por "Conectado
+  em 25/08", que é PIOR: continua sendo uma data errada, agora com uma frase que
+  soa exata. A terceira não diz data nenhuma no estado `disabled`.
+
+  **O falso era mais frouxo que o backend exatamente aqui** (§4.10): ele não
+  movia `connected_at` no `DELETE`, e por isso os 14 testes ficaram verdes sobre
+  a data errada. Hoje ele move, e há teste de AUSÊNCIA — conferido por mutação:
+  devolvendo a frase, ele fica vermelho.
+
+  Falta coluna no backend, e o pedido está em `pedidos-ao-backend.md` §4.
+  Achado na captura, não no teste.
 
 ---
 

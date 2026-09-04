@@ -196,6 +196,39 @@ test('a tela mostra o rótulo e a ação que vieram na resposta, e o motivo cru 
      com o suporte da Meta, e traduzi-lo tiraria da mão do lojista a única
      string que o outro lado reconhece. */
   await expect(linha).toContainText('PARTNER_REMOVED');
+  /* A desconexão da Meta é o ÚNICO estado fora do ar com "desde quando" — e
+     `disconnected_at` é coluna própria, não uma data derivada. */
+  await expect(linha).toContainText('Fora desde 03/09');
+});
+
+/**
+ * A DATA QUE NÃO APARECE, E É O CASO QUE MAIS CUSTA CONFERIR.
+ *
+ * `connected_at` não é coluna: o backend o monta de `updated_at`, que tem
+ * `onupdate`. Desligar escreve na linha, e o próprio 200 do `DELETE` volta com
+ * `connected_at` valendo o INSTANTE DA DESCONEXÃO. Qualquer data que a tela
+ * escrevesse ali seria a hora do clique com um rótulo dizendo outra coisa.
+ *
+ * O teste é sobre AUSÊNCIA porque a tela não tem o que dizer, e é sobre um
+ * canal DESLIGADO AGORA — não o da semente — porque é a desconexão que move a
+ * data. Ver `scratchpad/pedidos-ao-backend.md` §4: falta a coluna.
+ */
+test('canal desligado no painel não mostra data nenhuma — nem a do próprio desligamento', async ({
+  page,
+}) => {
+  await entrar(page);
+
+  await page.getByTestId('whatsapp-desconectar-wa-restaurante').click();
+  await page.getByRole('button', { name: 'Desconectar o número' }).click();
+  await expect(page.getByTestId('whatsapp-status-wa-restaurante')).toHaveText(
+    'Desligado no painel',
+  );
+
+  const linha = linhaDoCanal(page, 'pn-restaurante');
+  await expect(linha).toContainText('Conecte o número de novo');
+  await expect(linha).not.toContainText('No ar desde');
+  await expect(linha).not.toContainText('Conectado em');
+  await expect(linha).not.toContainText('Fora desde');
 });
 
 test('desligado no painel e desconectado pela Meta não desenham a mesma coisa', async ({

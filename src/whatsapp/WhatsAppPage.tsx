@@ -207,27 +207,35 @@ export function WhatsAppPage() {
         {canal.status_action ? <span className="t-aux">{canal.status_action}</span> : null}
 
         {/*
-          "NO AR DESDE" SÓ VALE PARA O QUE ESTÁ NO AR.
+          A DATA SÓ APARECE ONDE ELA É VERDADE, E SÃO DOIS CASOS DE TRÊS.
 
-          `connected_at` é "desde quando este número está no ar" e é reescrito a
-          cada reconexão — mas ele continua preenchido depois de o canal ser
-          desligado, e não há coluna que registre QUANDO alguém o desligou. A
-          primeira versão desta célula escrevia "No ar desde 25/08" embaixo de
-          uma etiqueta que dizia "Desligado no painel": duas frases que se
-          contradizem na mesma célula, e a de baixo é a que tem número — que é a
-          que se acredita.
+          `connected_at` NÃO é uma coluna: o backend o monta como
+          `canal.updated_at or canal.created_at`, e `updated_at` tem
+          `onupdate=func.now()`. Desconectar escreve `is_active = False` na
+          linha — então o próprio 200 do `DELETE` já volta com `connected_at`
+          valendo O INSTANTE DA DESCONEXÃO.
 
-          Fora do ar, então, a data vira o fato que ela de fato é (quando o
-          número foi conectado), e só a desconexão da META tem "desde quando",
-          porque só ela tem `disconnected_at`.
+          A primeira versão desta célula escrevia "No ar desde 25/08" embaixo de
+          "Desligado no painel" — duas frases que se contradizem, e a de baixo é
+          a que tem número, que é a que se acredita. A segunda trocou por
+          "Conectado em 25/08", o que é PIOR: continua sendo uma data errada,
+          agora com uma frase que soa exata.
+
+          Então, desligado no painel, a tela não diz data nenhuma. O que ela tem
+          para essa linha é "quando alguém mexeu nela pela última vez", e isso
+          não responde a pergunta que o dono faz ("há quanto tempo este número
+          está fora?"). Falta coluna no backend, e está pedido em
+          `scratchpad/pedidos-ao-backend.md` §4.
+
+          Os outros dois são confiáveis: no ar, a última escrita FOI a conexão;
+          desconectado pela Meta, `disconnected_at` é coluna própria, escrita
+          pelo webhook e nunca sobrescrita num reenvio.
         */}
-        <span className="t-aux">
-          {canal.disconnected_at
-            ? `Fora desde ${formatDateTime(canal.disconnected_at)}`
-            : canal.status === 'connected'
-              ? `No ar desde ${formatDateTime(canal.connected_at)}`
-              : `Conectado em ${formatDateTime(canal.connected_at)}`}
-        </span>
+        {canal.disconnected_at ? (
+          <span className="t-aux">Fora desde {formatDateTime(canal.disconnected_at)}</span>
+        ) : canal.status === 'connected' ? (
+          <span className="t-aux">No ar desde {formatDateTime(canal.connected_at)}</span>
+        ) : null}
 
         {/* O motivo vem CRU da Meta (`PARTNER_REMOVED`) de propósito: é o que se
             cita num chamado com o suporte deles. */}

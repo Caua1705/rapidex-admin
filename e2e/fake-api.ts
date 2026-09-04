@@ -6411,8 +6411,23 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
        * e não 204. `whatsapp_messages.channel_id` é FK sem `ON DELETE` de
        * propósito: apagar o canal apagaria o registro de que o cliente foi
        * avisado, que é o único lugar onde isso é visível depois.
+       *
+       * E `connected_at` ANDA JUNTO, o que parece errado e é o backend.
+       *
+       * Ele não é coluna: `AdminWhatsAppService._channel_view` o monta como
+       * `canal.updated_at or canal.created_at`, e `updated_at` tem
+       * `onupdate=func.now()` no modelo. Desligar escreve `is_active` na linha,
+       * então o próprio 200 desta rota volta com `connected_at` valendo o
+       * INSTANTE DA DESCONEXÃO.
+       *
+       * O falso não fazia isso, e era o §4.10 em ação: ele ficava mais FROUXO
+       * que o backend justamente onde a tela erra. A primeira versão da célula
+       * de situação escrevia "Conectado em <data>" para o canal desligado, os
+       * 14 testes passavam, e em produção aquela data seria a do clique em
+       * "Desconectar".
        */
       alvo.is_active = false;
+      alvo.connected_at = new Date().toISOString();
       return responder(
         route,
         'delete',

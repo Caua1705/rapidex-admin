@@ -126,10 +126,10 @@ URL; a isca no `localStorage`; o cardápio de uma filial sem o item da outra; a
 busca do gêmeo lendo a outra loja de propósito; e a comanda seguindo a filial DO
 PEDIDO.
 
-## Duas coisas que a varredura encontrou e que não são defeito
+## Quatro coisas que parecem defeito e não são
 
-Ficam escritas porque as duas são a resposta a uma pergunta que alguém vai
-refazer:
+Ficam escritas porque as quatro são a resposta a uma pergunta que alguém vai
+refazer — e a quarta é a que alguém vai "consertar".
 
 1. **`OrderDetailPanel` é o único lugar do painel onde a filial de uma chamada
    sai de uma RESPOSTA, e não da sessão**: `detail.branch_id` vai para a comanda,
@@ -150,6 +150,40 @@ refazer:
    causa disso, e o seletor volta a oferecer só as filiais do servidor. Não é
    escopo de tenant — é a família "permissão que existe na tela e não na rota" da
    skill `revisao`, e aqui ela está do lado certo.
+
+4. **DUAS TELAS IGNORAM O SELETOR DE FILIAL DO TOPO DE PROPÓSITO**, e esta é a
+   linha que existe para quem, daqui a dois meses, abrir uma delas e pensar
+   "faltou passar `branch_id`".
+
+   | Tela         | O que ela é                    | Por que o recorte não se aplica                        |
+   | ------------ | ------------------------------ | ------------------------------------------------------ |
+   | **Usuários** | a equipe do RESTAURANTE        | `GET /admin/users` não aceita `branch_id`. Nem existe. |
+   | **WhatsApp** | o mapa de quem avisa o cliente | a rota ACEITA `branch_id`, e o painel não o manda      |
+
+   **A segunda é a que engana**, porque ali o parâmetro existe e está a uma
+   linha de distância. O contrato do backend diz, na descrição da própria rota,
+   que a forma sem recorte "é a principal, porque o dono precisa do mapa, não de
+   uma loja por vez" — e a tela é sobre HERANÇA: qual loja tem número próprio e
+   qual cai no do restaurante. Uma loja por vez é justamente a pergunta que ela
+   não responde, e trocar de filial para descobrir se cada uma tem WhatsApp é o
+   oposto do que ela existe para fazer.
+
+   **Não há escopo a proteger na ausência do filtro**, e vale dizer porque é a
+   primeira suspeita: `resolve_branch_filter` recorta pelo token de qualquer
+   jeito, então quem está preso a uma filial recebe só a dele (skill
+   `rapidex-api` §4.3). Sem filtro significa "todas as que eu enxergo", nunca
+   "todas as da plataforma".
+
+   **O que a tela faz em vez de recortar:** escreve a ressalva ao lado do
+   título — _"esta tela é do restaurante inteiro — o seletor de filial do topo
+   não a recorta"_ —, que é a mesma peça de Usuários. Se algum dia ela PRECISAR
+   recortar, o `branch_id` sai de `useResolvedBranch()` e a ressalva sai junto;
+   o que não pode acontecer é a tela recortar em silêncio, porque aí ela passa a
+   dizer "esta loja não tem WhatsApp" sobre uma loja que herda o número do
+   restaurante e está avisando o cliente.
+
+   As duas estão em `TELAS` de `e2e/escopo.spec.ts` justamente por isso: se um
+   dia alguém as fizer ler a filial de algum lugar, a isca diz de onde.
 
 ## Pendência aberta: a deriva de REGRA do falso do e2e
 
@@ -201,6 +235,11 @@ maior; o 1 é uma linha e destrava o 2.
 - **Tela nova**: se ela precisar de UMA filial, o id sai de
   `useResolvedBranch()`/`useAdoptedBranch()`, nunca de `activeBranchId` cru —
   aquele vale para as rotas de query, onde vazio é "todas as que eu enxergo".
+- **Tela que NÃO recorta**: antes de "consertar", leia o item 4 acima. Usuários
+  e WhatsApp ignoram o seletor do topo de propósito, e as duas dizem isso na
+  faixa da tela. A pergunta que separa uma decisão de um esquecimento é: _a
+  tela responde algo sobre o RESTAURANTE (a equipe, o mapa de quem avisa) ou
+  sobre uma LOJA (o cardápio, o horário, a impressora)?_
 - **Se algum dia o painel passar a ler a barra de endereço** para abrir já numa
   filial (é a mudança mais provável de todas: um link de WhatsApp para "os
   pedidos da Aldeota"), a isca da URL fica vermelha na hora. Isso não quer dizer
