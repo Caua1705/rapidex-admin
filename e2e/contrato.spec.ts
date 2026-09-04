@@ -112,3 +112,137 @@ test('recusarEmQualquerMetodo confere o caminho, e só ele', async () => {
     recusarEmQualquerMetodo(outra.route, '/admin/couriers/{courier_id}', 404, { detail: 'x' }),
   ).toThrow(/caminho pedido/);
 });
+
+/* ==========================================================================
+ * A CONFERÊNCIA DO CORPO RECEBIDO — a deriva de REGRA
+ *
+ * As três de cima olham a RESPOSTA. Esta olha o PEDIDO, e ela existe porque
+ * `CorpoEnviado<R, M>` é uma afirmação, não uma prova: o `as` some na
+ * compilação, e um `name` de 300 caracteres entrava inteiro num falso que
+ * respondia 200 sobre o que produção recusaria com 422.
+ *
+ * ELA MORA EM `responder` E NÃO EM `corpoDe`, e estes testes prendem a
+ * diferença: `recusar` NÃO confere, porque um ramo que está recusando de
+ * propósito já está dizendo a coisa certa, com a frase do backend.
+ * ======================================================================= */
+
+/** O mesmo `Route` de mentira, agora com corpo. */
+function rotaComCorpo(metodo: string, url: string, corpo: unknown) {
+  const saidas: { status: number; body: string }[] = [];
+  const texto = JSON.stringify(corpo);
+  const route = {
+    request: () => ({
+      method: () => metodo,
+      url: () => url,
+      postData: () => texto,
+      postDataJSON: () => JSON.parse(texto),
+    }),
+    fulfill: (opcoes: { status: number; body: string }) => {
+      saidas.push(opcoes);
+      return Promise.resolve();
+    },
+  } as unknown as Route;
+  return { route, saidas };
+}
+
+test('responder aceita o corpo que o contrato aceita', async () => {
+  const { route, saidas } = rotaComCorpo(
+    'POST',
+    'http://api.local/admin/option-groups/g-1/options',
+    {
+      name: 'Bacon',
+      additional_price: 3.5,
+    },
+  );
+
+  await responder(route, 'post', '/admin/option-groups/{group_id}/options', 201, {
+    id: 'o-1',
+    option_group_id: 'g-1',
+    name: 'Bacon',
+    description: null,
+    additional_price: 3.5,
+    sort_order: 0,
+    is_active: true,
+  });
+
+  expect(saidas).toHaveLength(1);
+});
+
+/*
+ * O CASO QUE DÁ SENTIDO AO RESTO. Sem ele, "a conferência passou" e "a
+ * conferência não rodou" seriam a mesma coisa — e é essa a forma que um
+ * validador escrito à mão tem de morrer em silêncio.
+ */
+test('responder NÃO responde 2xx a um corpo que a API recusaria', () => {
+  const { route, saidas } = rotaComCorpo(
+    'POST',
+    'http://api.local/admin/option-groups/g-1/options',
+    {
+      name: 'x'.repeat(121),
+    },
+  );
+
+  expect(() =>
+    responder(route, 'post', '/admin/option-groups/{group_id}/options', 201, {} as never),
+  ).toThrow(/o máximo é 120/);
+  expect(saidas).toHaveLength(0);
+});
+
+test('e nem a um corpo sem o campo obrigatório', () => {
+  const { route, saidas } = rotaComCorpo(
+    'POST',
+    'http://api.local/admin/option-groups/g-1/options',
+    {
+      additional_price: 1,
+    },
+  );
+
+  expect(() =>
+    responder(route, 'post', '/admin/option-groups/{group_id}/options', 201, {} as never),
+  ).toThrow(/name: obrigatório e ausente/);
+  expect(saidas).toHaveLength(0);
+});
+
+/*
+ * `recusar` NÃO CONFERE O CORPO, e é o que faz os ramos de recusa continuarem
+ * possíveis: o falso precisa poder receber um nome de 121 caracteres para
+ * devolver o 422 com a frase do backend, que é o que a tela mostra.
+ */
+test('recusar deixa passar o corpo inválido — é o que ele existe para recusar', async () => {
+  const { route, saidas } = rotaComCorpo('POST', 'http://api.local/admin/categories', {
+    branch_id: 'f-1',
+    name: 'S'.repeat(121),
+  });
+
+  await recusar(route, 'post', '/admin/categories', 422, {
+    detail: [{ loc: ['body', 'name'], msg: 'de 1 a 120 caracteres', type: 'value_error' }],
+  });
+
+  expect(saidas).toHaveLength(1);
+});
+
+/* Corpo que não é JSON (o multipart da foto) não é assunto desta régua. */
+test('a conferência não se mete com corpo que não é JSON', async () => {
+  const saidas: { status: number; body: string }[] = [];
+  const route = {
+    request: () => ({
+      method: () => 'POST',
+      url: () => 'http://api.local/admin/products/p-1/image',
+      postData: () => '--limite\r\nContent-Disposition: form-data; name="file"\r\n\r\n...',
+      postDataJSON: () => {
+        throw new Error('não é JSON');
+      },
+    }),
+    fulfill: (opcoes: { status: number; body: string }) => {
+      saidas.push(opcoes);
+      return Promise.resolve();
+    },
+  } as unknown as Route;
+
+  await responder(route, 'post', '/admin/products/{product_id}/image', 200, {
+    image_path: 'p.webp',
+    image_url: '/media/p.webp',
+  });
+
+  expect(saidas).toHaveLength(1);
+});

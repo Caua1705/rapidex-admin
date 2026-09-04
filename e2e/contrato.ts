@@ -19,15 +19,28 @@
  *     contra a requisição que chegou. Nomear a rota certa deixa de ser
  *     disciplina e vira condição para o teste passar.
  *
+ * ----------------------------------------------------------------------------
+ * A TERCEIRA METADE, DE 04/09/2026: O CORPO RECEBIDO
+ * ----------------------------------------------------------------------------
+ *
+ * As duas acima olham a RESPOSTA. `corpoDe` passou a olhar o pedido: o corpo
+ * que o painel manda é conferido contra o schema da rota, em execução, por
+ * `e2e/schema.ts`. É a metade que o tipo não podia dar — `as CorpoEnviado` some
+ * na compilação, e um `name` de 300 caracteres entrava inteiro.
+ *
  * O que ele NÃO faz, e é preciso estar escrito: o contrato publica forma, não
  * REGRA. Índice único, `@model_validator` e o 409 que o serviço escreve à mão
- * não estão no `/openapi.json` (skill `rapidex-api` §4.8 e §4.10). Um falso
- * mais frouxo que o backend continua sendo lido no serviço do backend, à mão.
+ * não estão no `/openapi.json` (skill `rapidex-api` §4.8 e §4.10) — o que a
+ * conferência nova alcança são os `Field(...)` que VIRAM schema (tamanho,
+ * mínimo, enum, tipo, obrigatoriedade). Um falso mais frouxo que o backend nas
+ * regras cruzadas continua sendo lido no serviço do backend, à mão.
  */
 import type { Route } from '@playwright/test';
 
 import { readDetailMessage } from '../src/api/errors';
 import type { paths } from '../src/api/generated/openapi';
+import contrato from './generated/openapi.json' with { type: 'json' };
+import { problemasDoCorpo } from './schema';
 
 /** Todo caminho que o backend publica. Um literal fora daqui não compila. */
 export type Rota = keyof paths;
@@ -132,6 +145,26 @@ function enviar(route: Route, status: number, corpo: unknown): Promise<void> {
 /**
  * A resposta que o CONTRATO declara. O corpo é o tipo dele, e a rota e o método
  * nomeados são conferidos contra a requisição.
+ *
+ * ----------------------------------------------------------------------------
+ * E O CORPO QUE CHEGOU TAMBÉM — porque ACEITAR é o que não se pode errar
+ * ----------------------------------------------------------------------------
+ *
+ * `responder` é o falso dizendo "isto está certo". A conferência do corpo mora
+ * AQUI, e não em `corpoDe`, e a diferença é a regra inteira:
+ *
+ *   **o falso não pode responder por esta porta a um corpo que a API recusaria.**
+ *
+ * Em `corpoDe` ela dispararia cedo demais — antes de o ramo ter a chance de
+ * RECUSAR o corpo de propósito, que é o que vários deles fazem (o nome de
+ * categoria acima de 120, o `branch_id` ausente, o `max_select` menor que o
+ * mínimo). Esses ramos saem por `recusar`, que não passa por aqui: eles já
+ * estão dizendo a coisa certa, com a frase do backend.
+ *
+ * O que sobra para esta linha é exatamente o buraco: a rota em que ninguém
+ * lembrou de escrever a régua à mão, e o falso devolve 200 para o que produção
+ * responderia 422. Era a deriva de REGRA que
+ * `scratchpad/falso-contra-o-contrato.md` deixou escrita como aberta.
  */
 export function responder<R extends Rota, M extends Metodo, S extends number>(
   route: Route,
@@ -141,7 +174,48 @@ export function responder<R extends Rota, M extends Metodo, S extends number>(
   corpo: Corpo<R, M, S>,
 ): Promise<void> {
   conferirRequisicao(route, metodo, rota);
+  conferirCorpoRecebido(route, metodo, rota);
   return enviar(route, status, corpo);
+}
+
+/** O schema do corpo desta rota, quando ela recebe corpo. */
+function schemaDoCorpo(rota: string, metodo: string): Record<string, unknown> | null {
+  const operacoes = (
+    contrato.paths as Record<
+      string,
+      Record<string, { requestBody?: { content?: Record<string, { schema?: unknown }> } }>
+    >
+  )[rota];
+  const schema = operacoes?.[metodo]?.requestBody?.content?.['application/json']?.schema;
+  return schema && typeof schema === 'object' ? (schema as Record<string, unknown>) : null;
+}
+
+function conferirCorpoRecebido(route: Route, metodo: Metodo, rota: Rota): void {
+  const schema = schemaDoCorpo(rota, metodo);
+  if (!schema) return;
+
+  const request = route.request();
+  if (!request.postData()) return;
+
+  let corpo: unknown;
+  try {
+    corpo = request.postDataJSON();
+  } catch {
+    // Corpo que não é JSON não é assunto desta régua — `upload` de foto passa
+    // por aqui como multipart, e o schema dele não é `application/json`.
+    return;
+  }
+
+  const problemas = problemasDoCorpo(corpo, schema, contrato, `${metodo.toUpperCase()} ${rota}`);
+  if (problemas.length === 0) return;
+
+  throw new Error(
+    'O FALSO IA RESPONDER 2xx A UM CORPO QUE A API RECUSARIA COM 422.\n' +
+      `  ${problemas.join('\n  ')}\n` +
+      '  Ou o painel monta o corpo errado (e o lojista levaria 422), ou este ramo\n' +
+      '  do falso deveria recusar — e aí a recusa sai por `recusar`, com a frase\n' +
+      '  do backend.',
+  );
 }
 
 /**
@@ -221,6 +295,10 @@ export function semCorpo<R extends Rota, M extends Metodo>(
  * (`as { minutes: number; reason?: string | null }`) — contrato escrito à mão,
  * que é o que a skill `rapidex-api` §2 proíbe no `src/` e o que o
  * `contract-pending.ts` já custou duas vezes.
+ *
+ * ELE NÃO CONFERE NADA, de propósito: quem lê um corpo pode estar prestes a
+ * RECUSÁ-LO, e é o que vários ramos fazem. A conferência mora em `responder`,
+ * que é a porta do "isto está certo" — ver o comentário de lá.
  */
 export function corpoDe<R extends Rota, M extends Metodo>(
   route: Route,

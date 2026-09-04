@@ -32,7 +32,7 @@
  * `Belém-Projetos` do caminho desta máquina volta percent-encoded para o
  * `lstat` — que então não acha o arquivo.
  */
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
@@ -92,3 +92,38 @@ const opcoes = (await resolveConfig(SAIDA)) ?? {};
 await writeFile(SAIDA, await format(tipos, { ...opcoes, filepath: SAIDA }), 'utf8');
 
 console.log(`api:generate: ${SAIDA} regravado.`);
+
+/*
+ * ============================================================================
+ * E O CONTRATO CRU, PARA O FALSO DO E2E
+ * ============================================================================
+ *
+ * O `.d.ts` é o contrato em tempo de COMPILAÇÃO, e é tudo que o `src/` precisa.
+ * Ele não serve para conferir um corpo em tempo de EXECUÇÃO: tipo apagado é
+ * tipo que não existe às 3h da manhã, quando o falso recebe um `name` de 300
+ * caracteres que produção recusaria com 422.
+ *
+ * Era a lacuna nomeada em `scratchpad/falso-contra-o-contrato.md`: a amarra de
+ * `e2e/contrato.ts` fechou a deriva de FORMA (campo renomeado, status que não
+ * existe), e a de REGRA continuou aberta porque "validar o corpo recebido
+ * exigiria o /openapi.json, e hoje só o .d.ts é versionado".
+ *
+ * ELE VIVE EM `e2e/`, E NÃO EM `src/api/generated/`, de propósito: são 698 KB,
+ * e um `import` distraído dentro de `src/` os despacharia para o navegador do
+ * lojista. Aqui isso é impossível por construção — o Vite não constrói `e2e/`.
+ *
+ * ESCRITO PELO MESMO COMANDO que o `.d.ts`, e nunca separado: dois artefatos do
+ * mesmo contrato gerados por comandos diferentes divergem no dia em que alguém
+ * roda um só.
+ */
+const CONTRATO_CRU = join(projectRoot, 'e2e', 'generated', 'openapi.json');
+await mkdir(join(projectRoot, 'e2e', 'generated'), { recursive: true });
+
+const cruOpcoes = (await resolveConfig(CONTRATO_CRU)) ?? {};
+await writeFile(
+  CONTRATO_CRU,
+  await format(JSON.stringify(contrato), { ...cruOpcoes, filepath: CONTRATO_CRU }),
+  'utf8',
+);
+
+console.log(`api:generate: ${CONTRATO_CRU} regravado.`);
