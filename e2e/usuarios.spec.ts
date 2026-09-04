@@ -333,3 +333,160 @@ test('o atendente também não vê o item na navegação', async ({ page }) => {
      que fecha o buraco de quem desconfia do próprio vazamento. */
   await expect(page.getByRole('link', { name: 'Trocar senha' })).toBeVisible();
 });
+
+/* ==========================================================================
+ * 7. AS TRÊS ESCRITAS QUE SÓ TINHAM CAMINHO FELIZ — item 3 de
+ *    `scratchpad/escritas-sem-teste.md`
+ * ==========================================================================
+ *
+ * As guardas desta tela IMPEDEM ANTES (item 3 do cabeçalho), e é por isso que
+ * quase toda recusa do backend aqui é inalcançável — o que está certo, e não é
+ * buraco. O que sobra são os três caminhos em que a tela **não tem como saber**,
+ * e é neles que a frase do backend precisa chegar inteira.
+ */
+
+/*
+ * A MAIS ALCANÇÁVEL DE TODA A RODADA, e a única que não depende de aba nenhuma:
+ * o lojista digita a senha atual errada.
+ *
+ * `AdminAuthService.change_password` responde **400 "Senha atual incorreta"**, e
+ * a tela não tem como conferir antes — quem sabe a senha é o backend. As três
+ * validações locais (senhas conferem, nova diferente da atual) cobrem os outros
+ * dois 400 e param aqui.
+ *
+ * E ESTA É A TELA EM QUE A PESSOA ESTÁ PRESA quando a senha é temporária: sem
+ * passar por ela não se chega a Pedidos. Uma recusa engolida aqui não é um
+ * campo errado — é alguém sem acesso ao painel, no meio do turno, sem saber por
+ * quê.
+ */
+test('senha atual errada: a frase do backend aparece e a troca não sai do lugar', async ({
+  page,
+}) => {
+  api.entrarComSenhaTemporaria();
+  await entrar(page, '/pedidos');
+  await expect(page).toHaveURL(/\/trocar-senha$/);
+  await expect(page.getByTestId('troca-obrigatoria')).toBeVisible();
+
+  await page.getByTestId('troca-atual').fill('a-que-eu-achava-que-era');
+  await page.getByTestId('troca-nova').fill('senha-nova-forte');
+  await page.getByTestId('troca-confirmacao').fill('senha-nova-forte');
+
+  await page.route('**/admin/auth/password', (route) =>
+    route.fulfill({
+      status: 400,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Senha atual incorreta' }),
+    }),
+  );
+
+  await page.getByTestId('troca-salvar').click();
+
+  await expect(page.getByTestId('troca-erro')).toContainText('Senha atual incorreta');
+
+  /*
+   * NINGUÉM FOI PARA LUGAR NENHUM, e o que a pessoa escolheu continua escrito:
+   * o que ela precisa corrigir é UM campo, e redigitar os três é o caminho para
+   * errar de novo.
+   */
+  await expect(page).toHaveURL(/\/trocar-senha$/);
+  await expect(page.getByTestId('troca-nova')).toHaveValue('senha-nova-forte');
+  await expect(page.getByTestId('troca-confirmacao')).toHaveValue('senha-nova-forte');
+});
+
+/*
+ * A GUARDA DO ÚNICO DONO OLHA A LISTA QUE A TELA CARREGOU — e essa lista
+ * envelhece.
+ *
+ * `motivoParaNaoRebaixar` conta os donos ATIVOS entre os usuários que esta aba
+ * leu. Com dois na lista, ela deixa rebaixar um — e é o certo. Se OUTRA aba
+ * desativou o outro dono nesse meio-tempo, a guarda local continua vendo dois e
+ * quem recusa é o backend, com
+ * **400 "Não dá para rebaixar o único dono ativo do restaurante"**
+ * (`_ensure_keeps_an_active_owner`).
+ *
+ * É a lista velha da reordenação do cardápio num lugar onde o preço é outro: um
+ * restaurante sem dono ativo não tem quem cadastre ninguém nem quem reative
+ * contas, e o conserto seria no banco.
+ *
+ * O SEGUNDO DONO É PLANTADO de propósito. Sem ele a guarda local barra antes e
+ * a requisição nem sai — o teste passaria verde sem exercitar nada, provando só
+ * que a tela sabe o que ela já sabia.
+ */
+test('rebaixar dono com a lista velha: a frase do backend chega, e o diálogo não fecha', async ({
+  page,
+}) => {
+  const usuarios = api.adminUsers();
+  const dono = usuarios.find((pessoa) => pessoa.role === 'owner');
+  if (!dono) throw new Error('o falso precisa de um dono para este teste.');
+  api.setAdminUsers([
+    ...usuarios,
+    {
+      ...dono,
+      id: 'user-socio',
+      name: 'Marcos Prado',
+      email: 'marcos@pizzaria.com',
+      role: 'owner',
+      is_active: true,
+    },
+  ]);
+
+  await entrar(page);
+  await expect(page.getByTestId('usuarios-contagem')).toBeVisible();
+
+  // Com dois donos ativos na lista, a tela DEIXA rebaixar — e é o certo.
+  await page.getByTestId('usuario-editar-marcos@pizzaria.com').click();
+
+  /*
+   * A outra aba desativou a Joana entre a leitura desta e o clique de salvar.
+   * Daqui não há como saber: o único que sabe é o backend.
+   */
+  await page.route('**/admin/users/user-socio', (route) =>
+    route.fulfill({
+      status: 400,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        detail: 'Não dá para rebaixar o único dono ativo do restaurante',
+      }),
+    }),
+  );
+
+  await escolher(page.getByTestId('usuario-cargo'), 'Gerente');
+  await page.getByTestId('usuario-salvar').click();
+
+  await expect(page.getByRole('alert')).toContainText('único dono ativo');
+
+  /*
+   * O DIÁLOGO NÃO FECHA. Fechado, ele deixaria a linha na lista com o cargo
+   * antigo e a tela sem dizer que a mudança não passou — e o dono seguiria
+   * achando que o sócio virou gerente.
+   */
+  await expect(page.getByRole('dialog')).toBeVisible();
+});
+
+/*
+ * A SENHA TEMPORÁRIA QUE NÃO CHEGOU NÃO ABRE DIÁLOGO NENHUM.
+ *
+ * O diálogo desta tela existe para mostrar UMA credencial UMA vez (item 1). Um
+ * diálogo aberto sem ela seria o pior desfecho possível: o dono confirma que
+ * copiou o que não existe, fecha, e a pessoa do outro lado do telefone não tem
+ * senha — enquanto a anterior pode já ter sido derrubada.
+ */
+test('redefinição recusada: nenhum diálogo de senha abre, e o erro aparece', async ({ page }) => {
+  await entrar(page);
+  await expect(page.getByTestId('usuarios-contagem')).toBeVisible();
+
+  await page.route('**/admin/users/*/reset-password', (route) =>
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Usuário não encontrado' }),
+    }),
+  );
+
+  await page.getByTestId('usuario-redefinir-rafael@pizzaria.com').click();
+
+  await expect(page.getByRole('alert')).toContainText('Usuário não encontrado');
+
+  // NENHUM diálogo — e, principalmente, nenhuma caixa de senha vazia.
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});

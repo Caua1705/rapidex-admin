@@ -44,7 +44,8 @@ motivo de este documento contar as três medições em vez de só a última.
 | depois de fechar a impressão inteira                | 0         | 19               |
 | depois das unicidades do cardápio                   | 0         | 16               |
 | depois de fechar o cardápio (menos os complementos) | 0         | 13               |
-| depois do CARDÁPIO INTEIRO                          | 0         | **10**           |
+| depois do CARDÁPIO INTEIRO                          | 0         | 10               |
+| depois de Equipe e conta                            | 0         | **7**            |
 
 > **A régua subcontava, duas vezes.** Ela lia só o que o FALSO serviu, e uma
 > recusa dublada com `page.route` nunca chega lá — eram 6 invisíveis. Corrigida
@@ -160,8 +161,9 @@ as 25 restantes, na ordem:
 2. ~~**Cardápio**~~ — **FECHADO (2026-09-03).** As três unicidades, a foto, os
    dois `reorder`, o `PATCH /admin/categories/{id}` e as três de complemento.
    Ver "A rodada do cardápio" abaixo.
-3. **Equipe e conta** — `updateAdminUser`, `resetAdminUserPassword`,
-   `changePassword`. `createAdminUser` já tem o 409.
+3. ~~**Equipe e conta**~~ — **FECHADO (2026-09-03).** `updateAdminUser` (400 do
+   único dono, pela lista velha), `resetAdminUserPassword` (404) e
+   `changePassword` (400 "Senha atual incorreta"). `createAdminUser` já tinha o 409. Ver "A rodada da equipe" abaixo.
 4. **O resto** — `delivery-time-bands`, `restaurant`, `settings`,
    `stream-ticket`, os dois DELETE.
 
@@ -397,6 +399,53 @@ o dublê não sabe.**
 que protege contra ele não é ler o `openapi.json` (nenhuma dessas três regras
 está lá — índice único não vira schema), é ler o **serviço** do backend antes de
 escrever a recusa. Foi o que a skill `rapidex-api` já mandava fazer.
+
+---
+
+## A rodada da equipe (2026-09-03)
+
+Esta tela é a que mais **impede antes**: as guardas do dono barram na tela o que
+o backend recusaria com 400, e por isso quase toda recusa daqui é inalcançável —
+o que está certo, e não é buraco. Sobraram três caminhos em que a tela **não tem
+como saber**.
+
+| Rota                                    | Recusa | Por que a tela não sabe                     |
+| --------------------------------------- | ------ | ------------------------------------------- |
+| `PATCH /admin/auth/password`            | 400    | quem sabe a senha atual é o backend         |
+| `PATCH /admin/users/{id}`               | 400    | a guarda local lê a lista, e ela envelhece  |
+| `POST /admin/users/{id}/reset-password` | 404    | a pessoa pode ter saído do alcance do token |
+
+**A primeira é a recusa mais alcançável de todas as rodadas**, e a única que não
+depende de outra aba: o lojista digita a senha atual errada. E é a tela em que a
+pessoa está PRESA quando a senha é temporária — sem passar por ela não se chega
+a Pedidos. Uma recusa engolida ali não é um campo errado, é alguém sem acesso ao
+painel no meio do turno. O teste prende a frase, a permanência na rota e os dois
+campos preenchidos: quem precisa corrigir UM campo não pode ser obrigado a
+redigitar três.
+
+**A terceira tem o desfecho mais específico da tela:** o diálogo da senha
+temporária existe para mostrar UMA credencial UMA vez. Aberto sem ela, o dono
+confirmaria que copiou o que não existe, fecharia, e a pessoa do outro lado do
+telefone ficaria sem senha — com a anterior possivelmente já derrubada. O teste
+afirma que **nenhum diálogo abre**.
+
+### O teste que eu escrevi errado, e o conserto
+
+A primeira versão da segunda prova dublava o 400 do "único dono ativo" **ao
+rebaixar um gerente**. Passava verde — e não provava nada: o backend nunca manda
+essa recusa para um gerente, porque `_ensure_keeps_an_active_owner` sai cedo
+para quem não é dono.
+
+É exatamente o defeito que esta mesma rodada apontou no falso duas seções acima:
+**afirmar uma frase que produção nunca manda naquele caminho.** Um dublê que
+inventa a recusa e um teste que inventa o cenário custam a mesma coisa — a
+suíte fica verde sobre uma tela que ninguém exercitou.
+
+A versão que ficou **planta um segundo dono ativo** antes de entrar. Com dois na
+lista, a guarda local deixa rebaixar um (e é o certo); a outra aba desativa a
+primeira dona nesse meio-tempo, e aí o 400 é o que o backend de fato responde.
+Sem o segundo dono a guarda barra antes e a requisição nem sai — o teste passaria
+sem exercitar nada, provando só que a tela sabe o que ela já sabia.
 
 ---
 
