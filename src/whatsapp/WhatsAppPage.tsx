@@ -8,6 +8,7 @@ import { formatDateTime } from '../orders/format';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { ConnectChannelDialog } from './ConnectChannelDialog';
 import {
+  filialForaDaLista,
   lojasQueDependem,
   lojasSemAviso,
   lugarDoCanal,
@@ -183,7 +184,25 @@ export function WhatsAppPage() {
         <span className="t-aux">ID {canal.phone_number_id}</span>
       </span>
     ),
-    lugar: lugarDoCanal(canal),
+    /*
+      O LUGAR — e a única célula desta tabela que precisa EXPLICAR uma ausência.
+
+      Um canal cuja filial foi desativada volta do backend com `branch_name`
+      nulo (`list_channels` monta o mapa de nomes só com as ativas). Dizer
+      "Filial", seco, era um número CONECTADO num lugar sem nome: o dono não
+      achava aquela loja em lista nenhuma do painel e não tinha como saber se
+      o número ainda mandava alguma coisa. Quem responde isso é a segunda
+      linha; o botão de desconectar continua ali ao lado, porque o `DELETE` é
+      por CANAL — desativar a loja não tira do dono o controle do número.
+    */
+    lugar: filialForaDaLista(canal) ? (
+      <span className="whatsapp__celula">
+        <span>{lugarDoCanal(canal)}</span>
+        <span className="t-aux">Não aparece na sua lista de filiais.</span>
+      </span>
+    ) : (
+      lugarDoCanal(canal)
+    ),
     conta: <span className="whatsapp__conta">{canal.waba_id_masked}</span>,
     situacao: (
       <span className="whatsapp__celula">

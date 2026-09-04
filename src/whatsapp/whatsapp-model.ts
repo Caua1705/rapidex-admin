@@ -197,14 +197,42 @@ export function linhaDoRestaurante(canais: readonly WhatsAppChannel[]): WhatsApp
 }
 
 /**
+ * O nome de um canal preso a uma loja que não está na lista de filiais.
+ *
+ * NÃO É DADO FALTANDO — é uma filial DESATIVADA, e dá para afirmar isso.
+ * `AdminWhatsAppService.list_channels` monta o mapa de nomes com
+ * `list_active_by_restaurant` e a lista de canais com `list_by_restaurant`, sem
+ * filtro. As duas consultas são do MESMO restaurante (o escopo vem do token),
+ * então um `branch_id` que não acha nome só pode ser de uma loja desativada:
+ * não é filial de outro restaurante, e não é id inválido.
+ */
+export const FILIAL_FORA_DA_LISTA = 'Filial desativada';
+
+/**
  * Onde este canal vale, escrito para quem lê a lista.
  *
  * A linha do restaurante NÃO se chama "sem filial": ela é a que mais explica a
  * tela, porque é dela que sai o número de toda loja que não tem o seu.
+ *
+ * E O RESERVA NÃO É "Filial". Ele era, e o resultado era um número CONECTADO
+ * num lugar sem nome: o dono lia "Filial", não achava aquela loja em lista
+ * nenhuma do painel, e não tinha como saber se aquele número ainda mandava
+ * alguma coisa. A palavra que falta é a que explica a ausência.
  */
 export function lugarDoCanal(canal: WhatsAppChannel): string {
   if (canal.branch_id === null) return 'Restaurante (padrão das filiais)';
-  return canal.branch_name ?? 'Filial';
+  return canal.branch_name ?? FILIAL_FORA_DA_LISTA;
+}
+
+/**
+ * Este canal está preso a uma loja que o painel não mostra em lugar nenhum?
+ *
+ * A linha do restaurante também vem com `branch_name` nulo e é o OPOSTO de uma
+ * órfã — por isso a pergunta é sobre o par (tem filial, não tem nome), e não
+ * sobre o nome sozinho.
+ */
+export function filialForaDaLista(canal: WhatsAppChannel): boolean {
+  return canal.branch_id !== null && canal.branch_name === null;
 }
 
 /**

@@ -5,6 +5,7 @@ import {
   corpoDoRascunho,
   LIMITES,
   LINHA_DO_RESTAURANTE,
+  filialForaDaLista,
   linhaDoRestaurante,
   lojasQueDependem,
   lojasSemAviso,
@@ -200,6 +201,37 @@ describe('as linhas de canal', () => {
   it('a linha do restaurante se nomeia como padrão das filiais, não como "sem filial"', () => {
     expect(lugarDoCanal(canal())).toBe('Restaurante (padrão das filiais)');
     expect(lugarDoCanal(canal({ branch_id: 'filial-1', branch_name: 'Centro' }))).toBe('Centro');
+  });
+
+  /*
+   * O CANAL SEM NOME DE FILIAL — e ele não é dado faltando, é uma loja
+   * DESATIVADA.
+   *
+   * `AdminWhatsAppService.list_channels` monta o mapa de nomes com
+   * `list_active_by_restaurant` e a lista de canais com `list_by_restaurant`,
+   * sem filtro. As duas consultas são do MESMO restaurante — o escopo vem do
+   * token —, então a única forma de um `branch_id` não achar nome é a filial
+   * estar desativada. Não é filial de outro restaurante, e não é id inválido.
+   *
+   * A tela dizia só "Filial": um número CONECTADO, num lugar sem nome, de uma
+   * loja que o dono não enxerga em lista nenhuma. Ele não tinha como saber o
+   * que aquilo era, e o número continua ligado.
+   */
+  it('canal de filial desativada se nomeia — "Filial" seco era um lugar sem nome', () => {
+    const orfao = canal({ id: 'canal-orfa', branch_id: 'filial-arquivada', branch_name: null });
+
+    expect(lugarDoCanal(orfao)).toBe('Filial desativada');
+    expect(lugarDoCanal(orfao)).not.toBe('Filial');
+  });
+
+  it('só o canal de filial sem nome é o fora da lista — a queda do restaurante não é', () => {
+    expect(filialForaDaLista(canal({ branch_id: 'filial-arquivada', branch_name: null }))).toBe(
+      true,
+    );
+    expect(filialForaDaLista(canal({ branch_id: 'filial-1', branch_name: 'Centro' }))).toBe(false);
+    /* A linha do restaurante também vem com `branch_name` nulo, e ela é o
+       oposto de uma órfã: é a que explica a tela inteira. */
+    expect(filialForaDaLista(canal())).toBe(false);
   });
 
   /**

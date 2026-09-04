@@ -444,3 +444,50 @@ test('o atendente não chega à tela, e o item some da navegação dele', async 
   await expect(page).not.toHaveURL(/whatsapp/);
   await expect(page.getByRole('link', { name: 'WhatsApp' })).toHaveCount(0);
 });
+
+/* ==========================================================================
+ * 8. O CANAL DE UMA LOJA QUE O DONO NÃO ENXERGA
+ *
+ * `list_channels` monta o mapa de nomes com `list_active_by_restaurant` e a
+ * lista de canais com `list_by_restaurant`, SEM filtro. O canal de uma filial
+ * desativada volta com `branch_name: null` — e a tela desenhava "Filial", seco.
+ *
+ * O dono via um número CONECTADO num lugar sem nome, de uma loja que não está
+ * em lista nenhuma do painel, e não tinha como saber se aquele número ainda
+ * mandava alguma coisa.
+ * ======================================================================= */
+
+test('o canal de filial desativada se nomeia, e diz por que aquela loja não aparece', async ({
+  page,
+}) => {
+  api.setWhatsAppChannels([
+    quedaDoRestaurante(),
+    {
+      ...quedaDoRestaurante(),
+      id: 'wa-arquivada',
+      /* Uma filial que NÃO está em `state.branches`: é assim que o backend
+         entrega o canal de uma loja desativada, e o falso o reproduz sem
+         nenhum ramo próprio — o mapa de nomes simplesmente não a tem. */
+      branch_id: '99999999-9999-9999-9999-999999999999',
+      phone_number_id: 'pn-arquivada',
+      display_phone_number: '+55 85 9999-0000',
+    },
+  ]);
+
+  await entrar(page);
+
+  const linha = linhaDoCanal(page, 'pn-arquivada');
+  await expect(linha).toContainText('Filial desativada');
+
+  /* A palavra sozinha nomeia; o que responde a pergunta do dono é a linha
+     seguinte — e o número continua ligado até alguém desligá-lo. */
+  await expect(linha).toContainText('Não aparece na sua lista de filiais.');
+
+  /* E o caminho de desligar continua ali: o `DELETE` é por canal, e não pela
+     filial — uma loja desativada não tira do dono o controle do número. */
+  await expect(linha.getByRole('button', { name: 'Desconectar' })).toBeVisible();
+
+  /* As filiais VIVAS continuam com o nome delas: o reserva não pode vazar
+     para quem tem nome. */
+  await expect(linhaDoCanal(page, 'pn-restaurante')).not.toContainText('Filial desativada');
+});
