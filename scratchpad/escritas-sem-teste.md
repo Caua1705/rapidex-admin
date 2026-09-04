@@ -40,7 +40,8 @@ motivo de este documento contar as três medições em vez de só a última.
 | primeira medição                         | 2         | 37               |
 | depois das escritas de dinheiro          | 0         | 32               |
 | depois de "o que decide se a loja vende" | 0         | 25               |
-| depois de "a comanda que não sai"        | 0         | **22**           |
+| depois de "a comanda que não sai"        | 0         | 22               |
+| depois de fechar a impressão inteira     | 0         | **19**           |
 
 > **A régua subcontava, duas vezes.** Ela lia só o que o FALSO serviu, e uma
 > recusa dublada com `page.route` nunca chega lá — eram 6 invisíveis. Corrigida
@@ -145,14 +146,14 @@ pelo painel — ele monta uma faixa por dia, de uma grade fixa de sete.
 mexem em dinheiro ou em cadastro que o cliente vê —
 as 25 restantes, na ordem:
 
-1. ~~**A comanda que não sai**~~ — feitas: `printing-sectors` (o 409 de nome
-   repetido criado por OUTRA aba, que a conferência local não tem como ver),
-   `printing-sectors/{id}` (o 404 de setor apagado no meio) e
-   `products/{id}/printing-sector` (o **400 "é de outra filial"**, que a
-   auditoria já nomeava: setor é POR FILIAL, e o produto salva nome e preço por
-   uma rota e o setor por outra — se a segunda falhar calada, o diálogo fecha e
-   a comanda sai no setor errado). Sobram `print-settings`, `printing-sector`
-   de categoria e `print-test`.
+1. ~~**A comanda que não sai**~~ — **FECHADA (2026-09-03).** Antes:
+   `printing-sectors` (o 409 de nome repetido criado por OUTRA aba, que a
+   conferência local não tem como ver), `printing-sectors/{id}` (o 404 de setor
+   apagado no meio) e `products/{id}/printing-sector` (o **400 "é de outra
+   filial"**, que a auditoria já nomeava: setor é POR FILIAL, e o produto salva
+   nome e preço por uma rota e o setor por outra). Agora as três que faltavam —
+   `print-settings`, `print-test` e `categories/{id}/printing-sector`. Ver
+   "A rodada da impressão" abaixo.
 2. **Cardápio** — produto, categoria, complemento, reordenação, foto. Erra uma
    tela, não um valor cobrado.
 3. **Equipe e conta** — `updateAdminUser`, `resetAdminUserPassword`,
@@ -164,6 +165,69 @@ E uma nota de método para quem seguir: várias recusas do backend são
 **inalcançáveis pelo painel**, porque a tela valida antes. Isso não é buraco —
 é a tela fazendo o trabalho dela. O que se procura é o caminho em que o backend
 recusa e o painel **não sabia**.
+
+## A rodada da impressão (2026-09-03) — e o defeito que ela achou no caminho
+
+Três recusas presas, e **um bug** que nenhuma delas tinha ido procurar.
+
+### O bug: a segunda escrita negava a primeira, e o cardápio ganhava um gêmeo
+
+`saveProduct` pode ser DUAS escritas: `POST /admin/products` cria a linha e
+`PATCH /admin/products/{id}/printing-sector` aponta o setor (rota própria —
+`AdminProductUpdate` não tem o campo). Elas dividiam um `catch`, e a recusa da
+SEGUNDA fazia a função devolver `null` — que quem chama lê como "não gravou".
+
+O diálogo não fechava, com nome e preço ainda escritos. **`POST /admin/products`
+não é idempotente e não existe `DELETE` de produto** (auditoria C.1): o segundo
+"Salvar" cria o segundo "X-Tudo" no cardápio que o cliente vê, nenhum dos dois
+com setor, e o conserto é no banco.
+
+A recusa é alcançável e tem frase própria — **400 "O setor de impressão é de
+outra filial"**, quando a filial do cabeçalho muda entre abrir o diálogo e
+salvar. Hoje a tela diz _"Item criado. O setor de impressão NÃO foi gravado: …
+Abra o item e escolha o setor de novo."_, e o item existe uma vez só.
+
+**Na EDIÇÃO a mesma falha continua devolvendo `null` de propósito**, e a
+diferença é idempotência: lá o segundo "Salvar" regrava o mesmo item e tenta o
+setor de novo, que é o laço certo. Aqui ele criaria linha nova.
+
+### As três recusas
+
+| Rota                                   | Recusa | O que o teste prende                              |
+| -------------------------------------- | ------ | ------------------------------------------------- |
+| `PATCH .../print-settings`             | 404    | a frase aparece, nada diz "salvo", o texto fica   |
+| `POST .../print-test`                  | 404    | **nenhuma** das duas frases de sucesso aparece    |
+| `PATCH /categories/{id}/print…-sector` | 400    | o diálogo NÃO fecha, e nenhum item mudou de setor |
+
+O 404 das duas primeiras é o de `_get_branch`: a filial sai do alcance do token
+entre abrir a aba e salvar. O resto do que o backend recusa nelas a tela já
+barra antes (as vias saem de uma lista de 0 a 5) — e recusa inalcançável não é
+buraco, é a tela fazendo o trabalho dela.
+
+A terceira é a mais cara, e não pelo status: é a ação em LOTE, a que move a
+categoria inteira num clique. Fechar o diálogo na recusa deixaria a tela na
+lista velha, com o setor antigo em cada linha e nada dizendo que os itens
+continuam onde estavam.
+
+### A hipótese que o teste derrubou — e por que ela está escrita aqui
+
+A rodada começou atrás de outra coisa: o §7 de `ausencia.md` ("escrita que
+gravou e se reporta como falha") parecia estar em **três** lugares de
+`useMenu` — `saveCategory`, `saveProduct` e `applySectorToCategory` —, porque
+nos três o `await` da releitura está dentro do `try` da escrita.
+
+**Não está.** `loadCategories` e `loadProducts` tratam o próprio erro e **não
+relançam**: elas nunca alcançaram aquele `catch`. Dois consertos foram escritos,
+e os dois foram desfeitos quando o e2e recusou a reproduzir o defeito — o
+sintoma nunca apareceu porque não existia.
+
+A lição vale mais que os dois consertos: **a forma do código não é o defeito.**
+`await escrita(); await releitura();` num `try` só é a assinatura do §7, e aqui
+ela é inofensiva porque a segunda função engole. O que separou os dois casos foi
+escrever o teste ANTES de acreditar no diagnóstico. A anotação ficou no
+cabeçalho de `useMenu`, para quem for "consertar" isso daqui a seis meses.
+
+---
 
 ## Como refazer o levantamento
 

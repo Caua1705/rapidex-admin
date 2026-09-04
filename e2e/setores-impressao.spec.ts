@@ -707,3 +707,186 @@ test('setor de outra filial: o 400 chega à tela e o diálogo não fecha em sil�
   // Nada de setor foi gravado.
   expect(api.productSectorCalls()).toHaveLength(0);
 });
+
+/*
+ * ============================================================================
+ * A SEGUNDA ESCRITA QUE NEGAVA A PRIMEIRA — o item novo que nascia duas vezes
+ * ============================================================================
+ *
+ * O teste acima ("setor de outra filial") prova o mesmo 400 na EDIÇÃO, e lá o
+ * desfecho certo é o diálogo ficar aberto: o segundo "Salvar" regrava o mesmo
+ * item e tenta o setor de novo, que é o laço certo.
+ *
+ * Na CRIAÇÃO o mesmo desenho custa caro, e é o que este teste prende. Salvar um
+ * item novo COM setor são duas escritas — `POST /admin/products` cria a linha,
+ * `PATCH /admin/products/{id}/printing-sector` aponta o setor. Enquanto as duas
+ * dividiam um `catch`, a recusa da segunda fazia a tela dizer que não gravou
+ * sobre um item que JÁ EXISTIA. O diálogo ficava aberto, com o nome e o preço
+ * ainda escritos, e o segundo "Salvar" criava a linha de novo — no cardápio que
+ * o cliente vê, e sem `DELETE` de produto para desfazer (auditoria C.1).
+ */
+test('item novo cujo setor o backend recusa: a tela diz que o item existe, e não duplica', async ({
+  page,
+}) => {
+  await fazerLogin(page);
+  await page.getByRole('link', { name: 'Cardápio' }).click();
+  await escolherFilial(page);
+
+  await page.getByRole('button', { name: 'Novo item' }).click();
+  await page.getByLabel('Nome do item').fill('X-Tudo');
+  await page.getByLabel('Preço').fill('32,00');
+  await escolher(page.getByTestId('product-print-sector'), 'Chapa');
+
+  /*
+   * A recusa entra só agora, para não pegar a leitura que enche o campo acima.
+   * É o 400 do backend com a frase dele — `_ensure_sector_is_in_branch`, que
+   * dispara quando a filial do cabeçalho muda entre abrir o diálogo e salvar.
+   */
+  await page.route('**/admin/products/*/printing-sector', (route) =>
+    route.fulfill({
+      status: 400,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'O setor de impressão é de outra filial' }),
+    }),
+  );
+
+  await page.getByRole('button', { name: 'Salvar' }).click();
+
+  /*
+   * "Item criado" PRIMEIRO — é a palavra que muda o que a pessoa faz em
+   * seguida. A recusa do setor é ressalva, com a frase do backend inteira e o
+   * que fazer a respeito.
+   */
+  const aviso = page.getByRole('alert');
+  await expect(aviso).toContainText('Item criado');
+  await expect(aviso).toContainText('O setor de impressão é de outra filial');
+  await expect(aviso).toContainText('Abra o item e escolha o setor de novo');
+
+  /*
+   * A ASSERÇÃO QUE A SUÍTE NÃO TINHA: um só. Antes, o diálogo continuava aberto
+   * com tudo preenchido e o segundo "Salvar" criava o segundo X-Tudo.
+   */
+  await expect.poll(() => api.products().filter((item) => item.name === 'X-Tudo')).toHaveLength(1);
+
+  // E o item existe mesmo — sem setor, que é o que a frase acima manda corrigir.
+  const criado = api.products().find((item) => item.name === 'X-Tudo');
+  expect(criado?.printing_sector_id ?? null).toBeNull();
+});
+
+/*
+ * ============================================================================
+ * AS TRÊS ESCRITAS DA IMPRESSÃO QUE SÓ TINHAM CAMINHO FELIZ
+ * ============================================================================
+ *
+ * Fecham o item 1 de `scratchpad/escritas-sem-teste.md` — "a comanda que não
+ * sai". As outras três daquele grupo já estavam presas; estas são o resto.
+ *
+ * O que cada uma prova é sempre o mesmo par, e ele é o que separa "recusou" de
+ * "recusou e ninguém viu": **a frase do backend aparece inteira** (nunca "A
+ * requisição falhou (404)") e **a tela não anuncia sucesso**.
+ *
+ * As duas primeiras usam o 404 de `_get_branch`, que é a recusa alcançável
+ * destas rotas: a filial sai do alcance do token entre abrir a aba e salvar —
+ * outra pessoa desativou a loja, ou o dono restringiu o gerente à outra. O
+ * resto do que o backend recusa aqui a tela já barra antes (as vias saem de uma
+ * lista de 0 a 5), e recusa inalcançável não é buraco: é a tela fazendo o
+ * trabalho dela.
+ */
+
+test('rodapé recusado com a filial fora do alcance: a frase aparece e nada diz "salvo"', async ({
+  page,
+}) => {
+  await fazerLogin(page);
+  await abrirAbaImpressao(page);
+
+  const bloco = page.getByTestId('print-footer-block');
+  await bloco.getByTestId('print-footer-mode-propria').click();
+  await bloco.getByTestId('print-footer-text').fill('Peça direto no site');
+
+  await page.route('**/admin/branches/*/print-settings', (route) =>
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Filial não encontrada' }),
+    }),
+  );
+
+  await page.getByTestId('store-save').click();
+
+  await expect(page.getByTestId('store-error')).toContainText('Filial não encontrada');
+  await expect(page.getByTestId('store-saved')).toHaveCount(0);
+
+  // E o texto continua no campo: o lojista corrige a filial, não redigita.
+  await expect(bloco.getByTestId('print-footer-text')).toHaveValue('Peça direto no site');
+});
+
+test('teste de impressão recusado: a frase aparece, e a tela não diz que enviou', async ({
+  page,
+}) => {
+  await fazerLogin(page);
+  await abrirAbaImpressao(page);
+
+  await page.route('**/admin/branches/*/print-test', (route) =>
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'Filial não encontrada' }),
+    }),
+  );
+
+  // O botão só habilita com um destino escolhido, e QUAL destino não importa
+  // aqui: o que se prova é a recusa da rota, não a resolução do alvo.
+  await escolher(page.getByTestId('print-test-destino'), /^EPSON TM-T20/);
+  await page.getByTestId('print-test-send').click();
+
+  await expect(page.getByTestId('print-test-error')).toContainText('Filial não encontrada');
+
+  /*
+   * NENHUM DOS DOIS DESFECHOS aparece — nem "enviado", nem o aviso de programa
+   * desligado. Esta tela tem duas frases de sucesso porque um 202 não é papel
+   * saindo, e a recusa não pode passar por nenhuma das duas.
+   */
+  await expect(page.getByTestId('print-test-result')).toHaveCount(0);
+});
+
+/*
+ * A TERCEIRA É A MAIS CARA DAS TRÊS, e não pelo status: é a ação em LOTE.
+ *
+ * `PATCH /admin/categories/{id}/printing-sector` move a categoria inteira num
+ * clique — é a razão de a funcionalidade existir. O backend recusa com a mesma
+ * frase do produto (`_ensure_sector_is_in_branch`, 400), e aqui o desfecho
+ * certo é o diálogo NÃO fechar: fechado, ele deixaria a tela na lista velha,
+ * com o setor antigo em cada linha e nada dizendo que os itens continuam onde
+ * estavam.
+ */
+test('setor recusado na categoria inteira: o diálogo não fecha, e nenhum item mudou', async ({
+  page,
+}) => {
+  await fazerLogin(page);
+  await escolherFilial(page);
+  await page.getByRole('link', { name: 'Cardápio' }).click();
+
+  const antes = api.products().map((item) => item.printing_sector_id ?? null);
+
+  await abrirMenuDaCategoria(page);
+  await page.getByTestId('apply-sector-open').click();
+
+  await page.route('**/admin/categories/*/printing-sector', (route) =>
+    route.fulfill({
+      status: 400,
+      contentType: 'application/json',
+      body: JSON.stringify({ detail: 'O setor de impressão é de outra filial' }),
+    }),
+  );
+
+  await escolher(page.getByTestId('apply-sector-select'), 'Chapa');
+  await page.getByTestId('apply-sector-confirm').click();
+
+  await expect(page.getByRole('alert')).toContainText('O setor de impressão é de outra filial');
+
+  // O diálogo continua de pé: a escolha do lojista não se perde na recusa.
+  await expect(page.getByTestId('apply-sector-confirm')).toBeVisible();
+
+  // E nenhum dos itens mudou de setor.
+  expect(api.products().map((item) => item.printing_sector_id ?? null)).toEqual(antes);
+});

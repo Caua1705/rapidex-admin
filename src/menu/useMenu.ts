@@ -50,6 +50,33 @@ const PAGE_SIZE = 50;
  */
 const LOTE_SIMULTANEO = 4;
 
+/*
+ * ============================================================================
+ * A SEGUNDA ESCRITA NÃO PODE NEGAR A PRIMEIRA
+ * ============================================================================
+ *
+ * Salvar um item pode ser DUAS escritas: `POST /admin/products` cria a linha,
+ * e `PATCH /admin/products/{id}/printing-sector` aponta o setor — rota própria
+ * porque `AdminProductUpdate` não tem o campo. Enquanto as duas dividiam um
+ * `catch`, a recusa da SEGUNDA fazia `saveProduct` devolver `null`, que quem
+ * chama lê como "não gravou": o diálogo não fechava, com nome e preço ainda
+ * preenchidos, e o segundo "Salvar" criava a linha de novo.
+ *
+ * `POST /admin/products` NÃO é idempotente, e não existe `DELETE` de produto
+ * (auditoria C.1) — o desfecho é dois "X-Tudo" no cardápio que o cliente vê,
+ * nenhum dos dois com setor, e o conserto é no banco.
+ *
+ * A recusa é alcançável da tela e tem frase própria no backend: **400 "O setor
+ * de impressão é de outra filial"** (`admin_printing_service._ensure_sector_is_in_branch`),
+ * que chega quando a filial do cabeçalho muda entre abrir o diálogo e salvar.
+ *
+ * **A releitura que vem depois não entra nesta conta**, e vale escrever por
+ * quê: `loadProducts`/`loadCategories` tratam o próprio erro e não relançam,
+ * então elas nunca alcançaram o `catch` da escrita. O `await` delas dentro do
+ * mesmo `try` PARECE o §7 de `scratchpad/ausencia.md` e não é — quem for
+ * "consertar" isso daqui a seis meses vai mexer em código que já está certo.
+ */
+
 /** O que sobrou de uma ação em massa: o que gravou e o que não. */
 export type ResultadoEmMassa = {
   gravados: number;
@@ -604,6 +631,8 @@ export function useMenu(branchId: string) {
       if (!name) return null;
 
       let savedId: string;
+      /** A frase da recusa do setor de um item RECÉM-CRIADO — ver abaixo. */
+      let setorDoItemNovo: string | null = null;
       try {
         /*
          * O GÊMEO É CARIMBADO ANTES, e a ordem não é detalhe.
@@ -669,24 +698,58 @@ export function useMenu(branchId: string) {
           });
           savedId = created.id;
 
-          // Item novo nasce sem setor, então só há o que gravar se o lojista
-          // escolheu um. "Não imprimir" já é o estado do recém-criado — mandar
-          // `null` aqui gastaria uma requisição para não mudar nada.
+          /*
+           * O ITEM JÁ EXISTE, E O SETOR NÃO PODE MAIS DESMENTIR ISSO.
+           *
+           * Item novo nasce sem setor, então só há o que gravar se o lojista
+           * escolheu um. "Não imprimir" já é o estado do recém-criado — mandar
+           * `null` aqui gastaria uma requisição para não mudar nada.
+           *
+           * A recusa desta segunda rota tem nome e é alcançável da tela: o
+           * **400 "O setor de impressão é de outra filial"**, que chega quando
+           * a filial do cabeçalho muda entre abrir o diálogo e salvar. Enquanto
+           * ela caía no `catch` de baixo, `saveProduct` devolvia `null` — o
+           * diálogo NÃO fechava, com tudo ainda preenchido, e o segundo
+           * "Salvar" criava o item de novo. Dois "X-Tudo" no cardápio do
+           * cliente, nenhum dos dois com setor, e sem `DELETE` para desfazer.
+           *
+           * Na EDIÇÃO a mesma falha continua devolvendo `null` de propósito, e
+           * a diferença é idempotência: lá o segundo "Salvar" regrava o mesmo
+           * item e tenta o setor de novo, que é o laço certo. Aqui o segundo
+           * "Salvar" cria linha nova.
+           */
           if (draft.printSectorId) {
-            await setProductPrintSector(created.id, draft.printSectorId);
+            try {
+              await setProductPrintSector(created.id, draft.printSectorId);
+            } catch (error) {
+              setorDoItemNovo = messageFromUnknownError(error);
+            }
           }
         }
-        await loadProducts(selectedCategoryId, search);
-        // Criar um item, ou movê-lo de categoria, muda a contagem de DUAS
-        // categorias — a de origem e a de destino. Só a aberta se atualiza
-        // sozinha pelo `total` da listagem, então aqui vale re-sondar.
-        void loadProductCounts(categories);
-        setErrorMessage(null);
-        return savedId;
       } catch (error) {
         setErrorMessage(messageFromUnknownError(error));
         return null;
       }
+
+      // O ITEM EXISTE. Daqui para baixo nada devolve `null`.
+      await loadProducts(selectedCategoryId, search);
+      // Criar um item, ou movê-lo de categoria, muda a contagem de DUAS
+      // categorias — a de origem e a de destino. Só a aberta se atualiza
+      // sozinha pelo `total` da listagem, então aqui vale re-sondar.
+      void loadProductCounts(categories);
+      /*
+       * "Item criado" VEM PRIMEIRO, e é a palavra que muda o que a pessoa faz
+       * em seguida — a mesma ordem que o §7 fixou em `OptionGroupsSection`. O
+       * setor é a ressalva, e ela precisa dizer o que fazer: sem a frase final,
+       * o lojista lê a recusa e reabre o diálogo de criar.
+       */
+      setErrorMessage(
+        setorDoItemNovo === null
+          ? null
+          : `Item criado. O setor de impressão NÃO foi gravado: ${setorDoItemNovo} ` +
+              'Abra o item e escolha o setor de novo.',
+      );
+      return savedId;
     },
     [categories, loadProductCounts, loadProducts, products, search, selectedCategoryId],
   );
