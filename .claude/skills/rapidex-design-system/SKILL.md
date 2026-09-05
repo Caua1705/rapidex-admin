@@ -63,10 +63,20 @@ lugares não destaca nenhum.
 mesma atenção. A linha põe os campos em colunas alinhadas e deixa o alinhamento
 fazer o trabalho que a moldura fazia.
 
-**6. A tela é uma FOLHA.** Não existe cartão branco flutuando sobre chão cinza.
-O plano da página é `--surface` do começo ao fim; quem dá começo e fim a um
-bloco é um FIO e o respiro. Cartão sobre chão é a estética de painel
-administrativo de biblioteca pronta, e ela saiu inteira nesta rodada.
+**6. A tela é uma FOLHA — com UMA exceção nomeada.** Não existe cartão branco
+flutuando sobre chão cinza. O plano da página é `--surface` do começo ao fim;
+quem dá começo e fim a um bloco é um FIO e o respiro. Cartão sobre chão é a
+estética de painel administrativo de biblioteca pronta, e ela saiu inteira na
+rodada que escolheu esta direção.
+
+**A exceção é Desempenho, e ela tem limite.** A regra acima foi escrita olhando
+para telas de UMA natureza — uma lista, um formulário —, e ali continua valendo:
+Pedidos, Cardápio, Clientes e Minha loja não usam `ds/Card`. Desempenho é oito
+blocos de naturezas diferentes na mesma página, e sem um limite desenhado eles
+leem como uma coluna contínua de texto. O relevo dele é o menor possível e sai
+de tokens que já existiam. Ver "Desempenho", nas telas — e se uma tela
+OPERACIONAL passar a usar `ds/Card`, esta decisão precisa ser revisitada, não
+contornada.
 
 **7. No celular a linha não dobra — ela troca de desenho.** A leitura por
 coluna é o ganho inteiro da direção e ela some assim que a linha dobra em duas.
@@ -238,10 +248,17 @@ Três fios, três trabalhos:
 "borda em tudo" acabe sem precisar de um bloco `[data-theme="dark"]` por
 componente.
 
-**Não existe sombra de bloco parado.** O token `--shadow-card` foi removido
-justamente porque valia `none` — e um token que vale `none` é um convite a
-alguém lhe dar um valor. Sobraram dois: `--shadow-lift` (o segmento ativo do
-segmentado) e `--shadow-raised` (o que flutua de verdade).
+**Não existe sombra de bloco parado — fora do cartão de Desempenho.** O token
+`--shadow-card` foi removido justamente porque valia `none`, e um token que vale
+`none` é um convite a alguém lhe dar um valor. Sobraram dois: `--shadow-lift` e
+`--shadow-raised` (o que flutua de verdade, passando POR CIMA de outro
+conteúdo).
+
+`--shadow-lift` tem DOIS empregos hoje: o segmento ativo do segmentado e o
+cartão de Desempenho (`ds/Card`). Nos dois ele é o mesmo degrau curto, e a
+escolha dele em vez de `--shadow-raised` é o que separa "isto é um bloco" de
+"isto está por cima" — um cartão com sombra de diálogo lê como se estivesse
+solto na tela. Ver a decisão 6 e a seção de Desempenho.
 
 ## Cor
 
@@ -489,6 +506,20 @@ decorrido que preenche contra a janela de preparo da loja. Degradê contínuo
 ESTADO. Acima de 85% ela pulsa (a única animação de repetição do sistema,
 abaixo de 3Hz por WCAG 2.3.1). Sem janela configurada ela não aparece: uma
 barra sem régua mediria o nada.
+
+### Cartão — `ds/Card`
+
+**Ele tem UM consumidor, e é de propósito**: a tela de Desempenho. Ver a decisão
+6 e a seção daquela tela — a folha continua sendo o plano de todo o resto do
+painel, e um cartão em Pedidos ou em Minha loja é a estética que a direção saiu
+tirando.
+
+Três propriedades além do conteúdo: `title` (nível 2) com `hint`, `actions` (o
+que vive à direita do título — a nota do recorte, um segmentado curto), `denso`
+(respiro curto no corpo, para o cartão de métrica) e `testId`. O respiro do
+corpo é uma variável (`--ds-card-gap`), e é assim que uma variante o muda numa
+linha — em vez de a folha da página alcançar `.ds-card__corpo` com um seletor
+descendente.
 
 ### Folha, diálogo, menu e balão
 
@@ -801,52 +832,101 @@ contrato não tem nada disso, e um link impreciso é pior que link nenhum.
 
 ### Desempenho — `src/performance/`
 
-Uma tela que RESPONDE, não que exibe. A primeira coisa é uma FRASE, e ela sai de
-regras determinísticas sobre o que as rotas devolvem (`insights.ts`) — sem IA,
-sem estimativa. Toda frase tem limiar nomeado em `LIMIARES`, e frase cuja
-condição não bate não aparece: não existe frase neutra de preenchimento. São
-doze hoje.
+**A ÚNICA TELA DO PAINEL COM CARTÃO, e a exceção tem motivo escrito.** A decisão
+6 desta skill continua valendo em toda tela de UMA natureza — Pedidos, Cardápio,
+Clientes e Minha loja são folhas e não usam `ds/Card`. Desempenho é oito blocos
+de naturezas diferentes na mesma página (quatro métricas, um gráfico, duas
+comparações, dois rankings, um rodapé), e sem um limite desenhado eles leem como
+uma coluna contínua de texto. Foi esse o diagnóstico que abriu a rodada de
+2026-09-05: "parece um relatório de texto, não um dashboard".
 
-A forma:
+O relevo é o MENOR possível e sai inteiro de tokens que já existiam
+(`--surface-raised` + `--line` + `--shadow-lift` + `--r-card`, em `ds/Card.css`):
+nenhuma paleta nova, nenhuma sombra nova, nenhum raio novo. No claro os dois
+planos são o mesmo branco e quem separa é o fio mais a sombra curta; no escuro o
+cartão sobe um degrau de plano. Se alguma tela OPERACIONAL passar a usar
+`ds/Card`, esta seção precisa ser revisitada — não contornada.
 
-1. **uma banda de topo** com a resposta (22px/500), os três números crus
-   (`--metric-*`, com delta em `--ok`/`--danger` mais seta mais sinal) e as
-   ressalvas, fechada por um fio `--line-strong`;
-2. **as filiais lado a lado**, na largura inteira, e SÓ em "todas as filiais" —
-   a seção nasce onde morava o pedido de desculpas pela soma e o transforma em
-   resposta. Com uma filial escolhida ela não existe: a linha de escopo já
-   afirma "estes números são da filial X", e o faturamento da vizinha embaixo
-   faria a tela se contradizer. Reusa `.fatias` (a mesma peça de entrega ×
-   retirada — poucos valores comparáveis, cada um com sua barra de fatia);
-3. **o gráfico de dias na largura inteira** — é a peça que mais faz uma tela de
-   relatório ler como painel;
-4. **as quatro perguntas em grade de duas colunas**, separadas por fio, que
-   volta a uma coluna abaixo de 1100px. A ordem dentro da grade é de ALTURA: as
-   duas seções longas ("o que vendeu" e "o que não virou venda") ocupam a
-   primeira fileira, senão a coluna da direita fica com meia tela de nada e um
-   fio correndo ao lado do vazio.
+A forma, de cima para baixo:
 
-Nenhum cartão. Nenhuma métrica inventada.
+1. **quatro cartões de métrica** (`.kpis`), mesma altura, grade de 4 → 2 em
+   1100px: rótulo nível 3, número `--metric-*`, variação com seta e cor, e no
+   rodapé a MINISSÉRIE do período (`Sparkline`). A minissérie é a informação que
+   nem o número nem a variação dão — "R$ 3.169,50, −6,8%" é o mesmo texto para
+   uma semana estável e para uma semana morta com um sábado enorme. O rodapé
+   existe mesmo vazio: é ele que mantém as quatro alturas iguais;
+2. **o gráfico de linha na largura inteira** — a peça que mais faz esta tela ler
+   como painel. Ver abaixo;
+3. **duas colunas**: a composição do faturamento (rosca) e, só em "todas as
+   filiais" com mais de uma loja, a comparação entre elas. Com uma filial
+   escolhida o segundo cartão TROCA DE ASSUNTO em vez de sumir (entrega ×
+   retirada) — a linha de escopo já afirma "estes números são da filial X", e o
+   faturamento da vizinha ao lado faria a tela se contradizer;
+4. **mais duas colunas**: os cinco produtos mais vendidos com barra proporcional
+   e a divisão por forma de pagamento;
+5. **o rodapé** — o que não virou venda, com a quebra por situação e a hora de
+   ENTRADA dos pedidos. Discreto: mesmo cartão dos outros, e a única cor é o
+   ponto de `--st`. Cancelamento faz parte da operação de qualquer restaurante;
+   uma faixa vermelha aqui gritaria todo dia;
+6. **o pé**: o escopo e os limites, uma linha cada.
 
-**Dois gráficos, uma gramática.** Os dois usam as MESMAS classes
-(`.grafico__*`): coluna, série única, marca neutra, sem legenda, com tabela
-equivalente `sr-only` e altura zero para o balde vazio — um dia fechado ou uma
-hora limpa é informação, e dois pixels diriam "vendeu pouco". O que os separa
-são duas medidas (`--chart-h-curto`, `--chart-band-curto`) e o comportamento no
-celular: o de DIAS rola de lado (trinta dias não cabem, e o que sai da tela é o
-trigésimo de uma série cujo total já está escrito); o de HORAS cabe (a série é
-um turno, e o que sairia da tela seria o pico — a resposta inteira da seção).
+**A tela é de NÚMERO, não de prosa.** Ela já teve doze frases de leitura, uma por
+regra de `insights.ts`, e a rodada de 2026-09-05 deixou DUAS — cada uma diz o que
+a forma não diz: o veredito com a causa por dia (legenda do gráfico) e o
+contraste entre lojas ("não foi a rede, foi uma loja"). Um e2e conta as frases,
+porque uma poda se desfaz uma frase de cada vez.
+
+**TRÊS DESENHOS, TRÊS PAPÉIS, NENHUMA COR.**
+
+- **a linha** (`.linha__*`, `RevenueChart`) — duas séries: este período em traço
+  cheio `--ink` com área em degradê, o anterior em tracejado `--ink-3`. O
+  tracejado é o segundo canal (a cor sozinha reprovaria em WCAG 1.4.1) e é ele
+  que a legenda desenha. Eixo Y com TRÊS marcas e nenhuma moldura; o valor exato
+  vem do balão e da tabela `sr-only` com as duas colunas. Agrupa por DIA até 31
+  pontos e por SEMANA acima disso — **hora não existe**, e não é escolha;
+- **a minissérie** (`.mini`, `Sparkline`) — sem eixo, sem rótulo, sem balão, em
+  `--ink-3`, ancorada no ZERO. Ela é `aria-hidden`: nenhum número existe só ali;
+- **a rosca** (`.rosca`, `Donut`) — parte sobre todo, três fatias no máximo, na
+  escada de tinta `--ink`/`--ink-2`/`--ink-3`. Não há paleta categórica: a
+  informação é o comprimento do arco. O miolo carrega o DENOMINADOR, e é por isso
+  que ela é rosca e não pizza.
+
+`.grafico__*` (a coluna) sobreviveu, e serve UMA série: a hora de entrada dos
+pedidos que não viraram venda. Ela era o gráfico principal da tela.
+
+**A COMPARAÇÃO TEM FREIO**, e ele mora em `report-model.ts` com teste próprio:
+menos de cinco pedidos no período anterior não vira percentual
+(`BASE_MINIMA_PARA_VARIACAO`) e nada passa de ±999%. No lugar vai a BASE ("1
+pedido no período anterior"), que é a resposta verdadeira. O mesmo corte vale
+para a TAXA de cancelamento (`taxaTemBase`): "100%" sobre dois pedidos é certo e
+ilegível como manchete de 28px. Isto existe porque a loja que acabou de abrir é
+quem mais precisa que o painel não pareça quebrado.
+
+**O ESTADO VAZIO MANTÉM A FORMA E TROCA O CONTEÚDO.** Uma versão intermediária
+desta rodada substituía a página por uma frase solta num cartão, e o print
+mostrou o erro: mil pixels de nada, sem pista do que aquela tela mostra quando há
+venda. O que fica: a afirmação no topo, os quatro cartões com TRAVESSÃO (não
+"R$ 0,00", que é um faturamento de zero reais afirmado com todas as letras) e
+CADA BLOCO com uma linha dizendo o que apareceria ali. O gráfico não desenha
+linha rente ao chão nem régua de zero a zero.
+
+**Esqueleto, não girador** (`.esq`). Ele desenha a forma que vai chegar, então o
+conteúdo entra onde o bloco cinza já estava e não há salto de layout. O
+`@keyframes` do brilho tem desligamento próprio sob `prefers-reduced-motion` — os
+tokens `--motion-*` não alcançam uma animação declarada em `animation:`.
 
 **Filtra por filial**, e o seletor do topo pega — as seis rotas de relatório
-aceitam `branch_id` desde a revisão `20260820_0026`. A tela escreve UMA vez, no
-pé da banda, de qual recorte são os números.
+aceitam `branch_id` desde a revisão `20260820_0026`. O seletor NÃO é duplicado no
+cabeçalho da tela: dois lugares para escolher a mesma coisa é como os dois passam
+a discordar. A tela escreve o recorte UMA vez, no pé.
 
-**O que ela não tem, e diz que não tem:** faturamento por hora (nenhuma rota de
-relatório desce abaixo do dia) e o quarto grupo de produto, "sazonais" — para
-dizer que um item é de época seria preciso vê-lo repetir em vários períodos, e
-`/reports/products` devolve um período agregado por vez. A ausência é escrita na
-tela, não silenciosa: espaço vazio ninguém interpreta, e chute tira prato do
-cardápio de gente de verdade.
+**O que ela não tem, e diz que não tem** (uma linha no pé, não uma seção vazia):
+faturamento por hora, pedidos por bairro, cliente novo × recorrente e o cashback
+CONCEDIDO, e o tempo de preparo. Os quatro dependem de dado que o backend não
+devolve — os pedidos estão em `scratchpad/pedido-backend-desempenho.md`. O
+cashback que a tela mostra é o RESGATADO, somado do extrato de comissão, e o nome
+é a informação: chamar um do outro seria uma mentira de uma palavra sobre
+dinheiro.
 
 ### Minha loja — `src/store/`
 
@@ -875,16 +955,16 @@ Validar 390, 430, 768, 1024, 1280, 1440, 1920 e 2560px.
 
 Os pontos de quebra do sistema:
 
-| Ponto | O que muda                                                   |
-| ----- | ------------------------------------------------------------ |
-| 640   | `DataTable` volta a ser tabela                               |
-| 720   | folhas, diálogos e listas viram bloco / tela cheia           |
-| 768   | a navegação sai da barra de baixo e vira trilha de ícones    |
-| 900   | a coluna de seções de Minha loja deita                       |
-| 1024  | a coluna de categorias do Cardápio deita; densidade de mouse |
-| 1100  | a grade de duas colunas de Desempenho volta a uma            |
-| 1180  | a lateral do shell ganha os nomes                            |
-| 1280  | o painel de detalhe deixa de flutuar e vira coluna           |
+| Ponto | O que muda                                                                         |
+| ----- | ---------------------------------------------------------------------------------- |
+| 640   | `DataTable` volta a ser tabela                                                     |
+| 720   | folhas, diálogos e listas viram bloco / tela cheia                                 |
+| 768   | a navegação sai da barra de baixo e vira trilha de ícones                          |
+| 900   | a coluna de seções de Minha loja deita                                             |
+| 1024  | a coluna de categorias do Cardápio deita; densidade de mouse                       |
+| 1100  | as duas colunas de Desempenho voltam a uma; os 4 cartões viram 2 × 2               |
+| 1180  | a lateral do shell ganha os nomes                                                  |
+| 1280  | o painel de detalhe deixa de flutuar e vira coluna; o rodapé de Desempenho empilha |
 
 **Duas consultas são de CONTAINER, não de janela**, e é uma decisão de projeto:
 

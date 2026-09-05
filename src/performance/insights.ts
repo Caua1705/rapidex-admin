@@ -298,7 +298,10 @@ export function readVeredito(
   if (direcao === 'sem-comparacao') {
     return {
       id: 'veredito',
-      text: `Não há com o que comparar este período: ${previousLabel} não teve movimento.`,
+      // Frase fixa em vez do rótulo: `previousLabel` tanto é plural ("os 7
+      // dias anteriores") quanto singular ("o período anterior"), e o verbo
+      // colado nele erra a concordância num dos dois. Ver `readChange`.
+      text: `Não há com o que comparar este período: não houve movimento no período anterior.`,
     };
   }
 

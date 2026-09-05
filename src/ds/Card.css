@@ -1,18 +1,37 @@
 /*
- * O CARTÃO NÃO TEM MOLDURA NO TEMA CLARO, e não tem sombra em tema nenhum.
+ * O CARTÃO TEM UM RELEVO CURTO, e ele é feito de três coisas somadas — nenhuma
+ * das três resolve sozinha nos dois temas:
  *
- * Branco sobre o chão bege já é começo e fim de bloco — a borda e a sombra que
- * ele tinha estavam ali para dizer o que o tom já dizia. No escuro, onde
- * `--surface` e `--bg` estão a um degrau um do outro, `--card-edge` acende o
- * fio; é o mesmo token nos dois temas, e é por isso que não existe um bloco
- * `[data-theme='dark']` aqui.
+ *   - o PLANO (--surface-raised) só se vê no escuro; no claro ele é o mesmo
+ *     branco de --surface, e um degrau de zero não separa nada;
+ *   - o FIO (--line) faz o trabalho no claro, e no escuro ele é o que
+ *     --card-edge já fazia;
+ *   - a SOMBRA (--shadow-lift, a curta — não --shadow-raised, que é para o que
+ *     passa POR CIMA de outro conteúdo) dá o milímetro de profundidade no
+ *     claro, e quase não aparece no escuro.
+ *
+ * O porquê de o cartão ter voltado a ter relevo está em Card.tsx: as telas
+ * operacionais continuam folhas e não usam este componente; quem o usa é
+ * Desempenho, que é um painel de leitura com oito blocos de naturezas
+ * diferentes na mesma página.
+ *
+ * O RESPIRO É UMA VARIÁVEL, e não um valor repetido em três lugares: assim a
+ * variante densa (o cartão de métrica) muda o corpo inteiro numa linha, em vez
+ * de a página de fora alcançar .ds-card__corpo com um seletor descendente.
  */
 .ds-card {
+  --ds-card-gap: var(--sp-16);
+
   display: flex;
   flex-direction: column;
-  background: var(--surface);
-  border: 1px solid var(--card-edge);
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
   border-radius: var(--r-card);
+  box-shadow: var(--shadow-lift);
+}
+
+.ds-card--denso {
+  --ds-card-gap: var(--sp-8);
 }
 
 .ds-card__cab {
@@ -40,7 +59,7 @@
 .ds-card__corpo {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-16);
+  gap: var(--ds-card-gap);
   padding: var(--sp-16);
 }
 

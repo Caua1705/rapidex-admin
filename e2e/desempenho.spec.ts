@@ -4,12 +4,14 @@
  * A tela é de leitura pura, então o que ela tem de errar em silêncio é o
  * NÚMERO — e todo número errado aqui compila, monta e parece certo. Os testes
  * abaixo cobrem, um a um, os casos em que o contrato tem uma armadilha:
- * comparação nula virando 0%, a ressalva do total de produtos sumindo, e o
- * escopo de filial ficando implícito ao lado de um seletor que não filtra.
+ * comparação nula virando 0%, variação percentual sobre base de um pedido, a
+ * ressalva do total de produtos sumindo, e o escopo de filial ficando implícito
+ * ao lado de um seletor que filtra.
  *
- * E cobrem a premissa da tela, que é o que ela tem de mais fácil de perder numa
- * edição futura: A PRIMEIRA COISA DA PÁGINA É UMA FRASE, e nenhuma frase
- * aparece sem que os dados a sustentem.
+ * E cobrem a FORMA da tela, que é o que ela tem de mais fácil de perder numa
+ * edição futura: quatro cartões de métrica com minissérie; a série no tempo com
+ * o período anterior desenhado; a composição com um denominador só; e nenhuma
+ * frase que apareça sem que os dados a sustentem.
  */
 import { expect, test, type Page } from '@playwright/test';
 
@@ -54,72 +56,81 @@ test('Desempenho é uma tela de verdade, não mais uma página "em breve"', asyn
   await expect(page.getByRole('link', { name: /Desempenho\s+Em breve/ })).toHaveCount(0);
 });
 
-/*
- * A PREMISSA DA TELA, em forma de teste.
- *
- * O veredito é a primeira coisa depois do cabeçalho e da barra de período, e
- * ele é uma FRASE: direção, tamanho da variação e valor, numa sentença que o
- * lojista lê de pé, sem interpretar gráfico nenhum.
- */
-test('a primeira coisa da tela é uma frase, não um número', async ({ page }) => {
-  await abrirDesempenho(page);
-
-  const veredito = page.getByTestId('perf-veredito');
-  await expect(veredito).toContainText('6,8% menos que os 7 dias anteriores');
-  /* O valor em reais fica nos três números abaixo, não na frase: os dois na
-     mesma dobra seriam a mesma informação duas vezes (§8). */
-  await expect(veredito).not.toContainText('3.169,50');
-});
+/* ==========================================================================
+ * OS QUATRO CARTÕES DE MÉTRICA
+ * ======================================================================= */
 
 /*
- * A CAUSA VEM DA SEGUNDA CHAMADA DE `sales-by-day`.
+ * ESTE TESTE MUDOU DE FORMA DUAS VEZES, e o requisito é o mesmo desde sempre:
+ * os valores e a comparação, escritos, sem inventar 0%.
  *
- * O fake devolve uma série diferente para o período anterior (ver
- * `VALORES_ANTERIORES`), com um único dia muito maior: a queda do período tem
- * um culpado, e a frase tem de nomeá-lo. Sem a segunda chamada, esta asserção
- * é a que falha.
+ * Ele já se chamou "os três números crus vêm depois da frase, para
+ * conferência", quando a frase era a resposta e o número a conferência. A
+ * hierarquia virou: o dono abre a tela para DECIDIR, e o que decide é o número
+ * com a variação ao lado — "R$ 3.169,50, -6,8%" diz o que a frase dizia com
+ * vinte palavras. Agora eles são CARTÕES, e são quatro.
  */
-test('a frase nomeia os dias que explicam a variação', async ({ page }) => {
+test('o topo são quatro cartões de métrica, cada um com a comparação', async ({ page }) => {
   await abrirDesempenho(page);
 
-  await expect(page.getByTestId('perf-veredito')).toContainText('puxado para baixo por');
-});
+  const cartoes = page.locator('.kpi');
+  await expect(cartoes).toHaveCount(4);
 
-/*
- * PERÍODO SEM VENDA É UMA TELA, NÃO SEIS SEÇÕES ZERADAS.
- *
- * R$ 0,00 repetido em três números, um gráfico rente ao chão e quatro tabelas
- * vazias não dizem "não vendeu": dizem "a tela quebrou". A linha dos excluídos
- * fica mesmo aqui — zero faturado com dois cancelados é justamente quando os
- * dois precisam ser vistos.
- */
-test('período sem venda diz isso, em vez de mostrar seis seções zeradas', async ({ page }) => {
-  api.emptyReports();
-  await abrirDesempenho(page);
-
-  await expect(page.getByTestId('perf-vazio')).toContainText(
-    'Nenhum pedido foi faturado neste período',
-  );
-  await expect(page.getByTestId('perf-excluidos')).toContainText('2 pedidos não entram');
-
-  await expect(page.locator('.numeros__item')).toHaveCount(0);
-  await expect(page.locator('.perf__secao')).toHaveCount(0);
-
-  // O escopo continua dito: ele qualifica o período, não os números.
-  await expect(page.getByTestId('perf-escopo')).toBeVisible();
-});
-
-test('os três números crus vêm depois da frase, para conferência', async ({ page }) => {
-  await abrirDesempenho(page);
-
-  const faturamento = page.locator('.numeros__item').filter({ hasText: 'Faturamento' });
+  const faturamento = page.getByTestId('perf-kpi-faturamento');
+  await expect(faturamento).toContainText('Faturamento');
   await expect(faturamento).toContainText('R$ 3.169,50');
   await expect(faturamento).toContainText('-6,8% vs. os 7 dias anteriores');
 
-  await expect(page.locator('.numeros__item').filter({ hasText: 'Ticket médio' })).toContainText(
-    'R$ 58,69',
-  );
-  await expect(page.locator('.numeros__item').filter({ hasText: 'Pedidos' })).toContainText('54');
+  await expect(page.getByTestId('perf-kpi-pedidos')).toContainText('54');
+  await expect(page.getByTestId('perf-kpi-ticket')).toContainText('R$ 58,69');
+  await expect(page.getByTestId('perf-kpi-cancelamento')).toContainText('10%');
+});
+
+/*
+ * A MINISSÉRIE É O TERCEIRO CANAL DO CARTÃO, e ela responde o que o número e a
+ * variação não respondem: "foi assim a semana toda, ou foi um dia?".
+ *
+ * Três dos quatro cartões a têm (faturamento, pedidos e ticket saem todos do
+ * mesmo `sales-by-day`); o de cancelamento não, porque não existe cancelamento
+ * dia a dia em rota nenhuma — e no lugar dele vai a contagem e o valor perdido.
+ */
+test('os cartões trazem a minissérie do período, e o de cancelamento a contagem', async ({
+  page,
+}) => {
+  await abrirDesempenho(page);
+
+  await expect(page.getByTestId('perf-kpi-faturamento').locator('.mini')).toBeVisible();
+  await expect(page.getByTestId('perf-kpi-pedidos').locator('.mini')).toBeVisible();
+  await expect(page.getByTestId('perf-kpi-ticket').locator('.mini')).toBeVisible();
+
+  const cancelamento = page.locator('.kpi').filter({ hasText: 'Cancelamento' });
+  await expect(cancelamento.locator('.mini')).toHaveCount(0);
+  await expect(cancelamento).toContainText('6 pedidos');
+  await expect(cancelamento).toContainText('R$ 327,00');
+});
+
+/*
+ * A COR DO QUARTO CARTÃO É INVERTIDA, e a variação vem de uma SEGUNDA chamada.
+ *
+ * `/reports/cancellations` não devolve o período anterior (só o `summary`
+ * faz isso). A tela pede o relatório duas vezes — a técnica do `byDayPrevious`
+ * — e escreve a diferença em pontos percentuais: 10% contra 6,5% são
+ * +3,5 p.p., e subir aqui é PIOR. Verde para cima nesta linha diria "boa
+ * notícia" sobre mais pedidos perdidos.
+ *
+ * O falso devolve 6,5% para o período anterior de propósito (ver
+ * `initialCancellations`): com 10% nos dois, a diferença seria zero e este
+ * teste passaria sem nunca ter exercitado a segunda chamada.
+ *
+ * A SETA CONTINUA APONTANDO PARA CIMA — quem inverte é a COR. Uma seta para
+ * baixo num número que subiu mentiria sobre o número.
+ */
+test('o cancelamento compara com o período anterior, e subir é vermelho', async ({ page }) => {
+  await abrirDesempenho(page);
+
+  const cancelamento = page.getByTestId('perf-kpi-cancelamento');
+  await expect(cancelamento).toContainText('+3,5 p.p. vs. os 7 dias anteriores');
+  await expect(cancelamento.locator('.kpi__delta')).toHaveClass(/kpi__delta--down/);
 });
 
 /*
@@ -131,98 +142,175 @@ test('os três números crus vêm depois da frase, para conferência', async ({ 
 test('comparação sem período anterior diz "sem comparação", nunca 0%', async ({ page }) => {
   await abrirDesempenho(page);
 
-  const item = page.locator('.numeros__item').filter({ hasText: 'Ticket médio' });
-  await expect(item).toContainText('sem comparação');
-  await expect(item).not.toContainText('0%');
+  const ticket = page.getByTestId('perf-kpi-ticket');
+  await expect(ticket).toContainText('sem comparação');
+  await expect(ticket).not.toContainText('0%');
 });
 
 /*
- * A LINHA DOS EXCLUÍDOS É PERMANENTE, e fica colada no faturamento, porque é o
- * faturamento que ela qualifica.
+ * ============================================================================
+ * A LOJA QUE ACABOU DE ABRIR — o defeito mais visível da tela antiga
+ * ============================================================================
+ *
+ * Com 54 pedidos agora e UM no período anterior, o backend responde
+ * `+5300.0%` com toda a razão aritmética. Desenhar isso é medir o denominador,
+ * não a loja — e o inverso (1 pedido antes, 0 agora) pintava "-100%" em
+ * vermelho gigante numa loja que só ainda não vendeu hoje.
+ *
+ * A guarda tem nome e corte declarado (`BASE_MINIMA_PARA_VARIACAO`, cinco
+ * pedidos), e o que a tela mostra no lugar NÃO é um travessão mudo: é a BASE,
+ * que é a resposta verdadeira para "por que não tem variação aqui".
  */
-test('os pedidos excluídos são ditos junto do número que eles qualificam', async ({ page }) => {
+test('base pequena no período anterior não vira percentual, e sim a base', async ({ page }) => {
+  api.lojaNova();
   await abrirDesempenho(page);
 
-  await expect(page.getByTestId('perf-excluidos')).toContainText(
-    '6 pedidos não entram nestes números',
+  const faturamento = page.getByTestId('perf-kpi-faturamento');
+  await expect(faturamento).toContainText('sem comparação — 1 pedido no período anterior');
+  await expect(faturamento).not.toContainText('%');
+
+  // E sem direção não há cor: pintar de verde o que não se sabe é afirmar.
+  await expect(faturamento.locator('.kpi__delta')).toHaveClass(/kpi__delta--vazio/);
+});
+
+/*
+ * PERÍODO SEM VENDA É UMA TELA, NÃO OITO BLOCOS ZERADOS.
+ *
+ * R$ 0,00 repetido em quatro cartões, uma linha rente ao chão e quatro listas
+ * em branco não dizem "não vendeu": dizem "a tela quebrou". A linha dos
+ * excluídos fica mesmo aqui — zero faturado com dois cancelados é justamente
+ * quando os dois precisam ser vistos.
+ */
+test('período sem venda mantém a FORMA da tela, e troca o conteúdo', async ({ page }) => {
+  api.emptyReports();
+  await abrirDesempenho(page);
+
+  await expect(page.getByTestId('perf-vazio')).toContainText(
+    'Nenhum pedido foi faturado neste período',
   );
+  await expect(page.getByTestId('perf-excluidos')).toContainText('2 pedidos não entram');
+
+  /*
+   * OS QUATRO CARTÕES CONTINUAM LÁ, COM TRAVESSÃO. Uma versão anterior desta
+   * rodada trocava a página inteira por uma frase solta num cartão, e o
+   * resultado era pior que o problema: mil pixels de nada, sem nenhuma pista do
+   * que aquela tela mostra quando há venda.
+   *
+   * E travessão NÃO É "zero reais": os dois parecem a mesma coisa e não são. Um
+   * faturamento de zero afirmado com todas as letras é a leitura que faz o
+   * lojista achar que o painel quebrou.
+   */
+  await expect(page.locator('.kpi')).toHaveCount(4);
+
+  const faturamento = page.getByTestId('perf-kpi-faturamento');
+  await expect(faturamento).toContainText('—');
+  await expect(faturamento).toContainText('sem venda no período');
+  await expect(faturamento).not.toContainText('0,00');
+  await expect(faturamento.locator('.mini')).toHaveCount(0);
+
+  /*
+   * E A TAXA DE CANCELAMENTO TAMBÉM TEM PISO DE BASE.
+   *
+   * Aqui entraram dois pedidos e os dois foram cancelados: o backend responde
+   * "100.0" com toda a razão, e como manchete de 28px isso diz "a operação
+   * parou". O que a tela mostra é a contagem, que é a informação de verdade e
+   * cabe inteira sem inventar uma taxa. Ver `taxaTemBase`.
+   */
+  const cancelamento = page.getByTestId('perf-kpi-cancelamento');
+  await expect(cancelamento).not.toContainText('100%');
+  await expect(cancelamento).toContainText('sem taxa — 2 pedidos no período');
+  await expect(cancelamento).toContainText('R$ 96,00');
+
+  /* Cada bloco diz o que apareceria ali — o pedido desta rodada, literalmente:
+     "um vazio elegante, com uma linha dizendo o que apareceria ali". */
+  await expect(page.getByText(/a linha do faturamento dia a dia aparece aqui/i)).toBeVisible();
+  await expect(page.getByText(/aqui aparece para onde o dinheiro foi/i)).toBeVisible();
+  await expect(page.getByText(/aqui aparecem os cinco que mais saíram/i)).toBeVisible();
+  await expect(
+    page.getByText(/aqui aparece a divisão entre Pix, cartão e dinheiro/i),
+  ).toBeVisible();
+
+  /* E o gráfico não desenha uma linha rente ao chão: sem escala não há série, e
+     a tabela equivalente de zeros também não é desenhada. */
+  await expect(
+    page.getByRole('table', { name: 'Faturamento por dia, com o período anterior' }),
+  ).toHaveCount(0);
+
+  // O escopo continua dito: ele qualifica o período, não os números.
+  await expect(page.getByTestId('perf-escopo')).toBeVisible();
+});
+
+/* ==========================================================================
+ * O GRÁFICO — a série no tempo, com o período anterior desenhado
+ * ======================================================================= */
+
+/*
+ * O PERÍODO ANTERIOR ESTÁ NO GRÁFICO, não só numa frase.
+ *
+ * `sales-by-day` já era pedido duas vezes, e a segunda série existia na
+ * memória e não na tela. Agora as duas são desenhadas, alinhadas dia a dia
+ * (o 1º dia deste período sobre o 1º do anterior), e a tabela equivalente —
+ * a única forma de ler o gráfico sem ponteiro — traz as duas colunas.
+ *
+ * A fixture tem o 2º dia em R$ 9,00 agora e R$ 1.400,00 antes: é a linha em
+ * que as duas séries mais se afastam, e é a que a tabela precisa mostrar.
+ */
+test('o gráfico desenha o período anterior junto, e a tabela traz as duas séries', async ({
+  page,
+}) => {
+  await abrirDesempenho(page);
+
+  await expect(page.getByTestId('perf-grafico-legenda')).toContainText('este período');
+  await expect(page.getByTestId('perf-grafico-legenda')).toContainText('os 7 dias anteriores');
+
+  const tabela = page.getByRole('table', { name: 'Faturamento por dia, com o período anterior' });
+  await expect(tabela).toBeAttached();
+  await expect(tabela.getByRole('columnheader', { name: 'Este período' })).toBeAttached();
+  await expect(tabela.getByRole('columnheader', { name: 'Período anterior' })).toBeAttached();
+
+  const segundoDia = tabela.getByRole('row').nth(2);
+  await expect(segundoDia).toContainText('R$ 9,00');
+  await expect(segundoDia).toContainText('R$ 1.400,00');
 });
 
 /*
- * A SEÇÃO DE FORMAS DE PAGAMENTO SAIU — e é de propósito.
- *
- * A rota existe e devolve a tabela inteira, mas "57,4% em Pix" não muda decisão
- * nenhuma do lojista: é gráfico decorativo. O que sobrou é uma frase, e só
- * quando o número vira ação — aqui, dinheiro acima do limiar, que é troco a
- * separar antes do turno.
+ * A MESMA ROTA TRAZ PEDIDOS POR DIA, e a tela alterna sem pedir nada de novo.
+ * O que muda é a medida, e a tabela equivalente acompanha — senão o leitor de
+ * tela ficaria com o faturamento enquanto o olho vê pedidos.
  */
-test('forma de pagamento é uma frase acionável, não uma tabela decorativa', async ({ page }) => {
+test('o gráfico alterna entre faturamento e pedidos', async ({ page }) => {
   await abrirDesempenho(page);
 
-  await expect(page.getByRole('table', { name: 'Faturamento por forma de pagamento' })).toHaveCount(
-    0,
-  );
-  await expect(page.getByTestId('perf-frase-pagamento-dinheiro')).toContainText('troco');
+  await expect(page.getByTestId('perf-medida-faturamento')).toHaveAttribute('aria-pressed', 'true');
+
+  await page.getByTestId('perf-medida-pedidos').click();
+  await expect(page.getByTestId('perf-medida-pedidos')).toHaveAttribute('aria-pressed', 'true');
+
+  await expect(
+    page.getByRole('table', { name: 'Pedidos por dia, com o período anterior' }),
+  ).toBeAttached();
+  await expect(
+    page.getByRole('table', { name: 'Faturamento por dia, com o período anterior' }),
+  ).toHaveCount(0);
 });
 
 /*
- * TODA FRASE TEM LIMIAR, E O QUE NÃO BATE NÃO APARECE.
+ * A FRASE-VEREDITO SOBREVIVEU À PODA, e sobreviveu como LEGENDA do gráfico.
  *
- * Na fixture a retirada é 20,8% do faturamento — abaixo do limiar em que ela
- * vira canal. A tela não escreve uma frase morna sobre isso: fica sem frase.
+ * Ela era a primeira coisa da tela; hoje as onze outras frases saíram e ela
+ * ficou, porque é a única que diz o que a forma não diz: a CAUSA por dia
+ * ("puxado para baixo por…"). Ela não repete o valor em reais, que já está no
+ * cartão logo acima.
  */
-test('frase cuja condição não bate simplesmente não aparece', async ({ page }) => {
+test('a única frase do topo é a legenda do gráfico, e nomeia os dias que explicam', async ({
+  page,
+}) => {
   await abrirDesempenho(page);
 
-  await expect(page.getByTestId('perf-frase-retirada')).toHaveCount(0);
-  // A de concentração bate (um produto é 60% da receita listada) e aparece.
-  await expect(page.getByTestId('perf-frase-concentracao')).toContainText('Pizza Calabresa G');
-});
-
-/*
- * A ARMADILHA Nº 2. `listed_revenue_total` NÃO fecha com o faturamento do
- * resumo — é receita bruta de item, sem cupom, cashback nem taxas. Os dois
- * números na mesma tela sem a ressalva fazem a tela parecer com erro de conta,
- * e o texto vem pronto do backend em `revenue_note`.
- */
-test('o total de produtos vem com a ressalva do backend colada nele', async ({ page }) => {
-  await abrirDesempenho(page);
-
-  const secao = page.locator('.perf__secao').filter({ hasText: 'O que vendeu' });
-  await expect(secao).toContainText('R$ 2.495,60');
-  await expect(secao).toContainText('não fecha com o faturamento do resumo');
-});
-
-/*
- * O ESCOPO, ESCRITO — E ELE MUDOU DE ASSUNTO.
- *
- * Este teste afirmava o contrário: que as rotas NÃO aceitavam `branch_id`, que
- * o aviso dizia "o seletor do topo não muda nada aqui", e que trocar de filial
- * devolvia o MESMO faturamento. Ele até previu a virada, por escrito — "se um
- * dia o backend ganhar `branch_id`, este teste é o que avisa que o aviso ficou
- * mentiroso". Ganhou, na revisão `20260820_0026`, e foi ele que avisou.
- *
- * O REQUISITO NÃO MUDOU, só a forma: a tela tem de dizer QUAL recorte produziu
- * estes números, porque "faturou R$ 12 mil" significa coisas diferentes para
- * uma loja e para a rede. Antes isso se provava mostrando que o seletor não
- * pegava; agora, mostrando que ele pega e que o aviso o acompanha.
- */
-test('a tela diz de qual recorte são os números, e o seletor do topo os muda', async ({ page }) => {
-  await abrirDesempenho(page);
-
-  const aviso = page.getByTestId('perf-escopo');
-  await expect(aviso).toContainText('todas as filiais');
-
-  const faturamento = page.locator('.numeros__item').filter({ hasText: 'Faturamento' });
-  await expect(faturamento).toContainText('R$ 3.169,50');
-
-  await escolherFilial(page, FAKE_BRANCH_2);
-
-  // O número MUDA, e o aviso passa a nomear a loja. Sem uma das duas coisas o
-  // lojista leria o faturamento de uma loja como o da rede, ou o contrário.
-  await expect(faturamento).toContainText('R$ 1.349,50');
-  await expect(aviso).toContainText('da filial');
-  await expect(aviso).toContainText(branchName(FAKE_BRANCH_2));
+  const veredito = page.getByTestId('perf-veredito');
+  await expect(veredito).toContainText('6,8% menos que os 7 dias anteriores');
+  await expect(veredito).toContainText('puxado para baixo por');
+  await expect(veredito).not.toContainText('3.169,50');
 });
 
 /*
@@ -230,16 +318,16 @@ test('a tela diz de qual recorte são os números, e o seletor do topo os muda',
  * NÃO EXISTE FATURAMENTO POR HORA — e o requisito continua o mesmo
  * ============================================================================
  *
- * ESTE TESTE MUDOU DE FORMA, NÃO DE ASSUNTO. Ele dizia "não há gráfico por
- * hora, ponto", e o que ele protegia era outra coisa: que a tela não INVENTE um
- * recorte que o backend não entrega. Nenhuma das seis rotas de relatório desce
- * abaixo do dia, então um "horário de pico de faturamento" só poderia sair de
- * estimativa — e estimativa nesta tela é proibida.
+ * O que ele protege é que a tela não INVENTE um recorte que o backend não
+ * entrega. Nenhuma das seis rotas de relatório desce abaixo do dia, então um
+ * "horário de pico de faturamento" só poderia sair de estimativa — e
+ * estimativa nesta tela é proibida. O agrupamento do gráfico é dia ou semana; a
+ * hora não está entre as opções porque ela não existe. O pedido ao backend
+ * está em `scratchpad/pedido-backend-desempenho.md`.
  *
- * O que passou a existir é de outra natureza e vem de outra rota: a HORA DE
+ * O que existe por hora é de outra natureza e vem de outra rota: a HORA DE
  * ENTRADA dos pedidos que não viraram venda, contada a partir do `created_at`
- * de `GET /admin/orders`. É contagem, não dinheiro, e ela vive dentro de "O que
- * não virou venda". A asserção abaixo separa as duas coisas.
+ * de `GET /admin/orders`. É contagem, não dinheiro.
  */
 test('não há faturamento por hora, e o pico de vendas não é inventado', async ({ page }) => {
   await abrirDesempenho(page);
@@ -247,13 +335,62 @@ test('não há faturamento por hora, e o pico de vendas não é inventado', asyn
   await expect(page.getByText(/hor[áa]rio de pico/i)).toHaveCount(0);
   await expect(page.getByText(/faturamento por hora/i)).toHaveCount(0);
 
-  // A tabela equivalente do gráfico de dias continua sendo a única série de
-  // DINHEIRO da tela — a de hora conta pedidos.
-  await expect(page.getByRole('table', { name: 'Faturamento e pedidos por dia' })).toBeAttached();
+  // A tabela equivalente do gráfico continua sendo a única série de DINHEIRO da
+  // tela — a de hora conta pedidos.
+  await expect(
+    page.getByRole('table', { name: 'Faturamento por dia, com o período anterior' }),
+  ).toBeAttached();
 });
 
 /* ==========================================================================
- * LOTE 6 — AS FILIAIS LADO A LADO
+ * A COMPOSIÇÃO — para onde o dinheiro foi
+ * ======================================================================= */
+
+/*
+ * UM DENOMINADOR SÓ NO CARTÃO INTEIRO.
+ *
+ * A identidade do contrato é `revenue_total = subtotal + entrega + serviço −
+ * desconto`. O desconto é uma SUBTRAÇÃO, não uma fatia, e desenhá-lo como uma
+ * quarta parcela ao lado das outras três somaria mais de 100% de um todo de
+ * 100. Por isso ele aparece com sinal de menos, depois de um fio, medido
+ * contra o mesmo bruto.
+ *
+ * A fixture: bruto = 94% + 7,57% + 3,41% de 3.169,50 = 3.331,66. Produtos são
+ * 2.979,33, ou 89,4% dele.
+ */
+test('a composição divide o bruto e separa o que sai dele', async ({ page }) => {
+  await abrirDesempenho(page);
+
+  const composicao = page.getByTestId('perf-composicao');
+  await expect(composicao).toContainText('Produtos');
+  await expect(composicao).toContainText('R$ 2.979,33');
+  await expect(composicao).toContainText('89,5%');
+  await expect(composicao).toContainText('Taxa de entrega');
+  await expect(composicao).toContainText('Taxa de serviço');
+
+  // As saídas levam o sinal de menos, para não serem lidas como quarta parcela.
+  await expect(composicao).toContainText('− R$ 158,48'); // desconto: 5% de 3.169,50
+  await expect(composicao).toContainText('Comissão da plataforma');
+});
+
+/*
+ * O CASHBACK QUE A TELA MOSTRA É O RESGATADO, e o nome é a informação.
+ *
+ * "Concedido" (o crédito gerado na venda) não existe em resposta nenhuma de
+ * `/admin`. O que existe é `CommissionReportItem.cashback_redeemed_amount`,
+ * pedido a pedido — o que o cliente GASTOU do saldo em pedidos do período.
+ * Chamar um do outro seria uma mentira de uma palavra sobre dinheiro.
+ */
+test('o cashback aparece como RESGATADO, somado do extrato de comissão', async ({ page }) => {
+  await abrirDesempenho(page);
+
+  const composicao = page.getByTestId('perf-composicao');
+  await expect(composicao).toContainText('Cashback resgatado');
+  await expect(composicao).not.toContainText('Cashback concedido');
+});
+
+/* ==========================================================================
+ * DE ONDE VEM — as filiais lado a lado
  * ======================================================================= */
 
 /*
@@ -262,8 +399,8 @@ test('não há faturamento por hora, e o pico de vendas não é inventado', asyn
  * somava as duas e avisava que estava somando.
  *
  * A fixture divide 3.169,50 em 1.820,00 (Aldeota) e 1.349,50 (Zona Norte), e a
- * soma FECHA — é isso que este teste prova junto: as partes somam o todo que a
- * banda do topo mostra.
+ * soma FECHA — é isso que este teste prova junto: as partes somam o todo que o
+ * cartão do topo mostra.
  */
 test('em "todas as filiais", a tela compara as lojas em vez de só somá-las', async ({ page }) => {
   await abrirDesempenho(page);
@@ -274,9 +411,8 @@ test('em "todas as filiais", a tela compara as lojas em vez de só somá-las', a
   await expect(filiais).toContainText('R$ 1.820,00');
   await expect(filiais).toContainText('R$ 1.349,50');
 
-  // A banda do topo continua mostrando a soma das duas.
-  const faturamento = page.locator('.numeros__item').filter({ hasText: 'Faturamento' });
-  await expect(faturamento).toContainText('R$ 3.169,50');
+  // O cartão do topo continua mostrando a soma das duas.
+  await expect(page.getByTestId('perf-kpi-faturamento')).toContainText('R$ 3.169,50');
 });
 
 /*
@@ -293,7 +429,7 @@ test('a comparação vem ordenada por faturamento, maior primeiro', async ({ pag
 });
 
 /*
- * A FRASE QUE DESMONTA O NÚMERO DO TOPO. Na fixture a rede caiu 6,8% — mas ela
+ * A SEGUNDA (E ÚLTIMA) FRASE DA TELA. Na fixture a rede caiu 6,8% — mas ela
  * não caiu por igual: a Aldeota SUBIU 14,5% e a Zona Norte caiu 25,5%. Sem esta
  * frase, o dono leria "a semana foi pior" e procuraria a causa na rede inteira.
  */
@@ -307,34 +443,168 @@ test('a comparação diz quando uma loja subiu e a outra caiu', async ({ page })
 });
 
 /*
- * COM UMA FILIAL ESCOLHIDA A COMPARAÇÃO SOME, e não é economia de espaço: a
- * linha de escopo passa a afirmar "estes números são da filial X", e pôr o
- * faturamento da vizinha logo abaixo faria a tela contradizer a própria legenda
- * três centímetros depois de escrevê-la.
+ * COM UMA FILIAL ESCOLHIDA A COMPARAÇÃO SOME, e o cartão NÃO fica vazio: ele
+ * troca de assunto.
+ *
+ * Não é economia de espaço — a linha de escopo passa a afirmar "estes números
+ * são da filial X", e pôr o faturamento da vizinha ao lado faria a tela
+ * contradizer a própria legenda três centímetros depois de escrevê-la. O que
+ * entra no lugar responde outra pergunta que o mesmo `summary` já traz.
  *
  * (O gerente nunca chega em "todas as filiais": `ensure_pode_ler_dinheiro`
  * recusa quem não é dono sem recorte, e a tela pede a filial antes de pedir os
  * relatórios. Ver `papeis.spec.ts`.)
  */
-test('com uma filial escolhida, a tela é sobre ela e não compara', async ({ page }) => {
+test('com uma filial escolhida, o cartão das filiais dá lugar a entrega × retirada', async ({
+  page,
+}) => {
   await abrirDesempenho(page);
   await expect(page.getByTestId('perf-filiais')).toBeVisible();
+  await expect(page.getByTestId('perf-tipos')).toHaveCount(0);
 
   await escolherFilial(page, FAKE_BRANCH_2);
 
   await expect(page.getByTestId('perf-filiais')).toHaveCount(0);
+  await expect(page.getByTestId('perf-tipos')).toBeVisible();
   await expect(page.getByTestId('perf-escopo')).toContainText('da filial');
 });
 
+/*
+ * O ESCOPO, ESCRITO — E ELE MUDOU DE ASSUNTO.
+ *
+ * Este teste afirmava o contrário: que as rotas NÃO aceitavam `branch_id`, que
+ * o aviso dizia "o seletor do topo não muda nada aqui", e que trocar de filial
+ * devolvia o MESMO faturamento. Ele até previu a virada, por escrito — "se um
+ * dia o backend ganhar `branch_id`, este teste é o que avisa que o aviso ficou
+ * mentiroso". Ganhou, na revisão `20260820_0026`, e foi ele que avisou.
+ *
+ * O REQUISITO NÃO MUDOU, só a forma: a tela tem de dizer QUAL recorte produziu
+ * estes números, porque "faturou R$ 12 mil" significa coisas diferentes para
+ * uma loja e para a rede.
+ */
+test('a tela diz de qual recorte são os números, e o seletor do topo os muda', async ({ page }) => {
+  await abrirDesempenho(page);
+
+  const aviso = page.getByTestId('perf-escopo');
+  await expect(aviso).toContainText('todas as filiais');
+
+  const faturamento = page.getByTestId('perf-kpi-faturamento');
+  await expect(faturamento).toContainText('R$ 3.169,50');
+
+  await escolherFilial(page, FAKE_BRANCH_2);
+
+  // O número MUDA, e o aviso passa a nomear a loja. Sem uma das duas coisas o
+  // lojista leria o faturamento de uma loja como o da rede, ou o contrário.
+  await expect(faturamento).toContainText('R$ 1.349,50');
+  await expect(aviso).toContainText('da filial');
+  await expect(aviso).toContainText(branchName(FAKE_BRANCH_2));
+});
+
 /* ==========================================================================
- * LOTE 6 — A HORA DOS CANCELAMENTOS
+ * O QUE VENDE × COMO PAGAM
  * ======================================================================= */
 
 /*
- * O DADO VEM DA LISTAGEM DE PEDIDOS, e não do relatório de cancelamentos —
- * `/reports/cancellations` cruza situação com pagamento e não tem relógio
- * nenhum. A fixture põe seis pedidos que não viraram venda há três dias, três
- * deles às 20h locais.
+ * A TABELA DE QUATRO COLUNAS VIROU CINCO LINHAS COM BARRA.
+ *
+ * A barra mede UNIDADES, que é o que ordena a lista (`/reports/products`
+ * devolve o ranking por unidades vendidas): uma barra de receita numa lista
+ * ordenada por unidade desenharia uma escada fora de ordem, e o lojista
+ * concluiria que a tela está errada.
+ */
+test('os produtos viram cinco linhas com barra, quantidade e faturamento', async ({ page }) => {
+  await abrirDesempenho(page);
+
+  const produtos = page.getByTestId('perf-produtos');
+  await expect(produtos.locator('.ranking__linha')).toHaveCount(5);
+
+  const primeiro = produtos.locator('.ranking__linha').first();
+  await expect(primeiro).toContainText('Pizza Calabresa G');
+  await expect(primeiro).toContainText('unidades');
+  await expect(primeiro).toContainText('pedidos');
+});
+
+/*
+ * A ARMADILHA Nº 2. `listed_revenue_total` NÃO fecha com o faturamento do
+ * resumo — é receita bruta de item, sem cupom, cashback nem taxas. Os dois
+ * números na mesma tela sem a ressalva fazem a tela parecer com erro de conta,
+ * e o texto vem pronto do backend em `revenue_note`.
+ */
+test('o total de produtos vem com a ressalva do backend colada nele', async ({ page }) => {
+  await abrirDesempenho(page);
+
+  const cartao = page.locator('.ds-card').filter({ hasText: 'Produtos mais vendidos' });
+  await expect(cartao).toContainText('R$ 2.495,60');
+  await expect(cartao).toContainText('não fecha com o faturamento do resumo');
+});
+
+/*
+ * ESTE TESTE MUDOU DE FORMA. Chamava-se "forma de pagamento é uma frase
+ * acionável, não uma tabela decorativa", e uma rodada anterior tinha reduzido a
+ * rota inteira a UMA frase condicional — "57,4% em Pix não muda decisão".
+ *
+ * Muda: a taxa de cada meio é diferente, e o dinheiro em espécie é troco e
+ * risco. A distribuição volta como FATIAS (poucos valores comparáveis, cada um
+ * com sua barra — a mesma peça de entrega × retirada), sem virar tabela de
+ * quatro colunas. E `payment_method` nulo continua sendo "sem forma
+ * registrada", nunca "Outro" — que é uma forma de pagamento de verdade.
+ */
+test('as formas de pagamento são desenhadas, e a nula não vira "Outro"', async ({ page }) => {
+  await abrirDesempenho(page);
+
+  const pagamentos = page.getByTestId('perf-pagamentos');
+  await expect(pagamentos).toContainText('Pix');
+  await expect(pagamentos).toContainText('R$ 1.820,00');
+  await expect(pagamentos).toContainText('57,4%');
+  await expect(pagamentos).toContainText('Sem forma registrada');
+  await expect(pagamentos).not.toContainText('Outro');
+
+  await expect(page.getByRole('table', { name: 'Faturamento por forma de pagamento' })).toHaveCount(
+    0,
+  );
+});
+
+/*
+ * O BAIRRO NÃO EXISTE, E A TELA NÃO O INVENTA.
+ *
+ * `AdminOrderListItem` não traz endereço nenhum — o bairro só aparece em
+ * `OrderDetailResponse`, um pedido por vez. Ler o bairro de um mês seria uma
+ * requisição por pedido. Este teste é a fechadura contra "completar o quadro"
+ * com uma estimativa por CEP ou por entregador.
+ */
+test('não existe bloco de bairros, e a ausência está escrita', async ({ page }) => {
+  await abrirDesempenho(page);
+
+  await expect(page.getByText(/pedidos por bairro/i)).toHaveCount(0);
+  await expect(page.getByTestId('perf-limites')).toContainText('bairro');
+});
+
+/* ==========================================================================
+ * O RODAPÉ — o que não virou venda
+ * ======================================================================= */
+
+/*
+ * A QUEBRA É UMA LISTA, E O PONTO SAI DO ESTÁGIO.
+ *
+ * `is-<estágio>` e não `is-<status do backend>`: a escala de cor tem sete
+ * estágios visuais e a máquina de estados do backend tem mais nomes. Escrever
+ * `is-cancelled` daria uma classe que não existe e um ponto sem cor — sem nada
+ * quebrar, que é o pior desfecho.
+ */
+test('o que não virou venda mostra situação, pagamento, contagem e valor', async ({ page }) => {
+  await abrirDesempenho(page);
+
+  const quebra = page.getByTestId('perf-quebra');
+  await expect(quebra).toContainText('Cancelado');
+  await expect(quebra).toContainText('pedidos');
+  await expect(quebra.locator('.is-cancelado')).not.toHaveCount(0);
+});
+
+/*
+ * O DADO DA HORA VEM DA LISTAGEM DE PEDIDOS, e não do relatório de
+ * cancelamentos — `/reports/cancellations` cruza situação com pagamento e não
+ * tem relógio nenhum. A fixture põe seis pedidos que não viraram venda há três
+ * dias, três deles às 20h locais.
  */
 test('os cancelamentos ganham corte por horário, com a hora que concentra', async ({ page }) => {
   await abrirDesempenho(page);
@@ -347,8 +617,6 @@ test('os cancelamentos ganham corte por horário, com a hora que concentra', asy
   });
   await expect(tabela).toBeAttached();
   await expect(tabela.getByRole('row')).not.toHaveCount(0);
-
-  await expect(page.getByTestId('perf-frase-hora-cancelamento')).toContainText('20h');
 });
 
 /*
@@ -368,55 +636,51 @@ test('a tela não chama a hora de entrada de "hora do cancelamento"', async ({ p
 });
 
 /* ==========================================================================
- * LOTE 6 — OS GRUPOS DE PRODUTO
+ * A PODA DA PROSA, E O QUE SOBROU
  * ======================================================================= */
 
 /*
- * RANKING DIZ O QUE VENDE, GRUPO DIZ O QUE FAZER. Os dois convivem, e a ordem
- * é a decisão: o grupo primeiro, porque a premissa da tela é que o dono abre o
- * painel para saber o que fazer amanhã.
+ * ESTE TESTE É NOVO, E É A FECHADURA DA RODADA.
  *
- * A fixture tem os três grupos povoados de propósito — com três produtos, como
- * era antes, todos caíam em "campeões" e dois dos ramos ficavam sem teste.
+ * A tela tinha DOZE frases de leitura, uma por regra de `insights.ts`, e o
+ * diagnóstico do dono foi que ela "parece um relatório de texto". Sobraram
+ * duas, e cada uma diz o que a forma não diz: o veredito com a causa por dia, e
+ * o contraste entre filiais.
+ *
+ * Sem esta contagem, a poda se desfaz sozinha na próxima rodada — cada frase
+ * de volta parece inofensiva, e as doze voltam uma a uma.
  */
-test('os produtos viram grupos de ação, e o ranking continua embaixo', async ({ page }) => {
+test('sobraram DUAS frases de leitura na tela inteira', async ({ page }) => {
   await abrirDesempenho(page);
 
-  await expect(page.getByTestId('perf-grupo-campeoes')).toContainText('Pizza Calabresa G');
-  await expect(page.getByTestId('perf-grupo-promissores')).toContainText('Refrigerante lata');
-  await expect(page.getByTestId('perf-grupo-repensaveis')).toContainText('Água 500 ml');
+  await expect(page.locator('[data-testid^="perf-frase-"]')).toHaveCount(1);
+  await expect(page.getByTestId('perf-veredito')).toHaveCount(1);
 
-  /*
-    O CORTE ESTÁ ESCRITO NA TELA, e o teste continua cobrando isso — mudou o
-    LUGAR, não o requisito: ele morava dentro de cada grupo e virou uma legenda
-    para os três, porque a mesma régua explicada em três frases quase iguais
-    gastava três linhas (§8). "Campeão" sem o corte continua sendo uma opinião,
-    e é isso que a asserção protege.
-  */
-  await expect(page.getByTestId('perf-sem-sazonais')).toContainText('campeão a partir de 5%');
-
-  const secao = page.locator('.perf__secao').filter({ hasText: 'O que vendeu' });
-  await expect(secao).toContainText('Ranking por unidades');
+  // As que saíram, nomeadas: elas continuam em `insights.ts`, sem consumidor.
+  await expect(page.getByTestId('perf-frase-ticket-ou-volume')).toHaveCount(0);
+  await expect(page.getByTestId('perf-frase-dia-fraco')).toHaveCount(0);
+  await expect(page.getByTestId('perf-frase-desconto')).toHaveCount(0);
+  await expect(page.getByTestId('perf-frase-concentracao')).toHaveCount(0);
 });
 
 /*
- * ============================================================================
- * O QUARTO GRUPO NÃO EXISTE, E A TELA DIZ POR QUÊ — não fica em silêncio
- * ============================================================================
+ * Das cinco perguntas do dono, quatro coisas não têm dado no backend hoje: quem
+ * compra (novo × recorrente e o cashback concedido), o tempo de preparo, o
+ * faturamento por hora e o bairro. Os pedidos estão em
+ * `scratchpad/pedido-backend-desempenho.md`.
  *
- * "Sazonais" é o quarto nome do padrão de mercado, e ele não é detectável com o
- * que o contrato devolve: `/reports/products` traz um período agregado por vez,
- * sem recorte de tempo dentro dele. Uma variação entre duas janelas não separa
- * sazonalidade de crescimento, de promoção, de item em falta nem de estreia.
- *
- * Este teste é a fechadura: quem for "completar os quatro quadrantes" quebra
- * aqui em vez de publicar um chute que tira um prato do cardápio de alguém.
+ * Uma tela de desempenho que finge cobrir tudo é pior que uma que diz onde não
+ * enxerga. A linha é uma, no pé — não uma seção vazia com título anunciando o
+ * nada. Este teste é a fechadura contra as duas saídas erradas: apagar a linha
+ * (silêncio) ou preencher a pergunta com o que sobrou.
  */
-test('não existe grupo de sazonais, e a tela explica a ausência', async ({ page }) => {
+test('a tela diz o que ainda não responde, e por quê', async ({ page }) => {
   await abrirDesempenho(page);
 
-  await expect(page.getByTestId('perf-grupo-sazonais')).toHaveCount(0);
-  await expect(page.getByTestId('perf-sem-sazonais')).toContainText('seria chute');
+  const limites = page.getByTestId('perf-limites');
+  await expect(limites).toContainText('quem compra');
+  await expect(limites).toContainText('tempo de preparo');
+  await expect(limites).toContainText('backend');
 });
 
 test('o período troca entre 7 e 30 dias, e "Escolher…" abre as datas', async ({ page }) => {
@@ -443,16 +707,4 @@ test('período invertido é recusado antes de virar requisição', async ({ page
   await page.getByLabel('Data final').fill('2026-08-01');
 
   await expect(page.getByText('A data inicial é depois da final.')).toBeVisible();
-});
-
-/*
- * O gráfico é série única e os números não podem existir só no hover: quem usa
- * teclado ou leitor de tela chega neles pela tabela equivalente.
- */
-test('o gráfico de dias tem tabela equivalente para quem não tem ponteiro', async ({ page }) => {
-  await abrirDesempenho(page);
-
-  const tabela = page.getByRole('table', { name: 'Faturamento e pedidos por dia' });
-  await expect(tabela).toBeAttached();
-  await expect(tabela.getByRole('row')).not.toHaveCount(0);
 });

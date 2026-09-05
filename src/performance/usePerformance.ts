@@ -55,6 +55,21 @@ type Reports = {
   payments: ReportPaymentMethods | null;
   products: ProductSales | null;
   cancellations: Cancellations | null;
+  /**
+   * O MESMO RELATÓRIO DE CANCELAMENTOS, NO PERÍODO ANTERIOR.
+   *
+   * `/reports/cancellations` não devolve comparação própria — só o `summary`
+   * faz isso. Para que o quarto cartão do topo tenha variação como os outros
+   * três, a tela pede o relatório duas vezes, que é a mesma técnica de
+   * `byDayPrevious`.
+   *
+   * COMO ELE TAMBÉM NÃO TEM ENTRADA EM `errors`, `undefined` e `null` querem
+   * dizer coisas diferentes aqui, e `readRateChange` separa as duas:
+   * `undefined` é "a chamada falhou, a tela não sabe"; `null` dentro dele é
+   * "respondeu, e não houve pedido no período anterior". Nenhuma das duas é
+   * zero por cento de cancelamento.
+   */
+  cancellationsPrevious: Cancellations | undefined;
   commission: CommissionReport | null;
 };
 
@@ -65,24 +80,19 @@ const VAZIO: Reports = {
   payments: null,
   products: null,
   cancellations: null,
+  cancellationsPrevious: undefined,
   commission: null,
 };
 
 /**
  * O estado da tela de Desempenho.
  *
- * AS SEIS ROTAS VÃO EM PARALELO e cada uma falha por conta própria. Em série,
- * a tela levaria a soma dos seis tempos para desenhar a primeira coisa; e com
+ * AS OITO CHAMADAS VÃO EM PARALELO e cada uma falha por conta própria. Em série,
+ * a tela levaria a soma dos oito tempos para desenhar a primeira coisa; e com
  * um `Promise.all`, um 500 na comissão apagaria o faturamento — que é a parte
  * que o lojista veio ver. `Promise.allSettled` deixa cada seção responder pelo
  * que ela conseguiu trazer.
  *
- * NÃO EXISTE FILIAL AQUI, e não é esquecimento: nenhuma das seis rotas aceita
- * `branch_id` (ver `api/reports.ts`). O hook não recebe filial porque não teria
- * o que fazer com ela — passá-la e ignorá-la seria a mesma mentira que a tela
- * está evitando ao escrever o escopo na cara do lojista.
- */
-/**
  * `branchId` VAZIO É "TODAS AS FILIAIS", e é o que o dono lê.
  *
  * Ele entrou nesta assinatura junto com o recorte nas rotas de relatório: sem
@@ -115,38 +125,55 @@ export function usePerformance(
       setIsLoading(true);
 
       /*
-       * A SÉTIMA CHAMADA É A MESMA ROTA COM OUTRO INTERVALO, e ela vai no mesmo
-       * `allSettled` — em paralelo, não depois. Em série, a frase do topo (que é
-       * a primeira coisa da tela) esperaria dois tempos de rede para aparecer.
+       * DUAS DAS CHAMADAS SÃO A MESMA ROTA COM OUTRO INTERVALO — `sales-by-day`
+       * e `cancellations` no período anterior —, e as duas vão no mesmo
+       * `allSettled`, em paralelo e não depois. Em série, o topo da tela (que é
+       * a primeira coisa que o lojista lê) esperaria dois tempos de rede.
        *
        * `previousRange` devolve `null` se o par de datas for ilegível; aí a
-       * promessa nem é criada e `byDayPrevious` fica nulo, que é exatamente o que
-       * `diasQueExplicam` já trata.
+       * promessa nem é criada, e quem lê cada uma já trata a ausência.
        */
       const anterior = previousRange(janela);
 
-      const [summary, byDay, byDayPrevious, payments, products, cancellations, commission] =
-        await Promise.allSettled([
-          fetchSalesSummary(janela),
-          fetchSalesByDay(janela),
-          // O período anterior herda o MESMO recorte de filial: comparar a
-          // Aldeota desta semana com a rede da semana passada seria uma variação
-          // inventada.
-          anterior
-            ? fetchSalesByDay({ ...anterior, branchId: janela.branchId })
-            : Promise.resolve(null),
-          fetchPaymentMethodsReport(janela),
-          fetchProductSales(janela, PRODUTOS_ANALISADOS),
-          fetchCancellations(janela),
-          /*
-           * A COMISSÃO É SÓ DO DONO, e para os outros ela não é nem pedida.
-           * Deixar a requisição sair e cair em `errors.commission` funcionaria —
-           * o `allSettled` já isola cada relatório —, mas seria um 403 por
-           * abertura de tela no log do backend para uma seção que a tela nem vai
-           * desenhar.
-           */
-          comComissao ? fetchCommissionReport(janela) : Promise.resolve(null),
-        ]);
+      const [
+        summary,
+        byDay,
+        byDayPrevious,
+        payments,
+        products,
+        cancellations,
+        cancellationsPrevious,
+        commission,
+      ] = await Promise.allSettled([
+        fetchSalesSummary(janela),
+        fetchSalesByDay(janela),
+        // O período anterior herda o MESMO recorte de filial: comparar a
+        // Aldeota desta semana com a rede da semana passada seria uma variação
+        // inventada.
+        anterior
+          ? fetchSalesByDay({ ...anterior, branchId: janela.branchId })
+          : Promise.resolve(null),
+        fetchPaymentMethodsReport(janela),
+        fetchProductSales(janela, PRODUTOS_ANALISADOS),
+        fetchCancellations(janela),
+        /*
+         * O CANCELAMENTO DO PERÍODO ANTERIOR — mesmo recorte de filial, pelo
+         * mesmo motivo do `byDayPrevious`: comparar a taxa da Aldeota desta
+         * semana com a da rede na semana passada seria uma variação
+         * inventada.
+         */
+        anterior
+          ? fetchCancellations({ ...anterior, branchId: janela.branchId })
+          : Promise.resolve(null),
+        /*
+         * A COMISSÃO É SÓ DO DONO, e para os outros ela não é nem pedida.
+         * Deixar a requisição sair e cair em `errors.commission` funcionaria —
+         * o `allSettled` já isola cada relatório —, mas seria um 403 por
+         * abertura de tela no log do backend para uma seção que a tela nem vai
+         * desenhar.
+         */
+        comComissao ? fetchCommissionReport(janela) : Promise.resolve(null),
+      ]);
 
       if (requestId !== requestRef.current) return;
 
@@ -166,6 +193,16 @@ export function usePerformance(
         payments: ler(payments, 'payments'),
         products: ler(products, 'products'),
         cancellations: ler(cancellations, 'cancellations'),
+        /*
+         * Sem `ler`, como o `byDayPrevious`: a falha dele não vira tarja de
+         * seção nenhuma. O que ela vira é `undefined`, e o cartão escreve
+         * "não deu para ler o período anterior" no lugar da variação — em vez
+         * de inventar 0 p.p., que diria que a taxa ficou parada.
+         */
+        cancellationsPrevious:
+          cancellationsPrevious.status === 'fulfilled'
+            ? (cancellationsPrevious.value ?? undefined)
+            : undefined,
         commission: ler(commission, 'commission'),
       });
       setErrors(proximosErros);

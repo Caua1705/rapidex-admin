@@ -1,51 +1,33 @@
 /*
  * ============================================================================
- * DESEMPENHO — uma frase, um gráfico e quatro perguntas
+ * DESEMPENHO — a folha de estilo do painel
  * ============================================================================
  *
- * O DIAGNÓSTICO: a tela lia como DOCUMENTO. Título, parágrafo, tabela, título,
- * parágrafo, tabela — seis cartões brancos empilhados num chão cinza, todos do
- * mesmo tamanho e com a mesma presença, numa página que rola. Não havia
- * primeira leitura: o olho entrava em cima e não sabia para onde ir.
+ * A TELA VIROU UMA GRADE DE CARTÕES, e o que a segura visualmente são três
+ * coisas, nesta ordem: o RESPIRO entre blocos (--sp-20 e --sp-24, os degraus de
+ * "entre blocos" e "entre seções"), o RELEVO curto do cartão (que mora em
+ * `ds/Card.css`, não aqui) e o ALINHAMENTO — os quatro cartões de métrica têm a
+ * mesma altura, e os pares de baixo dividem a linha ao meio.
  *
- * O QUE MUDOU É A FORMA, NÃO O CONTEÚDO. A frase-primeiro continua sendo a
- * primeira coisa da tela e as frases determinísticas continuam todas lá — nove
- * naquela rodada, doze depois que as filiais, a hora e os grupos de produto
- * renderam uma cada (ver `insights.ts`). Nenhuma métrica foi inventada, nenhum
- * número foi estimado, nada virou "um cartão gigante por indicador".
- *
- * As três coisas que a fizeram virar painel:
- *
- *   1. UMA BANDA DE TOPO. A resposta e os três números crus ocupam a largura
- *      inteira e são separados do resto por um fio mais forte. É a única parte
- *      da tela com corpo grande, e por isso ela é o ponto de entrada.
- *
- *   2. O GRÁFICO SUBIU E ABRIU. Ele é a peça que mais faz uma tela de
- *      relatório ler como painel, e estava dentro de um cartão de metade de
- *      largura, três blocos abaixo. Agora é uma faixa da largura inteira logo
- *      depois da resposta.
- *
- *   3. AS QUATRO PERGUNTAS VIRARAM GRADE. Duas colunas separadas por fio, em
- *      vez de quatro cartões em fila. A página encurtou pela metade e as duas
- *      perguntas que se leem juntas ("o que vendeu" e "o que não virou venda")
- *      passaram a caber na mesma dobra.
- *
- * E CARTÃO NÃO EXISTE MAIS AQUI. Quem dá começo e fim a cada bloco é o FIO,
- * como na lista de pedidos e no detalhe do pedido — a mesma gramática. Seis
- * retângulos brancos sobre cinza é a estética de painel administrativo de
- * biblioteca pronta, e é o que a direção passou a rodada inteira tirando.
+ * NENHUM VALOR LITERAL. Cor, corpo e raio saem de `src/styles/tokens.css`; o
+ * `npm run lint` cobra isso (`scripts/check-design-tokens.mjs`). As medidas de
+ * CONTEÚDO que não são espaçamento (altura do gráfico, faixa do eixo, diâmetro
+ * da rosca) moram nas variáveis declaradas no topo de cada bloco, com o motivo
+ * na linha — é a mesma convenção de `--chart-*` em `tokens.css`.
  */
 
 .perf {
-  flex: 1;
-  min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  background: var(--surface);
+  /*
+   * O CONTEÚDO TEM TETO, A FOLHA NÃO. Em 2560px, oito cartões esticados na
+   * largura inteira viram faixas de 2400px com um número de 28px perdido na
+   * esquerda. `--page-max` é o mesmo teto de Clientes e Cardápio.
+   */
+  max-width: var(--page-max);
+  padding-bottom: var(--sp-32);
 }
 
-/* As datas do período "Escolher", na faixa do topo. */
 .perf__datas {
   display: flex;
   align-items: center;
@@ -53,102 +35,44 @@
 }
 
 .perf__datas .input {
-  width: 148px;
+  width: var(--w-faixa);
 }
 
 .perf__alerta {
-  margin: var(--sp-12) var(--page-pad) 0;
+  margin: var(--sp-16) var(--page-pad) 0;
 }
 
-.perf__estado {
-  margin: 0;
-  padding: var(--sp-32) var(--page-pad);
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-}
-
-/* ==========================================================================
- * A BANDA DE TOPO — a resposta e os três números
- * ======================================================================= */
+/* --- a grade da página ---------------------------------------------------- */
 
 /*
- * ELA NÃO É UM CARTÃO. É uma banda da largura da tela, com respiro generoso e
- * um fio FORTE embaixo — a mesma marcação que separa o total do resto no
- * detalhe do pedido e o cabeçalho dos dados numa tabela. O que a distingue do
- * resto da página é o espaço e o corpo da frase, não uma moldura.
+ * OS BLOCOS SE SEPARAM POR RESPIRO, e não por fio: entre dois cartões com
+ * relevo, um fio seria o terceiro sinal dizendo a mesma coisa. 20px é o degrau
+ * de "entre blocos de uma seção" (§ espaçamento da skill de design).
  */
-.perf__topo,
-.perf__vazio {
+.perf__grade {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-12);
-  padding: var(--sp-24) var(--page-pad);
-  border-bottom: 1px solid var(--line-strong);
+  gap: var(--sp-20);
+  padding: var(--sp-24) var(--page-pad) 0;
 }
 
 /*
- * O TETO DE LEITURA. O relatório é texto e tabela: numa tela de 2560px a frase
- * do topo chegaria a 200 caracteres por linha e as duas colunas ficariam a um
- * metro uma da outra.
+ * OS PARES DIVIDEM A LINHA AO MEIO, e `minmax(0, 1fr)` e não `1fr`: com `1fr`,
+ * uma tabela larga dentro de um dos dois empurra a coluna e desalinha o par —
+ * o `minmax(0, …)` é o que permite ao filho encolher abaixo do conteúdo dele.
  */
-.perf__topo,
-.perf__secoes {
-  max-width: var(--page-max);
+.perf__par {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-20);
+  align-items: start;
 }
 
-.perf__vazio {
-  gap: var(--sp-16);
-  padding-block: var(--sp-32);
-}
-
-.perf__frase {
-  margin: 0;
-  max-width: 64ch;
-  font-size: var(--tb-size);
-  line-height: var(--tb-line);
-  color: var(--ink-2);
-}
-
-/*
- * A PRIMEIRA COISA DA TELA É UMA FRASE, NÃO UM NÚMERO.
- *
- * Ela reusa os tokens do nível 1 de corpo e entrelinha — não é um sexto nível
- * inventado: dentro desta banda a frase É o título, e o resto (os três
- * números, as ressalvas) a qualifica.
- *
- * O PESO É `--w-medium` E NÃO O 600 DO NÍVEL 1, e esta é a única divergência:
- * o nível 1 é calibrado para duas ou três palavras no alto da tela ("Cardápio",
- * "Loja"). Uma frase de vinte palavras em semibold no corpo 22 lê como
- * grito, não como resposta — e a hierarquia aqui não precisa do peso, porque
- * nada em volta dela disputa esse corpo.
- */
-.perf__frase--topo {
-  font-size: var(--tt-size);
-  line-height: var(--tt-line);
-  font-weight: var(--w-medium);
-  letter-spacing: var(--tt-track);
-  color: var(--ink);
-}
-
-/*
- * O AVISO DE ESCOPO.
- *
- * Ele não é `.alert--warn`: nada está errado, e uma tarja âmbar leria como
- * problema a resolver. É a legenda do recorte — mesma tinta de apoio de
- * qualquer meta —, e o que o destaca é o negrito em "todas as filiais", que é
- * a palavra que muda a leitura de todos os números acima.
- *
- * ELE MORA NO PÉ DA BANDA, separado por um fio. Ao lado do período, onde já
- * esteve, ele era a primeira tinta da página e a frase virava a segunda coisa
- * a ser lida.
- */
-.perf__escopo {
-  margin: 0;
-  padding-top: var(--sp-12);
-  border-top: 1px solid var(--line);
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-  color: var(--ink-3);
+.perf__pe {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  padding-top: var(--sp-4);
 }
 
 .perf__escopo strong {
@@ -156,154 +80,1067 @@
   color: var(--ink-2);
 }
 
-/* ==========================================================================
- * AS SEÇÕES
- * ======================================================================= */
-
-.perf__secoes {
-  display: flex;
-  flex-direction: column;
-  padding-bottom: var(--sp-32);
+.perf__limites strong {
+  font-weight: var(--w-semibold);
+  color: var(--ink-2);
 }
 
 /*
- * CADA SEÇÃO É UM BLOCO SEPARADO POR FIO — não um cartão. O que dá a cada
- * pergunta começo e fim é a régua e o respiro, que é a mesma gramática da
- * lista de pedidos.
+ * A FRASE DA TELA — hoje ela tem UM uso: pedir a filial ao gerente. O teto de
+ * medida é o do formulário (`--form-max`), e não a largura da folha: uma
+ * sentença correndo por 1600px em 14px é uma linha que o olho perde no
+ * caminho de volta.
  */
-.perf__secao {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-12);
-  min-width: 0;
-  padding: var(--sp-20) var(--page-pad);
-}
-
-/* A faixa do gráfico: largura inteira, e o fio que a fecha embaixo. */
-.perf__secao--largo {
-  border-bottom: 1px solid var(--line);
-}
-
-/*
- * A GRADE DAS QUATRO PERGUNTAS. Duas colunas, sem vão: o que separa uma da
- * outra é o fio, e um vão entre colunas somado ao fio faria a régua parecer
- * uma borda de cartão.
- *
- * A ORDEM DAS QUATRO É DE ALTURA, e isso passou a importar quando "O que
- * vendeu" ganhou os grupos de produto e passou de 800px. Numa grade de duas
- * colunas a fileira tem a altura da seção mais alta, então uma seção longa ao
- * lado de uma de duas linhas deixa meia tela de nada — com um fio de 700px
- * correndo ao lado do vazio, que é o sintoma que a revisão de print procura.
- *
- * Por isso as duas longas ("o que vendeu" e "o que não virou venda") ficam na
- * PRIMEIRA fileira e as duas curtas na segunda. Não é só arrumação: o que
- * vendeu ao lado do que NÃO virou venda é a comparação que essas duas pedem
- * juntas, e é a que este comentário já dizia querer antes de o arranjo
- * entregá-la.
- */
-.perf__grade {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.perf__grade .perf__secao:nth-child(even) {
-  border-left: 1px solid var(--line);
-}
-
-.perf__grade .perf__secao:nth-child(n + 3) {
-  border-top: 1px solid var(--line);
-}
-
-/*
- * O cabeçalho da seção: nome e nota na mesma linha de base. Sem fio próprio —
- * a régua da seção já está em volta dela.
- */
-.perf__secao-head {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-8);
-}
-
-.perf__ressalva {
-  margin: 0;
-  max-width: 72ch;
-}
-
-/*
- * Uma linha de total: a frase à esquerda, o número à direita. Ela é o resumo
- * da seção, então lê mais forte que a tabela abaixo — sem virar cartão.
- */
-.perf__resumo-linha,
-.perf__total-linha {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--sp-12);
-  margin: 0;
+.perf__frase {
+  margin: var(--sp-16) var(--page-pad) 0;
+  max-width: var(--form-max);
   font-size: var(--tb-size);
   line-height: var(--tb-line);
-}
-
-.perf__resumo-linha > :last-child,
-.perf__total-linha > :last-child {
-  font-weight: var(--w-semibold);
   color: var(--ink);
 }
 
-.perf__total-ressalvado {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-  padding-top: var(--sp-8);
-  border-top: 1px solid var(--line);
-}
-
-/* --- a composição do faturamento ------------------------------------------ */
-
-.composicao {
-  display: flex;
-  flex-direction: column;
+/*
+ * A FRASE CURTA DENTRO DE UM CARTÃO. Ela é a tinta de apoio e não o dado: o
+ * dado do cartão são as linhas acima dela, e uma frase no mesmo peso disputaria
+ * a leitura com elas.
+ */
+.perf__frase-curta,
+.perf__ressalva {
   margin: 0;
 }
 
 /*
- * O BLOCO NÃO TEM MAIS TÍTULO PRÓPRIO. Ele já teve ("De onde vem o
- * faturamento"), quando morava embaixo do resumo e cinco linhas de dinheiro
- * sem rótulo pareciam mais cinco números soltos. Hoje ele é o conteúdo da
- * seção "O que sai do faturamento", e o cabeçalho da seção já o nomeia — um
- * título dentro do outro seria a mesma informação duas vezes (§8).
+ * O VEREDITO — a única frase de corpo inteiro da tela, e ela é a legenda do
+ * gráfico. Ela fica ACIMA de um fio de separação porque explica o que está em
+ * cima dela, não o que vem depois.
  */
-.composicao__linha {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--sp-12);
-  min-height: var(--row-dense-h);
-  border-bottom: 1px solid var(--line);
-}
-
-.composicao__linha:last-child {
-  border-bottom: none;
-}
-
-.composicao__rotulo {
+.perf__veredito {
+  margin: 0;
+  padding-top: var(--sp-12);
+  border-top: 1px solid var(--line);
   font-size: var(--tb-size);
   line-height: var(--tb-line);
   color: var(--ink-2);
 }
 
-.composicao__valor {
+.perf__vazio {
+  align-items: flex-start;
+}
+
+.perf__vazio-frase {
   margin: 0;
-  font-size: var(--tb-size);
-  line-height: var(--tb-line);
+  font-size: var(--ts-size);
+  line-height: var(--ts-line);
+  font-weight: var(--w-medium);
   color: var(--ink);
 }
 
 /* ==========================================================================
- * O GRÁFICO DE DIAS
+ * OS QUATRO CARTÕES DE MÉTRICA
+ * ======================================================================= */
+
+/*
+ * QUATRO COLUNAS IGUAIS, E ALTURA IGUAL.
  *
- * Série única, marca neutra, sem legenda. Ver o bloco de comentário de
- * `DayChart.tsx` para o porquê de cada uma dessas três coisas.
+ * `align-items: stretch` (o padrão do grid) é o que garante a altura: sem ele,
+ * o cartão do cancelamento — que tem uma linha de meta em vez de uma minissérie
+ * — ficaria mais baixo que os três vizinhos, e o olho passaria a comparar as
+ * molduras em vez dos números.
+ */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-16);
+}
+
+.kpi {
+  min-width: 0;
+  /* O corpo do cartão empurra o rodapé para baixo, e é isso que alinha as
+     quatro minisséries na mesma horizontal mesmo com rótulos de uma ou duas
+     linhas. */
+  justify-content: space-between;
+}
+
+.kpi__cabeca {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+
+.kpi__rotulo {
+  margin: 0;
+}
+
+/*
+ * O NÚMERO É `--metric-*`, o corpo que o sistema reserva para a métrica do
+ * painel de Desempenho. `tabular-nums` vem do `.tnum`? Não: aqui ele é
+ * declarado direto, porque os quatro números NÃO estão em coluna (são
+ * grandezas diferentes lado a lado) — o que se quer é a largura estável quando
+ * o número MUDA ao trocar de período, não o alinhamento vertical.
+ */
+.kpi__valor {
+  margin: 0;
+  font-size: var(--metric-size);
+  line-height: var(--metric-line);
+  font-weight: var(--w-bold);
+  letter-spacing: var(--tt-track);
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--ink);
+}
+
+/*
+ * O DELTA CARREGA A DIREÇÃO EM COR, e ela é a cor semântica do sistema —
+ * `--ok` e `--danger`, medidas contra `--surface-raised` nos dois temas por
+ * `check-contrast.mjs`. A cor NÃO é o único canal: a seta e o sinal no texto
+ * dizem o mesmo (WCAG 1.4.1).
+ */
+.kpi__delta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  margin: 0;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-2);
+}
+
+.kpi__delta--up {
+  color: var(--ok);
+}
+
+.kpi__delta--down {
+  color: var(--danger);
+}
+
+/*
+ * Variação exatamente zero e ausência de comparação ficam na tinta de apoio:
+ * não há direção a anunciar, e pintar de verde ou vermelho o que a rota diz não
+ * saber seria afirmar mais do que os dados sustentam.
+ */
+.kpi__delta--none,
+.kpi__delta--vazio {
+  color: var(--ink-3);
+}
+
+/*
+ * O RODAPÉ TEM ALTURA FIXA, e ele existe mesmo vazio.
+ *
+ * É o que mantém os quatro cartões na mesma altura sem `min-height` no cartão
+ * inteiro — que quebraria assim que um rótulo passasse para duas linhas no
+ * notebook estreito.
+ */
+.kpi__rodape {
+  --kpi-mini-h: 34px;
+
+  display: flex;
+  align-items: flex-end;
+  min-height: var(--kpi-mini-h);
+  padding-top: var(--sp-8);
+}
+
+/*
+ * O TRAVESSÃO DO PERÍODO SEM VENDA fica na tinta de apoio, e não na do dado:
+ * ele não é um valor, é a ausência de um. Em `--ink` ele teria o mesmo peso
+ * visual de "R$ 3.169,50" e o cartão vazio disputaria a leitura com os que
+ * têm número.
+ */
+.kpi__valor--vazio {
+  color: var(--ink-3);
+}
+
+.kpi__meta {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--ink-3);
+}
+
+/* --- a minissérie --------------------------------------------------------- */
+
+.mini {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: var(--kpi-mini-h);
+}
+
+.mini__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/*
+ * A MINISSÉRIE É `--ink-3`, a tinta de apoio, e NÃO a do dado.
+ *
+ * Ela é contexto do número, não o número: em `--ink` ela competiria com os 28px
+ * logo acima, e o cartão passaria a ter dois centros. É a mesma razão pela qual
+ * ela não tem eixo, nem rótulo, nem balão.
+ */
+.mini__linha {
+  fill: none;
+  stroke: var(--ink-3);
+  stroke-width: 1.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/*
+ * A MARCA DO ÚLTIMO PONTO É HTML, não `<circle>`: com
+ * `preserveAspectRatio="none"` o quadro estica dez vezes mais na horizontal,
+ * e um círculo do SVG sairia ovo.
+ */
+.mini__fim {
+  --mini-ponto: 5px;
+
+  position: absolute;
+  left: var(--mini-x, 100%);
+  top: var(--mini-y, 100%);
+  width: var(--mini-ponto);
+  height: var(--mini-ponto);
+  margin-left: calc(var(--mini-ponto) / -2);
+  margin-top: calc(var(--mini-ponto) / -2);
+  border-radius: var(--r-round);
+  background: var(--ink);
+}
+
+/* ==========================================================================
+ * O GRÁFICO PRINCIPAL
+ * ======================================================================= */
+
+.perf__heroi .ds-card__corpo {
+  gap: var(--sp-16);
+}
+
+.linha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+  margin: 0;
+}
+
+.linha__topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-12);
+}
+
+/*
+ * A LEGENDA DESENHA O TRAÇO, não um quadradinho de cor: o que separa as duas
+ * séries na tela é a FORMA (cheio × tracejado) tanto quanto a tinta, e uma
+ * legenda de quadradinhos ensinaria a ler pela cor — o canal que some na
+ * impressão e no daltonismo.
+ */
+.linha__legenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-4) var(--sp-16);
+  margin: 0;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+.linha__chave {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-8);
+}
+
+.linha__amostra {
+  --amostra-w: 18px;
+
+  display: inline-block;
+  width: var(--amostra-w);
+  height: 0;
+  border-top-width: 2px;
+  border-top-color: var(--ink);
+  border-top-style: solid;
+}
+
+.linha__amostra--anterior {
+  border-top-color: var(--ink-3);
+  border-top-style: dashed;
+}
+
+.linha__chave--nota::before {
+  content: '·';
+  margin-right: var(--sp-8);
+}
+
+/* --- o quadro ------------------------------------------------------------- */
+
+/*
+ * A FAIXA DO EIXO É MEDIDA DE CONTEÚDO, e o valor é o do rótulo mais largo que
+ * ela precisa caber: "1,2 mil" em 13px mede uns 44px, e o vão de 8 dá 52. Um
+ * eixo mais largo come a série; um mais estreito quebra o rótulo em duas
+ * linhas e desalinha as três marcas.
+ */
+.linha__plot {
+  --eixo-w: 52px;
+  --plot-h: var(--chart-h);
+
+  position: relative;
+  padding-left: var(--eixo-w);
+}
+
+.linha__eixo {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--eixo-w);
+  height: var(--plot-h);
+}
+
+/*
+ * O RÓTULO DO EIXO É ANCORADO PELA LINHA DE BASE, não pelo topo: `translateY
+ * (-50%)` põe o meio do texto sobre o fio da grade, que é onde o olho espera
+ * encontrá-lo. Sem isso, o rótulo do teto flutua meio corpo acima do fio dele.
+ */
+.linha__marca {
+  position: absolute;
+  right: var(--sp-8);
+  top: var(--y, 0%);
+  transform: translateY(-50%);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.linha__quadro {
+  position: relative;
+  height: var(--plot-h);
+}
+
+.linha__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* A linha encosta no topo do quadro quando o pico está no teto da escala; sem
+     isso, a metade de cima do traço é cortada pela caixa do SVG. */
+  overflow: visible;
+}
+
+/*
+ * A GRADE É FININHA E SEM MOLDURA. Três fios horizontais, `--line`, e nenhuma
+ * caixa em volta: a caixa é o que faz um gráfico parecer planilha, e o eixo X
+ * não é desenhado porque as duas pontas de data já estão escritas embaixo.
+ */
+.linha__grade {
+  stroke: var(--line);
+  stroke-width: 1px;
+}
+
+/*
+ * AS PARADAS DO DEGRADÊ MORAM AQUI, e não no atributo do SVG: assim elas leem
+ * `--ink` por token e o tema escuro vem de graça. Uma cor escrita no TSX seria
+ * um literal (o ESLint barra) e não acompanharia o tema.
+ */
+.linha__parada--topo {
+  stop-color: var(--ink);
+  stop-opacity: 0.14;
+}
+
+.linha__parada--base {
+  stop-color: var(--ink);
+  stop-opacity: 0;
+}
+
+/*
+ * A ÁREA NÃO ACRESCENTA INFORMAÇÃO — ela dá PESO, e é o que separa "a série que
+ * importa" do tracejado sem gastar uma matiz. Por isso ela dissolve para o
+ * nada em vez de ser um bloco chapado: um bloco chapado leria como uma segunda
+ * marca, e o olho procuraria um significado para a borda de baixo.
+ */
+.linha__area {
+  fill: url('#perf-area-degrade');
+  stroke: none;
+}
+
+.linha__traco {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.linha__traco--atual {
+  stroke: var(--ink);
+  stroke-width: 2px;
+}
+
+/*
+ * O PERÍODO ANTERIOR É TRACEJADO E DE APOIO. O tracejado é o segundo canal (a
+ * cor sozinha reprovaria em WCAG 1.4.1) e é o que a legenda desenha.
+ */
+.linha__traco--anterior {
+  stroke: var(--ink-3);
+  stroke-width: 1.5px;
+  stroke-dasharray: 4 4;
+}
+
+/* --- os alvos do ponteiro ------------------------------------------------- */
+
+.linha__alvos {
+  position: absolute;
+  inset: 0;
+}
+
+/*
+ * CADA ALVO É POSICIONADO PELO X DO PONTO, e não por uma coluna de largura
+ * igual: o primeiro ponto está em x=0 e o último em x=100, então colunas
+ * centradas em (i+0,5)/n errariam o alvo justamente nas pontas da série.
+ *
+ * A largura mínima de 24px é o alvo de ponteiro da WCAG 2.5.8 — num mês de 30
+ * pontos, a banda natural tem 3% da faixa e ninguém acerta.
+ */
+.linha__alvo {
+  --alvo-min: 24px;
+
+  position: absolute;
+  left: var(--x, 0%);
+  top: 0;
+  height: 100%;
+  width: max(var(--banda, 10%), var(--alvo-min));
+  transform: translateX(-50%);
+}
+
+.linha__ponto {
+  --ponto: 7px;
+
+  position: absolute;
+  left: 50%;
+  top: var(--y, 100%);
+  width: var(--ponto);
+  height: var(--ponto);
+  margin-left: calc(var(--ponto) / -2);
+  margin-top: calc(var(--ponto) / -2);
+  border-radius: var(--r-round);
+  background: var(--ink);
+  /*
+   * O PONTO SÓ APARECE NO PONTEIRO — menos o do pico, que tem rótulo direto.
+   * Trinta bolinhas sobre a linha a transformam num colar, e o que a linha tem
+   * de bom é justamente a forma contínua.
+   */
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease);
+}
+
+.linha__alvo:hover .linha__ponto,
+.linha__alvo--pico .linha__ponto {
+  opacity: 1;
+}
+
+.linha__pico {
+  position: absolute;
+  left: 50%;
+  top: var(--y, 100%);
+  transform: translate(-50%, calc(-100% - var(--sp-8)));
+  padding: 0 var(--sp-4);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  font-weight: var(--w-semibold);
+  color: var(--ink);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/*
+ * O BALÃO É CONFORTO, NÃO O DADO. Ele flutua por cima do gráfico
+ * (`--surface-raised`, `--r-card`, `--shadow-raised`, `--z-popover`), e tudo o
+ * que ele diz está também na tabela equivalente — que é a leitura de quem usa
+ * teclado, leitor de tela ou toque.
+ */
+.linha__balao {
+  position: absolute;
+  left: 50%;
+  top: var(--y, 100%);
+  z-index: var(--z-popover);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: var(--w-numero);
+  padding: var(--sp-8) var(--sp-12);
+  transform: translate(-50%, calc(-100% - var(--sp-16)));
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-raised);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: nowrap;
+  transition:
+    opacity var(--motion-fast) var(--ease),
+    visibility var(--motion-fast) var(--ease);
+}
+
+.linha__alvo:hover .linha__balao {
+  opacity: 1;
+  visibility: visible;
+}
+
+.linha__balao-dia {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+.linha__balao-valor {
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-semibold);
+  color: var(--ink);
+}
+
+.linha__balao-delta {
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+.linha__balao-delta--up {
+  color: var(--ok);
+}
+
+.linha__balao-delta--down {
+  color: var(--danger);
+}
+
+.linha__datas {
+  display: flex;
+  justify-content: space-between;
+  padding-top: var(--sp-8);
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+/* ==========================================================================
+ * A COMPOSIÇÃO — a rosca e a lista
+ * ======================================================================= */
+
+.comp {
+  display: grid;
+  /*
+   * A ROSCA TEM LARGURA FIXA E A LISTA É FLUIDA. Com as duas em `1fr`, a lista
+   * (que tem três colunas de números) espremia a rosca a 60px numa tela de
+   * notebook, e um anel de 60px com três arcos não se lê.
+   */
+  grid-template-columns: var(--rosca-d) minmax(0, 1fr);
+  --rosca-d: 152px;
+  align-items: center;
+  gap: var(--sp-20);
+}
+
+/*
+ * O MIOLO DA ROSCA CARREGA O DENOMINADOR. É por isso que ela é uma ROSCA e não
+ * uma pizza: o furo do meio não é estilo, é o lugar onde mora o total do qual
+ * as fatias são fatias. Sem ele, "89,5%" é a fatia de um número que a tela não
+ * escreve em canto nenhum.
+ *
+ * `pointer-events: none` porque ele fica POR CIMA do SVG — sem isso ele
+ * bloquearia qualquer interação futura com os arcos.
+ */
+.comp__anel {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--rosca-d);
+}
+
+.comp__centro {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-4);
+  pointer-events: none;
+  text-align: center;
+}
+
+.comp__centro-valor {
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-semibold);
+  color: var(--ink);
+}
+
+.comp__centro-rotulo {
+  font-size: var(--ta-size);
+  line-height: 1;
+  color: var(--ink-3);
+}
+
+.rosca {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/*
+ * A ESCADA DE TINTA DA ROSCA é a mesma da tipografia, na ordem do tamanho da
+ * fatia: `--ink`, `--ink-2`, `--ink-3`. Não há matiz nova e não há "cor por
+ * série" — pintar cada fatia de uma cor obrigaria a inventar uma paleta
+ * categórica, que é o que faz um painel parecer template. A informação é o
+ * TAMANHO do arco; a tinta só separa um arco do vizinho.
+ *
+ * A ESPESSURA É MEDIDA PELO QUE CABE NO MIOLO, e não por gosto: com raio 40 no
+ * `viewBox` de 100 e traço 15, o furo tem 65% do diâmetro — 99px nos 152 da
+ * rosca, que é o que "R$ 3.331,34" em 14px semibold precisa para não encostar
+ * no anel. Um traço mais grosso engole o total; um mais fino faz o anel ler
+ * como um aro.
+ */
+.rosca__arco {
+  fill: none;
+  stroke-width: 15;
+}
+
+.rosca__arco--0 {
+  stroke: var(--ink);
+}
+
+.rosca__arco--1 {
+  stroke: var(--ink-2);
+}
+
+.rosca__arco--2 {
+  stroke: var(--ink-3);
+}
+
+.comp__lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  margin: 0;
+  min-width: 0;
+}
+
+/*
+ * TRÊS COLUNAS: rótulo fluido, valor e fatia à direita. O dinheiro em COLUNA
+ * leva `.tnum` (no TSX) — aqui ele se compara descendo, que é o caso em que a
+ * métrica tabular vale.
+ */
+.comp__linha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: var(--sp-12);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+}
+
+/*
+ * AS SAÍDAS FICAM DEPOIS DE UM FIO. Sem ele, "Descontos" numa lista logo abaixo
+ * de três parcelas que somam 100% seria lido como uma quarta parcela — e a
+ * soma daria mais que o todo.
+ *
+ * A CLASSE É EXPLÍCITA, e não `:first-of-type`. As duas metades da lista são
+ * `<div>`, então `.comp__linha--saida:first-of-type` casa com o primeiro `div`
+ * da lista INTEIRA — que é "Produtos" — e o fio ia parar em cima da primeira
+ * parcela, onde ele não separa nada. O seletor não errava: a pergunta que ele
+ * faz é "primeiro do TIPO", e o tipo aqui é `div`, não a classe.
+ */
+.comp__linha--primeira-saida {
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-12);
+  border-top: 1px solid var(--line);
+}
+
+.comp__linha--saida .comp__rotulo,
+.comp__linha--saida .comp__valor,
+.comp__linha--saida .comp__fatia {
+  color: var(--ink-3);
+}
+
+.comp__rotulo {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  min-width: 0;
+  color: var(--ink);
+}
+
+.comp__amostra {
+  --amostra: 9px;
+
+  flex: 0 0 auto;
+  width: var(--amostra);
+  height: var(--amostra);
+  border-radius: var(--r-xs);
+}
+
+.comp__amostra--0 {
+  background: var(--ink);
+}
+
+.comp__amostra--1 {
+  background: var(--ink-2);
+}
+
+.comp__amostra--2 {
+  background: var(--ink-3);
+}
+
+.comp__valor {
+  margin: 0;
+  font-weight: var(--w-semibold);
+  color: var(--ink);
+  text-align: right;
+}
+
+.comp__fatia {
+  margin: 0;
+  min-width: var(--w-fatia);
+  --w-fatia: 48px;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+  text-align: right;
+}
+
+/* ==========================================================================
+ * O RANKING DE PRODUTOS
+ * ======================================================================= */
+
+.ranking {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * A LINHA É UMA GRADE DE DUAS COLUNAS COM DUAS FILEIRAS: nome e valor em cima,
+ * a meta embaixo, e a barra atravessando as duas colunas no fim. É a mesma
+ * gramática de `.fatias`, e é de propósito — as duas respondem "qual é o
+ * maior" pelo comprimento antes da leitura do número.
+ */
+.ranking__linha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--sp-4) var(--sp-12);
+}
+
+.ranking__nome {
+  min-width: 0;
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-strong);
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ranking__valor {
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+  font-weight: var(--w-semibold);
+  color: var(--ink);
+  text-align: right;
+}
+
+.ranking__meta {
+  grid-column: 1 / -1;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+/*
+ * A BARRA É NEUTRA, como a coluna do gráfico e pelo mesmo motivo: quem carrega
+ * a informação é o COMPRIMENTO. Ela mede UNIDADES, que é o que ordena a lista
+ * — uma barra de receita numa lista ordenada por unidade desenharia uma escada
+ * fora de ordem, e o lojista concluiria que a tela está errada.
+ */
+.ranking__barra {
+  grid-column: 1 / -1;
+  height: var(--sp-4);
+  background: var(--field);
+  border-radius: var(--r-round);
+  overflow: hidden;
+}
+
+.ranking__barra::after {
+  content: '';
+  display: block;
+  width: var(--fatia, 0%);
+  height: 100%;
+  background: var(--ink-2);
+  border-radius: var(--r-round);
+}
+
+/* ==========================================================================
+ * O QUE NÃO VIROU VENDA
+ * ======================================================================= */
+
+.naovenda {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--sp-24);
+  align-items: start;
+}
+
+.naovenda__quebra,
+.naovenda__horas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-12);
+  min-width: 0;
+}
+
+/*
+ * A QUEBRA É UMA LISTA, NÃO UMA TABELA. Quatro colunas com cabeçalho para duas
+ * ou três linhas gastam mais tinta em moldura do que em dado — e o cabeçalho
+ * ("Situação", "Pagamento") repete palavras que o próprio valor já diz.
+ */
+.quebra {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * AS CINCO CÉLULAS SÃO COLOCADAS UMA A UMA, e não deixadas ao fluxo automático
+ * da grade — foi assim que a linha saiu torta no primeiro print.
+ *
+ * Com só `grid-column` em duas delas, o autoplacement empurrava o valor para
+ * uma terceira fileira, à esquerda, sob o ponto de status: o dinheiro da linha
+ * aparecia embaixo do nome da situação em vez de à direita dele. Nome e valor
+ * na primeira fileira, pagamento e contagem na segunda — e a coluna do valor
+ * alinhada de cima a baixo, que é a leitura que a lista existe para dar.
+ */
+.quebra__linha {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  align-items: baseline;
+  gap: var(--sp-4) var(--sp-8);
+  font-size: var(--tb-size);
+  line-height: var(--tb-line);
+}
+
+/*
+ * O PONTO SAI DE `--st`, a mesma fonte do chip de status e do fio da lista de
+ * Pedidos: quem pinta um estágio não escolhe matiz, põe `is-<estágio>` no
+ * elemento e lê o token. Assim um estágio novo é um token novo, não uma regra
+ * nova aqui.
+ */
+.quebra__ponto {
+  --ponto: 7px;
+
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+  width: var(--ponto);
+  height: var(--ponto);
+  border-radius: var(--r-round);
+  background: var(--st, var(--ink-3));
+}
+
+.quebra__nome {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  color: var(--ink);
+}
+
+.quebra__valor {
+  grid-column: 3;
+  grid-row: 1;
+  font-weight: var(--w-semibold);
+  color: var(--ink);
+  text-align: right;
+}
+
+.quebra__pagamento,
+.quebra__pedidos {
+  grid-row: 2;
+  font-size: var(--ta-size);
+  line-height: var(--ta-line);
+  color: var(--ink-3);
+}
+
+.quebra__pagamento {
+  grid-column: 2;
+}
+
+.quebra__pedidos {
+  grid-column: 3;
+  text-align: right;
+}
+
+/* ==========================================================================
+ * O ESQUELETO
+ * ======================================================================= */
+
+/*
+ * O ESQUELETO DESENHA A FORMA QUE VAI CHEGAR, e não uma barra de progresso: o
+ * conteúdo entra no lugar onde o bloco cinza já estava, e não há salto de
+ * layout. As alturas são as reais dos blocos que eles substituem.
+ */
+.esq {
+  border-radius: var(--r-card);
+  background: var(--surface-muted);
+  /*
+   * O BRILHO ATRAVESSA O BLOCO uma vez a cada 1,4s — abaixo de 3Hz, como a
+   * WCAG 2.3.1 exige de qualquer coisa que pisque. Ele é a única animação de
+   * repetição desta tela.
+   */
+  background-image: linear-gradient(90deg, transparent 0%, var(--hover) 50%, transparent 100%);
+  background-size: 40% 100%;
+  background-repeat: no-repeat;
+  animation: esq-brilho 1400ms var(--ease) infinite;
+}
+
+.esq--kpi {
+  height: var(--esq-kpi-h);
+  --esq-kpi-h: 132px;
+}
+
+.esq--heroi {
+  height: var(--esq-heroi-h);
+  --esq-heroi-h: 320px;
+}
+
+.esq--bloco {
+  height: var(--esq-bloco-h);
+  --esq-bloco-h: 240px;
+}
+
+@keyframes esq-brilho {
+  from {
+    background-position: -60% 0;
+  }
+  to {
+    background-position: 160% 0;
+  }
+}
+
+/*
+ * `@keyframes` PRECISA DO PRÓPRIO DESLIGAMENTO: os tokens `--motion-*` viram
+ * zero sob `prefers-reduced-motion`, e uma animação declarada em `animation:`
+ * não passa por eles. Sem este bloco, o esqueleto continuaria brilhando para
+ * quem pediu que nada se mexesse.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .esq {
+    animation: none;
+    background-image: none;
+  }
+}
+
+/* ==========================================================================
+ * RESPONSIVIDADE
+ *
+ * A regra é a de sempre: a informação não desaparece, ela troca de lugar.
+ * ======================================================================= */
+
+/*
+ * 1280 — O NOTEBOOK DO ESCRITÓRIO. Os quatro cartões continuam em quatro
+ * (eles cabem: 4 × 260 mais os vãos), mas o bloco do que não virou venda deixa
+ * de ser duas colunas: o gráfico de horas em 300px de largura vira um pente.
+ */
+@media (max-width: 1279px) {
+  .naovenda {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--sp-20);
+  }
+}
+
+/*
+ * 1100 — O MESMO PONTO DE QUEBRA QUE A TELA JÁ TINHA. Os pares voltam a uma
+ * coluna: abaixo disto, um cartão de composição com rosca de 132px mais três
+ * colunas de número fica com o nome do produto em 90px.
+ */
+@media (max-width: 1099px) {
+  .perf__par {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /*
+   * OS QUATRO CARTÕES VIRAM 2 × 2, e não uma coluna de quatro: a fileira de
+   * métricas é uma leitura de CONJUNTO, e quatro cartões empilhados
+   * verticalmente ocupam a tela inteira do notebook antes do gráfico.
+   */
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/*
+ * 720 — O CELULAR. O que muda é o que não cabe: a rosca deita sobre a lista, o
+ * gráfico baixa, e os cartões de métrica ficam 2 × 2 (não em coluna, pelo
+ * mesmo motivo de cima).
+ */
+@media (max-width: 719px) {
+  .perf__grade {
+    gap: var(--sp-16);
+    padding-top: var(--sp-16);
+  }
+
+  .kpis {
+    gap: var(--sp-12);
+  }
+
+  .linha__plot {
+    --plot-h: var(--chart-h-mobile);
+  }
+
+  /*
+   * A ROSCA DEITA E CENTRA. Com 132px de rosca ao lado de uma lista num
+   * telefone de 390, sobram 190px para "Taxa de entrega R$ 150,00 15%".
+   */
+  .comp {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+
+  .comp__lista {
+    width: 100%;
+  }
+
+  /*
+   * O BALÃO DO GRÁFICO NÃO EXISTE NO TOQUE, e não é omissão: `:hover` nunca é
+   * verdade num aparelho de toque, e um balão que aparece no primeiro toque e
+   * some no segundo é pior que nenhum. A leitura ali é a tabela equivalente,
+   * que está sempre presente — e o rótulo do pico, que é direto.
+   */
+  .esq--heroi {
+    --esq-heroi-h: 220px;
+  }
+
+  .esq--kpi {
+    --esq-kpi-h: 118px;
+  }
+}
+
+@media (hover: none) {
+  .linha__balao {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+ * O GRÁFICO DE COLUNAS — hoje ele serve UMA série só: a hora de entrada dos
+ * pedidos que não viraram venda.
+ *
+ * ELE ERA O GRÁFICO PRINCIPAL DA TELA, de faturamento por dia, e esta rodada o
+ * substituiu pela linha de duas séries (as classes `.linha__*`, acima). O que
+ * sobrou aqui é a gramática de COLUNA: série única, marca neutra, sem legenda,
+ * altura zero para o balde vazio. Ver `HourChart.tsx`.
  * ======================================================================= */
 
 .grafico {
@@ -524,242 +1361,4 @@
 
 .grafico--horas .grafico__dia {
   max-width: var(--chart-band-curto);
-}
-
-/* --- o bloco da hora, dentro de "O que não virou venda" ------------------- */
-
-.perf__horas {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-8);
-  padding-top: var(--sp-8);
-  border-top: 1px solid var(--line);
-}
-
-/*
- * O RÓTULO DE UM SUB-BLOCO DENTRO DA SEÇÃO — nível 3, não um sexto nível.
- *
- * "A que horas eles entraram" e "Os 10 mais vendidos" são nomes de coluna e de
- * bloco, que é exatamente o trabalho do `.t-label`. Um `<h3>` em nível 2 aqui
- * competiria com o título da seção logo acima; um parágrafo em corpo comum não
- * se distinguiria do conteúdo que ele anuncia.
- */
-.perf__sublabel {
-  margin: 0;
-}
-
-/* ==========================================================================
- * OS GRUPOS DE PRODUTO
- *
- * Três blocos, não uma tabela: cada grupo é um nome, um tamanho e uma AÇÃO em
- * frase inteira — e uma coluna "ação" com um parágrafo dentro da célula é o
- * sintoma de que a tabela era a forma errada.
- * ======================================================================= */
-
-.quadrantes {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-}
-
-/*
- * O FIO ENTRE GRUPOS, como em toda lista desta tela. Sem cartão, sem fundo
- * tonal, sem cor por grupo: pintar "campeões" de verde e "repensáveis" de
- * vermelho seria semântica de estado (`--ok`/`--danger`) empregada para
- * classificar produto, e a §4 já decidiu que cor sem função não entra. Quem
- * separa os três é a régua e o nome.
- */
-.quadrantes__grupo {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-  padding-block: var(--sp-12);
-  border-bottom: 1px solid var(--line);
-}
-
-.quadrantes__grupo:first-child {
-  padding-top: 0;
-}
-
-.quadrantes__grupo:last-child {
-  padding-bottom: 0;
-  border-bottom: none;
-}
-
-/* O nome à esquerda e o tamanho à direita, na mesma linha de base — a mesma
-   gramática do total sobre as parcelas. */
-.quadrantes__nome {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--sp-12);
-  font-size: var(--ts-size);
-  line-height: var(--ts-line);
-  font-weight: var(--w-semibold);
-  letter-spacing: var(--ts-track);
-  color: var(--ink);
-}
-
-.quadrantes__contagem {
-  flex: 0 0 auto;
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-  font-weight: var(--w-regular);
-  letter-spacing: normal;
-  color: var(--ink-3);
-}
-
-.quadrantes__corpo {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-  margin: 0;
-}
-
-/*
- * OS NOMES DOS ITENS SÃO O CONTEÚDO DO GRUPO, e por isso levam a tinta do
- * corpo: é a lista que responde "quais são", que é a metade acionável do
- * grupo. O critério e a ação, abaixo, são apoio.
- */
-.quadrantes__itens {
-  margin: 0;
-  font-size: var(--tb-size);
-  line-height: var(--tb-line);
-  color: var(--ink);
-}
-
-/*
- * A AÇÃO é a razão de o grupo existir, então ela lê um degrau acima da tinta de
- * apoio comum — mas abaixo dos nomes dos itens, que são o conteúdo.
- *
- * NÃO HÁ MAIS `.quadrantes__criterio`: o corte dos três passou a ser dito uma
- * vez, na legenda do bloco (ver `legendaDosQuadrantes`). Três frases quase
- * iguais empilhadas gastavam três linhas para explicar uma régua só.
- */
-.quadrantes__acao {
-  margin: 0;
-  max-width: 64ch;
-  font-size: var(--ta-size);
-  line-height: var(--ta-line);
-  color: var(--ink-2);
-}
-
-/* ==========================================================================
- * QUANDO A TELA APERTA
- * ======================================================================= */
-
-/*
- * A GRADE DESMONTA ANTES DO CELULAR. Duas colunas de tabela abaixo de 1100px
- * deixam cada uma com ~430px, e a tabela de produtos tem quatro colunas com
- * dinheiro em três delas: o nome do produto ficaria com 120px.
- */
-@media (max-width: 1099px) {
-  .perf__grade {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .perf__grade .perf__secao:nth-child(even) {
-    border-left: 0;
-  }
-
-  .perf__grade .perf__secao:nth-child(n + 2) {
-    border-top: 1px solid var(--line);
-  }
-}
-
-@media (max-width: 720px) {
-  .perf__topo,
-  .perf__vazio,
-  .perf__secao,
-  .perf__estado {
-    padding-inline: var(--page-pad-mobile);
-  }
-
-  .perf__alerta {
-    margin-inline: var(--page-pad-mobile);
-  }
-
-  .perf__secoes {
-    padding-bottom: calc(var(--bottombar-h) + var(--sp-24));
-  }
-
-  .perf__datas {
-    flex: 1 1 100%;
-  }
-
-  .perf__datas .input {
-    flex: 1;
-    width: auto;
-    min-width: 0;
-  }
-
-  /*
-   * Em 390px, trinta colunas de 2px com vão de 2px não cabem — e uma coluna
-   * de meio pixel não é um dado legível. O gráfico ganha rolagem horizontal
-   * PRÓPRIA, com largura mínima por dia.
-   *
-   * É a única rolagem lateral fora da Cozinha, e ela é do gráfico, não da
-   * página: o §8 proíbe o quadro de pedidos rolar de lado porque lá o que sai
-   * da tela é um PEDIDO que ninguém vai procurar. Aqui o que sai é um dia de
-   * uma série cujo total já está escrito acima, e cujos números estão todos na
-   * tabela equivalente. Nada fica inalcançável.
-   */
-  .grafico__plot {
-    overflow-x: auto;
-  }
-
-  .grafico__barras {
-    min-width: 100%;
-  }
-
-  /*
-   * A FAIXA MÍNIMA NO CELULAR É A DO RÓTULO, não a da coluna: com 24px, sete
-   * datas de cinco caracteres se encostavam e a série virava uma tarja de
-   * texto. Com `--chart-band-mobile`, os sete dias do período padrão cabem na
-   * largura do cartão sem rolagem nenhuma; um período de 30 dias continua
-   * rolando de lado, que é o caso para o qual a rolagem existe.
-   */
-  .grafico__dia {
-    flex: 0 0 auto;
-    min-width: var(--chart-band-mobile);
-  }
-
-  .grafico__barras {
-    height: var(--chart-h-mobile);
-  }
-
-  /*
-   * O GRÁFICO CURTO NÃO ENCOLHE MAIS NO CELULAR, e é a exceção que a regra de
-   * cima pede: `--chart-h-mobile` (150) é MAIOR que `--chart-h-curto` (116), e
-   * deixar a regra genérica passar por cima faria a segunda série do celular
-   * ficar mais alta que no desktop.
-   */
-  .grafico--horas .grafico__barras {
-    height: var(--chart-h-curto);
-  }
-
-  /*
-   * E ELE NÃO ROLA DE LADO — ele CABE. Esta é a diferença de fundo entre as
-   * duas séries no celular, e o print é que a mostrou.
-   *
-   * Com a faixa mínima do gráfico de dias (46px), nove horas mediam 414px numa
-   * tela de 358: o desenho passava a rolar, e o que ficava fora da tela era
-   * justamente a barra das 20h — o PICO, que é a resposta inteira da seção. Um
-   * gráfico cuja conclusão nasce escondida atrás de um gesto que ninguém sabe
-   * que existe não respondeu nada.
-   *
-   * A rolagem do gráfico de dias continua justificada, e é outro caso: lá o que
-   * sai da tela é o trigésimo dia de uma série cujo total já está escrito
-   * acima. Aqui a série é curta — um turno de operação, não um mês — e a
-   * coluna estreita continua legível, porque quem carrega o dado é a ALTURA.
-   */
-  .grafico--horas .grafico__plot {
-    overflow-x: visible;
-  }
-
-  .grafico--horas .grafico__dia {
-    flex: 1 1 0;
-    min-width: 0;
-    max-width: var(--chart-band-curto);
-  }
 }

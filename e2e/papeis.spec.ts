@@ -278,14 +278,32 @@ test('a gerência precisa escolher a filial para ver Desempenho', async ({ page 
   await expect(page.getByTestId('perf-escopo')).toContainText('da filial');
 });
 
+/*
+ * ESTE TESTE MUDOU DE FORMA, E O REQUISITO É O MESMO: a comissão é SOMENTE_DONO
+ * e o gerente não a lê em lugar nenhum.
+ *
+ * Ela morava numa seção própria ("O que sai do faturamento", com a linha
+ * "Comissão sobre R$ X de base"); hoje é uma LINHA da composição do
+ * faturamento, ao lado do desconto e do cashback resgatado. O que a asserção
+ * protege continua sendo o mesmo: o cartão inteiro aparece para o gerente — ele
+ * lê o faturamento da filial dele —, e a linha da comissão não.
+ *
+ * Ela não é zero nem travessão: ela NÃO É DESENHADA. Um "Comissão R$ 0,00" na
+ * tela de quem não pode lê-la seria uma afirmação falsa sobre o contrato da
+ * loja com a plataforma.
+ */
 test('a comissão é só do dono', async ({ page }) => {
   api.entrarComoPapel('manager');
   await entrar(page, '/desempenho');
   await page.goto('/desempenho');
   await escolherFilial(page, FAKE_BRANCH);
 
-  await expect(page.getByText('O que sai do faturamento')).toBeVisible();
-  await expect(page.getByText(/Comissão sobre/)).toHaveCount(0);
+  const composicao = page.getByTestId('perf-composicao');
+  await expect(composicao).toBeVisible();
+  await expect(composicao).toContainText('Produtos');
+  await expect(composicao).not.toContainText('Comissão da plataforma');
+  // O cashback resgatado sai do MESMO extrato, então ele cai junto.
+  await expect(composicao).not.toContainText('Cashback resgatado');
 });
 
 test('o dono lê o faturamento da rede inteira, sem escolher filial', async ({ page }) => {
@@ -295,7 +313,7 @@ test('o dono lê o faturamento da rede inteira, sem escolher filial', async ({ p
 
   await expect(page.getByTestId('perf-escolha-filial')).toHaveCount(0);
   await expect(page.getByTestId('perf-escopo')).toContainText('todas as filiais');
-  await expect(page.getByText(/Comissão sobre/)).toBeVisible();
+  await expect(page.getByTestId('perf-composicao')).toContainText('Comissão da plataforma');
 });
 
 /* ==========================================================================

@@ -84,7 +84,16 @@ export function readChange(comparison: MetricComparison, previousLabel: string):
 
   if (percent === null) {
     return {
-      text: `sem comparação — ${previousLabel} não teve movimento`,
+      /*
+       * A FRASE NÃO CONCORDA COM O RÓTULO, e por isso não o usa.
+       *
+       * `previousLabel` tanto é "os 7 dias anteriores" quanto "o período
+       * anterior", e qualquer verbo colado nele erra a concordância num dos
+       * dois: "os 7 dias anteriores não TEVE movimento". A frase fixa é
+       * gramatical sempre, e o rótulo continua aparecendo onde ele importa —
+       * no texto da variação que existe ("+25% vs. os 7 dias anteriores").
+       */
+      text: `sem comparação — não houve movimento no período anterior`,
       direction: 'none',
       isMissing: true,
     };
@@ -337,4 +346,156 @@ export function barRatio(revenue: string, max: number): number {
 
   const razao = Math.min(1, Math.max(0, valor / max));
   return Math.max(MIN_BAR_RATIO, razao);
+}
+
+/* ==========================================================================
+ * 7. TAXA SE COMPARA EM PONTOS PERCENTUAIS
+ * ======================================================================= */
+
+/**
+ * A variação de uma TAXA (cancelamento) entre dois períodos.
+ *
+ * NÃO É `readChange`. De 6,5% para 10% de cancelamento, a variação percentual
+ * seria "+53,8%" — verdade aritmética e mentira de leitura: o dono entende
+ * que perdeu metade a mais dos pedidos. A diferença em pontos percentuais
+ * ("+3,5 p.p.") é o que ele confere de cabeça, e é como taxa se compara.
+ *
+ * O período anterior vem de uma SEGUNDA chamada de `/reports/cancellations`
+ * (o relatório não traz comparação própria), então há dois jeitos de não
+ * haver comparação, e a frase separa os dois:
+ * - `null`: a rota respondeu, e `cancellation_rate_percent` veio nulo — não
+ *   houve pedido nenhum no período anterior. Não é 0% de cancelamento.
+ * - `undefined`: a chamada falhou. A tela não sabe, e diz que não sabe.
+ */
+export function readRateChange(
+  atual: string | number | null | undefined,
+  anterior: string | number | null | undefined,
+  previousLabel: string,
+): ChangeReading {
+  const taxaAtual = toNumber(atual);
+
+  if (anterior === undefined) {
+    return {
+      text: `sem comparação — não deu para ler ${previousLabel}`,
+      direction: 'none',
+      isMissing: true,
+    };
+  }
+
+  const taxaAnterior = toNumber(anterior);
+  if (taxaAtual === null || taxaAnterior === null) {
+    return {
+      text: `sem comparação — não houve pedido no período anterior`,
+      direction: 'none',
+      isMissing: true,
+    };
+  }
+
+  const diferenca = Math.round((taxaAtual - taxaAnterior) * 10) / 10;
+  const sinal = diferenca > 0 ? '+' : '';
+  const formatada = `${sinal}${diferenca.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}`;
+
+  return {
+    text: `${formatada} p.p. vs. ${previousLabel}`,
+    direction: diferenca > 0 ? 'up' : diferenca < 0 ? 'down' : 'none',
+    isMissing: false,
+  };
+}
+
+/* ==========================================================================
+ * 8. A VARIAÇÃO QUE NÃO SE DEVE MOSTRAR
+ * ======================================================================= */
+
+/**
+ * QUANTOS PEDIDOS O PERÍODO ANTERIOR PRECISA TER para que a variação
+ * percentual signifique alguma coisa.
+ *
+ * O caso real: o Júnior abre a tela com 1 pedido na semana passada e 200 nesta.
+ * `change_percent` chega correto — `+19.900%` — e a tela pinta um número que
+ * não é informação nenhuma: ele mede o tamanho da base, não o desempenho da
+ * loja. O inverso é pior: 1 pedido antes e 0 agora vira `-100%` em vermelho
+ * numa loja que simplesmente ainda não vendeu hoje.
+ *
+ * CINCO É UM CORTE ESCOLHIDO, não medido, e é por isso que ele tem nome e mora
+ * aqui em vez de virar um `< 5` solto dentro do JSX. A régua: abaixo de cinco
+ * pedidos, um único pedido a mais ou a menos move a variação em vinte pontos
+ * percentuais ou mais — e nenhuma decisão de restaurante se toma sobre isso.
+ *
+ * O que a tela mostra no lugar NÃO é um travessão mudo: é a base ("1 pedido no
+ * período anterior"), que é a resposta verdadeira para "por que não tem
+ * variação aqui".
+ */
+export const BASE_MINIMA_PARA_VARIACAO = 5;
+
+/**
+ * O TETO DA VARIAÇÃO EXIBIDA.
+ *
+ * Acima disto o número deixa de ser lido como número e vira ruído tipográfico:
+ * "+19.900%" ocupa a largura de um cartão inteiro e diz menos que "cresceu
+ * muito". O corte é dito com o sinal de maior, não escondido — quem quiser o
+ * valor exato tem a base e o atual escritos no mesmo cartão.
+ */
+export const VARIACAO_MAXIMA_PCT = 999;
+
+/**
+ * A leitura de uma `MetricComparison` COM O TAMANHO DA BASE NA CONTA.
+ *
+ * É esta que a tela usa, e não `readChange` direto: as duas armadilhas que ela
+ * fecha (base minúscula e percentual estratosférico) não aparecem em nenhum
+ * teste de tipo e só se manifestam na loja que acabou de abrir — que é
+ * exatamente quem mais precisa que o painel não pareça quebrado.
+ *
+ * `pedidosAnteriores` NULO é "não sei quantos foram", e aí a guarda não roda:
+ * inventar uma base para poder escondê-la seria trocar um defeito por outro.
+ * Quem tem o número é `orders_count_comparison.previous`, e ele qualifica os
+ * TRÊS números do resumo — faturamento, pedidos e ticket saem todos da mesma
+ * contagem de pedidos.
+ */
+export function readChangeComBase(
+  comparison: MetricComparison,
+  previousLabel: string,
+  pedidosAnteriores: number | null,
+): ChangeReading {
+  if (pedidosAnteriores !== null && pedidosAnteriores < BASE_MINIMA_PARA_VARIACAO) {
+    return {
+      // Frase fixa, pelo mesmo motivo de `readChange`: "1 pedido em os 7 dias
+      // anteriores" é o que sai ao colar o rótulo numa preposição.
+      text:
+        pedidosAnteriores === 1
+          ? `sem comparação — 1 pedido no período anterior`
+          : `sem comparação — ${pedidosAnteriores} pedidos no período anterior`,
+      direction: 'none',
+      isMissing: true,
+    };
+  }
+
+  const leitura = readChange(comparison, previousLabel);
+  const percent = toNumber(comparison.change_percent);
+  if (percent === null || Math.abs(percent) <= VARIACAO_MAXIMA_PCT) return leitura;
+
+  const sinal = percent > 0 ? '+' : '−';
+  return {
+    ...leitura,
+    text: `mais de ${sinal}${VARIACAO_MAXIMA_PCT}% vs. ${previousLabel}`,
+  };
+}
+
+/**
+ * A TAXA TEM BASE PARA SER LIDA COMO TAXA?
+ *
+ * O mesmo corte de `BASE_MINIMA_PARA_VARIACAO`, aplicado ao VALOR e não à
+ * variação. O caso que o obrigou: num período sem venda nenhuma com dois
+ * pedidos cancelados, `cancellation_rate_percent` vem `"100.0"` — certo, e
+ * ilegível como manchete de 28px. "100% de cancelamento" faz o lojista pensar
+ * que a operação parou; o que houve foi que entraram dois pedidos.
+ *
+ * O denominador é TODOS os pedidos do período (faturados mais excluídos), que é
+ * o mesmo que o backend usa — recalcular só sobre os faturados daria outro
+ * número, e é a armadilha que a ressalva do rodapé já existe para desarmar.
+ *
+ * Sem base, a tela mostra travessão E a contagem: "2 pedidos · R$ 96,00" é a
+ * informação de verdade, e ela cabe inteira sem inventar uma taxa.
+ */
+export function taxaTemBase(pedidosNoPeriodo: number): boolean {
+  return pedidosNoPeriodo >= BASE_MINIMA_PARA_VARIACAO;
 }

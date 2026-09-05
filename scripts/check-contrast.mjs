@@ -128,6 +128,21 @@ const PAIRS = [
   { fg: '--danger', bg: '--bg', min: 4.5, use: 'perigo sobre a página' },
   { fg: '--danger', bg: '--danger-wash', min: 4.5, use: 'texto do aviso de erro' },
   { fg: '--st-aceito', bg: '--st-aceito-wash', min: 4.5, use: 'texto do aviso informativo' },
+  /*
+   * A VARIAÇÃO DENTRO DO CARTÃO DE DESEMPENHO. O plano ali é `--surface-raised`
+   * e não `--surface` — no claro os dois são o mesmo branco, mas no ESCURO o
+   * cartão sobe um degrau, e é lá que um par medido sobre o plano errado
+   * passaria batido.
+   */
+  { fg: '--ok', bg: '--surface-raised', min: 4.5, use: 'variação para cima no cartão de métrica' },
+  {
+    fg: '--danger',
+    bg: '--surface-raised',
+    min: 4.5,
+    use: 'variação para baixo no cartão de métrica',
+  },
+  // A linha e a área do gráfico são elemento gráfico, não texto (1.4.11).
+  { fg: '--ink-2', bg: '--surface-raised', min: 3, use: 'a série do gráfico sobre o cartão' },
   // O interruptor ligado é elemento gráfico, não texto (1.4.11).
   { fg: '--ok', bg: '--surface', min: 3, use: 'interruptor ligado sobre cartão' },
   // O traço do checkbox/rádio marcado é elemento gráfico, não texto (1.4.11).

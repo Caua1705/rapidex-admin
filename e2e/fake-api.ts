@@ -1417,10 +1417,7 @@ function reportDays(inicio: string, fim: string): Schemas['SalesByDayItem'][] {
    * mesma linha.
    */
   const hoje = Date.parse(`${OPERATION_DAY.format(new Date())}T12:00:00Z`);
-  const fimDoPeriodo = Date.parse(`${fim}T12:00:00Z`);
-  const anterior = Number.isFinite(fimDoPeriodo) && hoje - fimDoPeriodo >= 2 * 86_400_000;
-
-  const valores = anterior ? VALORES_ANTERIORES : VALORES_PERIODO;
+  const valores = ehPeriodoAnterior(fim) ? VALORES_ANTERIORES : VALORES_PERIODO;
   const primeiroDia = Date.parse(`${inicio}T12:00:00Z`);
   const base = Number.isFinite(primeiroDia) ? primeiroDia : hoje - (PERIODO_DIAS - 1) * 86_400_000;
 
@@ -1434,6 +1431,20 @@ function reportDays(inicio: string, fim: string): Schemas['SalesByDayItem'][] {
     });
   }
   return dias;
+}
+
+/**
+ * O intervalo pedido é o PERÍODO ANTERIOR? Termina dois dias ou mais atrás.
+ *
+ * É a heurística de `reportDays`, com nome, porque passou a servir dois
+ * relatórios: a tela pede `sales-by-day` E `cancellations` duas vezes (o
+ * período que ela está vendo e o anterior), e os dois precisam concordar sobre
+ * qual das duas séries devolver.
+ */
+function ehPeriodoAnterior(fim: string): boolean {
+  const hoje = Date.parse(`${OPERATION_DAY.format(new Date())}T12:00:00Z`);
+  const fimDoPeriodo = Date.parse(`${fim}T12:00:00Z`);
+  return Number.isFinite(fimDoPeriodo) && hoje - fimDoPeriodo >= 2 * 86_400_000;
 }
 
 /** O mesmo período, sem venda nenhuma — para o estado vazio da tela. */
@@ -1529,8 +1540,36 @@ function comparacaoDe(atual: number, anterior: number, casas: number): MetricCom
   };
 }
 
-function initialSalesSummary(start: string, end: string, branchId = ''): SalesSummary {
-  const recorte = (branchId ? RESUMO_POR_FILIAL[branchId] : RESUMO_DA_REDE) ?? RESUMO_DA_REDE;
+/**
+ * O PERÍODO ANTERIOR DA LOJA QUE ACABOU DE ABRIR — um pedido, dezoito reais.
+ *
+ * Ele existe para exercitar a guarda de base pequena da tela
+ * (`readChangeComBase`): com 54 pedidos agora e 1 antes, o backend responde
+ * `change_percent: "+5300.0"` com toda a razão, e o painel antigo desenhava
+ * isso em verde gigante. O número mede o denominador, não a loja.
+ *
+ * Ele é um RECORTE, e não uma resposta escrita à mão, para que o resto do
+ * resumo (as fatias, o breakdown, a soma das filiais) continue coerente — um
+ * falso em que só um campo muda é um falso que não exercita o caminho inteiro.
+ */
+const RESUMO_DE_BASE_PEQUENA: RecorteDeResumo = {
+  ...RESUMO_DA_REDE,
+  ordersPrev: 1,
+  revenuePrev: '18.00',
+};
+
+function initialSalesSummary(
+  start: string,
+  end: string,
+  branchId = '',
+  basePequena = false,
+): SalesSummary {
+  const recorte =
+    (basePequena
+      ? RESUMO_DE_BASE_PEQUENA
+      : branchId
+        ? RESUMO_POR_FILIAL[branchId]
+        : RESUMO_DA_REDE) ?? RESUMO_DA_REDE;
   const receita = Number(recorte.revenue);
   const receitaAnterior = Number(recorte.revenuePrev);
   const ticket = receita / recorte.orders;
@@ -1835,7 +1874,37 @@ function initialProductSales(start: string, end: string): ProductSales {
  * pedidos do período — 6 / (54 + 6) = 10,0% —, e não só sobre os faturados: é a
  * armadilha que a ressalva da seção existe para desarmar.
  */
+/**
+ * OS CANCELAMENTOS MUDAM NO PERÍODO ANTERIOR.
+ *
+ * A tela pede este relatório duas vezes para escrever a variação da taxa no
+ * quarto número do topo ("+3,5 p.p. vs. os 7 dias anteriores"). Com o falso
+ * devolvendo 10% para qualquer intervalo, a diferença seria zero e o teste
+ * passaria sem nunca ter exercitado a segunda chamada — o mesmo buraco que
+ * `VALORES_ANTERIORES` fechou no gráfico. O anterior fica em 6,5%: a taxa
+ * PIOROU, que é o caso em que a cor do delta precisa inverter.
+ */
 function initialCancellations(start: string, end: string): Cancellations {
+  if (ehPeriodoAnterior(end)) {
+    return {
+      restaurant_id: RESTAURANT_ID,
+      period: reportPeriod(start, end),
+      orders_count: 4,
+      amount_total: '198.00',
+      billable_orders_count: 58,
+      cancellation_rate_percent: '6.5',
+      breakdown: [
+        {
+          status: 'cancelled',
+          payment_status: 'refunded',
+          orders_count: 3,
+          amount_total: '150.00',
+        },
+        { status: 'rejected', payment_status: 'pending', orders_count: 1, amount_total: '48.00' },
+      ],
+    };
+  }
+
   return {
     restaurant_id: RESTAURANT_ID,
     period: reportPeriod(start, end),
@@ -1851,16 +1920,49 @@ function initialCancellations(start: string, end: string): Cancellations {
   };
 }
 
+/**
+ * O EXTRATO VEM COM AS 54 LINHAS, e ele vinha vazio.
+ *
+ * `orders: []` com `orders_count: 54` era um falso mais frouxo que o backend —
+ * a rota devolve `orders[]` INTEIRO, sem paginação, e é dessa lista que o
+ * painel soma o cashback resgatado do período (não existe agregado). Com a
+ * lista vazia, a linha de cashback da composição nunca era desenhada e o
+ * caminho ficava sem teste (§4.10 da skill `rapidex-api`).
+ *
+ * Um pedido em cada seis resgata R$ 5,00 — nove pedidos, R$ 45,00 no período.
+ * Não é redondo de propósito: um valor que coincidisse com outro número da tela
+ * deixaria passar uma soma trocada.
+ */
 function initialCommission(start: string, end: string): CommissionReport {
+  const PEDIDOS = 54;
+  const orders = Array.from({ length: PEDIDOS }, (_, indice) => {
+    const base = 3169.5 / PEDIDOS;
+    return {
+      order_id: `commission-${indice}`,
+      order_number: 1000 + indice,
+      status: 'completed',
+      payment_status: 'paid',
+      payment_method: indice % 2 === 0 ? 'pix' : 'credit_card',
+      created_at: null,
+      order_total: base.toFixed(2),
+      subtotal: (base * 0.94).toFixed(2),
+      coupon_discount_amount: '0.00',
+      cashback_redeemed_amount: indice % 6 === 0 ? '5.00' : '0.00',
+      commission_base_amount: base.toFixed(2),
+      commission_percent: '10.00',
+      commission_amount: (base * 0.1).toFixed(2),
+    };
+  });
+
   return {
     restaurant_id: RESTAURANT_ID,
     start_date: start,
     end_date: end,
-    orders_count: 54,
+    orders_count: PEDIDOS,
     excluded_orders_count: 3,
     commission_base_total: '3169.50',
     commission_total: '316.95',
-    orders: [],
+    orders,
   };
 }
 
@@ -2136,6 +2238,14 @@ export type FakeApi = {
   closeBranch: (branchId: string) => void;
   /** Zera os relatórios: o período passa a não ter venda nenhuma. */
   emptyReports: () => void;
+  /**
+   * O período anterior passa a ter UM pedido — a loja que acabou de abrir.
+   *
+   * É o caso em que a variação percentual do backend está certa e a leitura na
+   * tela é lixo: +5300% mede o denominador, não a loja. Sem este interruptor
+   * não haveria como exercitar a guarda de base pequena no e2e.
+   */
+  lojaNova: () => void;
   /** Faixa que o "banco" tem agora para a filial. */
   prepTimeOf: (branchId: string) => { min: number; max: number } | null;
   /** Cada PATCH /admin/products/{id}/availability que chegou. */
@@ -2924,6 +3034,8 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     closedBranches: new Set<string>(),
     /** Ligado por `emptyReports()`: os relatórios passam a responder zerados. */
     reportsEmpty: false,
+    /** Ligado por `lojaNova()`: o período anterior passa a ter 1 pedido só. */
+    basePequena: false,
     // Loja. As filiais são cópias, e não as constantes exportadas: os
     // PATCH da tela gravam nelas, e mutar a constante vazaria de um teste para
     // o outro.
@@ -3782,9 +3894,11 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     // --- relatórios (Desempenho) -------------------------------------------
 
     /*
-     * As seis rotas recebem `start_date` e `end_date` e MAIS NADA — nenhuma
-     * aceita `branch_id`. O falso não filtra por filial de propósito: filtrar
-     * aqui esconderia justamente o que a tela precisa avisar ao lojista.
+     * AS SEIS ROTAS RECEBEM `start_date`, `end_date` E `branch_id`, e este
+     * comentário dizia o contrário até a revisão `20260820_0026` do backend
+     * ("nenhuma aceita branch_id"). O falso responde ao recorte no `summary`,
+     * que é onde a tela o prova: o faturamento MUDA ao trocar de filial, e é
+     * essa mudança que `desempenho.spec.ts` afirma.
      */
     const rotaDoRelatorio = ROTAS_DE_RELATORIO.find((candidata) => candidata === path);
     if (method === 'GET' && rotaDoRelatorio) {
@@ -3821,7 +3935,7 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
           'get',
           '/admin/reports/summary',
           200,
-          initialSalesSummary(inicio, fim, query.get('branch_id') ?? ''),
+          initialSalesSummary(inicio, fim, query.get('branch_id') ?? '', state.basePequena),
         );
       }
 
@@ -6734,6 +6848,9 @@ export async function installFakeApi(page: Page): Promise<FakeApi> {
     },
     emptyReports() {
       state.reportsEmpty = true;
+    },
+    lojaNova() {
+      state.basePequena = true;
     },
     productReorderCalls: () => state.productReorderCalls,
     failAvailability(productId) {

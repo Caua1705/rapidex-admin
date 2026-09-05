@@ -10,7 +10,12 @@ import {
   paymentMethodLabel,
   previousRange,
   rangeProblem,
+  BASE_MINIMA_PARA_VARIACAO,
   readChange,
+  readChangeComBase,
+  readRateChange,
+  VARIACAO_MAXIMA_PCT,
+  taxaTemBase,
   toNumber,
   toNumberOrZero,
 } from './report-model';
@@ -56,6 +61,62 @@ describe('toNumber', () => {
   it('toNumberOrZero devolve 0 onde zero é resposta válida', () => {
     expect(toNumberOrZero(null)).toBe(0);
     expect(toNumberOrZero('0.00')).toBe(0);
+  });
+});
+
+describe('readRateChange', () => {
+  /*
+   * TAXA SE COMPARA EM PONTOS PERCENTUAIS, não em variação percentual.
+   *
+   * De 6,5% para 10% de cancelamento o `readChange` diria "+53,8%", que é
+   * verdade aritmética e mentira de leitura: o dono entende que perdeu metade
+   * a mais dos pedidos. +3,5 p.p. é o que ele consegue conferir de cabeça.
+   */
+  it('escreve a diferença em p.p., com sinal', () => {
+    const leitura = readRateChange('10.0', '6.5', 'os 7 dias anteriores');
+
+    expect(leitura.text).toBe('+3,5 p.p. vs. os 7 dias anteriores');
+    expect(leitura.direction).toBe('up');
+    expect(leitura.isMissing).toBe(false);
+  });
+
+  it('queda vem com sinal de menos e direção para baixo', () => {
+    const leitura = readRateChange('4.0', '6.5', 'os 7 dias anteriores');
+
+    expect(leitura.text).toBe('-2,5 p.p. vs. os 7 dias anteriores');
+    expect(leitura.direction).toBe('down');
+  });
+
+  it('diferença que arredonda a zero é "none", sem sinal', () => {
+    const leitura = readRateChange('6.54', '6.5', 'os 7 dias anteriores');
+
+    expect(leitura.direction).toBe('none');
+    expect(leitura.text).toBe('0 p.p. vs. os 7 dias anteriores');
+  });
+
+  /*
+   * `cancellation_rate_percent` NULO é "sem denominador": não houve pedido
+   * nenhum no período anterior. Não é zero por cento de cancelamento.
+   */
+  it('anterior nulo é "sem comparação", nunca 0 p.p.', () => {
+    const leitura = readRateChange('10.0', null, 'os 7 dias anteriores');
+
+    expect(leitura.isMissing).toBe(true);
+    expect(leitura.direction).toBe('none');
+    expect(leitura.text).toContain('sem comparação');
+    expect(leitura.text).toContain('não houve pedido no período anterior');
+  });
+
+  /* A segunda chamada falhou: a tela não sabe, e diz que não sabe. */
+  it('anterior indisponível diz que não deu para ler, sem inventar direção', () => {
+    const leitura = readRateChange('10.0', undefined, 'os 7 dias anteriores');
+
+    expect(leitura.isMissing).toBe(true);
+    expect(leitura.text).toContain('não deu para ler');
+  });
+
+  it('taxa atual nula também é sem comparação', () => {
+    expect(readRateChange(null, '6.5', 'os 7 dias anteriores').isMissing).toBe(true);
   });
 });
 
@@ -291,5 +352,102 @@ describe('previousRange', () => {
   it('devolve null no par ilegível ou invertido', () => {
     expect(previousRange({ startDate: '', endDate: '2026-08-16' })).toBeNull();
     expect(previousRange({ startDate: '2026-08-20', endDate: '2026-08-10' })).toBeNull();
+  });
+});
+
+/* ==========================================================================
+ * A VARIAÇÃO QUE NÃO SE DEVE MOSTRAR — a loja que acabou de abrir
+ * ======================================================================= */
+
+/*
+ * ESTES TESTES SÃO SOBRE QUEM ABRE A TELA COM UM PEDIDO, e é esse caso que
+ * quebra a tela de desempenho de todo painel: com 1 pedido no período
+ * anterior, a aritmética do backend está certa e a leitura na tela é lixo.
+ * "-99,5%" em vermelho gigante não descreve a loja — descreve o denominador.
+ */
+describe('readChangeComBase', () => {
+  it('esconde a variação quando o período anterior teve menos de 5 pedidos', () => {
+    const leitura = readChangeComBase(
+      comparison({ change_percent: '-99.5' }),
+      'a semana passada',
+      1,
+    );
+
+    expect(leitura.text).toBe('sem comparação — 1 pedido no período anterior');
+    expect(leitura.direction).toBe('none');
+    expect(leitura.isMissing).toBe(true);
+  });
+
+  it('escreve a base no plural, porque ela é a resposta e não um travessão', () => {
+    expect(readChangeComBase(comparison(), 'os 7 dias anteriores', 4).text).toBe(
+      'sem comparação — 4 pedidos no período anterior',
+    );
+  });
+
+  /* O corte é `< 5`, não `<= 5`: cinco pedidos JÁ comparam. O teste está no
+     limite porque é ali que um `<=` distraído passaria despercebido. */
+  it('mostra a variação a partir da base mínima', () => {
+    expect(readChangeComBase(comparison(), 'antes', BASE_MINIMA_PARA_VARIACAO).text).toBe(
+      '+25% vs. antes',
+    );
+  });
+
+  /*
+   * BASE DESCONHECIDA NÃO É BASE PEQUENA. Sem a contagem, a guarda não roda —
+   * inventar um número para poder escondê-lo seria trocar um defeito por outro.
+   */
+  it('não esconde nada quando a base é desconhecida', () => {
+    expect(readChangeComBase(comparison(), 'antes', null).text).toBe('+25% vs. antes');
+  });
+
+  /*
+   * O TETO. "+19.900%" ocupa a largura de um cartão e diz menos que "cresceu
+   * muito" — e a direção continua sendo dita, porque ela é verdadeira.
+   */
+  it('corta o percentual absurdo no teto, dizendo que cortou', () => {
+    const leitura = readChangeComBase(comparison({ change_percent: '19900.0' }), 'antes', 40);
+
+    expect(leitura.text).toBe(`mais de +${VARIACAO_MAXIMA_PCT}% vs. antes`);
+    expect(leitura.direction).toBe('up');
+    expect(leitura.isMissing).toBe(false);
+  });
+
+  it('corta o percentual absurdo para baixo também', () => {
+    const leitura = readChangeComBase(comparison({ change_percent: '-1500.0' }), 'antes', 40);
+
+    expect(leitura.text).toBe(`mais de −${VARIACAO_MAXIMA_PCT}% vs. antes`);
+    expect(leitura.direction).toBe('down');
+  });
+
+  it('deixa passar o que está dentro do teto', () => {
+    expect(readChangeComBase(comparison({ change_percent: '999.0' }), 'antes', 40).text).toBe(
+      '+999% vs. antes',
+    );
+  });
+
+  /* A regra de sempre continua valendo por baixo: nulo é "sem comparação",
+     nunca 0% — e uma base grande não pode reintroduzir aquele defeito. */
+  it('mantém "sem comparação" do change_percent nulo', () => {
+    expect(readChangeComBase(comparison({ change_percent: null }), 'antes', 40).isMissing).toBe(
+      true,
+    );
+  });
+});
+
+/*
+ * A TAXA TAMBÉM TEM PISO DE BASE, e o caso é o do período sem venda: dois
+ * pedidos, os dois cancelados, e o backend responde "100.0" com toda a razão.
+ * Como manchete de 28px isso diz "a operação parou".
+ */
+describe('taxaTemBase', () => {
+  it('recusa a taxa quando o período teve menos de cinco pedidos', () => {
+    expect(taxaTemBase(0)).toBe(false);
+    expect(taxaTemBase(2)).toBe(false);
+    expect(taxaTemBase(BASE_MINIMA_PARA_VARIACAO - 1)).toBe(false);
+  });
+
+  it('aceita a partir da mesma base mínima da variação', () => {
+    expect(taxaTemBase(BASE_MINIMA_PARA_VARIACAO)).toBe(true);
+    expect(taxaTemBase(60)).toBe(true);
   });
 });

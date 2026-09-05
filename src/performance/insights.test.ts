@@ -175,7 +175,7 @@ describe('readVeredito', () => {
       null,
       'os 7 dias anteriores',
     ).text;
-    expect(frase).toContain('não teve movimento');
+    expect(frase).toContain('não houve movimento no período anterior');
     expect(frase).not.toContain('0%');
   });
 
