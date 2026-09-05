@@ -2150,7 +2150,11 @@
         "properties": {
           "closes_at": { "format": "time", "title": "Closes At", "type": "string" },
           "opens_at": { "format": "time", "title": "Opens At", "type": "string" },
-          "weekday": { "title": "Weekday", "type": "integer" }
+          "weekday": {
+            "description": "Dia da semana com 0 = SEGUNDA e 6 = domingo (`datetime.weekday()` do Python). NAO e o `getDay()` do JavaScript, que usa 0 = domingo: converter e obrigatorio dos dois lados.",
+            "title": "Weekday",
+            "type": "integer"
+          }
         },
         "required": ["weekday", "opens_at", "closes_at"],
         "title": "BranchOpenPeriodResponse",
@@ -2313,7 +2317,11 @@
             "title": "Periods",
             "type": "array"
           },
-          "weekday": { "title": "Weekday", "type": "integer" }
+          "weekday": {
+            "description": "Dia da semana com 0 = SEGUNDA e 6 = domingo (`datetime.weekday()` do Python). NAO e o `getDay()` do JavaScript, que usa 0 = domingo: converter e obrigatorio dos dois lados.",
+            "title": "Weekday",
+            "type": "integer"
+          }
         },
         "required": ["weekday", "day_label", "periods", "is_closed"],
         "title": "BusinessHourDayResponse",
@@ -2339,7 +2347,13 @@
             "anyOf": [{ "maximum": 600, "minimum": 0, "type": "integer" }, { "type": "null" }],
             "title": "Prep Time Min"
           },
-          "weekday": { "maximum": 6, "minimum": 0, "title": "Weekday", "type": "integer" }
+          "weekday": {
+            "description": "Dia da semana com 0 = SEGUNDA e 6 = domingo (`datetime.weekday()` do Python). NAO e o `getDay()` do JavaScript, que usa 0 = domingo: converter e obrigatorio dos dois lados.",
+            "maximum": 6,
+            "minimum": 0,
+            "title": "Weekday",
+            "type": "integer"
+          }
         },
         "required": ["weekday"],
         "title": "BusinessHourInput",
@@ -2375,7 +2389,11 @@
             "title": "Prep Time Min"
           },
           "sort_order": { "title": "Sort Order", "type": "integer" },
-          "weekday": { "title": "Weekday", "type": "integer" }
+          "weekday": {
+            "description": "Dia da semana com 0 = SEGUNDA e 6 = domingo (`datetime.weekday()` do Python). NAO e o `getDay()` do JavaScript, que usa 0 = domingo: converter e obrigatorio dos dois lados.",
+            "title": "Weekday",
+            "type": "integer"
+          }
         },
         "required": ["id", "weekday", "is_closed", "sort_order"],
         "title": "BusinessHourResponse",
@@ -2620,7 +2638,13 @@
             ],
             "title": "Percent"
           },
-          "weekday": { "maximum": 6, "minimum": 0, "title": "Weekday", "type": "integer" }
+          "weekday": {
+            "description": "Dia da semana com 0 = SEGUNDA e 6 = domingo (`datetime.weekday()` do Python). NAO e o `getDay()` do JavaScript, que usa 0 = domingo: converter e obrigatorio dos dois lados.",
+            "maximum": 6,
+            "minimum": 0,
+            "title": "Weekday",
+            "type": "integer"
+          }
         },
         "required": ["weekday", "percent"],
         "title": "CashbackWeekdayInput",
@@ -2633,7 +2657,11 @@
             "title": "Percent",
             "type": "string"
           },
-          "weekday": { "title": "Weekday", "type": "integer" }
+          "weekday": {
+            "description": "Dia da semana com 0 = SEGUNDA e 6 = domingo (`datetime.weekday()` do Python). NAO e o `getDay()` do JavaScript, que usa 0 = domingo: converter e obrigatorio dos dois lados.",
+            "title": "Weekday",
+            "type": "integer"
+          }
         },
         "required": ["weekday", "percent"],
         "title": "CashbackWeekdayResponse",
@@ -5525,7 +5553,11 @@
             "type": "array"
           },
           "current_day_label": { "title": "Current Day Label", "type": "string" },
-          "current_weekday": { "title": "Current Weekday", "type": "integer" },
+          "current_weekday": {
+            "description": "Dia da semana com 0 = SEGUNDA e 6 = domingo (`datetime.weekday()` do Python). NAO e o `getDay()` do JavaScript, que usa 0 = domingo: converter e obrigatorio dos dois lados.",
+            "title": "Current Weekday",
+            "type": "integer"
+          },
           "payment_methods": {
             "$ref": "#/components/schemas/src__schemas__restaurant_schema__PaymentMethodsResponse"
           },
